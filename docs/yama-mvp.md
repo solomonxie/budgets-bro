@@ -5,6 +5,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 
 ## Goals
 - Free iOS app, lean YNAB-style envelope budgeting (accounts, categories, budgets, transactions, transfers).
+- Two native, on-device reports (spending breakdown, income vs. spending trend) — no AI or network call required for either.
 - Self-contained financial calculators module (mortgage, loan/interest, amortization).
 - AI analysis using the user's own API key, called directly from device to provider.
 - SQLite as the single on-device source of truth; iCloud and S3 as optional backup targets.
@@ -18,16 +19,20 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 - Push notifications, reminders, recurring-transaction automation
 - CSV import (possible post-MVP; manual entry only for MVP)
 - Multi-currency (single currency assumed)
-- Advanced reporting/BI beyond budget-vs-actual and category spend view
+- Advanced reporting/BI beyond the two native reports described below (spending breakdown, income vs spending)
 - AI taking actions on data (analysis/insights only, read-only against the AI provider)
+- Category goals/targets (funding targets, "needed by" dates) — real YNAB feature, deferred post-MVP: meaningful added complexity (goal types, progress math) that isn't required for basic envelope budgeting
+- Receipt photo attachment on transactions — deferred post-MVP (needs local image storage/size management)
+- Transaction flags (arbitrary color tags) — deferred post-MVP, cosmetic-only
+- Payee-based transfer detection/autocomplete beyond a simple picker — deferred post-MVP
 
 ## Core domain model
 Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pairs, not a separate ledger.
 
 **Tables (SQLite):**
-- `accounts` (id, name, type: checking|savings|credit_card|cash|tracking, on_budget, currency, opening_balance_cents, archived_at, created_at)
+- `accounts` (id, name, type: checking|savings|credit_card|cash|loan|tracking, on_budget, currency, opening_balance_cents, archived_at, created_at) — `type` also drives which group an account is listed under (Cash / Credit / Loan / Tracking)
 - `category_groups` (id, name, sort_order)
-- `categories` (id, group_id, name, sort_order, archived_at)
+- `categories` (id, group_id, name, icon nullable, sort_order, archived_at) — `icon` is a single emoji, shown next to the name in lists (matches the visual identity pattern real YNAB uses; optional, defaults to none)
 - `budget_entries` (id, category_id, month `YYYY-MM`, assigned_cents) — one row per category per month
 - `payees` (id, name)
 - `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents signed, date, cleared, transfer_account_id nullable, created_at, updated_at)
@@ -38,6 +43,41 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 - Account balance = opening_balance + sum(transactions.amount_cents)
 
 Balances are computed, not stored, to avoid drift bugs.
+
+## Core UI
+Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that carry the core budgeting workflow; the goal-tracking and cosmetic extras noted above stay out for MVP.
+
+**Budget screen**
+- "Ready to Assign" banner at the top — the To Be Budgeted figure, tappable, large and color-coded (green when positive, red when negative)
+- Category groups, collapsible (tap the group header to expand/collapse)
+- Each category row: icon (optional emoji) + name, a status badge showing the available amount — colored green when fully funded, yellow/amber when partially funded, red when overspent — plus a thin progress bar (spent vs. assigned) and a one-line status caption ("Funded" / "Spent $X of $Y")
+- Month selector (prev/next or a dropdown) in the nav bar
+- Floating "+ Transaction" button, always reachable, for quick entry from any tab
+
+**Transaction entry/edit sheet** (modal, opened by the floating button or tapping a transaction)
+- Large amount field with a numeric keypad
+- Inflow/Outflow toggle (sets the sign)
+- Payee picker (recent/autocomplete, create-new inline)
+- Category picker
+- Account picker
+- Date picker (defaults to today)
+- Memo (free text)
+- Cleared/uncleared toggle
+- Save / Cancel
+
+**Transactions (Spending) list**
+- Grouped by date, most recent first
+- Each row: payee, category tag (icon + name), amount (colored for outflow), a small cleared-status indicator, account name
+- Search and a multi-select mode for bulk edit/delete
+
+**Accounts screen**
+- Grouped by account kind (Cash / Credit / Loan / Tracking), each group showing a subtotal
+- Each row: an icon, the account name, and its balance (colored red when negative)
+- Groups collapsible; "+" to add an account
+
+**Reports screen** (native, on-device — distinct from the AI analysis feature below; needs no API key and sends nothing off-device)
+- Spending breakdown for the selected month: total spent, a stacked bar by category, and a "Top categories" list with amounts
+- Income vs. spending trend across recent months (simple bar chart) with one auto-generated line of commentary (computed locally, not AI — e.g. "You're spending about as much as you make")
 
 ## Financial tools module
 Self-contained pure-function module, no DB/React dependency (`src/finance-tools/`):
@@ -79,6 +119,7 @@ Self-contained pure-function module, no DB/React dependency (`src/finance-tools/
 | Testing | Jest (`jest-expo`) | Unit tests for calculators & budget math only |
 | Build/submit | EAS Build + EAS Submit | Required — no full Xcode.app locally |
 | Lint/format | ESLint + Prettier | Baseline consistency for solo maintainer |
+| Charts (Reports) | Hand-rolled with RN `View`/flex widths | Bars only (stacked spend bar, income-vs-spend bars) — too simple to justify a charting library |
 
 ## Testing strategy
 - Unit tests for `finance-tools/*` and `domain/budgetMath.ts` (rollover, to-be-budgeted, overspend) — these need correctness guarantees.

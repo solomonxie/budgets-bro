@@ -17,7 +17,7 @@ Version control, Expo/TS app shell, and the skeleton (nav, DB, secure store) eve
 ## Phase 1: Domain Schema + Accounts/Categories CRUD
 Accounts and categories are referenced by everything else (transactions, budgets).
 
-- [ ] T1.1 Finalize SQLite schema for `accounts` (add `loan` to the account type enum), `category_groups`, `categories` (add nullable `icon` emoji column) — `src/db/migrations/`
+- [ ] T1.1 Finalize SQLite schema for `accounts` (add `loan` to the account type enum), `category_groups`, `categories` (add nullable `icon` emoji column), `transactions` (add `is_interest` flag) — `src/db/migrations/`
 - [ ] T1.2 `accountsRepo` CRUD + Accounts screen: grouped by kind (Cash/Credit/Loan/Tracking) with a subtotal per group
 - [ ] T1.3 `categoriesRepo` CRUD + grouped Categories screen, optional emoji icon picker
 - [ ] T1.4 Shared domain types for account/category — `src/domain/types.ts`
@@ -25,7 +25,7 @@ Accounts and categories are referenced by everything else (transactions, budgets
 ## Phase 2: Transactions & Budget Envelope Logic
 Core ledger and envelope math the budget UI depends on.
 
-- [ ] T2.1 `transactions` table + `transactionsRepo` CRUD (incl. transfer pairing)
+- [ ] T2.1 `transactions` table + `transactionsRepo` CRUD (incl. transfer pairing and balance-correction adjustment transactions)
 - [ ] T2.2 `budgetMath.ts` pure functions: category rollover, to-be-budgeted, overspend
 - [ ] T2.3 `budget_entries` table + `budgetsRepo` (monthly assigned amounts)
 - [ ] T2.4 Unit tests for `budgetMath.ts`
@@ -35,10 +35,10 @@ User-facing screens for end-to-end manual budgeting. Reference: real YNAB's scre
 
 - [ ] T3.0 Add a Reports tab; consolidate Calculators + AI Analysis into a single "Tools" tab so the bottom bar stays at 5 slots — updates the Phase 0 tab layout in `src/navigation/RootNavigator.tsx`
 - [ ] T3.1 Budget screen: "Unassigned Cash" banner, collapsible category groups, per-category status badge (funded/partial/overspent) + progress bar + status caption, month navigation
-- [ ] T3.2 Transaction entry/edit sheet: amount keypad, inflow/outflow toggle, payee/category/account pickers, date picker, memo, cleared toggle; reachable via a floating "+ Transaction" button
+- [ ] T3.2 Transaction entry/edit sheet: amount keypad, inflow/outflow toggle, payee/category/account pickers, date picker, memo, cleared toggle, interest-income toggle on inflows; reachable via a floating "+ Transaction" button
 - [ ] T3.3 Transactions (Spending) list: grouped by date, category tag + cleared indicator per row, search, multi-select bulk edit/delete
-- [ ] T3.4 Account detail/register screen with running balance
-- [ ] T3.5 Reports screen: spending breakdown (stacked bar + top categories) and income-vs-spending trend, computed locally — no AI/network involved
+- [ ] T3.4 Account detail/register screen with running balance, plus a "Correct Balance" action (enter actual balance → one adjustment transaction for the difference)
+- [ ] T3.5 Reports screen: spending breakdown (stacked bar + top categories), income-vs-spending trend, and interest-earned this month — all computed locally, no AI/network involved
 
 ## Phase 4: Financial Calculators Module
 Independent of the budgeting domain — can proceed in parallel with Phases 1-3.

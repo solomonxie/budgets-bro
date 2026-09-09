@@ -36,14 +36,16 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 - `categories` (id, group_id, name, icon nullable, sort_order, archived_at) — `icon` is a single emoji, shown next to the name in lists (matches the visual identity pattern real YNAB uses; optional, defaults to none)
 - `budget_entries` (id, category_id, month `YYYY-MM`, assigned_cents) — one row per category per month
 - `payees` (id, name)
-- `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents signed, date, cleared, transfer_account_id nullable, import_id nullable unique, created_at, updated_at) — `import_id` is the dedupe key for YNAB data import (below)
+- `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents signed, date, cleared, is_interest, transfer_account_id nullable, import_id nullable unique, created_at, updated_at) — `import_id` is the dedupe key for YNAB data import (below); `is_interest` flags interest income on savings-type accounts so it can be broken out separately in reports/AI analysis instead of blending into generic income
 
 **Derived (computed, not stored):**
-- Category balance(month) = balance(month-1) + assigned(month) + activity(month)
-- Unassigned Cash = sum(inflows to on-budget accounts, all time) − sum(assigned, all time)
+- Category balance(month) = cumulative assigned(≤ month) + cumulative activity(≤ month). Because this is a running cumulative sum rather than a per-month reset, an unspent balance automatically carries forward to next month in the same category — this rollover is the core mechanic of envelope budgeting and isn't a separate feature to build. The same mechanism lets a user assign money to a *future* month (there's nothing that restricts `budget_entries.month` to the current or past) — assigning ahead just pre-funds that month's cumulative balance.
+- Unassigned Cash = sum(uncategorized, non-transfer transaction amounts on on-budget accounts, all time) − sum(assigned, all time). Deliberately *not* "sum of positive inflows" — an uncategorized transaction can be negative too (a balance correction that finds less money than expected must reduce Unassigned Cash, not be ignored).
 - Account balance = opening_balance + sum(transactions.amount_cents)
 
 Balances are computed, not stored, to avoid drift bugs.
+
+**Correcting a balance**: no reconciliation UI/terminology — if an account's real-world balance drifts from what YAMA computes, the user enters the actual balance and YAMA creates one uncategorized adjustment transaction for the difference (payee "Balance Adjustment"). It flows through the same Unassigned Cash math as any other uncategorized transaction, positive or negative — no special-cased reconciliation logic needed.
 
 ## Core UI
 Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that carry the core budgeting workflow; the goal-tracking and cosmetic extras noted above stay out for MVP.
@@ -63,6 +65,7 @@ Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that ca
 - Account picker
 - Date picker (defaults to today)
 - Memo (free text)
+- "Interest income" toggle, shown on inflows — tags the transaction `is_interest` for reports/AI to break out later
 - Cleared/uncleared toggle
 - Save / Cancel
 
@@ -79,6 +82,7 @@ Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that ca
 **Reports screen** (native, on-device — distinct from the AI analysis feature below; needs no API key and sends nothing off-device)
 - Spending breakdown for the selected month: total spent, a stacked bar by category, and a "Top categories" list with amounts
 - Income vs. spending trend across recent months (simple bar chart) with one auto-generated line of commentary (computed locally, not AI — e.g. "You're spending about as much as you make")
+- Interest earned this month (sum of transactions flagged `is_interest`) — a small, free stat that sets up a real future AI-analysis question ("is my savings rate beating inflation?") without needing AI to answer it yet
 
 ## YNAB Data Import
 One-time, manual, user-initiated — not a sync, not bank-linking. Lets someone switch from YNAB without re-entering history.

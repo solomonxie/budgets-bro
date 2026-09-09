@@ -1,10 +1,11 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AccountsScreen } from '../screens/accounts/AccountsScreen';
-import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
-import { BudgetScreen } from '../screens/budget/BudgetScreen';
-import { CalculatorsHomeScreen } from '../screens/calculators/CalculatorsHomeScreen';
-import { SettingsScreen } from '../screens/settings/SettingsScreen';
+import { AccountsStackNavigator } from './AccountsStackNavigator';
+import { BudgetStackNavigator } from './BudgetStackNavigator';
+import { ReportsStackNavigator } from './ReportsStackNavigator';
+import { SettingsStackNavigator } from './SettingsStackNavigator';
+import { ToolsStackNavigator } from './ToolsStackNavigator';
+import { AddTransactionModal } from '../screens/transactions/AddTransactionModal';
 import type { RootTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -12,13 +13,14 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 export function RootNavigator() {
   return (
     <NavigationContainer>
-      <Tab.Navigator>
-        <Tab.Screen name="Budget" component={BudgetScreen} />
-        <Tab.Screen name="Accounts" component={AccountsScreen} />
-        <Tab.Screen name="Calculators" component={CalculatorsHomeScreen} />
-        <Tab.Screen name="AiAnalysis" component={AiAnalysisScreen} options={{ title: 'AI' }} />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Navigator screenOptions={{ headerShown: false }}>
+        <Tab.Screen name="Budget" component={BudgetStackNavigator} />
+        <Tab.Screen name="Accounts" component={AccountsStackNavigator} />
+        <Tab.Screen name="Reports" component={ReportsStackNavigator} />
+        <Tab.Screen name="Tools" component={ToolsStackNavigator} />
+        <Tab.Screen name="Settings" component={SettingsStackNavigator} />
       </Tab.Navigator>
+      <AddTransactionModal />
     </NavigationContainer>
   );
 }

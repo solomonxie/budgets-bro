@@ -22,6 +22,7 @@ export interface CategoryRow {
   id: number;
   group_id: number;
   name: string;
+  icon: string | null;
   sort_order: number;
   archived_at: string | null;
 }
@@ -47,7 +48,15 @@ export interface TransactionRow {
   amount_cents: number;
   date: string;
   cleared: number;
+  is_interest: number;
   transfer_account_id: number | null;
+  import_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TransactionJoinRow extends TransactionRow {
+  payee_name: string | null;
+  category_name: string | null;
+  category_icon: string | null;
 }

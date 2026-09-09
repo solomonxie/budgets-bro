@@ -64,11 +64,20 @@ Needs secure-store (Phase 0) and real budget data (Phase 2).
 - [ ] T6.3 Analysis prompt templates (spending/variance/forecast), aggregate-vs-detailed modes
 - [ ] T6.4 AI analysis screen: trigger, privacy-mode toggle, render results
 
-## Phase 7: Polish & App Store Submission Prep
+## Phase 7: YNAB Data Import
+One-time, idempotent import of a user's existing YNAB register export — see [`yama-mvp.md`](yama-mvp.md#ynab-data-import). Needs stable schema (Phase 1/2) and the Budget UI (Phase 3) to sanity-check imported data against.
+
+- [ ] T7.1 Add `import_id` (nullable, unique) to `transactions` if not already in the Phase 1 schema — dedupe key
+- [ ] T7.2 CSV parser for YNAB's Register export format
+- [ ] T7.3 Import mapper: match-or-create accounts/payees/categories by name; compute `import_id` hash per row; insert with skip-on-conflict
+- [ ] T7.4 Import screen: file picker, preview counts (new vs. already-imported), confirm, run inside one DB transaction
+- [ ] T7.5 Manual test: import the same file twice, confirm zero net new rows the second time
+
+## Phase 8: Polish & App Store Submission Prep
 Converts a working skeleton into a submittable app.
 
-- [ ] T7.1 App icon/splash/branding assets
-- [ ] T7.2 Empty states, error boundaries, minimal onboarding
-- [ ] T7.3 Privacy nutrition label content + App Store metadata/screenshots (disclose AI/backup data flows)
-- [ ] T7.4 TestFlight build via EAS + manual QA pass
-- [ ] T7.5 EAS Submit to App Store
+- [ ] T8.1 App icon/splash/branding assets
+- [ ] T8.2 Empty states, error boundaries, minimal onboarding
+- [ ] T8.3 Privacy nutrition label content + App Store metadata/screenshots (disclose AI/backup data flows)
+- [ ] T8.4 TestFlight build via EAS + manual QA pass
+- [ ] T8.5 EAS Submit to App Store

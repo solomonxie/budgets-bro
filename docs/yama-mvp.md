@@ -5,6 +5,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 
 ## Goals
 - Free iOS app, lean YNAB-style envelope budgeting (accounts, categories, budgets, transactions, transfers).
+- One-time import of a user's existing YNAB data, so switching costs nothing.
 - Two native, on-device reports (spending breakdown, income vs. spending trend) — no AI or network call required for either.
 - Self-contained financial calculators module (mortgage, loan/interest, amortization).
 - AI analysis using the user's own API key, called directly from device to provider.
@@ -13,7 +14,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 
 ## Non-goals (MVP cut lines)
 - Multi-device real-time sync (backups are point-in-time export/restore, not live sync)
-- Bank-linking / Plaid / automatic transaction import
+- Bank-linking / Plaid / automatic transaction import (a one-time YNAB data import is in scope — see below — but it's manual and user-initiated, not a live bank sync)
 - Multi-user, family, or shared budgets
 - Android (iOS-only initially)
 - Push notifications, reminders, recurring-transaction automation
@@ -35,7 +36,7 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 - `categories` (id, group_id, name, icon nullable, sort_order, archived_at) — `icon` is a single emoji, shown next to the name in lists (matches the visual identity pattern real YNAB uses; optional, defaults to none)
 - `budget_entries` (id, category_id, month `YYYY-MM`, assigned_cents) — one row per category per month
 - `payees` (id, name)
-- `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents signed, date, cleared, transfer_account_id nullable, created_at, updated_at)
+- `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents signed, date, cleared, transfer_account_id nullable, import_id nullable unique, created_at, updated_at) — `import_id` is the dedupe key for YNAB data import (below)
 
 **Derived (computed, not stored):**
 - Category balance(month) = balance(month-1) + assigned(month) + activity(month)
@@ -78,6 +79,19 @@ Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that ca
 **Reports screen** (native, on-device — distinct from the AI analysis feature below; needs no API key and sends nothing off-device)
 - Spending breakdown for the selected month: total spent, a stacked bar by category, and a "Top categories" list with amounts
 - Income vs. spending trend across recent months (simple bar chart) with one auto-generated line of commentary (computed locally, not AI — e.g. "You're spending about as much as you make")
+
+## YNAB Data Import
+One-time, manual, user-initiated — not a sync, not bank-linking. Lets someone switch from YNAB without re-entering history.
+
+**Format**: YNAB's per-account "Register" CSV export (Account, Flag, Date, Payee, Category Group/Category, Memo, Outflow, Inflow, Cleared) — the export any YNAB user can produce from the app without API access. Full-budget JSON export (API format) is a possible later addition if the CSV path proves too lossy (it drops category groups/goals structure); not MVP.
+
+**Idempotency (the hard requirement)**: importing the same file twice — or overlapping exports from different dates — must not create duplicate transactions.
+- Every imported transaction gets a computed `import_id`: a stable hash of (account name, date, payee, amount, memo). Real YNAB exports are deterministic for unchanged rows, so re-importing the same period reproduces the same hashes.
+- `transactions.import_id` is `UNIQUE`; the importer inserts with "ignore on conflict" semantics, so a repeat row is silently skipped, never duplicated.
+- Accounts, payees, and categories are matched by name (case-insensitive) and only created if missing — importing twice reuses the same rows rather than creating "Groceries" and "Groceries (2)".
+- Manually-entered transactions never collide with imports: they simply have no `import_id`.
+
+**Flow**: pick the exported file (or a folder/zip of per-account CSVs) → parse and preview counts ("142 transactions, 3 new accounts, 8 new categories; 89 already imported, will be skipped") → confirm → import runs inside a single DB transaction so a failure partway leaves the database unchanged.
 
 ## Financial tools module
 Self-contained pure-function module, no DB/React dependency (`src/finance-tools/`):

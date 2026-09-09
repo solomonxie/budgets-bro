@@ -25,6 +25,7 @@ export async function up(db: SQLiteDatabase): Promise<void> {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       group_id INTEGER NOT NULL REFERENCES category_groups(id),
       name TEXT NOT NULL,
+      icon TEXT,
       sort_order INTEGER NOT NULL DEFAULT 0,
       archived_at TEXT
     );
@@ -51,13 +52,16 @@ export async function up(db: SQLiteDatabase): Promise<void> {
       amount_cents INTEGER NOT NULL,
       date TEXT NOT NULL,
       cleared INTEGER NOT NULL DEFAULT 0,
+      is_interest INTEGER NOT NULL DEFAULT 0,
       transfer_account_id INTEGER REFERENCES accounts(id),
+      import_id TEXT UNIQUE,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE INDEX idx_transactions_account ON transactions(account_id);
     CREATE INDEX idx_transactions_category ON transactions(category_id);
+    CREATE INDEX idx_transactions_date ON transactions(date);
     CREATE INDEX idx_budget_entries_month ON budget_entries(month);
   `);
 }

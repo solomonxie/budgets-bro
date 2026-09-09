@@ -34,7 +34,7 @@ Core ledger and envelope math the budget UI depends on.
 User-facing screens for end-to-end manual budgeting. Reference: real YNAB's screenshots — see [`yama-mvp.md`](yama-mvp.md#core-ui) for the full breakdown per screen.
 
 - [ ] T3.0 Add a Reports tab; consolidate Calculators + AI Analysis into a single "Tools" tab so the bottom bar stays at 5 slots — updates the Phase 0 tab layout in `src/navigation/RootNavigator.tsx`
-- [ ] T3.1 Budget screen: Ready-to-Assign banner, collapsible category groups, per-category status badge (funded/partial/overspent) + progress bar + status caption, month navigation
+- [ ] T3.1 Budget screen: "Unassigned Cash" banner, collapsible category groups, per-category status badge (funded/partial/overspent) + progress bar + status caption, month navigation
 - [ ] T3.2 Transaction entry/edit sheet: amount keypad, inflow/outflow toggle, payee/category/account pickers, date picker, memo, cleared toggle; reachable via a floating "+ Transaction" button
 - [ ] T3.3 Transactions (Spending) list: grouped by date, category tag + cleared indicator per row, search, multi-select bulk edit/delete
 - [ ] T3.4 Account detail/register screen with running balance

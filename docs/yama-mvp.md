@@ -39,7 +39,7 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 
 **Derived (computed, not stored):**
 - Category balance(month) = balance(month-1) + assigned(month) + activity(month)
-- To Be Budgeted = sum(inflows to on-budget accounts, all time) − sum(assigned, all time)
+- Unassigned Cash = sum(inflows to on-budget accounts, all time) − sum(assigned, all time)
 - Account balance = opening_balance + sum(transactions.amount_cents)
 
 Balances are computed, not stored, to avoid drift bugs.
@@ -48,7 +48,7 @@ Balances are computed, not stored, to avoid drift bugs.
 Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that carry the core budgeting workflow; the goal-tracking and cosmetic extras noted above stay out for MVP.
 
 **Budget screen**
-- "Ready to Assign" banner at the top — the To Be Budgeted figure, tappable, large and color-coded (green when positive, red when negative)
+- "Unassigned Cash" banner at the top — money not yet assigned to any category, tappable, large and color-coded (green when positive, red when negative). (Deliberately not "Ready to Assign" — that's YNAB's own term for this figure.)
 - Category groups, collapsible (tap the group header to expand/collapse)
 - Each category row: icon (optional emoji) + name, a status badge showing the available amount — colored green when fully funded, yellow/amber when partially funded, red when overspent — plus a thin progress bar (spent vs. assigned) and a one-line status caption ("Funded" / "Spent $X of $Y")
 - Month selector (prev/next or a dropdown) in the nav bar

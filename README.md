@@ -29,6 +29,6 @@ npm start
 ```
 
 ## Screenshots
-<img src="screenshots/budget.jpg" alt="Budget screen" width="320">
+<img src="docs/screenshots/budget.jpg" alt="Budget screen" width="320">
 
 _From the design prototype — app UI isn't built yet._

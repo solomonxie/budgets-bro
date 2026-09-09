@@ -27,3 +27,6 @@ Expo (React Native, TypeScript).
 npm install
 npm start
 ```
+
+## Screenshots
+_Coming soon._

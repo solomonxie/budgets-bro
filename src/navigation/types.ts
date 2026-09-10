@@ -3,6 +3,8 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type BudgetStackParamList = {
   BudgetHome: undefined;
   Transactions: undefined;
+  ManageCategories: undefined;
+  CategoryForm: { categoryId?: number; groupId?: number } | undefined;
 };
 
 export type AccountsStackParamList = {
@@ -11,24 +13,22 @@ export type AccountsStackParamList = {
   AccountDetail: { accountId: number };
 };
 
-export type ReportsStackParamList = {
-  ReportsHome: undefined;
-};
-
-export type ToolsStackParamList = {
-  ToolsHome: undefined;
+export type InsightsStackParamList = {
+  InsightsHome: undefined;
+  BabySteps: undefined;
+  TaxInsights: undefined;
+  Calculators: undefined;
+  AiAnalysis: undefined;
+  YnabImport: undefined;
 };
 
 export type SettingsStackParamList = {
   SettingsHome: undefined;
-  ManageCategories: undefined;
-  CategoryForm: { categoryId?: number; groupId?: number } | undefined;
 };
 
 export type RootTabParamList = {
   Budget: NavigatorScreenParams<BudgetStackParamList>;
   Accounts: NavigatorScreenParams<AccountsStackParamList>;
-  Reports: NavigatorScreenParams<ReportsStackParamList>;
-  Tools: NavigatorScreenParams<ToolsStackParamList>;
+  Insights: NavigatorScreenParams<InsightsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
 };

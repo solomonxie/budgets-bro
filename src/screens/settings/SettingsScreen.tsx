@@ -1,25 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { SettingsStackParamList } from '../../navigation/types';
-
-type Nav = NativeStackNavigationProp<SettingsStackParamList, 'SettingsHome'>;
 
 export function SettingsScreen() {
-  const navigation = useNavigation<Nav>();
   return (
     <ScreenContainer>
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Budget</Text>
-        <View style={styles.group}>
-          <Pressable style={styles.row} onPress={() => navigation.navigate('ManageCategories')}>
-            <Text style={styles.rowTitle}>Categories</Text>
-          </Pressable>
-        </View>
-      </View>
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>About</Text>
         <View style={styles.group}>

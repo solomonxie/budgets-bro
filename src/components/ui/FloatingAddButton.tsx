@@ -2,10 +2,16 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useAppStore } from '../../state/useAppStore';
 
-export function FloatingAddButton() {
+interface FloatingAddButtonProps {
+  // When set (an account's own page), the sheet opens with this account
+  // preselected instead of defaulting to the first/last-used account.
+  accountId?: number;
+}
+
+export function FloatingAddButton({ accountId }: FloatingAddButtonProps) {
   const openAddTransaction = useAppStore((s) => s.openAddTransaction);
   return (
-    <Pressable style={styles.fab} onPress={openAddTransaction}>
+    <Pressable style={styles.fab} onPress={() => openAddTransaction(accountId)}>
       <Text style={styles.text}>+ Transaction</Text>
     </Pressable>
   );

@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useAppStore } from '../../state/useAppStore';
 import { ACCOUNT_KIND_ORDER, LIABILITY_KINDS, accountKind } from '../../domain/accountKind';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
@@ -15,6 +15,7 @@ type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountsList'>;
 
 export function AccountsScreen() {
   const navigation = useNavigation<Nav>();
+  const openAddAccount = useAppStore((s) => s.openAddAccount);
   const { accounts } = useAccounts();
 
   const groups = useMemo(() => {
@@ -68,10 +69,9 @@ export function AccountsScreen() {
           ))}
         </View>
       ))}
-      <Pressable style={styles.addButton} onPress={() => navigation.navigate('AccountForm', undefined)}>
+      <Pressable style={styles.addButton} onPress={openAddAccount}>
         <Text style={styles.addButtonText}>+ Add Account</Text>
       </Pressable>
-      <FloatingAddButton />
     </ScreenContainer>
   );
 }

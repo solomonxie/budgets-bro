@@ -1,6 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AccountsScreen } from '../screens/accounts/AccountsScreen';
-import { AccountFormScreen } from '../screens/accounts/AccountFormScreen';
 import { AccountDetailScreen } from '../screens/accounts/AccountDetailScreen';
 import { SettingsHeaderButton } from '../components/ui/SettingsHeaderButton';
 import type { AccountsStackParamList } from './types';
@@ -15,7 +14,6 @@ export function AccountsStackNavigator() {
         component={AccountsScreen}
         options={{ title: 'Accounts', headerLeft: () => <SettingsHeaderButton /> }}
       />
-      <Stack.Screen name="AccountForm" component={AccountFormScreen} options={{ title: 'Account' }} />
       <Stack.Screen name="AccountDetail" component={AccountDetailScreen} options={{ title: '' }} />
     </Stack.Navigator>
   );

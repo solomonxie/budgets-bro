@@ -12,7 +12,7 @@ import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
 
 export function AddTransactionModal() {
-  const { open: isOpen, editingTransactionId } = useAppStore((s) => s.transactionModal);
+  const { open: isOpen, editingTransactionId, presetAccountId } = useAppStore((s) => s.transactionModal);
   const close = useAppStore((s) => s.closeTransactionModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { accounts } = useAccounts();
@@ -51,11 +51,13 @@ export function AddTransactionModal() {
         setIsInterest(t.isInterest);
       })();
     } else if (accounts.length > 0) {
-      setAccountId((prev) => prev ?? accounts[0].account.id);
+      // A preset (opened from an account page) always wins; otherwise keep
+      // remembering whatever account was last used.
+      setAccountId((prev) => presetAccountId ?? prev ?? accounts[0].account.id);
     }
     // Autofocus the amount field and pop the number pad the instant the sheet opens.
     requestAnimationFrame(() => amountInputRef.current?.focus());
-  }, [isOpen, editingTransactionId, accounts]);
+  }, [isOpen, editingTransactionId, presetAccountId, accounts]);
 
   const reset = () => {
     setAmount('');

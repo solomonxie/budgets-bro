@@ -9,7 +9,6 @@ export type BudgetStackParamList = {
 
 export type AccountsStackParamList = {
   AccountsList: undefined;
-  AccountForm: { accountId?: number } | undefined;
   AccountDetail: { accountId: number };
 };
 

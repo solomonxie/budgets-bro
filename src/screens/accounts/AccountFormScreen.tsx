@@ -9,6 +9,8 @@ import { TextField } from '../../components/ui/TextField';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
 import { useAppStore } from '../../state/useAppStore';
+import { isLoanLikeType } from '../../domain/accountKind';
+import { currentDateISO } from '../../domain/month';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { AccountsStackParamList } from '../../navigation/types';
@@ -21,8 +23,10 @@ const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
   { value: 'checking', label: 'Checking' },
   { value: 'savings', label: 'Savings' },
   { value: 'cash', label: 'Cash' },
+  { value: 'income', label: 'Income Source' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'loan', label: 'Loan' },
+  { value: 'mortgage', label: 'Mortgage' },
   { value: 'tracking', label: 'Tracking' },
 ];
 
@@ -35,6 +39,10 @@ export function AccountFormScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [openingBalance, setOpeningBalance] = useState('0');
+  const [interestRate, setInterestRate] = useState('');
+  const [termMonths, setTermMonths] = useState('');
+  const [originalPrincipal, setOriginalPrincipal] = useState('');
+  const [originationDate, setOriginationDate] = useState(currentDateISO());
 
   useEffect(() => {
     if (accountId == null) return;
@@ -45,15 +53,29 @@ export function AccountFormScreen() {
         setName(account.name);
         setType(account.type);
         setOpeningBalance((account.openingBalanceCents / 100).toString());
+        if (account.interestRateBps != null) setInterestRate((account.interestRateBps / 100).toString());
+        if (account.termMonths != null) setTermMonths(String(account.termMonths));
+        if (account.originalPrincipalCents != null) setOriginalPrincipal((account.originalPrincipalCents / 100).toString());
+        if (account.originationDate) setOriginationDate(account.originationDate);
       }
     })();
   }, [accountId]);
+
+  const isLoanLike = isLoanLikeType(type);
 
   const save = async () => {
     if (!name.trim()) return;
     const db = await getDb();
     const openingBalanceCents = Math.round(parseFloat(openingBalance || '0') * 100);
-    const input = { name: name.trim(), type, openingBalanceCents };
+    const input = {
+      name: name.trim(),
+      type,
+      openingBalanceCents,
+      interestRateBps: isLoanLike && interestRate ? Math.round(parseFloat(interestRate) * 100) : null,
+      termMonths: isLoanLike && termMonths ? Math.round(parseFloat(termMonths)) : null,
+      originalPrincipalCents: isLoanLike && originalPrincipal ? Math.round(parseFloat(originalPrincipal) * 100) : null,
+      originationDate: isLoanLike ? originationDate : null,
+    };
     if (accountId != null) {
       await accountsRepo.updateAccount(db, accountId, input);
     } else {
@@ -81,6 +103,33 @@ export function AccountFormScreen() {
         keyboardType="decimal-pad"
         placeholder="0.00"
       />
+      {isLoanLike ? (
+        <>
+          <Text style={styles.sectionLabel}>Loan Terms (for the payoff projection on the account page)</Text>
+          <TextField
+            label="Interest Rate (annual %)"
+            value={interestRate}
+            onChangeText={setInterestRate}
+            keyboardType="decimal-pad"
+            placeholder="e.g. 6.25"
+          />
+          <TextField
+            label="Term (months)"
+            value={termMonths}
+            onChangeText={setTermMonths}
+            keyboardType="number-pad"
+            placeholder="e.g. 360"
+          />
+          <TextField
+            label="Original Principal"
+            value={originalPrincipal}
+            onChangeText={setOriginalPrincipal}
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+          />
+          <TextField label="Origination Date" value={originationDate} onChangeText={setOriginationDate} placeholder="YYYY-MM-DD" />
+        </>
+      ) : null}
       <Pressable style={styles.saveButton} onPress={save}>
         <Text style={styles.saveButtonText}>Save</Text>
       </Pressable>
@@ -91,6 +140,7 @@ export function AccountFormScreen() {
 const styles = StyleSheet.create({
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginTop: spacing.xs },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   saveButton: {
     backgroundColor: colors.accent,

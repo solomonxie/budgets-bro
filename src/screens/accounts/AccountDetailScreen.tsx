@@ -12,6 +12,8 @@ import { formatMoney } from '../../domain/money';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
+import { isLoanLikeType } from '../../domain/accountKind';
+import { LoanDetailsCard } from './LoanDetailsCard';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { AccountsStackParamList } from '../../navigation/types';
@@ -26,6 +28,7 @@ export function AccountDetailScreen() {
   const { accounts } = useAccounts();
   const { transactions } = useTransactions(accountId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const openEditTransaction = useAppStore((s) => s.openEditTransaction);
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
@@ -81,12 +84,15 @@ export function AccountDetailScreen() {
           </Pressable>
         )}
       </View>
+      {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
+        <LoanDetailsCard account={accountWithBalance.account} balanceCents={balanceCents} />
+      ) : null}
       <FlatList
         style={{ flex: 1 }}
         data={rows}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <View style={styles.txnRow}>
+          <Pressable style={styles.txnRow} onPress={() => openEditTransaction(item.id)}>
             <View style={{ flex: 1 }}>
               <Text style={styles.payee}>{item.payeeName ?? '(No payee)'}</Text>
               <Text style={styles.sub}>
@@ -100,7 +106,7 @@ export function AccountDetailScreen() {
               </Text>
               <Text style={styles.running}>{formatMoney(item.runningBalanceCents)}</Text>
             </View>
-          </View>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No transactions yet.</Text>}
       />

@@ -106,14 +106,14 @@ A batch of usability fixes and feature requests against the working MVP, not new
 - [x] T10.10 Deferred, tracked in Phase 9: cost of living / interest rate / exchange rate / housing market widgets — no external data source chosen yet
 
 ## Phase 11: Account entry UX + inline category management
-Requested as a follow-up to Phase 10 — not yet implemented.
+Requested as a follow-up to Phase 10.
 
-- [ ] T11.1 "+ Add Account" opens a modal sheet (same pattern as the transaction sheet), not a pushed full-screen form; editing an account reuses the same sheet
-- [ ] T11.2 Remove the floating "+ Transaction" button from the Accounts list screen; each individual account's detail page gets its own "+ Transaction" button that pre-selects that account
-- [ ] T11.3 Category form: drop the emoji chip picker — the user types an emoji directly into the category/group name instead
-- [ ] T11.4 Separate "create a group" from "create a category" into distinct actions (today one form does both)
-- [ ] T11.5 Remove the dedicated Manage Categories page. Inline on the Budget screen instead: each group header row gets a "⋯" dropdown (edit name, delete, add category); each category row gets its own "⋯" dropdown (edit, delete)
-- [ ] T11.6 Reorder groups/categories directly on the Budget screen. Open question: true drag gestures need `react-native-gesture-handler` + `react-native-reanimated` (a babel-config change, more integration risk) vs. simple Move Up/Move Down controls (no new deps) — decide before implementing
+- [x] T11.1 "+ Add Account" opens a modal sheet (same pattern as the transaction sheet), not a pushed full-screen form; editing an account reuses the same sheet (`AccountModal.tsx`)
+- [x] T11.2 Removed the floating "+ Transaction" button from the Accounts list screen; each individual account's detail page gets its own "+ Transaction" button that pre-selects that account
+- [x] T11.3 Category form: dropped the emoji chip picker — the user types an emoji directly into the category/group name instead
+- [x] T11.4 "Create a group" and "create a category" are separate actions (a "+ New Group" button, and "Add Category" from a specific group's "⋯" menu) instead of one form doing both
+- [x] T11.5 Removed the dedicated Manage Categories page. Inline on the Budget screen instead: each group header row has a "⋯" menu (add category, rename, move up/down, delete — cascades to its categories); each category row has its own "⋯" menu (rename, move up/down, delete)
+- [x] T11.6 Reordering shipped as Move Up/Move Down (in the same "⋯" menus) rather than drag gestures — `react-native-gesture-handler`/`react-native-reanimated` would've meant a babel-config change for more integration risk than this batch; true drag is still open if wanted later
 
 ## Phase 12: Budget assignment as direct input + rollover-aware validation
 Requested as a follow-up to Phase 10 — not yet implemented.

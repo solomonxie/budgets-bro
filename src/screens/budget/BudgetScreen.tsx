@@ -22,7 +22,7 @@ const STATUS_COLORS: Record<CategoryStatus, { bg: string; fg: string }> = {
 export function BudgetScreen() {
   const month = useAppStore((s) => s.currentMonth);
   const setMonth = useAppStore((s) => s.setCurrentMonth);
-  const { groups, itemsByGroup, unassignedCents, adjustAssigned } = useBudget(month);
+  const { groups, itemsByGroup, unassignedCents, adjustAssigned, moveToUnassigned } = useBudget(month);
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
 
@@ -103,6 +103,14 @@ export function BudgetScreen() {
                           </Pressable>
                         </View>
                       ) : null}
+                      {expanded && item.balanceCents > 0 ? (
+                        <Pressable
+                          style={styles.moveToUnassignedBtn}
+                          onPress={() => moveToUnassigned(item.category.id, item.balanceCents)}
+                        >
+                          <Text style={styles.moveToUnassignedText}>Move {formatMoney(item.balanceCents)} to Unassigned</Text>
+                        </Pressable>
+                      ) : null}
                     </View>
                   );
                 })}
@@ -160,4 +168,6 @@ const styles = StyleSheet.create({
   },
   stepBtnText: { fontSize: 18, fontWeight: '600', color: colors.text },
   stepValue: { fontSize: 16, fontWeight: '700', minWidth: 74, textAlign: 'center', color: colors.text },
+  moveToUnassignedBtn: { alignItems: 'center', paddingTop: spacing.xs },
+  moveToUnassignedText: { fontSize: 12, fontWeight: '600', color: colors.accent },
 });

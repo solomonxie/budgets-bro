@@ -6,9 +6,9 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useCategories } from '../../hooks/useCategories';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { SettingsStackParamList } from '../../navigation/types';
+import type { BudgetStackParamList } from '../../navigation/types';
 
-type Nav = NativeStackNavigationProp<SettingsStackParamList, 'ManageCategories'>;
+type Nav = NativeStackNavigationProp<BudgetStackParamList, 'ManageCategories'>;
 
 export function CategoriesScreen() {
   const navigation = useNavigation<Nav>();

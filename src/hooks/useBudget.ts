@@ -78,5 +78,14 @@ export function useBudget(month: string) {
     [month, bumpDataVersion],
   );
 
-  return { groups, itemsByGroup, unassignedCents, loading, adjustAssigned, refresh };
+  const moveToUnassigned = useCallback(
+    async (categoryId: number, balanceCents: number) => {
+      const db = await getDb();
+      await budgetsRepo.moveToUnassigned(db, categoryId, month, balanceCents);
+      bumpDataVersion();
+    },
+    [month, bumpDataVersion],
+  );
+
+  return { groups, itemsByGroup, unassignedCents, loading, adjustAssigned, moveToUnassigned, refresh };
 }

@@ -1,9 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { up as up001 } from './migrations/001_init';
+import { up as up001 } from '../../databases/migrations/001_init';
+import { up as up002 } from '../../databases/migrations/002_linked_category';
+import { up as up003 } from '../../databases/migrations/003_loan_terms_and_settings';
 
 type Migration = { version: number; up: (db: SQLiteDatabase) => Promise<void> };
 
-const migrations: Migration[] = [{ version: 1, up: up001 }];
+const migrations: Migration[] = [
+  { version: 1, up: up001 },
+  { version: 2, up: up002 },
+  { version: 3, up: up003 },
+];
 
 // Small versioned migration runner: expo-sqlite has no built-in migration
 // framework, so schema version is tracked via PRAGMA user_version.

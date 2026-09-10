@@ -3,6 +3,8 @@ import type { TransactionJoinRow } from '../schema';
 import type { TransactionWithLabels } from '../../domain/types';
 import { currentDateISO } from '../../domain/month';
 import { findOrCreatePayee } from './payeesRepo';
+import { getCategory } from './categoriesRepo';
+import { SELECT_WITH_LABELS, INSERT_TRANSACTION, UPDATE_TRANSACTION, LAST_CATEGORY_FOR_PAYEE } from '../../../databases/queries/transactions';
 
 function mapRow(row: TransactionJoinRow): TransactionWithLabels {
   return {
@@ -25,13 +27,6 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
   };
 }
 
-const SELECT_WITH_LABELS = `
-  SELECT t.*, p.name as payee_name, c.name as category_name, c.icon as category_icon
-  FROM transactions t
-  LEFT JOIN payees p ON p.id = t.payee_id
-  LEFT JOIN categories c ON c.id = t.category_id
-`;
-
 export async function listTransactionsForAccount(
   db: SQLiteDatabase,
   accountId: number,
@@ -48,6 +43,16 @@ export async function listTransactions(db: SQLiteDatabase): Promise<TransactionW
   return rows.map(mapRow);
 }
 
+export async function getTransaction(db: SQLiteDatabase, id: number): Promise<TransactionWithLabels | null> {
+  const row = await db.getFirstAsync<TransactionJoinRow>(`${SELECT_WITH_LABELS} WHERE t.id = ?`, id);
+  return row ? mapRow(row) : null;
+}
+
+export async function getLastCategoryIdForPayee(db: SQLiteDatabase, payeeId: number): Promise<number | null> {
+  const row = await db.getFirstAsync<{ category_id: number | null }>(LAST_CATEGORY_FOR_PAYEE, payeeId);
+  return row?.category_id ?? null;
+}
+
 export interface CreateTransactionInput {
   accountId: number;
   categoryId: number | null;
@@ -59,11 +64,66 @@ export interface CreateTransactionInput {
   isInterest?: boolean;
 }
 
+// If `categoryId` is a loan/mortgage account's auto-generated payment
+// category (see categoriesRepo.ensurePaymentCategory), also posts the
+// mirrored credit to that loan account so its balance drops accordingly —
+// the payment stays budgetable while the loan's balance stays accurate.
+async function postLinkedAccountLeg(
+  db: SQLiteDatabase,
+  input: { categoryId: number | null; accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string; cleared: boolean },
+): Promise<void> {
+  if (input.categoryId == null) return;
+  const category = await getCategory(db, input.categoryId);
+  if (!category?.linkedAccountId || category.linkedAccountId === input.accountId) return;
+  await db.runAsync(
+    INSERT_TRANSACTION,
+    category.linkedAccountId,
+    null,
+    input.payeeId,
+    input.memo,
+    -input.amountCents,
+    input.date,
+    input.cleared ? 1 : 0,
+    0,
+    input.accountId,
+    null,
+  );
+}
+
 export async function createTransaction(db: SQLiteDatabase, input: CreateTransactionInput): Promise<number> {
   const payeeId = input.payeeName ? await findOrCreatePayee(db, input.payeeName) : null;
-  const result = await db.runAsync(
-    `INSERT INTO transactions (account_id, category_id, payee_id, memo, amount_cents, date, cleared, is_interest)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  let insertedId = 0;
+  await db.withTransactionAsync(async () => {
+    const result = await db.runAsync(
+      INSERT_TRANSACTION,
+      input.accountId,
+      input.categoryId,
+      payeeId,
+      input.memo,
+      input.amountCents,
+      input.date,
+      input.cleared ? 1 : 0,
+      input.isInterest ? 1 : 0,
+      null,
+      null,
+    );
+    insertedId = result.lastInsertRowId;
+    await postLinkedAccountLeg(db, { ...input, payeeId });
+  });
+  return insertedId;
+}
+
+export interface UpdateTransactionInput extends CreateTransactionInput {
+  id: number;
+}
+
+// Scope cut: editing a transaction doesn't re-derive/rebalance a linked
+// loan-account leg created at insert time — deleting and re-entering it
+// keeps the loan balance correct if the category changes.
+export async function updateTransaction(db: SQLiteDatabase, input: UpdateTransactionInput): Promise<void> {
+  const payeeId = input.payeeName ? await findOrCreatePayee(db, input.payeeName) : null;
+  await db.runAsync(
+    UPDATE_TRANSACTION,
     input.accountId,
     input.categoryId,
     payeeId,
@@ -72,8 +132,8 @@ export async function createTransaction(db: SQLiteDatabase, input: CreateTransac
     input.date,
     input.cleared ? 1 : 0,
     input.isInterest ? 1 : 0,
+    input.id,
   );
-  return result.lastInsertRowId;
 }
 
 export async function deleteTransactions(db: SQLiteDatabase, ids: number[]): Promise<void> {
@@ -123,4 +183,49 @@ export async function correctBalance(db: SQLiteDatabase, accountId: number, delt
     deltaCents,
     currentDateISO(),
   );
+}
+
+export interface ImportTransactionInput {
+  accountId: number;
+  categoryId: number | null;
+  payeeId: number | null;
+  memo: string | null;
+  amountCents: number;
+  date: string;
+  cleared: boolean;
+  isInterest: boolean;
+  transferAccountId: number | null;
+  importId: string;
+}
+
+// Upsert for the YNAB importer, keyed on the UNIQUE `import_id`: re-running
+// the same export refreshes a row's fields instead of leaving it stale when
+// the source data changed (e.g. a corrected amount or re-categorization).
+export async function importTransaction(db: SQLiteDatabase, input: ImportTransactionInput): Promise<'inserted' | 'updated'> {
+  const existing = await db.getFirstAsync<{ id: number }>('SELECT id FROM transactions WHERE import_id = ?', input.importId);
+  await db.runAsync(
+    `INSERT INTO transactions (account_id, category_id, payee_id, memo, amount_cents, date, cleared, is_interest, transfer_account_id, import_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(import_id) DO UPDATE SET
+       category_id = excluded.category_id,
+       payee_id = excluded.payee_id,
+       memo = excluded.memo,
+       amount_cents = excluded.amount_cents,
+       date = excluded.date,
+       cleared = excluded.cleared,
+       is_interest = excluded.is_interest,
+       transfer_account_id = excluded.transfer_account_id,
+       updated_at = datetime('now')`,
+    input.accountId,
+    input.categoryId,
+    input.payeeId,
+    input.memo,
+    input.amountCents,
+    input.date,
+    input.cleared ? 1 : 0,
+    input.isInterest ? 1 : 0,
+    input.transferAccountId,
+    input.importId,
+  );
+  return existing ? 'updated' : 'inserted';
 }

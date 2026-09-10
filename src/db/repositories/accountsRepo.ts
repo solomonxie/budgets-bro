@@ -1,6 +1,9 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
+import { isLoanLikeType } from '../../domain/accountKind';
+import { LIST_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
+import * as categoriesRepo from './categoriesRepo';
 
 function mapRow(row: AccountRow): Account {
   return {
@@ -12,6 +15,10 @@ function mapRow(row: AccountRow): Account {
     openingBalanceCents: row.opening_balance_cents,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
+    interestRateBps: row.interest_rate_bps,
+    termMonths: row.term_months,
+    originalPrincipalCents: row.original_principal_cents,
+    originationDate: row.origination_date,
   };
 }
 
@@ -28,13 +35,7 @@ export interface AccountWithBalance {
 }
 
 export async function listAccountsWithBalances(db: SQLiteDatabase): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(
-    `SELECT a.*, COALESCE(SUM(t.amount_cents), 0) as activity_cents
-     FROM accounts a LEFT JOIN transactions t ON t.account_id = a.id
-     WHERE a.archived_at IS NULL
-     GROUP BY a.id
-     ORDER BY a.type, a.name`,
-  );
+  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES);
   return rows.map((row) => ({
     account: mapRow(row),
     balanceCents: row.opening_balance_cents + row.activity_cents,
@@ -46,36 +47,65 @@ export async function getAccount(db: SQLiteDatabase, id: number): Promise<Accoun
   return row ? mapRow(row) : null;
 }
 
+export async function findAccountByName(db: SQLiteDatabase, name: string): Promise<Account | null> {
+  const row = await db.getFirstAsync<AccountRow>('SELECT * FROM accounts WHERE name = ? AND archived_at IS NULL', name);
+  return row ? mapRow(row) : null;
+}
+
 export interface AccountInput {
   name: string;
   type: AccountType;
   openingBalanceCents: number;
+  // Loan/mortgage terms — undefined/null for every other account type.
+  interestRateBps?: number | null;
+  termMonths?: number | null;
+  originalPrincipalCents?: number | null;
+  originationDate?: string | null;
 }
 
 export async function createAccount(db: SQLiteDatabase, input: AccountInput): Promise<number> {
   const onBudget = input.type !== 'tracking' ? 1 : 0;
   const result = await db.runAsync(
-    'INSERT INTO accounts (name, type, on_budget, opening_balance_cents) VALUES (?, ?, ?, ?)',
+    `INSERT INTO accounts (name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     input.name,
     input.type,
     onBudget,
     input.openingBalanceCents,
+    input.interestRateBps ?? null,
+    input.termMonths ?? null,
+    input.originalPrincipalCents ?? null,
+    input.originationDate ?? null,
   );
-  return result.lastInsertRowId;
+  const id = result.lastInsertRowId;
+  if (isLoanLikeType(input.type)) await categoriesRepo.ensurePaymentCategory(db, id, input.name);
+  return id;
 }
 
 export async function updateAccount(db: SQLiteDatabase, id: number, input: AccountInput): Promise<void> {
   const onBudget = input.type !== 'tracking' ? 1 : 0;
   await db.runAsync(
-    'UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ? WHERE id = ?',
+    `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
+       interest_rate_bps = ?, term_months = ?, original_principal_cents = ?, origination_date = ?
+     WHERE id = ?`,
     input.name,
     input.type,
     onBudget,
     input.openingBalanceCents,
+    input.interestRateBps ?? null,
+    input.termMonths ?? null,
+    input.originalPrincipalCents ?? null,
+    input.originationDate ?? null,
     id,
   );
+  if (isLoanLikeType(input.type)) {
+    await categoriesRepo.ensurePaymentCategory(db, id, input.name);
+  } else {
+    await categoriesRepo.archivePaymentCategory(db, id);
+  }
 }
 
 export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync("UPDATE accounts SET archived_at = datetime('now') WHERE id = ?", id);
+  await categoriesRepo.archivePaymentCategory(db, id);
 }

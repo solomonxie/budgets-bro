@@ -10,6 +10,10 @@ export interface AccountRow {
   opening_balance_cents: number;
   archived_at: string | null;
   created_at: string;
+  interest_rate_bps: number | null;
+  term_months: number | null;
+  original_principal_cents: number | null;
+  origination_date: string | null;
 }
 
 export interface CategoryGroupRow {
@@ -25,6 +29,7 @@ export interface CategoryRow {
   icon: string | null;
   sort_order: number;
   archived_at: string | null;
+  linked_account_id: number | null;
 }
 
 export interface BudgetEntryRow {

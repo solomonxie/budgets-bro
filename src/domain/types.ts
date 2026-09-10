@@ -1,6 +1,14 @@
-export type AccountType = 'checking' | 'savings' | 'credit_card' | 'cash' | 'loan' | 'tracking';
+export type AccountType =
+  | 'checking'
+  | 'savings'
+  | 'credit_card'
+  | 'cash'
+  | 'loan'
+  | 'mortgage'
+  | 'income'
+  | 'tracking';
 
-export type AccountKind = 'Cash' | 'Credit' | 'Loan' | 'Tracking';
+export type AccountKind = 'Cash' | 'Savings' | 'Income' | 'Credit' | 'Loan' | 'Tracking';
 
 export interface Account {
   id: number;
@@ -11,6 +19,11 @@ export interface Account {
   openingBalanceCents: number;
   archivedAt: string | null;
   createdAt: string;
+  // Loan/mortgage terms — null unless set on a loan-like account.
+  interestRateBps: number | null;
+  termMonths: number | null;
+  originalPrincipalCents: number | null;
+  originationDate: string | null;
 }
 
 export interface CategoryGroup {
@@ -26,6 +39,9 @@ export interface Category {
   icon: string | null;
   sortOrder: number;
   archivedAt: string | null;
+  // Set only for the auto-generated "Payment: <account>" category tied to a
+  // loan/mortgage account — see accountsRepo's loan-payment-category lifecycle.
+  linkedAccountId: number | null;
 }
 
 export interface BudgetEntry {

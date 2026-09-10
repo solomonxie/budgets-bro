@@ -1,5 +1,14 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { nextMonth } from '../../domain/month';
+import {
+  ASSIGNED_THIS_MONTH,
+  CUMULATIVE_ASSIGNED,
+  CUMULATIVE_ACTIVITY,
+  ACTIVITY_THIS_MONTH,
+  TOTAL_ASSIGNED_THROUGH_MONTH,
+  TOTAL_UNCATEGORIZED_THROUGH_MONTH,
+  UPSERT_ASSIGNED_CENTS,
+} from '../../../databases/queries/budgets';
 
 async function sumOrZero(
   db: SQLiteDatabase,
@@ -14,10 +23,7 @@ export async function assignedThisMonthByCategory(
   db: SQLiteDatabase,
   month: string,
 ): Promise<Record<number, number>> {
-  const rows = await db.getAllAsync<{ category_id: number; assigned_cents: number }>(
-    'SELECT category_id, assigned_cents FROM budget_entries WHERE month = ?',
-    month,
-  );
+  const rows = await db.getAllAsync<{ category_id: number; assigned_cents: number }>(ASSIGNED_THIS_MONTH, month);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.assigned_cents;
   return map;
@@ -27,10 +33,7 @@ export async function cumulativeAssignedByCategory(
   db: SQLiteDatabase,
   throughMonth: string,
 ): Promise<Record<number, number>> {
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
-    'SELECT category_id, SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? GROUP BY category_id',
-    throughMonth,
-  );
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ASSIGNED, throughMonth);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
@@ -41,10 +44,7 @@ export async function cumulativeActivityByCategory(
   throughMonth: string,
 ): Promise<Record<number, number>> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
-    'SELECT category_id, SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ? GROUP BY category_id',
-    endExclusive,
-  );
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ACTIVITY, endExclusive);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
@@ -53,31 +53,19 @@ export async function cumulativeActivityByCategory(
 export async function activityThisMonthByCategory(db: SQLiteDatabase, month: string): Promise<Record<number, number>> {
   const start = `${month}-01`;
   const endExclusive = `${nextMonth(month)}-01`;
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
-    'SELECT category_id, SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date >= ? AND date < ? GROUP BY category_id',
-    start,
-    endExclusive,
-  );
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(ACTIVITY_THIS_MONTH, start, endExclusive);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
 }
 
 export async function totalAssignedThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
-  return sumOrZero(db, 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ?', throughMonth);
+  return sumOrZero(db, TOTAL_ASSIGNED_THROUGH_MONTH, throughMonth);
 }
 
-// Signed sum of uncategorized, non-transfer transactions on on-budget
-// accounts — includes negative balance-correction amounts on purpose.
 export async function totalUncategorizedThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  return sumOrZero(
-    db,
-    `SELECT SUM(t.amount_cents) as total FROM transactions t
-     JOIN accounts a ON a.id = t.account_id
-     WHERE t.category_id IS NULL AND t.transfer_account_id IS NULL AND a.on_budget = 1 AND t.date < ?`,
-    endExclusive,
-  );
+  return sumOrZero(db, TOTAL_UNCATEGORIZED_THROUGH_MONTH, endExclusive);
 }
 
 export async function setAssignedCents(
@@ -86,13 +74,7 @@ export async function setAssignedCents(
   month: string,
   assignedCents: number,
 ): Promise<void> {
-  await db.runAsync(
-    `INSERT INTO budget_entries (category_id, month, assigned_cents) VALUES (?, ?, ?)
-     ON CONFLICT(category_id, month) DO UPDATE SET assigned_cents = excluded.assigned_cents`,
-    categoryId,
-    month,
-    assignedCents,
-  );
+  await db.runAsync(UPSERT_ASSIGNED_CENTS, categoryId, month, assignedCents);
 }
 
 export async function adjustAssignedCents(
@@ -108,4 +90,21 @@ export async function adjustAssignedCents(
     month,
   );
   await setAssignedCents(db, categoryId, month, Math.max(0, current + deltaCents));
+}
+
+// Moves a category's full current balance back to Unassigned Cash by
+// reducing this month's assigned amount by the balance — correct regardless
+// of which past month actually funded it, since balance is a cumulative sum.
+// Unlike adjustAssignedCents, this doesn't clamp at 0: the balance may have
+// been funded by an earlier month's rollover, so this month's own assigned
+// entry legitimately needs to go negative to cancel it out.
+export async function moveToUnassigned(db: SQLiteDatabase, categoryId: number, month: string, balanceCents: number): Promise<void> {
+  if (balanceCents <= 0) return;
+  const current = await sumOrZero(
+    db,
+    'SELECT assigned_cents as total FROM budget_entries WHERE category_id = ? AND month = ?',
+    categoryId,
+    month,
+  );
+  await setAssignedCents(db, categoryId, month, current - balanceCents);
 }

@@ -5,6 +5,7 @@ import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { AddTransactionModal } from '../screens/transactions/AddTransactionModal';
+import { AccountModal } from '../screens/accounts/AccountModal';
 import { colors } from '../theme/colors';
 import type { RootTabParamList } from './types';
 
@@ -33,6 +34,7 @@ export function RootNavigator() {
         <Tab.Screen name="Settings" component={SettingsStackNavigator} options={{ tabBarButton: () => null }} />
       </Tab.Navigator>
       <AddTransactionModal />
+      <AccountModal />
     </NavigationContainer>
   );
 }

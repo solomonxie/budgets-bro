@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
+import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
 import { withRunningBalances, computeBalanceCorrectionCents } from '../../domain/register';
@@ -29,13 +30,22 @@ export function AccountDetailScreen() {
   const { transactions } = useTransactions(accountId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
+  const openEditAccount = useAppStore((s) => s.openEditAccount);
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
 
   useEffect(() => {
-    if (accountWithBalance) navigation.setOptions({ title: accountWithBalance.account.name });
-  }, [navigation, accountWithBalance]);
+    if (!accountWithBalance) return;
+    navigation.setOptions({
+      title: accountWithBalance.account.name,
+      headerRight: () => (
+        <Pressable onPress={() => openEditAccount(accountId)}>
+          <Text style={{ color: colors.accent, fontWeight: '600' }}>Edit</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation, accountWithBalance, accountId, openEditAccount]);
 
   const [correcting, setCorrecting] = useState(false);
   const [actualBalance, setActualBalance] = useState('');
@@ -110,6 +120,7 @@ export function AccountDetailScreen() {
         )}
         ListEmptyComponent={<Text style={styles.empty}>No transactions yet.</Text>}
       />
+      <FloatingAddButton accountId={accountId} />
     </ScreenContainer>
   );
 }

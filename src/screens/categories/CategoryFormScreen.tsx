@@ -11,10 +11,10 @@ import * as categoriesRepo from '../../db/repositories/categoriesRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { SettingsStackParamList } from '../../navigation/types';
+import type { BudgetStackParamList } from '../../navigation/types';
 
-type Nav = NativeStackNavigationProp<SettingsStackParamList, 'CategoryForm'>;
-type Route = RouteProp<SettingsStackParamList, 'CategoryForm'>;
+type Nav = NativeStackNavigationProp<BudgetStackParamList, 'CategoryForm'>;
+type Route = RouteProp<BudgetStackParamList, 'CategoryForm'>;
 
 const ICON_OPTIONS = ['🏠', '⚡', '🛒', '🚗', '🍽️', '🎬', '📱', '🔧', '💊', '🎓', '🎁', '💰'];
 

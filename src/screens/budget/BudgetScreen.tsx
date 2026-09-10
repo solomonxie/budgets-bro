@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { RowMenuButton } from '../../components/ui/RowMenuButton';
+import { PromptModal } from '../../components/ui/PromptModal';
 import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
+import { getDb } from '../../db/client';
+import * as categoriesRepo from '../../db/repositories/categoriesRepo';
 import { nextMonth, previousMonth, formatMonthLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { CategoryStatus } from '../../domain/budgetMath';
+import type { Category, CategoryGroup } from '../../domain/types';
 
 const STATUS_COLORS: Record<CategoryStatus, { bg: string; fg: string }> = {
   overspent: { bg: colors.negativeTint, fg: colors.negative },
@@ -19,15 +24,76 @@ const STATUS_COLORS: Record<CategoryStatus, { bg: string; fg: string }> = {
   unbudgeted: { bg: colors.border, fg: colors.textMuted },
 };
 
+type PromptState =
+  | { type: 'newGroup' }
+  | { type: 'newCategory'; groupId: number }
+  | { type: 'renameGroup'; groupId: number; initial: string }
+  | { type: 'renameCategory'; categoryId: number; initial: string }
+  | null;
+
 export function BudgetScreen() {
   const month = useAppStore((s) => s.currentMonth);
   const setMonth = useAppStore((s) => s.setCurrentMonth);
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { groups, itemsByGroup, unassignedCents, adjustAssigned, moveToUnassigned } = useBudget(month);
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
+  const [prompt, setPrompt] = useState<PromptState>(null);
 
   const toggleGroup = (id: number) => {
     setCollapsedGroupIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const submitPrompt = async (value: string) => {
+    const db = await getDb();
+    if (prompt?.type === 'newGroup') await categoriesRepo.createCategoryGroup(db, value);
+    else if (prompt?.type === 'newCategory') await categoriesRepo.createCategory(db, { groupId: prompt.groupId, name: value, icon: null });
+    else if (prompt?.type === 'renameGroup') await categoriesRepo.renameCategoryGroup(db, prompt.groupId, value);
+    else if (prompt?.type === 'renameCategory') await categoriesRepo.renameCategory(db, prompt.categoryId, value);
+    bumpDataVersion();
+    setPrompt(null);
+  };
+
+  const deleteGroup = (group: CategoryGroup) => {
+    Alert.alert(`Delete "${group.name}"?`, 'Its categories will be deleted too. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await categoriesRepo.archiveCategoryGroup(db, group.id);
+          bumpDataVersion();
+        },
+      },
+    ]);
+  };
+
+  const deleteCategory = (category: Category) => {
+    Alert.alert(`Delete "${category.name}"?`, 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await categoriesRepo.archiveCategory(db, category.id);
+          bumpDataVersion();
+        },
+      },
+    ]);
+  };
+
+  const moveGroup = async (groupId: number, direction: 'up' | 'down') => {
+    const db = await getDb();
+    await categoriesRepo.moveCategoryGroup(db, groupId, direction);
+    bumpDataVersion();
+  };
+
+  const moveCategory = async (categoryId: number, direction: 'up' | 'down') => {
+    const db = await getDb();
+    await categoriesRepo.moveCategory(db, categoryId, direction);
+    bumpDataVersion();
   };
 
   return (
@@ -51,20 +117,32 @@ export function BudgetScreen() {
 
       {groups.map((group) => {
         const items = itemsByGroup[group.id] ?? [];
-        if (items.length === 0) return null;
         const collapsed = collapsedGroupIds.includes(group.id);
         const subtotal = items.reduce((s, it) => s + it.balanceCents, 0);
 
         return (
           <View key={group.id} style={styles.group}>
-            <Pressable style={styles.groupHeader} onPress={() => toggleGroup(group.id)}>
-              <Text style={styles.chevron}>{collapsed ? '›' : '⌄'}</Text>
-              <Text style={styles.groupLabel}>{group.name}</Text>
+            <View style={styles.groupHeader}>
+              <Pressable style={styles.groupHeaderMain} onPress={() => toggleGroup(group.id)}>
+                <Text style={styles.chevron}>{collapsed ? '›' : '⌄'}</Text>
+                <Text style={styles.groupLabel}>{group.name}</Text>
+              </Pressable>
               <Text style={styles.groupSub}>{formatMoney(subtotal)}</Text>
-            </Pressable>
+              <RowMenuButton
+                items={[
+                  { label: 'Add Category', onPress: () => setPrompt({ type: 'newCategory', groupId: group.id }) },
+                  { label: 'Rename Group', onPress: () => setPrompt({ type: 'renameGroup', groupId: group.id, initial: group.name }) },
+                  { label: 'Move Up', onPress: () => moveGroup(group.id, 'up') },
+                  { label: 'Move Down', onPress: () => moveGroup(group.id, 'down') },
+                  { label: 'Delete Group', destructive: true, onPress: () => deleteGroup(group) },
+                ]}
+              />
+            </View>
             {collapsed
               ? null
-              : items.map((item) => {
+              : items.length === 0
+                ? <Text style={styles.emptyGroup}>No categories yet.</Text>
+                : items.map((item) => {
                   const statusColors = STATUS_COLORS[item.status];
                   const expanded = expandedCategoryId === item.category.id;
                   const spentThisMonth = Math.max(0, -item.activityThisMonthCents);
@@ -80,16 +158,27 @@ export function BudgetScreen() {
                       key={item.category.id}
                       style={[styles.catRow, { borderColor: expanded ? colors.accent : colors.border, backgroundColor: expanded ? colors.tint : colors.surface }]}
                     >
-                      <Pressable
-                        style={styles.catRowTop}
-                        onPress={() => setExpandedCategoryId(expanded ? null : item.category.id)}
-                      >
-                        <View style={styles.catNameRow}>
+                      <View style={styles.catRowTop}>
+                        <Pressable
+                          style={styles.catNameRow}
+                          onPress={() => setExpandedCategoryId(expanded ? null : item.category.id)}
+                        >
                           {item.category.icon ? <Text style={styles.catIcon}>{item.category.icon}</Text> : null}
                           <Text style={styles.catName}>{item.category.name}</Text>
-                        </View>
+                        </Pressable>
                         <StatusBadge text={formatMoney(item.balanceCents)} bg={statusColors.bg} fg={statusColors.fg} />
-                      </Pressable>
+                        <RowMenuButton
+                          items={[
+                            {
+                              label: 'Rename',
+                              onPress: () => setPrompt({ type: 'renameCategory', categoryId: item.category.id, initial: item.category.name }),
+                            },
+                            { label: 'Move Up', onPress: () => moveCategory(item.category.id, 'up') },
+                            { label: 'Move Down', onPress: () => moveCategory(item.category.id, 'down') },
+                            { label: 'Delete', destructive: true, onPress: () => deleteCategory(item.category) },
+                          ]}
+                        />
+                      </View>
                       <ProgressBar percent={percentSpent} color={statusColors.fg} />
                       <Text style={styles.caption}>{item.captionText}</Text>
                       {expanded ? (
@@ -117,8 +206,28 @@ export function BudgetScreen() {
           </View>
         );
       })}
+      <Pressable style={styles.addGroupButton} onPress={() => setPrompt({ type: 'newGroup' })}>
+        <Text style={styles.addGroupButtonText}>+ New Group</Text>
+      </Pressable>
       <View style={{ height: 80 }} />
       <FloatingAddButton />
+
+      <PromptModal
+        visible={prompt != null}
+        title={
+          prompt?.type === 'newGroup'
+            ? 'New Group'
+            : prompt?.type === 'newCategory'
+              ? 'New Category'
+              : prompt?.type === 'renameGroup'
+                ? 'Rename Group'
+                : 'Rename Category'
+        }
+        placeholder={prompt?.type === 'newGroup' || prompt?.type === 'renameGroup' ? 'e.g. Bills' : 'e.g. 🛒 Groceries'}
+        initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
+        onCancel={() => setPrompt(null)}
+        onSubmit={submitPrompt}
+      />
     </ScreenContainer>
   );
 }
@@ -138,12 +247,14 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4 },
   group: { gap: spacing.xs },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
+  groupHeaderMain: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chevron: { color: colors.textMuted, width: 14 },
   groupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   groupSub: { marginLeft: 'auto', fontSize: 12, fontWeight: '700', color: colors.textMuted },
+  emptyGroup: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 2 },
   catRow: { borderWidth: 1, borderRadius: 14, padding: spacing.sm, gap: spacing.xs },
-  catRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  catNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  catRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  catNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   catIcon: { fontSize: 17 },
   catName: { fontSize: 15, fontWeight: '600', color: colors.text },
   caption: { fontSize: 11, color: colors.textMuted },
@@ -170,4 +281,13 @@ const styles = StyleSheet.create({
   stepValue: { fontSize: 16, fontWeight: '700', minWidth: 74, textAlign: 'center', color: colors.text },
   moveToUnassignedBtn: { alignItems: 'center', paddingTop: spacing.xs },
   moveToUnassignedText: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  addGroupButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderStyle: 'dashed',
+  },
+  addGroupButtonText: { color: colors.accent, fontWeight: '700' },
 });

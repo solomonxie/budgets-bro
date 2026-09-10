@@ -1,10 +1,16 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { CategoryGroupRow, CategoryRow } from '../schema';
 import type { Category, CategoryGroup } from '../../domain/types';
-import { LIST_CATEGORIES, LIST_CATEGORY_GROUPS, INSERT_CATEGORY, UPDATE_CATEGORY } from '../../../databases/queries/categories';
+import {
+  LIST_CATEGORIES,
+  LIST_CATEGORY_GROUPS,
+  INSERT_CATEGORY,
+  UPDATE_CATEGORY,
+  ARCHIVE_CATEGORIES_IN_GROUP,
+} from '../../../databases/queries/categories';
 
 function mapGroupRow(row: CategoryGroupRow): CategoryGroup {
-  return { id: row.id, name: row.name, sortOrder: row.sort_order };
+  return { id: row.id, name: row.name, sortOrder: row.sort_order, archivedAt: row.archived_at };
 }
 
 function mapCategoryRow(row: CategoryRow): Category {
@@ -51,8 +57,17 @@ export async function findOrCreateCategory(db: SQLiteDatabase, groupId: number, 
   return createCategory(db, { groupId, name, icon: null });
 }
 
+async function nextSortOrder(db: SQLiteDatabase, table: 'categories' | 'category_groups', groupId?: number): Promise<number> {
+  const row =
+    table === 'categories'
+      ? await db.getFirstAsync<{ max: number | null }>('SELECT MAX(sort_order) as max FROM categories WHERE group_id = ?', groupId!)
+      : await db.getFirstAsync<{ max: number | null }>('SELECT MAX(sort_order) as max FROM category_groups');
+  return (row?.max ?? -1) + 1;
+}
+
 export async function createCategoryGroup(db: SQLiteDatabase, name: string): Promise<number> {
-  const result = await db.runAsync('INSERT INTO category_groups (name) VALUES (?)', name);
+  const sortOrder = await nextSortOrder(db, 'category_groups');
+  const result = await db.runAsync('INSERT INTO category_groups (name, sort_order) VALUES (?, ?)', name, sortOrder);
   return result.lastInsertRowId;
 }
 
@@ -67,7 +82,8 @@ export async function createCategory(
   input: CategoryInput,
   linkedAccountId: number | null = null,
 ): Promise<number> {
-  const result = await db.runAsync(INSERT_CATEGORY, input.groupId, input.name, input.icon, linkedAccountId);
+  const sortOrder = await nextSortOrder(db, 'categories', input.groupId);
+  const result = await db.runAsync(INSERT_CATEGORY, input.groupId, input.name, input.icon, linkedAccountId, sortOrder);
   return result.lastInsertRowId;
 }
 
@@ -75,8 +91,64 @@ export async function updateCategory(db: SQLiteDatabase, id: number, input: Cate
   await db.runAsync(UPDATE_CATEGORY, input.groupId, input.name, input.icon, id);
 }
 
+// Renaming doesn't touch `icon` — categories no longer get icons from a
+// picker (the user types an emoji straight into the name), but this must
+// not blank out a legacy category's icon (e.g. the auto-generated loan
+// payment category's 🏦).
+export async function renameCategory(db: SQLiteDatabase, id: number, name: string): Promise<void> {
+  await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', name, id);
+}
+
+export async function renameCategoryGroup(db: SQLiteDatabase, id: number, name: string): Promise<void> {
+  await db.runAsync('UPDATE category_groups SET name = ? WHERE id = ?', name, id);
+}
+
 export async function archiveCategory(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync("UPDATE categories SET archived_at = datetime('now') WHERE id = ?", id);
+}
+
+export async function archiveCategoryGroup(db: SQLiteDatabase, id: number): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(ARCHIVE_CATEGORIES_IN_GROUP, id);
+    await db.runAsync("UPDATE category_groups SET archived_at = datetime('now') WHERE id = ?", id);
+  });
+}
+
+export type MoveDirection = 'up' | 'down';
+
+// Renumbers the whole sibling set to its post-move order rather than
+// swapping two raw sort_order values — self-healing for rows created
+// before sort_order was assigned on insert (they'd otherwise all tie at 0
+// and a value-swap between two zeros would be a no-op).
+async function reorder(
+  db: SQLiteDatabase,
+  table: 'categories' | 'category_groups',
+  orderedIds: number[],
+  id: number,
+  direction: MoveDirection,
+): Promise<void> {
+  const index = orderedIds.indexOf(id);
+  const neighborIndex = direction === 'up' ? index - 1 : index + 1;
+  if (index === -1 || neighborIndex < 0 || neighborIndex >= orderedIds.length) return;
+  const next = [...orderedIds];
+  [next[index], next[neighborIndex]] = [next[neighborIndex], next[index]];
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < next.length; i++) {
+      await db.runAsync(`UPDATE ${table} SET sort_order = ? WHERE id = ?`, i, next[i]);
+    }
+  });
+}
+
+export async function moveCategory(db: SQLiteDatabase, categoryId: number, direction: MoveDirection): Promise<void> {
+  const category = await getCategory(db, categoryId);
+  if (!category) return;
+  const siblingIds = (await listCategories(db)).filter((c) => c.groupId === category.groupId).map((c) => c.id);
+  await reorder(db, 'categories', siblingIds, categoryId, direction);
+}
+
+export async function moveCategoryGroup(db: SQLiteDatabase, groupId: number, direction: MoveDirection): Promise<void> {
+  const groupIds = (await listCategoryGroups(db)).map((g) => g.id);
+  await reorder(db, 'category_groups', groupIds, groupId, direction);
 }
 
 const LOAN_PAYMENTS_GROUP = 'Loan Payments';
@@ -87,7 +159,7 @@ export async function ensurePaymentCategory(db: SQLiteDatabase, accountId: numbe
   const existing = await findCategoryByLinkedAccount(db, accountId);
   const name = `Payment: ${accountName}`;
   if (existing) {
-    if (existing.name !== name) await updateCategory(db, existing.id, { groupId: existing.groupId, name, icon: existing.icon });
+    if (existing.name !== name) await renameCategory(db, existing.id, name);
     return;
   }
   const groupId = await findOrCreateCategoryGroup(db, LOAN_PAYMENTS_GROUP);

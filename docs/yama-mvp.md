@@ -79,23 +79,22 @@ Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that ca
 - Each row: an icon, the account name, and its balance (colored red when negative)
 - Groups collapsible; "+" to add an account
 
-**Reports screen** (native, on-device — distinct from the AI analysis feature below; needs no API key and sends nothing off-device)
-- Spending breakdown for the selected month: total spent, a stacked bar by category, and a "Top categories" list with amounts
-- Income vs. spending trend across recent months (simple bar chart) with one auto-generated line of commentary (computed locally, not AI — e.g. "You're spending about as much as you make")
-- Interest earned this month (sum of transactions flagged `is_interest`) — a small, free stat that sets up a real future AI-analysis question ("is my savings rate beating inflation?") without needing AI to answer it yet
+**Insights screen** (native, on-device — distinct from the AI analysis feature below; needs no API key and sends nothing off-device; last tab, after FinMan)
+- Month picker; spending breakdown for the selected month: total spent, a stacked bar by category, and a "Top categories" list with amounts
+- Category trends: a multi-line chart (react-native-svg) of the top categories' monthly spend over the last 6 months
 
 ## YNAB Data Import
 One-time, manual, user-initiated — not a sync, not bank-linking. Lets someone switch from YNAB without re-entering history.
 
-**Format**: YNAB's per-account "Register" CSV export (Account, Flag, Date, Payee, Category Group/Category, Memo, Outflow, Inflow, Cleared) — the export any YNAB user can produce from the app without API access. Full-budget JSON export (API format) is a possible later addition if the CSV path proves too lossy (it drops category groups/goals structure); not MVP.
+**Format**: YNAB's "Export Budget" zip — a Register CSV (Account, Flag, Date, Payee, Category Group/Category, Memo, Outflow, Inflow, Cleared) and a Plan CSV (Month, Category Group/Category, Assigned, Activity, Available). A lone Register CSV also works (Plan/budgeted-amounts import is then skipped).
 
-**Idempotency (the hard requirement)**: importing the same file twice — or overlapping exports from different dates — must not create duplicate transactions.
-- Every imported transaction gets a computed `import_id`: a stable hash of (account name, date, payee, amount, memo). Real YNAB exports are deterministic for unchanged rows, so re-importing the same period reproduces the same hashes.
-- `transactions.import_id` is `UNIQUE`; the importer inserts with "ignore on conflict" semantics, so a repeat row is silently skipped, never duplicated.
-- Accounts, payees, and categories are matched by name (case-insensitive) and only created if missing — importing twice reuses the same rows rather than creating "Groceries" and "Groceries (2)".
+**Idempotency (the hard requirement)**: importing the same export twice — or a later, updated export — must not create duplicate transactions.
+- Every imported transaction gets an `import_id` of (account, date, payee) plus an occurrence counter for genuine same-day/same-payee duplicates — row *position* isn't used, since it shifts across re-exports. YNAB already combines same-day/same-payee activity on export, so this triple is the natural key.
+- `transactions.import_id` is `UNIQUE`; the importer upserts on conflict, so re-importing refreshes a row's amount/category/memo instead of leaving it stale.
+- Accounts, payees, and categories are matched by name and only created if missing — importing twice reuses the same rows rather than creating "Groceries" and "Groceries (2)". An account created (not matched) during import gets its type guessed from its name; fix it after if wrong.
 - Manually-entered transactions never collide with imports: they simply have no `import_id`.
 
-**Flow**: pick the exported file (or a folder/zip of per-account CSVs) → parse and preview counts ("142 transactions, 3 new accounts, 8 new categories; 89 already imported, will be skipped") → confirm → import runs inside a single DB transaction so a failure partway leaves the database unchanged.
+**Flow**: pick the exported .zip (Tools tab → "Import from YNAB") → parses and imports inside a single DB transaction → result counts shown (inserted / updated / accounts+categories created).
 
 ## Financial tools module
 Self-contained pure-function module, no DB/React dependency (`src/finance-tools/`):
@@ -137,7 +136,7 @@ Self-contained pure-function module, no DB/React dependency (`src/finance-tools/
 | Testing | Jest (`jest-expo`) | Unit tests for calculators & budget math only |
 | Build/submit | EAS Build + EAS Submit | Required — no full Xcode.app locally |
 | Lint/format | ESLint + Prettier | Baseline consistency for solo maintainer |
-| Charts (Reports) | Hand-rolled with RN `View`/flex widths | Bars only (stacked spend bar, income-vs-spend bars) — too simple to justify a charting library |
+| Charts (Insights) | `react-native-svg` for the line chart; stacked bar still hand-rolled `View`/flex | Line chart needs real point geometry; the bar doesn't |
 
 ## Testing strategy
 - Unit tests for `finance-tools/*` and `domain/budgetMath.ts` (rollover, to-be-budgeted, overspend) — these need correctness guarantees.

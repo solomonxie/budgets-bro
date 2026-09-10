@@ -3,8 +3,6 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type BudgetStackParamList = {
   BudgetHome: undefined;
   Transactions: undefined;
-  ManageCategories: undefined;
-  CategoryForm: { categoryId?: number; groupId?: number } | undefined;
 };
 
 export type AccountsStackParamList = {

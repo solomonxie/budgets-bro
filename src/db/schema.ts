@@ -20,6 +20,7 @@ export interface CategoryGroupRow {
   id: number;
   name: string;
   sort_order: number;
+  archived_at: string | null;
 }
 
 export interface CategoryRow {

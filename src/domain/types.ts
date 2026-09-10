@@ -30,6 +30,7 @@ export interface CategoryGroup {
   id: number;
   name: string;
   sortOrder: number;
+  archivedAt: string | null;
 }
 
 export interface Category {

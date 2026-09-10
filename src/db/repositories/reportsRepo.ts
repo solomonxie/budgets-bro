@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { nextMonth } from '../../domain/month';
+import { SPENDING_BY_CATEGORY, SPENDING_BY_CATEGORY_OVER_MONTHS, INCOME_AND_SPENDING_IN_RANGE } from '../../../databases/queries/reports';
 
 export interface CategorySpend {
   categoryId: number;
@@ -12,51 +13,49 @@ export async function spendingByCategory(db: SQLiteDatabase, month: string): Pro
   const start = `${month}-01`;
   const endExclusive = `${nextMonth(month)}-01`;
   const rows = await db.getAllAsync<{ category_id: number; name: string; icon: string | null; total: number }>(
-    `SELECT c.id as category_id, c.name, c.icon, SUM(-t.amount_cents) as total
-     FROM transactions t JOIN categories c ON c.id = t.category_id
-     WHERE t.amount_cents < 0 AND t.date >= ? AND t.date < ? AND t.transfer_account_id IS NULL
-     GROUP BY c.id ORDER BY total DESC`,
+    SPENDING_BY_CATEGORY,
     start,
     endExclusive,
   );
   return rows.map((r) => ({ categoryId: r.category_id, name: r.name, icon: r.icon, spentCents: r.total }));
 }
 
-export interface MonthTotals {
+export interface CategoryTrendPoint {
+  categoryId: number;
+  name: string;
+  icon: string | null;
   month: string;
+  spentCents: number;
+}
+
+// Raw (category, month) spend points across `months` — the Insights screen
+// pivots these into per-category series and picks the top few to plot.
+export async function spendingByCategoryOverMonths(db: SQLiteDatabase, months: string[]): Promise<CategoryTrendPoint[]> {
+  if (months.length === 0) return [];
+  const start = `${months[0]}-01`;
+  const endExclusive = `${nextMonth(months[months.length - 1])}-01`;
+  const rows = await db.getAllAsync<{ category_id: number; name: string; icon: string | null; month: string; total: number }>(
+    SPENDING_BY_CATEGORY_OVER_MONTHS,
+    start,
+    endExclusive,
+  );
+  return rows.map((r) => ({ categoryId: r.category_id, name: r.name, icon: r.icon, month: r.month, spentCents: r.total }));
+}
+
+export interface RangeTotals {
   incomeCents: number;
   spendingCents: number;
 }
 
-export async function monthlyTotals(db: SQLiteDatabase, months: string[]): Promise<MonthTotals[]> {
-  const results: MonthTotals[] = [];
-  for (const month of months) {
-    const start = `${month}-01`;
-    const endExclusive = `${nextMonth(month)}-01`;
-    const income = await db.getFirstAsync<{ total: number | null }>(
-      `SELECT SUM(t.amount_cents) as total FROM transactions t JOIN accounts a ON a.id = t.account_id
-       WHERE t.amount_cents > 0 AND t.transfer_account_id IS NULL AND a.on_budget = 1 AND t.date >= ? AND t.date < ?`,
-      start,
-      endExclusive,
-    );
-    const spending = await db.getFirstAsync<{ total: number | null }>(
-      `SELECT SUM(-t.amount_cents) as total FROM transactions t JOIN accounts a ON a.id = t.account_id
-       WHERE t.amount_cents < 0 AND t.transfer_account_id IS NULL AND a.on_budget = 1 AND t.date >= ? AND t.date < ?`,
-      start,
-      endExclusive,
-    );
-    results.push({ month, incomeCents: income?.total ?? 0, spendingCents: spending?.total ?? 0 });
-  }
-  return results;
-}
-
-export async function interestEarned(db: SQLiteDatabase, month: string): Promise<number> {
-  const start = `${month}-01`;
-  const endExclusive = `${nextMonth(month)}-01`;
-  const row = await db.getFirstAsync<{ total: number | null }>(
-    'SELECT SUM(amount_cents) as total FROM transactions WHERE is_interest = 1 AND date >= ? AND date < ?',
-    start,
-    endExclusive,
+// Income/spending for [startDate, endDateExclusive) — used by Tax Insights
+// for a calendar-year total. Same on-budget/non-transfer rules as budget math.
+export async function incomeAndSpendingInRange(db: SQLiteDatabase, startDate: string, endDateExclusive: string): Promise<RangeTotals> {
+  const row = await db.getFirstAsync<{ income_cents: number; spending_cents: number }>(
+    INCOME_AND_SPENDING_IN_RANGE,
+    startDate,
+    endDateExclusive,
+    startDate,
+    endDateExclusive,
   );
-  return row?.total ?? 0;
+  return { incomeCents: row?.income_cents ?? 0, spendingCents: row?.spending_cents ?? 0 };
 }

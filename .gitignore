@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# scratch SQLite db for local verification, not the app's runtime db
+databases/data.db

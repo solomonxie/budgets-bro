@@ -5,9 +5,12 @@ interface AppState {
   currentMonth: string; // 'YYYY-MM'
   setCurrentMonth: (month: string) => void;
 
-  isAddTransactionOpen: boolean;
+  // `editingTransactionId` is null for "new transaction", set for editing an
+  // existing one — same sheet, same fields, prefilled.
+  transactionModal: { open: boolean; editingTransactionId: number | null };
   openAddTransaction: () => void;
-  closeAddTransaction: () => void;
+  openEditTransaction: (id: number) => void;
+  closeTransactionModal: () => void;
 
   // Bumped after any write (transaction, account, category, budget entry) so
   // read hooks can refetch regardless of navigation focus — a plain Modal
@@ -21,9 +24,10 @@ export const useAppStore = create<AppState>((set) => ({
   currentMonth: currentMonth(),
   setCurrentMonth: (month) => set({ currentMonth: month }),
 
-  isAddTransactionOpen: false,
-  openAddTransaction: () => set({ isAddTransactionOpen: true }),
-  closeAddTransaction: () => set({ isAddTransactionOpen: false }),
+  transactionModal: { open: false, editingTransactionId: null },
+  openAddTransaction: () => set({ transactionModal: { open: true, editingTransactionId: null } }),
+  openEditTransaction: (id) => set({ transactionModal: { open: true, editingTransactionId: id } }),
+  closeTransactionModal: () => set({ transactionModal: { open: false, editingTransactionId: null } }),
 
   dataVersion: 0,
   bumpDataVersion: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),

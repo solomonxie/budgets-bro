@@ -18,6 +18,7 @@ interface DateGroup {
 export function TransactionsScreen() {
   const { transactions, refresh } = useTransactions();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const [query, setQuery] = useState('');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -80,7 +81,11 @@ export function TransactionsScreen() {
           <View style={styles.dateGroup}>
             <Text style={styles.dateHeader}>{group.date}</Text>
             {group.items.map((t) => (
-              <Pressable key={t.id} style={styles.row} onPress={() => (selectMode ? toggleSelected(t.id) : undefined)}>
+              <Pressable
+                key={t.id}
+                style={styles.row}
+                onPress={() => (selectMode ? toggleSelected(t.id) : openEditTransaction(t.id))}
+              >
                 {selectMode ? (
                   <View style={[styles.checkbox, selectedIds.includes(t.id) && styles.checkboxChecked]} />
                 ) : null}

@@ -35,7 +35,7 @@ User-facing screens for end-to-end manual budgeting. Reference: real YNAB's scre
 
 - [x] T3.0 Add a Reports tab; consolidate Calculators + AI Analysis into a single "Tools" tab so the bottom bar stays at 5 slots — updates the Phase 0 tab layout in `src/navigation/RootNavigator.tsx`
 - [x] T3.1 Budget screen: "Unassigned Cash" banner, collapsible category groups, per-category status badge (funded/partial/overspent) + progress bar + status caption, month navigation
-- [x] T3.2 Transaction entry sheet: amount keypad, inflow/outflow toggle, payee/category/account pickers, memo, cleared toggle, interest-income toggle on inflows; reachable via a floating "+ Transaction" button. *Scope cut: create-only (no edit-existing yet), date is always today (no date picker yet) — both are quick follow-ups, not architectural gaps.*
+- [x] T3.2 Transaction entry sheet: amount keypad (autofocused — keyboard pops immediately on open), inflow/outflow toggle, payee/category/account pickers, memo, date field, cleared toggle, interest-income toggle on inflows. Also now edits an existing transaction (tap any row in Transactions or an account register) with a Delete action, not just create. Payee autocomplete auto-fills the category from that payee's last transaction.
 - [x] T3.3 Transactions (Spending) list: grouped by date, category tag + cleared indicator per row, search, multi-select bulk delete. *Bulk edit not included, delete only.*
 - [x] T3.4 Account detail/register screen with running balance, plus a "Correct Balance" action (enter actual balance → one adjustment transaction for the difference)
 - [x] T3.5 Reports screen: spending breakdown (stacked bar + top categories), income-vs-spending trend, and interest-earned this month — all computed locally, no AI/network involved
@@ -67,11 +67,11 @@ Needs secure-store (Phase 0) and real budget data (Phase 2).
 ## Phase 7: YNAB Data Import
 One-time, idempotent import of a user's existing YNAB register export — see [`yama-mvp.md`](yama-mvp.md#ynab-data-import). Needs stable schema (Phase 1/2) and the Budget UI (Phase 3) to sanity-check imported data against.
 
-- [ ] T7.1 Add `import_id` (nullable, unique) to `transactions` if not already in the Phase 1 schema — dedupe key
-- [ ] T7.2 CSV parser for YNAB's Register export format
-- [ ] T7.3 Import mapper: match-or-create accounts/payees/categories by name; compute `import_id` hash per row; insert with skip-on-conflict
-- [ ] T7.4 Import screen: file picker, preview counts (new vs. already-imported), confirm, run inside one DB transaction
-- [ ] T7.5 Manual test: import the same file twice, confirm zero net new rows the second time
+- [x] T7.1 Add `import_id` (nullable, unique) to `transactions` if not already in the Phase 1 schema — dedupe key
+- [x] T7.2 CSV parser for YNAB's Register/Plan export format — `src/import/csv.ts`
+- [x] T7.3 Import mapper: match-or-create accounts/payees/categories by name; `import_id` keyed on account+date+payee (+ occurrence, for same-day duplicates); upserts on conflict — `src/import/ynabImporter.ts`
+- [x] T7.4 Import screen: zip file picker (Insights tab), result counts, runs inside one DB transaction
+- [x] T7.5 Parser verified against a real export (2489 register rows / 945 plan rows, all dates/amounts/months parsed, transfers detected); full on-device round-trip still untested
 
 ## Phase 8: Polish & App Store Submission Prep
 Converts a working skeleton into a submittable app.
@@ -81,3 +81,43 @@ Converts a working skeleton into a submittable app.
 - [ ] T8.3 Privacy nutrition label content + App Store metadata/screenshots (disclose AI/backup data flows)
 - [ ] T8.4 TestFlight build via EAS + manual QA pass
 - [ ] T8.5 EAS Submit to App Store
+
+## Phase 9: Insights — external-data widgets (deferred)
+Ideas for the Insights tab that need a live external data source (none wired up yet — no backend, no chosen provider). Built so far without one: spending breakdown + category trends (local), Baby Steps, Tax Insights, mortgage/loan calculator. Deferred:
+
+- [ ] T9.1 Cost of living by city — needs a data source/API
+- [ ] T9.2 Interest rate trends — needs a rates feed (e.g. central bank / FRED)
+- [ ] T9.3 Exchange rates — needs an FX rates API
+- [ ] T9.4 Housing market stats — needs a housing-data API
+- [ ] T9.5 Decide free-vs-paid data sources and where API keys live (likely BYO key via `expo-secure-store`, same pattern as Phase 6 AI)
+
+## Phase 10: UX overhaul (nav, budget, accounts, insights)
+A batch of usability fixes and feature requests against the working MVP, not new architecture. Bottom tabs are now Budget / Accounts / Insights (Tools folded into Insights; Settings is a header button, not a tab).
+
+- [x] T10.1 Bottom tabs: drop per-tab icons (text-only), reorder/merge so Reports+Tools become one "Insights" tab, Settings moves to a top-left header button on every tab instead of its own slot
+- [x] T10.2 Dark theme by default — `theme/colors.ts` + a matching React Navigation theme
+- [x] T10.3 Budget screen: "Manage Categories" reachable from the Budget header (was buried in Settings); a "Move to Unassigned" action per category when its balance is positive
+- [x] T10.4 Accounts screen: "Total Balance" replaced with Net Worth (Assets/Debts breakdown); Savings and a new Income account kind are their own groups instead of being lumped into Cash
+- [x] T10.5 Loan/mortgage accounts: optional rate/term/original-principal/origination-date fields on the account form; an auto-generated, renamed-on-rename "Payment: <account>" budget category (`categories.linked_account_id`); a Loan Details card on the account page projecting payoff date and remaining interest from the account's *actual* current balance (`finance-tools/amortization.ts`)
+- [x] T10.6 Insights: month picker, spending breakdown + top categories, and a multi-line category-trend chart (`react-native-svg`, dataviz-skill palette) replacing the old income-vs-spending bars; below the charts, a line-item list to Baby Steps, Tax Insights, Calculators, AI Analysis, and YNAB Import
+- [x] T10.7 Baby Steps tracker (Dave Ramsey's 7 steps): Steps 1/2/3/6 computed from real ledger data (emergency-fund account balance, non-mortgage debt, avg monthly spending, mortgage balance), Steps 4/5/7 as manual checkboxes persisted via `app_settings`
+- [x] T10.8 Tax Insights: this-year income/spending from the ledger plus two manual inputs (additional income, deductions) → a clearly-labeled non-authoritative "estimated taxable income"; an AI-summary entry point that's honest it's not wired up yet
+- [x] T10.9 Mortgage/loan calculator screen (ad-hoc "what if" numbers, not tied to a real account) using the same amortization math as T10.5
+- [x] T10.10 Deferred, tracked in Phase 9: cost of living / interest rate / exchange rate / housing market widgets — no external data source chosen yet
+
+## Phase 11: Account entry UX + inline category management
+Requested as a follow-up to Phase 10 — not yet implemented.
+
+- [ ] T11.1 "+ Add Account" opens a modal sheet (same pattern as the transaction sheet), not a pushed full-screen form; editing an account reuses the same sheet
+- [ ] T11.2 Remove the floating "+ Transaction" button from the Accounts list screen; each individual account's detail page gets its own "+ Transaction" button that pre-selects that account
+- [ ] T11.3 Category form: drop the emoji chip picker — the user types an emoji directly into the category/group name instead
+- [ ] T11.4 Separate "create a group" from "create a category" into distinct actions (today one form does both)
+- [ ] T11.5 Remove the dedicated Manage Categories page. Inline on the Budget screen instead: each group header row gets a "⋯" dropdown (edit name, delete, add category); each category row gets its own "⋯" dropdown (edit, delete)
+- [ ] T11.6 Reorder groups/categories directly on the Budget screen. Open question: true drag gestures need `react-native-gesture-handler` + `react-native-reanimated` (a babel-config change, more integration risk) vs. simple Move Up/Move Down controls (no new deps) — decide before implementing
+
+## Phase 12: Budget assignment as direct input + rollover-aware validation
+Requested as a follow-up to Phase 10 — not yet implemented.
+
+- [ ] T12.1 Replace the +/- stepper on a category's assigned amount with a direct number input (tap the amount, type a value)
+- [ ] T12.2 Show the rollover carried into the typed amount — i.e. the input should make clear how much of the category's balance is carryover from prior months vs. new assignment this month, not just accept a number in a vacuum
+- [ ] T12.3 Validate against Unassigned Cash: an assignment that would push Unassigned Cash negative is rejected with an explicit message to unassign from other categories first, rather than silently allowed (today's `adjustAssignedCents` has no such check)

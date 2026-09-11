@@ -172,10 +172,7 @@ export function BudgetScreen() {
             <Text style={styles.compareLabel}>Last Month</Text>
             <Text style={styles.compareValue}>{formatMoney(prevMonthSpentCents)}</Text>
             {prevMonthSpentCents > 0 ? (
-              <Text style={[styles.compareDelta, { color: totalSpentCents > prevMonthSpentCents ? colors.negative : colors.positive }]}>
-                {totalSpentCents > prevMonthSpentCents ? '▲' : '▼'}{' '}
-                {Math.abs(Math.round(((totalSpentCents - prevMonthSpentCents) / prevMonthSpentCents) * 100))}%
-              </Text>
+              <Text style={styles.compareDelta}>{Math.round((totalSpentCents / prevMonthSpentCents) * 100)}% reached</Text>
             ) : null}
           </View>
         ) : null}
@@ -299,7 +296,7 @@ const styles = StyleSheet.create({
   compareBlock: { alignItems: 'flex-end' },
   compareLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   compareValue: { fontSize: 16, fontWeight: '600', color: colors.textMuted, marginTop: 4 },
-  compareDelta: { fontSize: 12, fontWeight: '700', marginTop: 2 },
+  compareDelta: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginTop: 2 },
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4, color: colors.text },
   unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },

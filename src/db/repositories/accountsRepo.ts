@@ -48,9 +48,13 @@ export async function getAccount(db: SQLiteDatabase, id: number): Promise<Accoun
   return row ? mapRow(row) : null;
 }
 
+// Matches a closed account too (deliberately no `archived_at IS NULL`
+// filter) — this is the importer's match-or-create lookup, and a closed
+// account whose transactions the user re-imports should still be found
+// and reused, not silently duplicated into a brand-new open account.
 export async function findAccountByName(db: SQLiteDatabase, boardId: number, name: string): Promise<Account | null> {
   const row = await db.getFirstAsync<AccountRow>(
-    'SELECT * FROM accounts WHERE name = ? AND board_id = ? AND archived_at IS NULL',
+    'SELECT * FROM accounts WHERE name = ? AND board_id = ?',
     name,
     boardId,
   );

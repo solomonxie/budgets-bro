@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,6 +15,7 @@ import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
 import * as categoriesRepo from '../../db/repositories/categoriesRepo';
+import * as budgetsRepo from '../../db/repositories/budgetsRepo';
 import { nextMonth, previousMonth, formatMonthLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
@@ -46,10 +47,24 @@ export function BudgetScreen() {
   const setMonth = useAppStore((s) => s.setCurrentMonth);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
+  const dataVersion = useAppStore((s) => s.dataVersion);
   const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
   const totalSpentCents = Object.values(itemsByGroup)
     .flat()
     .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
+
+  // Same basis as totalSpentCents above (per-category activity, positive
+  // outflow only) so the comparison is apples to apples — just one cheap
+  // query for the prior month instead of a second full useBudget load.
+  const [prevMonthSpentCents, setPrevMonthSpentCents] = useState<number | null>(null);
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      const activity = await budgetsRepo.activityThisMonthByCategory(db, boardId, previousMonth(month));
+      setPrevMonthSpentCents(Object.values(activity).reduce((sum, v) => sum + Math.max(0, -v), 0));
+    })();
+  }, [month, boardId, dataVersion]);
+
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [editingItem, setEditingItem] = useState<CategoryBudgetItem | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
@@ -139,16 +154,30 @@ export function BudgetScreen() {
       />
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Spent This Month</Text>
-        <Text style={styles.summaryValue}>{formatMoney(totalSpentCents)}</Text>
-        <Text
-          style={[
-            styles.unassignedHint,
-            { color: unassignedCents < 0 ? colors.negative : unassignedCents > 0 ? colors.positive : colors.textMuted },
-          ]}
-        >
-          Unassigned: {formatMoney(unassignedCents)}
-        </Text>
+        <View>
+          <Text style={styles.summaryLabel}>Spent This Month</Text>
+          <Text style={styles.summaryValue}>{formatMoney(totalSpentCents)}</Text>
+          <Text
+            style={[
+              styles.unassignedHint,
+              { color: unassignedCents < 0 ? colors.negative : unassignedCents > 0 ? colors.positive : colors.textMuted },
+            ]}
+          >
+            Unassigned: {formatMoney(unassignedCents)}
+          </Text>
+        </View>
+        {prevMonthSpentCents != null ? (
+          <View style={styles.compareBlock}>
+            <Text style={styles.compareLabel}>Last Month</Text>
+            <Text style={styles.compareValue}>{formatMoney(prevMonthSpentCents)}</Text>
+            {prevMonthSpentCents > 0 ? (
+              <Text style={[styles.compareDelta, { color: totalSpentCents > prevMonthSpentCents ? colors.negative : colors.positive }]}>
+                {totalSpentCents > prevMonthSpentCents ? '▲' : '▼'}{' '}
+                {Math.abs(Math.round(((totalSpentCents - prevMonthSpentCents) / prevMonthSpentCents) * 100))}%
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {groups.map((group) => {
@@ -257,12 +286,19 @@ export function BudgetScreen() {
 
 const styles = StyleSheet.create({
   summaryCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 18,
     padding: spacing.md,
   },
+  compareBlock: { alignItems: 'flex-end' },
+  compareLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  compareValue: { fontSize: 16, fontWeight: '600', color: colors.textMuted, marginTop: 4 },
+  compareDelta: { fontSize: 12, fontWeight: '700', marginTop: 2 },
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4, color: colors.text },
   unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },

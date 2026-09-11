@@ -19,6 +19,7 @@ function mapRow(row: AccountRow): Account {
     termMonths: row.term_months,
     originalPrincipalCents: row.original_principal_cents,
     originationDate: row.origination_date,
+    originalHousePriceCents: row.original_house_price_cents,
   };
 }
 
@@ -66,17 +67,20 @@ export interface AccountInput {
   type: AccountType;
   openingBalanceCents: number;
   // Loan/mortgage terms — undefined/null for every other account type.
+  // interestRateBps is legacy passthrough only (kept for the initial rate
+  // history seed row at creation) — see accountRateHistoryRepo for edits.
   interestRateBps?: number | null;
   termMonths?: number | null;
   originalPrincipalCents?: number | null;
   originationDate?: string | null;
+  originalHousePriceCents?: number | null;
 }
 
 export async function createAccount(db: SQLiteDatabase, boardId: number, input: AccountInput): Promise<number> {
   const onBudget = input.type !== 'tracking' ? 1 : 0;
   const result = await db.runAsync(
-    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     boardId,
     input.name,
     input.type,
@@ -86,6 +90,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     input.termMonths ?? null,
     input.originalPrincipalCents ?? null,
     input.originationDate ?? null,
+    input.originalHousePriceCents ?? null,
   );
   const id = result.lastInsertRowId;
   if (isLoanLikeType(input.type)) await categoriesRepo.ensurePaymentCategory(db, boardId, id, input.name);
@@ -96,16 +101,16 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
   const onBudget = input.type !== 'tracking' ? 1 : 0;
   await db.runAsync(
     `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
-       interest_rate_bps = ?, term_months = ?, original_principal_cents = ?, origination_date = ?
+       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?
      WHERE id = ?`,
     input.name,
     input.type,
     onBudget,
     input.openingBalanceCents,
-    input.interestRateBps ?? null,
     input.termMonths ?? null,
     input.originalPrincipalCents ?? null,
     input.originationDate ?? null,
+    input.originalHousePriceCents ?? null,
     id,
   );
   if (isLoanLikeType(input.type)) {

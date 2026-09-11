@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { Chip } from '../../components/ui/Chip';
 import { TextField } from '../../components/ui/TextField';
+import { DropdownField, DropdownOption } from '../../components/ui/DropdownField';
+import { RateChangeModal } from '../../components/ui/RateChangeModal';
+import type { RateChangeValue } from '../../components/ui/RateChangeModal';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
+import * as accountRateHistoryRepo from '../../db/repositories/accountRateHistoryRepo';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
+import { formatMoney } from '../../domain/money';
 import { computeBalanceCorrectionCents } from '../../domain/register';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountType } from '../../domain/types';
+import type { Account, AccountRateChange, AccountType } from '../../domain/types';
 
 const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
   { value: 'checking', label: 'Checking' },
@@ -34,6 +39,7 @@ export function AccountModal() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
+  const { history: rateHistory } = useAccountRateHistory(editingAccountId);
   const isEditing = editingAccountId != null;
 
   const [name, setName] = useState('');
@@ -41,11 +47,13 @@ export function AccountModal() {
   const [openingBalance, setOpeningBalance] = useState('0');
   const [latestBalance, setLatestBalance] = useState('0');
   const [loadedBalanceCents, setLoadedBalanceCents] = useState(0);
-  const [interestRate, setInterestRate] = useState('');
+  const [initialInterestRate, setInitialInterestRate] = useState('');
   const [termMonths, setTermMonths] = useState('');
   const [originalPrincipal, setOriginalPrincipal] = useState('');
+  const [originalHousePrice, setOriginalHousePrice] = useState('');
   const [originationDate, setOriginationDate] = useState(currentDateISO());
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
+  const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
 
   const reset = () => {
     setName('');
@@ -53,11 +61,13 @@ export function AccountModal() {
     setOpeningBalance('0');
     setLatestBalance('0');
     setLoadedBalanceCents(0);
-    setInterestRate('');
+    setInitialInterestRate('');
     setTermMonths('');
     setOriginalPrincipal('');
+    setOriginalHousePrice('');
     setOriginationDate(currentDateISO());
     setArchivedAt(null);
+    setRateModal(null);
   };
 
   useEffect(() => {
@@ -73,9 +83,9 @@ export function AccountModal() {
       setOpeningBalance((account.openingBalanceCents / 100).toString());
       setLatestBalance((balanceCents / 100).toString());
       setLoadedBalanceCents(balanceCents);
-      setInterestRate(account.interestRateBps != null ? (account.interestRateBps / 100).toString() : '');
       setTermMonths(account.termMonths != null ? String(account.termMonths) : '');
       setOriginalPrincipal(account.originalPrincipalCents != null ? (account.originalPrincipalCents / 100).toString() : '');
+      setOriginalHousePrice(account.originalHousePriceCents != null ? (account.originalHousePriceCents / 100).toString() : '');
       setOriginationDate(account.originationDate ?? currentDateISO());
       setArchivedAt(account.archivedAt);
     })();
@@ -91,6 +101,10 @@ export function AccountModal() {
   };
 
   const isLoanLike = isLoanLikeType(type);
+  const downPaymentCents =
+    originalHousePrice && originalPrincipal
+      ? Math.round(parseFloat(originalHousePrice) * 100) - Math.round(parseFloat(originalPrincipal) * 100)
+      : null;
 
   const save = async () => {
     if (!name.trim()) {
@@ -102,10 +116,10 @@ export function AccountModal() {
       name: name.trim(),
       type,
       openingBalanceCents: Math.round(parseFloat(openingBalance || '0') * 100),
-      interestRateBps: isLoanLike && interestRate ? Math.round(parseFloat(interestRate) * 100) : null,
       termMonths: isLoanLike && termMonths ? Math.round(parseFloat(termMonths)) : null,
       originalPrincipalCents: isLoanLike && originalPrincipal ? Math.round(parseFloat(originalPrincipal) * 100) : null,
       originationDate: isLoanLike ? originationDate : null,
+      originalHousePriceCents: isLoanLike && originalHousePrice ? Math.round(parseFloat(originalHousePrice) * 100) : null,
     };
     if (editingAccountId != null) {
       await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
@@ -113,7 +127,10 @@ export function AccountModal() {
       const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
       if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
     } else {
-      await accountsRepo.createAccount(db, boardId, input);
+      const id = await accountsRepo.createAccount(db, boardId, { ...input, interestRateBps: isLoanLike && initialInterestRate ? Math.round(parseFloat(initialInterestRate) * 100) : null });
+      if (isLoanLike && initialInterestRate) {
+        await accountRateHistoryRepo.addRateChange(db, id, Math.round(parseFloat(initialInterestRate) * 100), originationDate);
+      }
     }
     bumpDataVersion();
     close();
@@ -151,6 +168,24 @@ export function AccountModal() {
     reset();
   };
 
+  const submitRateChange = async (value: RateChangeValue) => {
+    if (editingAccountId == null) return;
+    const rateBps = Math.round(parseFloat(value.ratePercent) * 100);
+    const db = await getDb();
+    if (rateModal?.editing) await accountRateHistoryRepo.updateRateChange(db, rateModal.editing.id, rateBps, value.effectiveDate);
+    else await accountRateHistoryRepo.addRateChange(db, editingAccountId, rateBps, value.effectiveDate);
+    bumpDataVersion();
+    setRateModal(null);
+  };
+
+  const deleteRateChange = async () => {
+    if (!rateModal?.editing) return;
+    const db = await getDb();
+    await accountRateHistoryRepo.deleteRateChange(db, rateModal.editing.id);
+    bumpDataVersion();
+    setRateModal(null);
+  };
+
   return (
     <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={cancel}>
       <ScreenContainer>
@@ -165,14 +200,23 @@ export function AccountModal() {
             </Pressable>
           </View>
           <TextField label="Name" value={name} onChangeText={setName} placeholder="e.g. Checking" />
-          <View style={styles.field}>
-            <Text style={styles.label}>Type</Text>
-            <View style={styles.chipRow}>
-              {TYPE_OPTIONS.map((opt) => (
-                <Chip key={opt.value} label={opt.label} selected={type === opt.value} onPress={() => setType(opt.value)} />
-              ))}
-            </View>
-          </View>
+          <DropdownField label="Type" valueLabel={TYPE_OPTIONS.find((o) => o.value === type)?.label ?? ''}>
+            {(closeDropdown) => (
+              <>
+                {TYPE_OPTIONS.map((opt) => (
+                  <DropdownOption
+                    key={opt.value}
+                    label={opt.label}
+                    selected={type === opt.value}
+                    onPress={() => {
+                      setType(opt.value);
+                      closeDropdown();
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </DropdownField>
           <TextField
             label="Opening Balance"
             value={openingBalance}
@@ -192,13 +236,40 @@ export function AccountModal() {
           {isLoanLike ? (
             <>
               <Text style={styles.sectionLabel}>Loan Terms (for the payoff projection on the account page)</Text>
-              <TextField
-                label="Interest Rate (annual %)"
-                value={interestRate}
-                onChangeText={setInterestRate}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 6.25"
-              />
+              {isEditing ? (
+                <View style={styles.field}>
+                  <Text style={styles.label}>Interest Rate History</Text>
+                  {rateHistory.length === 0 ? <Text style={styles.hint}>No rate recorded yet.</Text> : null}
+                  {rateHistory.map((r) => (
+                    <Pressable
+                      key={r.id}
+                      style={styles.rateRow}
+                      onPress={() =>
+                        setRateModal({
+                          editing: r,
+                        })
+                      }
+                    >
+                      <Text style={styles.rateRowText}>{(r.rateBps / 100).toFixed(2)}%</Text>
+                      <Text style={styles.rateRowDate}>effective {r.effectiveDate}</Text>
+                    </Pressable>
+                  ))}
+                  <Pressable
+                    style={styles.addRateBtn}
+                    onPress={() => setRateModal({ editing: null })}
+                  >
+                    <Text style={styles.addRateBtnText}>+ Add Rate Change</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <TextField
+                  label="Interest Rate (annual %)"
+                  value={initialInterestRate}
+                  onChangeText={setInitialInterestRate}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 6.25"
+                />
+              )}
               <TextField
                 label="Term (months)"
                 value={termMonths}
@@ -213,6 +284,20 @@ export function AccountModal() {
                 keyboardType="decimal-pad"
                 placeholder="0.00"
               />
+              <View style={styles.field}>
+                <TextField
+                  label="Original House Price"
+                  value={originalHousePrice}
+                  onChangeText={setOriginalHousePrice}
+                  keyboardType="decimal-pad"
+                  placeholder="0.00 (optional)"
+                />
+                {downPaymentCents != null ? (
+                  <Text style={styles.hint}>
+                    {downPaymentCents >= 0 ? `Down payment: ${formatMoney(downPaymentCents)}` : 'Original principal exceeds house price'}
+                  </Text>
+                ) : null}
+              </View>
               <TextField label="Origination Date" value={originationDate} onChangeText={setOriginationDate} placeholder="YYYY-MM-DD" />
             </>
           ) : null}
@@ -231,6 +316,16 @@ export function AccountModal() {
           ) : null}
         </ScrollView>
       </ScreenContainer>
+      <RateChangeModal
+        visible={rateModal != null}
+        initial={{
+          ratePercent: rateModal?.editing ? (rateModal.editing.rateBps / 100).toString() : '',
+          effectiveDate: rateModal?.editing?.effectiveDate ?? currentDateISO(),
+        }}
+        onCancel={() => setRateModal(null)}
+        onSubmit={submitRateChange}
+        onDelete={rateModal?.editing ? deleteRateChange : undefined}
+      />
     </Modal>
   );
 }
@@ -243,9 +338,24 @@ const styles = StyleSheet.create({
   saveBtn: { color: colors.accent },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  hint: { fontSize: 12, color: colors.textMuted },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginTop: spacing.xs },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   dangerZone: { marginTop: spacing.md, alignItems: 'center' },
   closeLink: { color: colors.negative, fontWeight: '600', fontSize: 14 },
   reopenLink: { color: colors.accent, fontWeight: '600', fontSize: 14 },
+  rateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+  },
+  rateRowText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  rateRowDate: { fontSize: 12, color: colors.textMuted },
+  addRateBtn: { alignItems: 'center', paddingVertical: 8 },
+  addRateBtnText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
 });

@@ -26,10 +26,20 @@ export interface Account {
   archivedAt: string | null;
   createdAt: string;
   // Loan/mortgage terms — null unless set on a loan-like account.
+  // interestRateBps is legacy — current rate now comes from the latest
+  // accountRateHistoryRepo entry; this column is no longer written to.
   interestRateBps: number | null;
   termMonths: number | null;
   originalPrincipalCents: number | null;
   originationDate: string | null;
+  originalHousePriceCents: number | null;
+}
+
+export interface AccountRateChange {
+  id: number;
+  accountId: number;
+  rateBps: number;
+  effectiveDate: string; // 'YYYY-MM-DD'
 }
 
 export interface CategoryGroup {

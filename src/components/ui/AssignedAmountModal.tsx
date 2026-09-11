@@ -9,20 +9,24 @@ interface AssignedAmountModalProps {
   categoryIcon: string | null;
   initialCents: number;
   onSave: (cents: number) => void;
-  onDetails: () => void;
+  onHistory: () => void;
+  onLink: () => void;
   onClose: () => void;
 }
 
 // YNAB-style "tap the amount, get a big number field" popup — a modal
 // instead of expanding the category row in place, so the list doesn't
-// reflow every time a category is tapped.
+// reflow every time a category is tapped. Cancel/Save stay centered as
+// the primary action; Link and History are secondary, pinned to the
+// opposite corners.
 export function AssignedAmountModal({
   visible,
   categoryName,
   categoryIcon,
   initialCents,
   onSave,
-  onDetails,
+  onHistory,
+  onLink,
   onClose,
 }: AssignedAmountModalProps) {
   const [value, setValue] = useState('');
@@ -55,15 +59,22 @@ export function AssignedAmountModal({
             onSubmitEditing={save}
           />
           <View style={styles.actions}>
-            <Pressable onPress={onDetails}>
-              <Text style={styles.detailsText}>Details</Text>
-            </Pressable>
-            <View style={styles.rightActions}>
+            <View style={styles.sideSlot}>
+              <Pressable onPress={onLink}>
+                <Text style={styles.sideText}>Link</Text>
+              </Pressable>
+            </View>
+            <View style={styles.centerActions}>
               <Pressable onPress={onClose}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.saveButton} onPress={save}>
                 <Text style={styles.saveButtonText}>Save</Text>
+              </Pressable>
+            </View>
+            <View style={[styles.sideSlot, styles.sideSlotRight]}>
+              <Pressable onPress={onHistory}>
+                <Text style={styles.sideText}>History</Text>
               </Pressable>
             </View>
           </View>
@@ -95,8 +106,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
-  detailsText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
-  rightActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  sideSlot: { minWidth: 50 },
+  sideSlotRight: { alignItems: 'flex-end' },
+  sideText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
+  centerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   cancelText: { color: colors.textMuted, fontWeight: '600' },
   saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },
   saveButtonText: { color: '#fff', fontWeight: '700' },

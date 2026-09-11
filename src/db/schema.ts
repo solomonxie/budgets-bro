@@ -21,6 +21,15 @@ export interface AccountRow {
   term_months: number | null;
   original_principal_cents: number | null;
   origination_date: string | null;
+  original_house_price_cents: number | null;
+}
+
+export interface AccountRateHistoryRow {
+  id: number;
+  account_id: number;
+  rate_bps: number;
+  effective_date: string;
+  created_at: string;
 }
 
 export interface CategoryGroupRow {

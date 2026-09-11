@@ -5,7 +5,7 @@ import type { CategorySpend, CategoryTrendPoint } from '../db/repositories/repor
 import { lastNMonths } from '../domain/month';
 import { useAppStore } from '../state/useAppStore';
 
-const TREND_MONTHS = 6;
+const TREND_MONTHS = 12;
 
 export function useInsights(month: string) {
   const [spending, setSpending] = useState<CategorySpend[]>([]);

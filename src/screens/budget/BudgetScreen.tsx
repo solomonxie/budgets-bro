@@ -48,7 +48,7 @@ export function BudgetScreen() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const dataVersion = useAppStore((s) => s.dataVersion);
-  const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
+  const { groups, itemsByGroup, unassignedCents, setAssigned } = useBudget(month);
   const totalSpentCents = Object.values(itemsByGroup)
     .flat()
     .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
@@ -234,20 +234,6 @@ export function BudgetScreen() {
                           <Text style={styles.catName}>{item.category.name}</Text>
                         </View>
                         <StatusBadge text={formatMoney(item.balanceCents)} bg={statusColors.bg} fg={statusColors.fg} />
-                        <RowMenuButton
-                          items={[
-                            {
-                              label: 'Rename',
-                              onPress: () => setPrompt({ type: 'renameCategory', categoryId: item.category.id, initial: item.category.name }),
-                            },
-                            ...(item.balanceCents > 0
-                              ? [{ label: 'Move to Unassigned', onPress: () => moveToUnassigned(item.category.id, item.balanceCents) }]
-                              : []),
-                            { label: 'Move Up', onPress: () => moveCategory(item.category.id, 'up') },
-                            { label: 'Move Down', onPress: () => moveCategory(item.category.id, 'down') },
-                            { label: 'Delete', destructive: true, onPress: () => deleteCategory(item.category) },
-                          ]}
-                        />
                       </View>
                       <ProgressBar percent={percentSpent} color={statusColors.fg} />
                       <Text style={styles.caption}>{item.captionText}</Text>
@@ -286,6 +272,29 @@ export function BudgetScreen() {
         initialCents={editingItem?.assignedThisMonthCents ?? 0}
         unassignedCents={unassignedCents}
         lastMonthAssignedCents={editingItem ? (prevMonthAssignedByCategory[editingItem.category.id] ?? 0) : 0}
+        menuItems={
+          editingItem
+            ? [
+                {
+                  label: 'Rename',
+                  onPress: () => {
+                    setEditingItem(null);
+                    setPrompt({ type: 'renameCategory', categoryId: editingItem.category.id, initial: editingItem.category.name });
+                  },
+                },
+                { label: 'Move Up', onPress: () => moveCategory(editingItem.category.id, 'up') },
+                { label: 'Move Down', onPress: () => moveCategory(editingItem.category.id, 'down') },
+                {
+                  label: 'Delete',
+                  destructive: true,
+                  onPress: () => {
+                    setEditingItem(null);
+                    deleteCategory(editingItem.category);
+                  },
+                },
+              ]
+            : []
+        }
         onSave={saveAssigned}
         onHistory={openHistory}
         onClose={() => setEditingItem(null)}

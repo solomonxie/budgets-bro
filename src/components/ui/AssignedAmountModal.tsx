@@ -3,6 +3,8 @@ import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { formatMoney } from '../../domain/money';
+import { RowMenuButton } from './RowMenuButton';
+import type { MenuItem } from './RowMenuButton';
 
 interface AssignedAmountModalProps {
   visible: boolean;
@@ -11,6 +13,7 @@ interface AssignedAmountModalProps {
   initialCents: number;
   unassignedCents: number;
   lastMonthAssignedCents: number;
+  menuItems: MenuItem[];
   onSave: (cents: number) => void;
   onHistory: () => void;
   onClose: () => void;
@@ -20,8 +23,9 @@ interface AssignedAmountModalProps {
 // instead of expanding the category row in place, so the list doesn't
 // reflow every time a category is tapped. One "Done" button, centered —
 // every way of dismissing (Done, backdrop tap, hardware back) commits the
-// typed amount, there's no separate discard-and-cancel path. History is
-// secondary, pinned to the right.
+// typed amount, there's no separate discard-and-cancel path. The
+// category's own "⋯" menu (rename/reorder/delete — moved here from the
+// row itself) sits bottom-left, aligned with Done; History is bottom-right.
 export function AssignedAmountModal({
   visible,
   categoryName,
@@ -29,6 +33,7 @@ export function AssignedAmountModal({
   initialCents,
   unassignedCents,
   lastMonthAssignedCents,
+  menuItems,
   onSave,
   onHistory,
   onClose,
@@ -87,7 +92,9 @@ export function AssignedAmountModal({
           </Text>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <View style={styles.actions}>
-            <View style={styles.sideSlot} />
+            <View style={styles.sideSlot}>
+              <RowMenuButton items={menuItems} />
+            </View>
             <View style={styles.centerActions}>
               <Pressable style={styles.saveButton} onPress={done}>
                 <Text style={styles.saveButtonText}>Done</Text>

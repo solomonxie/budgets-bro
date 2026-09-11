@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-interface MenuItem {
+export interface MenuItem {
   label: string;
   destructive?: boolean;
   onPress: () => void;

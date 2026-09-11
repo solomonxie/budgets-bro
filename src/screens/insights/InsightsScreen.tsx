@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { MonthNav } from '../../components/ui/MonthNav';
+import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { useInsights } from '../../hooks/useInsights';
 import { currentMonth, nextMonth, previousMonth, formatMonthLabel, formatMonthShort } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
@@ -45,6 +46,7 @@ export function InsightsScreen() {
   const { spending, trendPoints, trendMonths } = useInsights(month);
   const { width: windowWidth } = useWindowDimensions();
   const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<number>>(new Set());
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const trendScrollRef = useRef<ScrollView>(null);
 
   const toggleCategoryVisible = (categoryId: number) => {
@@ -110,7 +112,13 @@ export function InsightsScreen() {
 
   return (
     <ScreenContainer scroll>
-      <MonthNav label={formatMonthLabel(month)} onPrevious={() => setMonth(previousMonth(month))} onNext={() => setMonth(nextMonth(month))} />
+      <MonthNav
+        label={formatMonthLabel(month)}
+        onPrevious={() => setMonth(previousMonth(month))}
+        onNext={() => setMonth(nextMonth(month))}
+        onPressLabel={() => setMonthPickerOpen(true)}
+      />
+      <MonthPickerModal visible={monthPickerOpen} month={month} onSelect={setMonth} onClose={() => setMonthPickerOpen(false)} />
 
       <View style={styles.card}>
         <Text style={styles.label}>Spending Breakdown</Text>

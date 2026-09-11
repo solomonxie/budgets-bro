@@ -214,6 +214,7 @@ export function AddTransactionModal() {
             </>
           )}
         </DropdownField>
+        <DateField label="Date" value={date} onChange={setDate} />
         <DropdownField label="Account" valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
           {(close) => (
             <>
@@ -238,7 +239,6 @@ export function AddTransactionModal() {
           onChangeText={setMemo}
           placeholderTextColor={colors.textMuted}
         />
-        <DateField label="Date" value={date} onChange={setDate} />
         {direction === 'in' ? (
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Interest income</Text>

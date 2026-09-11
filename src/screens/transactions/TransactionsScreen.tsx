@@ -14,9 +14,9 @@ import { lastNMonths, formatMonthLabel, currentMonth } from '../../domain/month'
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { TransactionWithLabels } from '../../domain/types';
-import type { BudgetStackParamList } from '../../navigation/types';
+import type { TransactionsFilterParams } from '../../navigation/types';
 
-type Route = RouteProp<BudgetStackParamList, 'Transactions'>;
+type Route = RouteProp<{ Transactions: TransactionsFilterParams }, 'Transactions'>;
 
 interface DateGroup {
   date: string;
@@ -33,25 +33,34 @@ export function TransactionsScreen() {
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+  // Set only by Insights' "All Others" row — every category outside its
+  // top-N breakdown, matched instead of (and clearing) the single-select
+  // `categoryFilter` above.
+  const [otherCategoryIds, setOtherCategoryIds] = useState<number[] | null>(null);
   const [monthFilter, setMonthFilter] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // Arriving from the Budget screen's "Details" button presets both filters.
+  // Arriving from the Budget screen's "Details" button or Insights presets filters.
   useEffect(() => {
     if (route.params?.categoryId != null) setCategoryFilter(route.params.categoryId);
+    if (route.params?.categoryIds != null) setOtherCategoryIds(route.params.categoryIds);
     if (route.params?.month != null) setMonthFilter(route.params.month);
   }, [route.params]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return transactions.filter((t) => {
-      if (categoryFilter != null && t.categoryId !== categoryFilter) return false;
+      if (otherCategoryIds != null) {
+        if (t.categoryId == null || !otherCategoryIds.includes(t.categoryId)) return false;
+      } else if (categoryFilter != null && t.categoryId !== categoryFilter) {
+        return false;
+      }
       if (monthFilter != null && !t.date.startsWith(monthFilter)) return false;
       if (q && !(t.payeeName ?? '').toLowerCase().includes(q) && !(t.memo ?? '').toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [transactions, query, categoryFilter, monthFilter]);
+  }, [transactions, query, categoryFilter, otherCategoryIds, monthFilter]);
 
   const grouped = useMemo<DateGroup[]>(() => {
     const byDate: DateGroup[] = [];
@@ -76,10 +85,14 @@ export function TransactionsScreen() {
     refresh();
   };
 
-  const categoryFilterLabel = categoryFilter == null ? '' : (() => {
-    const c = categories.find((cat) => cat.id === categoryFilter);
-    return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
-  })();
+  const categoryFilterLabel = otherCategoryIds != null
+    ? 'All Others'
+    : categoryFilter == null
+      ? ''
+      : (() => {
+          const c = categories.find((cat) => cat.id === categoryFilter);
+          return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
+        })();
   const monthFilterLabel = monthFilter == null ? '' : formatMonthLabel(monthFilter);
 
   return (
@@ -108,9 +121,10 @@ export function TransactionsScreen() {
               <>
                 <DropdownOption
                   label="All Categories"
-                  selected={categoryFilter == null}
+                  selected={categoryFilter == null && otherCategoryIds == null}
                   onPress={() => {
                     setCategoryFilter(null);
+                    setOtherCategoryIds(null);
                     close();
                   }}
                 />
@@ -124,9 +138,10 @@ export function TransactionsScreen() {
                         <DropdownOption
                           key={c.id}
                           label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                          selected={categoryFilter === c.id}
+                          selected={otherCategoryIds == null && categoryFilter === c.id}
                           onPress={() => {
                             setCategoryFilter(c.id);
+                            setOtherCategoryIds(null);
                             close();
                           }}
                         />

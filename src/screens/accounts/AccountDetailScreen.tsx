@@ -12,6 +12,7 @@ import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
+import { HouseValueCard } from './HouseValueCard';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { AccountsStackParamList } from '../../navigation/types';
@@ -59,6 +60,9 @@ export function AccountDetailScreen() {
       </View>
       {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
         <LoanDetailsCard account={accountWithBalance.account} balanceCents={balanceCents} />
+      ) : null}
+      {accountWithBalance && accountWithBalance.account.type === 'mortgage' ? (
+        <HouseValueCard account={accountWithBalance.account} balanceCents={balanceCents} />
       ) : null}
       <FlatList
         style={{ flex: 1 }}

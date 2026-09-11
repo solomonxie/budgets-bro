@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
+import { DateField } from '../../components/ui/DateField';
 import { DropdownField, DropdownOption } from '../../components/ui/DropdownField';
 import { RateChangeModal } from '../../components/ui/RateChangeModal';
 import type { RateChangeValue } from '../../components/ui/RateChangeModal';
@@ -9,6 +10,7 @@ import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import * as accountRateHistoryRepo from '../../db/repositories/accountRateHistoryRepo';
+import * as accountHouseValueHistoryRepo from '../../db/repositories/accountHouseValueHistoryRepo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAppStore } from '../../state/useAppStore';
@@ -127,9 +129,12 @@ export function AccountModal() {
       const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
       if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
     } else {
-      const id = await accountsRepo.createAccount(db, boardId, { ...input, interestRateBps: isLoanLike && initialInterestRate ? Math.round(parseFloat(initialInterestRate) * 100) : null });
-      if (isLoanLike && initialInterestRate) {
+      const id = await accountsRepo.createAccount(db, boardId, { ...input, interestRateBps: initialInterestRate ? Math.round(parseFloat(initialInterestRate) * 100) : null });
+      if (initialInterestRate) {
         await accountRateHistoryRepo.addRateChange(db, id, Math.round(parseFloat(initialInterestRate) * 100), originationDate);
+      }
+      if (type === 'mortgage' && originalHousePrice) {
+        await accountHouseValueHistoryRepo.addValueChange(db, id, Math.round(parseFloat(originalHousePrice) * 100), originationDate);
       }
     }
     bumpDataVersion();
@@ -162,7 +167,7 @@ export function AccountModal() {
   const reopenAccount = async () => {
     if (editingAccountId == null) return;
     const db = await getDb();
-    await accountsRepo.reopenAccount(db, editingAccountId);
+    await accountsRepo.reopenAccount(db, boardId, editingAccountId);
     bumpDataVersion();
     close();
     reset();
@@ -189,7 +194,7 @@ export function AccountModal() {
   return (
     <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={cancel}>
       <ScreenContainer>
-        <ScrollView contentContainerStyle={styles.sheet}>
+        <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <Pressable onPress={cancel}>
               <Text style={styles.headerBtn}>Cancel</Text>
@@ -233,43 +238,41 @@ export function AccountModal() {
               placeholder="0.00"
             />
           ) : null}
+          <Text style={styles.sectionLabel}>Interest Rate</Text>
+          {isEditing ? (
+            <View style={styles.field}>
+              <Text style={styles.label}>Interest Rate History</Text>
+              {rateHistory.length === 0 ? <Text style={styles.hint}>No rate recorded yet.</Text> : null}
+              {rateHistory.map((r) => (
+                <Pressable
+                  key={r.id}
+                  style={styles.rateRow}
+                  onPress={() =>
+                    setRateModal({
+                      editing: r,
+                    })
+                  }
+                >
+                  <Text style={styles.rateRowText}>{(r.rateBps / 100).toFixed(2)}%</Text>
+                  <Text style={styles.rateRowDate}>effective {r.effectiveDate}</Text>
+                </Pressable>
+              ))}
+              <Pressable style={styles.addRateBtn} onPress={() => setRateModal({ editing: null })}>
+                <Text style={styles.addRateBtnText}>+ Add Rate Change</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <TextField
+              label="Interest Rate (annual %)"
+              value={initialInterestRate}
+              onChangeText={setInitialInterestRate}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 6.25 (optional)"
+            />
+          )}
           {isLoanLike ? (
             <>
               <Text style={styles.sectionLabel}>Loan Terms (for the payoff projection on the account page)</Text>
-              {isEditing ? (
-                <View style={styles.field}>
-                  <Text style={styles.label}>Interest Rate History</Text>
-                  {rateHistory.length === 0 ? <Text style={styles.hint}>No rate recorded yet.</Text> : null}
-                  {rateHistory.map((r) => (
-                    <Pressable
-                      key={r.id}
-                      style={styles.rateRow}
-                      onPress={() =>
-                        setRateModal({
-                          editing: r,
-                        })
-                      }
-                    >
-                      <Text style={styles.rateRowText}>{(r.rateBps / 100).toFixed(2)}%</Text>
-                      <Text style={styles.rateRowDate}>effective {r.effectiveDate}</Text>
-                    </Pressable>
-                  ))}
-                  <Pressable
-                    style={styles.addRateBtn}
-                    onPress={() => setRateModal({ editing: null })}
-                  >
-                    <Text style={styles.addRateBtnText}>+ Add Rate Change</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <TextField
-                  label="Interest Rate (annual %)"
-                  value={initialInterestRate}
-                  onChangeText={setInitialInterestRate}
-                  keyboardType="decimal-pad"
-                  placeholder="e.g. 6.25"
-                />
-              )}
               <TextField
                 label="Term (months)"
                 value={termMonths}
@@ -298,7 +301,7 @@ export function AccountModal() {
                   </Text>
                 ) : null}
               </View>
-              <TextField label="Origination Date" value={originationDate} onChangeText={setOriginationDate} placeholder="YYYY-MM-DD" />
+              <DateField label="Origination Date" value={originationDate} onChange={setOriginationDate} />
             </>
           ) : null}
           {isEditing ? (

@@ -42,6 +42,13 @@ export interface AccountRateChange {
   effectiveDate: string; // 'YYYY-MM-DD'
 }
 
+export interface AccountHouseValueChange {
+  id: number;
+  accountId: number;
+  valueCents: number;
+  effectiveDate: string; // 'YYYY-MM-DD'
+}
+
 export interface CategoryGroup {
   id: number;
   name: string;
@@ -68,10 +75,11 @@ export interface BudgetEntry {
 export interface Payee {
   id: number;
   name: string;
-  // Set only for the auto-created payee tied to a loan/mortgage account
-  // (named after it) — selecting this payee on a transaction also posts a
-  // mirrored credit to that account, same amount, opposite sign. See
-  // payeesRepo.ensurePaymentPayee / transactionsRepo.postLinkedAccountLeg.
+  // Set only for the auto-created payee tied 1:1 to an account (named
+  // after it) — selecting this payee on a transaction also posts a
+  // mirrored credit to that account, same amount, opposite sign. This is
+  // how inter-account transfers and loan/mortgage payments both work. See
+  // payeesRepo.ensureAccountPayee / transactionsRepo.postLinkedAccountLeg.
   linkedAccountId: number | null;
 }
 

@@ -6,7 +6,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
-import { Chip } from '../../components/ui/Chip';
+import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
@@ -16,7 +16,7 @@ export function AddTransactionModal() {
   const close = useAppStore((s) => s.closeTransactionModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { accounts } = useAccounts();
-  const { categories } = useCategories();
+  const { groups, categories } = useCategories();
   const { payees } = usePayees();
   const isEditing = editingTransactionId != null;
 
@@ -190,28 +190,68 @@ export function AddTransactionModal() {
             </View>
           ) : null}
         </View>
-        <Text style={styles.label}>Category</Text>
-        <View style={styles.chipRow}>
-          {categories.map((c) => (
-            <Chip
-              key={c.id}
-              label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-              selected={categoryId === c.id}
-              onPress={() => setCategoryId(categoryId === c.id ? null : c.id)}
-            />
-          ))}
-        </View>
-        <Text style={styles.label}>Account</Text>
-        <View style={styles.chipRow}>
-          {accounts.map(({ account }) => (
-            <Chip
-              key={account.id}
-              label={account.name}
-              selected={accountId === account.id}
-              onPress={() => setAccountId(account.id)}
-            />
-          ))}
-        </View>
+        <DropdownField
+          label="Category"
+          valueLabel={
+            categoryId == null
+              ? ''
+              : (() => {
+                  const c = categories.find((cat) => cat.id === categoryId);
+                  return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
+                })()
+          }
+          placeholder="Uncategorized"
+        >
+          {(close) => (
+            <>
+              <DropdownOption
+                label="Uncategorized"
+                selected={categoryId == null}
+                onPress={() => {
+                  setCategoryId(null);
+                  close();
+                }}
+              />
+              {groups.map((group) => {
+                const groupCategories = categories.filter((c) => c.groupId === group.id);
+                if (groupCategories.length === 0) return null;
+                return (
+                  <View key={group.id}>
+                    <DropdownGroupLabel label={group.name} />
+                    {groupCategories.map((c) => (
+                      <DropdownOption
+                        key={c.id}
+                        label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                        selected={categoryId === c.id}
+                        onPress={() => {
+                          setCategoryId(c.id);
+                          close();
+                        }}
+                      />
+                    ))}
+                  </View>
+                );
+              })}
+            </>
+          )}
+        </DropdownField>
+        <DropdownField label="Account" valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
+          {(close) => (
+            <>
+              {accounts.map(({ account }) => (
+                <DropdownOption
+                  key={account.id}
+                  label={account.name}
+                  selected={accountId === account.id}
+                  onPress={() => {
+                    setAccountId(account.id);
+                    close();
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </DropdownField>
         <TextInput
           style={styles.textInput}
           placeholder="Memo"
@@ -283,8 +323,6 @@ const styles = StyleSheet.create({
   },
   suggestionRow: { paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   suggestionText: { fontSize: 14, color: colors.text },
-  label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',

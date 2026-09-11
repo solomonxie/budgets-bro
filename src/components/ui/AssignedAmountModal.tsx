@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { RowMenuButton } from './RowMenuButton';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -11,15 +10,13 @@ interface AssignedAmountModalProps {
   initialCents: number;
   onSave: (cents: number) => void;
   onHistory: () => void;
-  onLink: () => void;
   onClose: () => void;
 }
 
 // YNAB-style "tap the amount, get a big number field" popup — a modal
 // instead of expanding the category row in place, so the list doesn't
-// reflow every time a category is tapped. Cancel/Save are the only bottom
-// buttons, centered; History and Link to Account are secondary, tucked
-// into a "⋯" menu bottom-right instead of competing for the same row.
+// reflow every time a category is tapped. Cancel/Save stay centered as
+// the primary action; History is secondary, pinned to the right.
 export function AssignedAmountModal({
   visible,
   categoryName,
@@ -27,7 +24,6 @@ export function AssignedAmountModal({
   initialCents,
   onSave,
   onHistory,
-  onLink,
   onClose,
 }: AssignedAmountModalProps) {
   const [value, setValue] = useState('');
@@ -70,7 +66,9 @@ export function AssignedAmountModal({
               </Pressable>
             </View>
             <View style={[styles.sideSlot, styles.sideSlotRight]}>
-              <RowMenuButton items={[{ label: 'History', onPress: onHistory }, { label: 'Link to Account', onPress: onLink }]} />
+              <Pressable onPress={onHistory}>
+                <Text style={styles.sideText}>History</Text>
+              </Pressable>
             </View>
           </View>
         </Pressable>
@@ -101,8 +99,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
-  sideSlot: { minWidth: 32 },
+  sideSlot: { minWidth: 50 },
   sideSlotRight: { alignItems: 'flex-end' },
+  sideText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   centerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   cancelText: { color: colors.textMuted, fontWeight: '600' },
   saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },

@@ -63,6 +63,7 @@ export interface PayeeRow {
   id: number;
   board_id: number;
   name: string;
+  linked_account_id: number | null;
 }
 
 export interface TransactionRow {

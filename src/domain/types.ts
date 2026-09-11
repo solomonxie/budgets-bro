@@ -56,9 +56,6 @@ export interface Category {
   icon: string | null;
   sortOrder: number;
   archivedAt: string | null;
-  // Set only for the auto-generated "Payment: <account>" category tied to a
-  // loan/mortgage account — see accountsRepo's loan-payment-category lifecycle.
-  linkedAccountId: number | null;
 }
 
 export interface BudgetEntry {
@@ -71,6 +68,11 @@ export interface BudgetEntry {
 export interface Payee {
   id: number;
   name: string;
+  // Set only for the auto-created payee tied to a loan/mortgage account
+  // (named after it) — selecting this payee on a transaction also posts a
+  // mirrored credit to that account, same amount, opposite sign. See
+  // payeesRepo.ensurePaymentPayee / transactionsRepo.postLinkedAccountLeg.
+  linkedAccountId: number | null;
 }
 
 export interface Transaction {

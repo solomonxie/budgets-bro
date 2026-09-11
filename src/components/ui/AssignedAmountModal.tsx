@@ -15,8 +15,10 @@ interface AssignedAmountModalProps {
 
 // YNAB-style "tap the amount, get a big number field" popup — a modal
 // instead of expanding the category row in place, so the list doesn't
-// reflow every time a category is tapped. Cancel/Save stay centered as
-// the primary action; History is secondary, pinned to the right.
+// reflow every time a category is tapped. One "Done" button, centered —
+// every way of dismissing (Done, backdrop tap, hardware back) commits the
+// typed amount, there's no separate discard-and-cancel path. History is
+// secondary, pinned to the right.
 export function AssignedAmountModal({
   visible,
   categoryName,
@@ -32,14 +34,15 @@ export function AssignedAmountModal({
     if (visible) setValue((initialCents / 100).toString());
   }, [visible, initialCents]);
 
-  const save = () => {
+  const done = () => {
     const parsed = parseFloat(value);
     onSave(Number.isNaN(parsed) ? 0 : Math.round(parsed * 100));
+    onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={done}>
+      <Pressable style={styles.backdrop} onPress={done}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>
             {categoryIcon ? `${categoryIcon} ` : ''}
@@ -53,16 +56,13 @@ export function AssignedAmountModal({
             onChangeText={setValue}
             autoFocus
             selectTextOnFocus
-            onSubmitEditing={save}
+            onSubmitEditing={done}
           />
           <View style={styles.actions}>
             <View style={styles.sideSlot} />
             <View style={styles.centerActions}>
-              <Pressable onPress={onClose}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.saveButton} onPress={save}>
-                <Text style={styles.saveButtonText}>Save</Text>
+              <Pressable style={styles.saveButton} onPress={done}>
+                <Text style={styles.saveButtonText}>Done</Text>
               </Pressable>
             </View>
             <View style={[styles.sideSlot, styles.sideSlotRight]}>
@@ -78,7 +78,10 @@ export function AssignedAmountModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  // The amount field autofocuses (keyboard opens immediately) — sits in
+  // the upper third instead of vertically centered, so there's a real gap
+  // above the keyboard rather than the card landing right on top of it.
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '18%', paddingHorizontal: spacing.lg },
   card: {
     width: '100%',
     maxWidth: 340,
@@ -103,7 +106,6 @@ const styles = StyleSheet.create({
   sideSlotRight: { alignItems: 'flex-end' },
   sideText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   centerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  cancelText: { color: colors.textMuted, fontWeight: '600' },
   saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },
   saveButtonText: { color: '#fff', fontWeight: '700' },
 });

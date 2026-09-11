@@ -70,15 +70,18 @@ export function BudgetScreen() {
     setEditingItem(null);
   };
 
-  // Loan/mortgage accounts not already linked to some other category —
-  // the current category's own link (if any) stays selectable/checked.
+  // Every loan/mortgage account is selectable, even one already linked to
+  // some other category (e.g. its own auto-generated "Payment: <account>")
+  // — picking it just moves the link, so it shouldn't look unavailable.
   const eligibleLinkAccounts = useMemo(() => {
-    const linkedElsewhere = new Set(
-      categories.filter((c) => c.linkedAccountId != null && c.id !== editingItem?.category.id).map((c) => c.linkedAccountId),
-    );
+    const linkHolders = new Map(categories.filter((c) => c.linkedAccountId != null).map((c) => [c.linkedAccountId, c]));
     return accounts
-      .filter((a) => isLoanLikeType(a.account.type) && !linkedElsewhere.has(a.account.id))
-      .map((a) => ({ id: a.account.id, name: a.account.name }));
+      .filter((a) => isLoanLikeType(a.account.type) && !a.account.archivedAt)
+      .map((a) => {
+        const holder = linkHolders.get(a.account.id);
+        const linkedToOtherCategory = holder && holder.id !== editingItem?.category.id ? holder.name : null;
+        return { id: a.account.id, name: a.account.name, linkedToOtherCategory };
+      });
   }, [accounts, categories, editingItem]);
 
   const linkToAccount = async (accountId: number) => {

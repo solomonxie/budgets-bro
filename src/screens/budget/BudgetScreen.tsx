@@ -6,6 +6,7 @@ import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
+import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
@@ -40,6 +41,7 @@ export function BudgetScreen() {
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
   const [assignedDraft, setAssignedDraft] = useState<string | null>(null);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
   const commitAssignedDraft = (categoryId: number) => {
     if (assignedDraft != null) {
@@ -111,11 +113,19 @@ export function BudgetScreen() {
         <Pressable onPress={() => setMonth(previousMonth(month))} hitSlop={10}>
           <Text style={styles.monthArrow}>‹</Text>
         </Pressable>
-        <Text style={styles.monthLabel}>{formatMonthLabel(month)}</Text>
+        <Pressable onPress={() => setMonthPickerOpen(true)} hitSlop={10}>
+          <Text style={styles.monthLabel}>{formatMonthLabel(month)}</Text>
+        </Pressable>
         <Pressable onPress={() => setMonth(nextMonth(month))} hitSlop={10}>
           <Text style={styles.monthArrow}>›</Text>
         </Pressable>
       </View>
+      <MonthPickerModal
+        visible={monthPickerOpen}
+        month={month}
+        onSelect={setMonth}
+        onClose={() => setMonthPickerOpen(false)}
+      />
 
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Unassigned Cash</Text>

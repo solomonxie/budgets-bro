@@ -14,14 +14,13 @@ import { spacing } from '../../theme/spacing';
 import type { InsightsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
-type ToolScreen = 'BabySteps' | 'TaxInsights' | 'Calculators' | 'AiAnalysis' | 'YnabImport';
+type ToolScreen = 'BabySteps' | 'TaxInsights' | 'Calculators' | 'AiAnalysis';
 
 const TOOL_ROWS: { label: string; screen: ToolScreen }[] = [
   { label: 'Baby Steps', screen: 'BabySteps' },
   { label: 'Tax Insights', screen: 'TaxInsights' },
   { label: 'Calculators', screen: 'Calculators' },
   { label: 'AI Analysis', screen: 'AiAnalysis' },
-  { label: 'Import from YNAB', screen: 'YnabImport' },
 ];
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed

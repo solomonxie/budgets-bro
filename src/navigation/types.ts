@@ -3,6 +3,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type BudgetStackParamList = {
   BudgetHome: undefined;
   Transactions: undefined;
+  YnabImport: undefined;
 };
 
 export type AccountsStackParamList = {
@@ -17,7 +18,6 @@ export type InsightsStackParamList = {
   TaxInsights: undefined;
   Calculators: undefined;
   AiAnalysis: undefined;
-  YnabImport: undefined;
 };
 
 export type SettingsStackParamList = {

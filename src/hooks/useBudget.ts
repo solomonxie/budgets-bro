@@ -26,7 +26,7 @@ export function useBudget(month: string) {
 
   const refresh = useCallback(async () => {
     const db = await getDb();
-    const [allGroups, allCategories, cumAssigned, cumActivity, thisAssigned, thisActivity, totalAssigned, totalUncategorized] =
+    const [allGroups, allCategories, cumAssigned, cumActivity, thisAssigned, thisActivity, totalAssigned, totalActivity, cashBalance] =
       await Promise.all([
         categoriesRepo.listCategoryGroups(db),
         categoriesRepo.listCategories(db),
@@ -35,7 +35,8 @@ export function useBudget(month: string) {
         budgetsRepo.assignedThisMonthByCategory(db, month),
         budgetsRepo.activityThisMonthByCategory(db, month),
         budgetsRepo.totalAssignedThroughMonth(db, month),
-        budgetsRepo.totalUncategorizedThroughMonth(db, month),
+        budgetsRepo.totalActivityThroughMonth(db, month),
+        budgetsRepo.cashAccountsBalanceThroughMonth(db, month),
       ]);
 
     const byGroup: Record<number, CategoryBudgetItem[]> = {};
@@ -61,7 +62,8 @@ export function useBudget(month: string) {
 
     setGroups(allGroups);
     setItemsByGroup(byGroup);
-    setUnassignedCents(unassignedCashCents(totalUncategorized, totalAssigned));
+    const totalCategoryBalance = categoryBalanceCents(totalAssigned, totalActivity);
+    setUnassignedCents(unassignedCashCents(cashBalance, totalCategoryBalance));
     setLoading(false);
   }, [month]);
 

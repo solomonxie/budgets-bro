@@ -6,7 +6,8 @@ import {
   CUMULATIVE_ACTIVITY,
   ACTIVITY_THIS_MONTH,
   TOTAL_ASSIGNED_THROUGH_MONTH,
-  TOTAL_UNCATEGORIZED_THROUGH_MONTH,
+  TOTAL_ACTIVITY_THROUGH_MONTH,
+  CASH_ACCOUNTS_BALANCE_THROUGH_MONTH,
   UPSERT_ASSIGNED_CENTS,
 } from '../../../databases/queries/budgets';
 
@@ -63,9 +64,14 @@ export async function totalAssignedThroughMonth(db: SQLiteDatabase, throughMonth
   return sumOrZero(db, TOTAL_ASSIGNED_THROUGH_MONTH, throughMonth);
 }
 
-export async function totalUncategorizedThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
+export async function totalActivityThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  return sumOrZero(db, TOTAL_UNCATEGORIZED_THROUGH_MONTH, endExclusive);
+  return sumOrZero(db, TOTAL_ACTIVITY_THROUGH_MONTH, endExclusive);
+}
+
+export async function cashAccountsBalanceThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
+  const endExclusive = `${nextMonth(throughMonth)}-01`;
+  return sumOrZero(db, CASH_ACCOUNTS_BALANCE_THROUGH_MONTH, endExclusive);
 }
 
 export async function setAssignedCents(

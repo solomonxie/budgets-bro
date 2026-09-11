@@ -47,6 +47,9 @@ export function BudgetScreen() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
+  const totalSpentCents = Object.values(itemsByGroup)
+    .flat()
+    .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [editingItem, setEditingItem] = useState<CategoryBudgetItem | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
@@ -136,9 +139,15 @@ export function BudgetScreen() {
       />
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Unassigned Cash</Text>
-        <Text style={[styles.summaryValue, { color: unassignedCents < 0 ? colors.negative : unassignedCents > 0 ? colors.positive : colors.textMuted }]}>
-          {formatMoney(unassignedCents)}
+        <Text style={styles.summaryLabel}>Spent This Month</Text>
+        <Text style={styles.summaryValue}>{formatMoney(totalSpentCents)}</Text>
+        <Text
+          style={[
+            styles.unassignedHint,
+            { color: unassignedCents < 0 ? colors.negative : unassignedCents > 0 ? colors.positive : colors.textMuted },
+          ]}
+        >
+          Unassigned: {formatMoney(unassignedCents)}
         </Text>
       </View>
 
@@ -255,7 +264,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
-  summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4 },
+  summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4, color: colors.text },
+  unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },
   group: { gap: spacing.xs },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
   groupHeaderMain: { flexDirection: 'row', alignItems: 'center', gap: 6 },

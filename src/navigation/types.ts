@@ -29,16 +29,12 @@ export type InsightsStackParamList = {
   AiAnalysis: undefined;
 };
 
-export type SettingsStackParamList = {
-  SettingsHome: undefined;
-};
-
 export type RootTabParamList = {
   Budget: NavigatorScreenParams<BudgetStackParamList>;
-  Accounts: NavigatorScreenParams<AccountsStackParamList>;
   // Fake tab — its tabPress listener opens the Add Transaction sheet
-  // instead of navigating; see RootNavigator's NoopScreen.
+  // instead of navigating; see RootNavigator's NoopScreen. Settings isn't
+  // a tab at all anymore — see SettingsModal, opened from a corner button.
   AddTransaction: undefined;
+  Accounts: NavigatorScreenParams<AccountsStackParamList>;
   Insights: NavigatorScreenParams<InsightsStackParamList>;
-  Settings: NavigatorScreenParams<SettingsStackParamList>;
 };

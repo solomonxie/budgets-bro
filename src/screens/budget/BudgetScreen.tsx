@@ -9,6 +9,7 @@ import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { MonthNav } from '../../components/ui/MonthNav';
+import { SettingsButton } from '../../components/ui/SettingsButton';
 import { AssignedAmountModal } from '../../components/ui/AssignedAmountModal';
 import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
@@ -139,6 +140,7 @@ export function BudgetScreen() {
 
   return (
     <ScreenContainer scroll>
+      <SettingsButton />
       <MonthNav
         label={formatMonthLabel(month)}
         onPrevious={() => setMonth(previousMonth(month))}

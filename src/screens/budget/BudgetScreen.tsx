@@ -9,6 +9,7 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
+import { MonthNav } from '../../components/ui/MonthNav';
 import { AssignedAmountModal } from '../../components/ui/AssignedAmountModal';
 import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
@@ -121,17 +122,12 @@ export function BudgetScreen() {
 
   return (
     <ScreenContainer scroll floating={<FloatingAddButton />}>
-      <View style={styles.monthNav}>
-        <Pressable onPress={() => setMonth(previousMonth(month))} hitSlop={10}>
-          <Text style={styles.monthArrow}>‹</Text>
-        </Pressable>
-        <Pressable onPress={() => setMonthPickerOpen(true)} hitSlop={10}>
-          <Text style={styles.monthLabel}>{formatMonthLabel(month)}</Text>
-        </Pressable>
-        <Pressable onPress={() => setMonth(nextMonth(month))} hitSlop={10}>
-          <Text style={styles.monthArrow}>›</Text>
-        </Pressable>
-      </View>
+      <MonthNav
+        label={formatMonthLabel(month)}
+        onPrevious={() => setMonth(previousMonth(month))}
+        onNext={() => setMonth(nextMonth(month))}
+        onPressLabel={() => setMonthPickerOpen(true)}
+      />
       <MonthPickerModal
         visible={monthPickerOpen}
         month={month}
@@ -250,9 +246,6 @@ export function BudgetScreen() {
 }
 
 const styles = StyleSheet.create({
-  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18 },
-  monthArrow: { fontSize: 22, color: colors.accent, fontWeight: '700', paddingHorizontal: 6 },
-  monthLabel: { fontSize: 15, fontWeight: '600', color: colors.textMuted, minWidth: 150, textAlign: 'center' },
   summaryCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -269,7 +262,7 @@ const styles = StyleSheet.create({
   groupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   groupSub: { marginLeft: 'auto', fontSize: 12, fontWeight: '700', color: colors.textMuted },
   emptyGroup: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 2 },
-  catRow: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 14, padding: spacing.sm, gap: spacing.xs },
+  catRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: spacing.sm, paddingHorizontal: 2, gap: spacing.xs },
   catRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   catNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   catIcon: { fontSize: 17 },

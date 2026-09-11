@@ -31,6 +31,19 @@ export function lastNMonths(month: string, n: number): string[] {
   return months;
 }
 
+// Inclusive 'YYYY-MM' range, ascending — for an all-time trend where the
+// span length isn't known up front (unlike lastNMonths' fixed window).
+export function monthsBetween(startMonth: string, endMonth: string): string[] {
+  if (startMonth > endMonth) return [endMonth];
+  const months = [startMonth];
+  let current = startMonth;
+  while (current < endMonth) {
+    current = nextMonth(current);
+    months.push(current);
+  }
+  return months;
+}
+
 export function formatMonthLabel(month: string): string {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1, 1));

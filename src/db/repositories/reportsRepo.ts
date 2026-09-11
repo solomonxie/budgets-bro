@@ -1,6 +1,11 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { nextMonth } from '../../domain/month';
-import { SPENDING_BY_CATEGORY, SPENDING_BY_CATEGORY_OVER_MONTHS, INCOME_AND_SPENDING_IN_RANGE } from '../../../databases/queries/reports';
+import {
+  SPENDING_BY_CATEGORY,
+  SPENDING_BY_CATEGORY_OVER_MONTHS,
+  EARLIEST_TRANSACTION_MONTH,
+  INCOME_AND_SPENDING_IN_RANGE,
+} from '../../../databases/queries/reports';
 
 export interface CategorySpend {
   categoryId: number;
@@ -42,6 +47,13 @@ export async function spendingByCategoryOverMonths(db: SQLiteDatabase, boardId: 
     boardId,
   );
   return rows.map((r) => ({ categoryId: r.category_id, name: r.name, icon: r.icon, month: r.month, spentCents: r.total }));
+}
+
+// First month with any transaction, board-scoped — the start of the "all
+// time" category-trend window. Null for a brand-new board with no history.
+export async function earliestTransactionMonth(db: SQLiteDatabase, boardId: number): Promise<string | null> {
+  const row = await db.getFirstAsync<{ month: string | null }>(EARLIEST_TRANSACTION_MONTH, boardId);
+  return row?.month ?? null;
 }
 
 export interface RangeTotals {

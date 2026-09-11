@@ -14,6 +14,10 @@ export const SPENDING_BY_CATEGORY_OVER_MONTHS = `
   GROUP BY c.id, month
 `;
 
+export const EARLIEST_TRANSACTION_MONTH = `
+  SELECT MIN(substr(date, 1, 7)) as month FROM transactions WHERE board_id = ?
+`;
+
 export const INCOME_AND_SPENDING_IN_RANGE = `
   SELECT
     (SELECT COALESCE(SUM(t.amount_cents), 0) FROM transactions t JOIN accounts a ON a.id = t.account_id

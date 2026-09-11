@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   sectionHint: { fontSize: 11, color: colors.textMuted },
-  value: { fontSize: 28, fontWeight: '700', color: colors.text },
+  value: { fontSize: 30, fontWeight: '700', color: colors.text },
   negative: { color: colors.negative },
   stackBar: { flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden' },
   legendRow: {

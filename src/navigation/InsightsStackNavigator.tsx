@@ -3,6 +3,7 @@ import { InsightsScreen } from '../screens/insights/InsightsScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
 import { StubScreen } from '../components/ui/StubScreen';
+import { SettingsButton } from '../components/ui/SettingsButton';
 import type { InsightsStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
@@ -19,7 +20,11 @@ const Stack = createNativeStackNavigator<InsightsStackParamList>();
 export function InsightsStackNavigator() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="InsightsHome" component={InsightsScreen} options={{ title: 'Insights' }} />
+      <Stack.Screen
+        name="InsightsHome"
+        component={InsightsScreen}
+        options={{ title: 'Insights', headerLeft: () => <SettingsButton /> }}
+      />
       <Stack.Screen name="Transactions" component={TransactionsScreen} options={{ title: 'Transactions' }} />
       <Stack.Screen name="BabySteps" options={{ title: 'Baby Steps' }}>
         {() => <StubScreen title="Baby Steps" />}

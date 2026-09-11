@@ -183,7 +183,6 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
         memo,
         amountCents,
         date,
-        cleared: row['Cleared'] !== 'Uncleared',
         isInterest,
         transferAccountId,
         importId: `ynab:${contentKey}|#${occurrence}`,

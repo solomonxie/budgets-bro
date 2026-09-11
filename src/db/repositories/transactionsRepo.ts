@@ -14,7 +14,6 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
     memo: row.memo,
     amountCents: row.amount_cents,
     date: row.date,
-    cleared: row.cleared === 1,
     isInterest: row.is_interest === 1,
     transferAccountId: row.transfer_account_id,
     importId: row.import_id,
@@ -64,19 +63,19 @@ export interface CreateTransactionInput {
   memo: string | null;
   amountCents: number; // signed
   date: string;
-  cleared: boolean;
   isInterest?: boolean;
 }
 
-// If `payeeId` is a loan/mortgage account's auto-generated payment payee
-// (see payeesRepo.ensurePaymentPayee), also posts the mirrored credit to
-// that loan account so its balance drops accordingly — regardless of
-// whatever category the original transaction used, since the linkage is
-// by payee, not category.
+// If `payeeId` is an account's auto-generated payee (see
+// payeesRepo.ensureAccountPayee), also posts the mirrored credit to that
+// account so its balance moves accordingly — this is what makes selecting
+// another account's payee act as a transfer, regardless of whatever
+// category the original transaction used, since the linkage is by payee,
+// not category.
 async function postLinkedAccountLeg(
   db: SQLiteDatabase,
   boardId: number,
-  input: { accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string; cleared: boolean },
+  input: { accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string },
 ): Promise<void> {
   if (input.payeeId == null) return;
   const payee = await getPayee(db, input.payeeId);
@@ -90,7 +89,6 @@ async function postLinkedAccountLeg(
     input.memo,
     -input.amountCents,
     input.date,
-    input.cleared ? 1 : 0,
     0,
     input.accountId,
     null,
@@ -110,7 +108,6 @@ export async function createTransaction(db: SQLiteDatabase, boardId: number, inp
       input.memo,
       input.amountCents,
       input.date,
-      input.cleared ? 1 : 0,
       input.isInterest ? 1 : 0,
       null,
       null,
@@ -138,7 +135,6 @@ export async function updateTransaction(db: SQLiteDatabase, boardId: number, inp
     input.memo,
     input.amountCents,
     input.date,
-    input.cleared ? 1 : 0,
     input.isInterest ? 1 : 0,
     input.id,
   );
@@ -187,7 +183,7 @@ export async function correctBalance(db: SQLiteDatabase, boardId: number, accoun
   if (deltaCents === 0) return;
   const payeeId = await findOrCreatePayee(db, boardId, 'Balance Adjustment');
   await db.runAsync(
-    'INSERT INTO transactions (board_id, account_id, payee_id, amount_cents, date, cleared) VALUES (?, ?, ?, ?, ?, 1)',
+    'INSERT INTO transactions (board_id, account_id, payee_id, amount_cents, date) VALUES (?, ?, ?, ?, ?)',
     boardId,
     accountId,
     payeeId,
@@ -203,30 +199,32 @@ export interface ImportTransactionInput {
   memo: string | null;
   amountCents: number;
   date: string;
-  cleared: boolean;
   isInterest: boolean;
   transferAccountId: number | null;
   importId: string;
 }
 
-// Upsert for the YNAB importer, keyed on the UNIQUE `import_id`: re-running
-// the same export refreshes a row's fields instead of leaving it stale when
-// the source data changed (e.g. a corrected amount or re-categorization).
-// Known scope cut: `import_id` is unique globally, not per-board — importing
-// the exact same YNAB export into two different boards would collide and
-// update one board's row instead of creating a second copy in the other.
+// Upsert for the YNAB importer, keyed on UNIQUE(board_id, import_id):
+// re-running the same export refreshes a row's fields instead of leaving it
+// stale when the source data changed (e.g. a corrected amount or
+// re-categorization) — scoped per board so the same export can be imported
+// into two different boards independently instead of one colliding into
+// the other's rows (see migration 010).
 export async function importTransaction(db: SQLiteDatabase, boardId: number, input: ImportTransactionInput): Promise<'inserted' | 'updated'> {
-  const existing = await db.getFirstAsync<{ id: number }>('SELECT id FROM transactions WHERE import_id = ?', input.importId);
+  const existing = await db.getFirstAsync<{ id: number }>(
+    'SELECT id FROM transactions WHERE import_id = ? AND board_id = ?',
+    input.importId,
+    boardId,
+  );
   await db.runAsync(
-    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, cleared, is_interest, transfer_account_id, import_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(import_id) DO UPDATE SET
+    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, is_interest, transfer_account_id, import_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(board_id, import_id) DO UPDATE SET
        category_id = excluded.category_id,
        payee_id = excluded.payee_id,
        memo = excluded.memo,
        amount_cents = excluded.amount_cents,
        date = excluded.date,
-       cleared = excluded.cleared,
        is_interest = excluded.is_interest,
        transfer_account_id = excluded.transfer_account_id,
        updated_at = datetime('now')`,
@@ -237,7 +235,6 @@ export async function importTransaction(db: SQLiteDatabase, boardId: number, inp
     input.memo,
     input.amountCents,
     input.date,
-    input.cleared ? 1 : 0,
     input.isInterest ? 1 : 0,
     input.transferAccountId,
     input.importId,

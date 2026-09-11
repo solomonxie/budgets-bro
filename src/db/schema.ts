@@ -32,6 +32,14 @@ export interface AccountRateHistoryRow {
   created_at: string;
 }
 
+export interface AccountHouseValueHistoryRow {
+  id: number;
+  account_id: number;
+  value_cents: number;
+  effective_date: string;
+  created_at: string;
+}
+
 export interface CategoryGroupRow {
   id: number;
   board_id: number;
@@ -75,7 +83,6 @@ export interface TransactionRow {
   memo: string | null;
   amount_cents: number;
   date: string;
-  cleared: number;
   is_interest: number;
   transfer_account_id: number | null;
   import_id: string | null;

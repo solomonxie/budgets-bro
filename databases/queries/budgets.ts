@@ -16,17 +16,22 @@ export const ACTIVITY_THIS_MONTH = `
 
 export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ?';
 
-// Signed sum of money available to budget through `throughMonth`: on-budget
+// Signed sum of money available to budget through `throughMonth`: cash
 // accounts' opening balances (dateless, always available) plus uncategorized,
 // non-transfer transaction activity — includes negative balance-correction
-// amounts on purpose.
+// amounts on purpose. Restricted to actual cash (checking/cash/savings/
+// income) accounts — credit cards, loans/mortgages, and tracking accounts
+// don't hold assignable cash and would otherwise blow up this total with
+// e.g. a mortgage's opening principal.
+const CASH_ACCOUNT_TYPES = `('checking', 'cash', 'savings', 'income')`;
+
 export const TOTAL_UNCATEGORIZED_THROUGH_MONTH = `
   SELECT
-    (SELECT COALESCE(SUM(opening_balance_cents), 0) FROM accounts WHERE on_budget = 1 AND archived_at IS NULL)
+    (SELECT COALESCE(SUM(opening_balance_cents), 0) FROM accounts WHERE type IN ${CASH_ACCOUNT_TYPES} AND archived_at IS NULL)
     +
     (SELECT COALESCE(SUM(t.amount_cents), 0) FROM transactions t
      JOIN accounts a ON a.id = t.account_id
-     WHERE t.category_id IS NULL AND t.transfer_account_id IS NULL AND a.on_budget = 1 AND t.date < ?)
+     WHERE t.category_id IS NULL AND t.transfer_account_id IS NULL AND a.type IN ${CASH_ACCOUNT_TYPES} AND t.date < ?)
     AS total
 `;
 

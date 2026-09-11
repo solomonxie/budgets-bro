@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAppStore } from '../../state/useAppStore';
-import { ACCOUNT_KIND_ORDER, LIABILITY_KINDS, accountKind } from '../../domain/accountKind';
+import { ACCOUNT_KIND_ORDER, accountKind } from '../../domain/accountKind';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -25,32 +25,8 @@ export function AccountsScreen() {
     }).filter((g) => g.accounts.length > 0);
   }, [accounts]);
 
-  // Cash/savings/tracking accounts are assets; credit/loan balances are
-  // stored negative (debt) — Net Worth is the sum of everything either way,
-  // but Assets/Debts are broken out since lumping them into one number
-  // isn't meaningful on its own.
-  const netWorth = useMemo(() => {
-    let assetsCents = 0;
-    let debtsCents = 0;
-    for (const { account, balanceCents } of accounts) {
-      if (LIABILITY_KINDS.includes(accountKind(account.type))) debtsCents += -balanceCents;
-      else assetsCents += balanceCents;
-    }
-    return { assetsCents, debtsCents, netWorthCents: assetsCents - debtsCents };
-  }, [accounts]);
-
   return (
     <ScreenContainer scroll>
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Net Worth</Text>
-        <Text style={[styles.summaryValue, netWorth.netWorthCents < 0 && styles.negative]}>
-          {formatMoney(netWorth.netWorthCents)}
-        </Text>
-        <View style={styles.netWorthBreakdown}>
-          <Text style={styles.netWorthPart}>Assets {formatMoney(netWorth.assetsCents)}</Text>
-          <Text style={styles.netWorthPart}>Debts {formatMoney(netWorth.debtsCents)}</Text>
-        </View>
-      </View>
       {groups.map((group) => (
         <View key={group.kind} style={styles.group}>
           <View style={styles.groupHeader}>
@@ -77,17 +53,6 @@ export function AccountsScreen() {
 }
 
 const styles = StyleSheet.create({
-  summaryCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: spacing.md,
-  },
-  summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
-  summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4, color: colors.text },
-  netWorthBreakdown: { flexDirection: 'row', gap: spacing.md, marginTop: 6 },
-  netWorthPart: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   group: { gap: spacing.xs },
   groupHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2 },
   groupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },

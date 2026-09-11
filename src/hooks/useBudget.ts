@@ -69,10 +69,10 @@ export function useBudget(month: string) {
     refresh();
   }, [refresh, dataVersion]);
 
-  const adjustAssigned = useCallback(
-    async (categoryId: number, deltaCents: number) => {
+  const setAssigned = useCallback(
+    async (categoryId: number, assignedCents: number) => {
       const db = await getDb();
-      await budgetsRepo.adjustAssignedCents(db, categoryId, month, deltaCents);
+      await budgetsRepo.setAssignedCents(db, categoryId, month, assignedCents);
       bumpDataVersion();
     },
     [month, bumpDataVersion],
@@ -87,5 +87,5 @@ export function useBudget(month: string) {
     [month, bumpDataVersion],
   );
 
-  return { groups, itemsByGroup, unassignedCents, loading, adjustAssigned, moveToUnassigned, refresh };
+  return { groups, itemsByGroup, unassignedCents, loading, setAssigned, moveToUnassigned, refresh };
 }

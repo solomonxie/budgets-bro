@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
@@ -35,10 +35,19 @@ export function BudgetScreen() {
   const month = useAppStore((s) => s.currentMonth);
   const setMonth = useAppStore((s) => s.setCurrentMonth);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const { groups, itemsByGroup, unassignedCents, adjustAssigned, moveToUnassigned } = useBudget(month);
+  const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
+  const [assignedDraft, setAssignedDraft] = useState<string | null>(null);
+
+  const commitAssignedDraft = (categoryId: number) => {
+    if (assignedDraft != null) {
+      const parsed = parseFloat(assignedDraft);
+      setAssigned(categoryId, Number.isNaN(parsed) ? 0 : Math.round(parsed * 100));
+    }
+    setAssignedDraft(null);
+  };
 
   const toggleGroup = (id: number) => {
     setCollapsedGroupIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -97,7 +106,7 @@ export function BudgetScreen() {
   };
 
   return (
-    <ScreenContainer scroll>
+    <ScreenContainer scroll floating={<FloatingAddButton />}>
       <View style={styles.monthNav}>
         <Pressable onPress={() => setMonth(previousMonth(month))} hitSlop={10}>
           <Text style={styles.monthArrow}>‹</Text>
@@ -183,13 +192,17 @@ export function BudgetScreen() {
                       <Text style={styles.caption}>{item.captionText}</Text>
                       {expanded ? (
                         <View style={styles.quickAssign}>
-                          <Pressable style={styles.stepBtn} onPress={() => adjustAssigned(item.category.id, -1000)}>
-                            <Text style={styles.stepBtnText}>–</Text>
-                          </Pressable>
-                          <Text style={styles.stepValue}>{formatMoney(item.assignedThisMonthCents)}</Text>
-                          <Pressable style={styles.stepBtn} onPress={() => adjustAssigned(item.category.id, 1000)}>
-                            <Text style={styles.stepBtnText}>+</Text>
-                          </Pressable>
+                          <Text style={styles.assignLabel}>Assigned</Text>
+                          <TextInput
+                            style={styles.assignInput}
+                            keyboardType="decimal-pad"
+                            value={assignedDraft ?? (item.assignedThisMonthCents / 100).toString()}
+                            onFocus={() => setAssignedDraft((item.assignedThisMonthCents / 100).toString())}
+                            onChangeText={setAssignedDraft}
+                            onBlur={() => commitAssignedDraft(item.category.id)}
+                            onSubmitEditing={() => commitAssignedDraft(item.category.id)}
+                            selectTextOnFocus
+                          />
                         </View>
                       ) : null}
                       {expanded && item.balanceCents > 0 ? (
@@ -267,18 +280,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  stepBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.background,
+  assignLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  assignInput: {
+    minWidth: 90,
+    textAlign: 'right',
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: colors.background,
   },
-  stepBtnText: { fontSize: 18, fontWeight: '600', color: colors.text },
-  stepValue: { fontSize: 16, fontWeight: '700', minWidth: 74, textAlign: 'center', color: colors.text },
   moveToUnassignedBtn: { alignItems: 'center', paddingTop: spacing.xs },
   moveToUnassignedText: { fontSize: 12, fontWeight: '600', color: colors.accent },
   addGroupButton: {

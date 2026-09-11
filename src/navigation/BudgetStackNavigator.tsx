@@ -14,7 +14,7 @@ function BudgetHeaderRight() {
   const navigation = useNavigation<NativeStackNavigationProp<BudgetStackParamList, 'BudgetHome'>>();
   return (
     <Pressable onPress={() => navigation.navigate('Transactions')}>
-      <Text style={{ color: colors.accent, fontWeight: '600' }}>All</Text>
+      <Text style={{ color: colors.accent, fontWeight: '600' }}>History</Text>
     </Pressable>
   );
 }

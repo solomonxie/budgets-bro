@@ -14,11 +14,31 @@ const KIND_BY_TYPE: Record<AccountType, AccountKind> = {
 export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Cash', 'Savings', 'Income', 'Credit', 'Loan', 'Tracking'];
 
 // Kinds whose balances are debts (stored as negative) — used to split Net
-// Worth into Assets vs. Debts on the Accounts screen.
+// Worth into Assets vs. Debts.
 export const LIABILITY_KINDS: AccountKind[] = ['Credit', 'Loan'];
 
 export function accountKind(type: AccountType): AccountKind {
   return KIND_BY_TYPE[type];
+}
+
+export interface NetWorth {
+  assetsCents: number;
+  debtsCents: number;
+  netWorthCents: number;
+}
+
+// Cash/savings/tracking accounts are assets; credit/loan balances are stored
+// negative (debt) — Net Worth is the sum of everything either way, but
+// Assets/Debts are broken out since lumping them into one number isn't
+// meaningful on its own.
+export function netWorth(accounts: { type: AccountType; balanceCents: number }[]): NetWorth {
+  let assetsCents = 0;
+  let debtsCents = 0;
+  for (const { type, balanceCents } of accounts) {
+    if (LIABILITY_KINDS.includes(accountKind(type))) debtsCents += -balanceCents;
+    else assetsCents += balanceCents;
+  }
+  return { assetsCents, debtsCents, netWorthCents: assetsCents - debtsCents };
 }
 
 // Loan/mortgage accounts get an auto-generated budget category so payments

@@ -1,0 +1,991 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root {
+      --bg: #F6F7F9;
+      --surface: #FFFFFF;
+      --ink: #14181F;
+      --muted: #6B7280;
+      --border: #E5E7EB;
+      --tint: #E6F4F2;
+      --negative: #B91C1C;
+      --negative-tint: #FDECEC;
+      --positive: #15803D;
+      --positive-tint: #E8F5EC;
+      --amber: #B45309;
+      --amber-tint: #FDF3E3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: transparent;
+    }
+    a { color: #0F766E; }
+    a:hover { color: #0B5C56; }
+    button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    input { font: inherit; color: inherit; }
+    input[type="range"] { width: 100%; height: 24px; }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: var(--bg);
+      border-radius: 40px;
+      border: 1px solid var(--border);
+      box-shadow: 0 30px 60px -25px rgba(20, 24, 31, 0.35);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .navbar {
+      flex-shrink: 0;
+      padding: 54px 20px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .navbar-title-row { display: flex; align-items: center; justify-content: center; position: relative; height: 22px; }
+    .navbar-back { position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 2px; background: none; border: none; padding: 4px; }
+    .navbar-title-sm { font-size: 17px; font-weight: 600; }
+    .navbar-title-lg { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+    .month-nav { display: flex; align-items: center; justify-content: center; gap: 18px; }
+    .month-nav button { background: none; border: none; padding: 6px; display: flex; }
+    .month-label { font-size: 15px; font-weight: 600; color: var(--muted); min-width: 150px; text-align: center; }
+
+    .content { flex: 1; overflow-y: auto; padding: 16px 20px 90px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+
+    .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; }
+    .summary-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .summary-value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .group-block { display: flex; flex-direction: column; gap: 8px; }
+    .group-header { display: flex; align-items: center; gap: 6px; padding: 6px 2px 0; background: none; border: none; width: 100%; text-align: left; }
+    .group-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .group-sub { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .cat-list { display: flex; flex-direction: column; gap: 8px; }
+    .cat-row { border: 1px solid; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; text-align: left; width: 100%; }
+    .cat-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: none; border: none; padding: 0; width: 100%; }
+    .cat-name-row { display: flex; align-items: center; gap: 8px; }
+    .cat-icon { font-size: 17px; line-height: 1; }
+    .cat-name { font-size: 15px; font-weight: 600; }
+    .cat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .badge { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .progress-track { height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; }
+    .cat-caption { font-size: 11px; color: var(--muted); }
+    .quick-assign { display: flex; align-items: center; justify-content: center; gap: 14px; padding-top: 8px; border-top: 1px solid var(--border); }
+    .step-btn { width: 34px; height: 34px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .step-value { font-size: 16px; font-weight: 700; min-width: 74px; text-align: center; font-variant-numeric: tabular-nums; }
+
+    .row-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: left; }
+    .row-title { font-size: 15px; font-weight: 600; }
+    .row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .row-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .row-icon { width: 34px; height: 34px; border-radius: 999px; background: var(--tint); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+    .list { display: flex; flex-direction: column; gap: 10px; }
+
+    .txn-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px; border-bottom: 1px solid var(--border); gap: 8px; }
+    .txn-row:last-child { border-bottom: none; }
+    .txn-payee-row { display: flex; align-items: center; gap: 6px; }
+    .txn-payee { font-size: 15px; font-weight: 600; }
+    .txn-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .txn-amount-row { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+    .txn-amount { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+    .txn-running { font-size: 11px; color: var(--muted); margin-top: 2px; text-align: right; font-variant-numeric: tabular-nums; }
+    .cleared-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+
+    .calc-card-disabled { opacity: 0.5; }
+    .pill-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; background: var(--border); color: var(--muted); padding: 3px 8px; border-radius: 999px; }
+
+    .field-block { display: flex; flex-direction: column; gap: 8px; }
+    .field-label-row { display: flex; align-items: baseline; justify-content: space-between; }
+    .field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .field-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .term-toggle { display: flex; gap: 8px; }
+    .term-pill { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; font-weight: 600; text-align: center; }
+
+    .primary-btn { width: 100%; padding: 14px; border-radius: 14px; border: none; color: #fff; font-size: 15px; font-weight: 700; text-align: center; }
+    .segmented { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 3px; gap: 3px; }
+    .segment-btn { flex: 1; padding: 9px; border-radius: 9px; border: none; background: transparent; font-size: 13px; font-weight: 600; text-align: center; color: var(--muted); }
+
+    .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .spinner-row { display: flex; align-items: center; gap: 10px; padding: 14px 4px; font-size: 13px; color: var(--muted); }
+    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--border); animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .result-text { font-size: 14px; line-height: 1.55; }
+    .result-footer { font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; }
+
+    .settings-section { display: flex; flex-direction: column; gap: 6px; }
+    .settings-heading { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 4px 2px 0; }
+    .settings-group { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); width: 100%; text-align: left; }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-title { font-size: 15px; }
+    .settings-row-value { font-size: 13px; color: var(--muted); }
+
+    .toggle { width: 50px; height: 30px; border-radius: 999px; border: none; position: relative; padding: 3px; display: flex; }
+    .toggle .knob { width: 24px; height: 24px; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: margin-left 0.15s ease; }
+    .toggle.on .knob { margin-left: 20px; }
+
+    .stack-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; }
+    .legend-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .legend-row:last-child { border-bottom: none; }
+    .legend-left { display: flex; align-items: center; gap: 8px; }
+    .color-dot { width: 9px; height: 9px; border-radius: 999px; flex-shrink: 0; }
+    .legend-name { font-size: 14px; }
+    .legend-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .trend-chart { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; height: 100px; padding-top: 6px; }
+    .trend-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .trend-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+    .trend-bar { width: 12px; border-radius: 3px 3px 0 0; }
+    .trend-label { font-size: 10px; color: var(--muted); }
+    .legend-key { display: flex; gap: 14px; }
+    .legend-key-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .legend-key-swatch { width: 8px; height: 8px; border-radius: 2px; }
+
+    .chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+    .chip { flex-shrink: 0; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .text-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-size: 15px; }
+
+    .fab { position: absolute; right: 20px; bottom: 98px; display: flex; align-items: center; gap: 8px; padding: 13px 18px; border-radius: 999px; border: none; color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 10px 24px -8px rgba(20,24,31,0.4); z-index: 5; }
+
+    .sheet-backdrop { position: absolute; inset: 0; background: rgba(20,24,31,0.4); display: flex; align-items: flex-end; z-index: 10; }
+    .sheet-card { width: 100%; max-height: 86%; background: var(--surface); border-radius: 24px 24px 0 0; padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+    .sheet-header { display: flex; align-items: center; justify-content: space-between; }
+    .sheet-header-btn { background: none; border: none; font-size: 15px; font-weight: 600; padding: 4px; }
+    .amount-input { width: 100%; border: none; background: transparent; text-align: center; font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; padding: 6px 0; }
+
+    .tabbar { flex-shrink: 0; display: flex; border-top: 1px solid var(--border); background: var(--bg); }
+    .tabbtn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 9px 0 6px; background: none; border: none; }
+    .tabbtn-label { font-size: 10px; font-weight: 600; }
+    .home-indicator { flex-shrink: 0; height: 22px; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+    .home-indicator-bar { width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: 0.22; }
+  </style>
+</helmet>
+
+<div class="phone">
+
+  <!-- ================= BUDGET TAB ================= -->
+  <sc-if value="{{isBudgetTab}}" hint-placeholder-val="{{true}}">
+    <div class="navbar">
+      <div class="navbar-title-row"><span class="navbar-title-lg">Budget</span></div>
+      <div class="month-nav">
+        <button onClick="{{onPrevMonth}}" aria-label="Previous month">
+          <svg width="9" height="15" viewBox="0 0 9 15"><path d="M7.5 1.5 1.5 7.5l6 6" stroke="{{accent}}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="month-label">{{monthLabel}}</span>
+        <button onClick="{{onNextMonth}}" aria-label="Next month">
+          <svg width="9" height="15" viewBox="0 0 9 15"><path d="M1.5 1.5l6 6-6 6" stroke="{{accent}}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="summary-card">
+        <span class="summary-label">Unassigned Cash</span>
+        <span class="summary-value" style="color: {{unassignedCashColor}}">{{unassignedCashText}}</span>
+      </div>
+
+      <sc-for list="{{categoryGroups}}" as="group" hint-placeholder-count="3">
+        <div class="group-block">
+          <button class="group-header" onClick="{{group.onToggle}}">
+            <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({{group.chevronDeg}}deg)"><path d="M1 3l4 4 4-4" stroke="#9CA3AF" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="group-label">{{group.name}}</span>
+            <span class="group-sub">{{group.subtotalText}}</span>
+          </button>
+          <sc-if value="{{group.expanded}}" hint-placeholder-val="{{true}}">
+            <div class="cat-list">
+              <sc-for list="{{group.categories}}" as="cat" hint-placeholder-count="3">
+                <div class="cat-row" style="background: {{cat.rowBg}}; border-color: {{cat.rowBorder}}">
+                  <button class="cat-row-top" onClick="{{cat.onToggle}}">
+                    <div class="cat-name-row">
+                      <span class="cat-icon">{{cat.icon}}</span>
+                      <span class="cat-name">{{cat.name}}</span>
+                    </div>
+                    <span class="badge" style="background: {{cat.badgeBg}}; color: {{cat.badgeFg}}">{{cat.balanceText}}</span>
+                  </button>
+                  <div class="progress-track"><div class="progress-fill" style="width: {{cat.percentSpent}}%; background: {{cat.badgeFg}}"></div></div>
+                  <span class="cat-caption">{{cat.captionText}}</span>
+                  <sc-if value="{{cat.expanded}}" hint-placeholder-val="{{false}}">
+                    <div class="quick-assign">
+                      <button class="step-btn" onClick="{{cat.onMinus}}">–</button>
+                      <span class="step-value">{{cat.assignedText}}</span>
+                      <button class="step-btn" onClick="{{cat.onPlus}}">+</button>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <button class="fab" onClick="{{onOpenAddTransaction}}" style="background: {{accent}}">
+      <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1v12M1 7h12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      Transaction
+    </button>
+  </sc-if>
+
+  <!-- ================= ACCOUNTS TAB ================= -->
+  <sc-if value="{{isAccountsTab}}" hint-placeholder-val="{{false}}">
+    <sc-if value="{{showAccountList}}" hint-placeholder-val="{{true}}">
+      <div class="navbar">
+        <div class="navbar-title-row"><span class="navbar-title-lg">Accounts</span></div>
+      </div>
+      <div class="content">
+        <div class="summary-card">
+          <span class="summary-label">Total Balance</span>
+          <span class="summary-value">{{totalBalanceText}}</span>
+        </div>
+        <sc-for list="{{accountGroups}}" as="ag" hint-placeholder-count="4">
+          <div class="group-block">
+            <div class="group-header"><span class="group-label">{{ag.name}}</span><span class="group-sub">{{ag.subtotalText}}</span></div>
+            <div class="list">
+              <sc-for list="{{ag.accounts}}" as="acct" hint-placeholder-count="2">
+                <button class="row-card" onClick="{{acct.onSelect}}">
+                  <div class="row-icon">{{acct.icon}}</div>
+                  <div style="flex: 1;">
+                    <div class="row-title">{{acct.name}}</div>
+                  </div>
+                  <div class="row-value" style="color: {{acct.balanceColor}}">{{acct.balanceText}}</div>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <button class="fab" onClick="{{onOpenAddTransaction}}" style="background: {{accent}}">
+        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1v12M1 7h12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        Transaction
+      </button>
+    </sc-if>
+    <sc-if value="{{showAccountDetail}}" hint-placeholder-val="{{false}}">
+      <div class="navbar">
+        <div class="navbar-title-row">
+          <button class="navbar-back" onClick="{{onBackFromAccount}}">
+            <svg width="9" height="15" viewBox="0 0 9 15"><path d="M7.5 1.5 1.5 7.5l6 6" stroke="{{accent}}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="navbar-title-sm">{{selectedAccount.name}}</span>
+        </div>
+      </div>
+      <div class="content">
+        <div class="summary-card">
+          <span class="summary-label">Balance</span>
+          <span class="summary-value" style="color: {{selectedAccount.balanceColor}}">{{selectedAccount.balanceText}}</span>
+        </div>
+        <div class="row-card" style="display: block;">
+          <sc-for list="{{selectedAccount.transactions}}" as="txn" hint-placeholder-count="4">
+            <div class="txn-row">
+              <div>
+                <div class="txn-payee-row"><span class="cleared-dot" style="background: {{txn.clearedColor}}"></span><span class="txn-payee">{{txn.payee}}</span></div>
+                <div class="txn-date">{{txn.date}}</div>
+              </div>
+              <div>
+                <div class="txn-amount" style="color: {{txn.amountColor}}">{{txn.amountText}}</div>
+                <div class="txn-running">{{txn.runningText}}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <!-- ================= REPORTS TAB ================= -->
+  <sc-if value="{{isReportsTab}}" hint-placeholder-val="{{false}}">
+    <div class="navbar">
+      <div class="navbar-title-row"><span class="navbar-title-lg">Reports</span></div>
+    </div>
+    <div class="content">
+      <div class="summary-card">
+        <span class="summary-label">Spending — {{monthLabel}}</span>
+        <span class="summary-value">{{totalSpentText}}</span>
+        <div class="stack-bar">
+          <sc-for list="{{spendingSegments}}" as="seg" hint-placeholder-count="5">
+            <div style="width: {{seg.percent}}%; background: {{seg.color}}"></div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="summary-card">
+        <span class="group-label" style="margin: 0 0 4px;">Top Categories</span>
+        <sc-for list="{{spendingSegments}}" as="seg" hint-placeholder-count="5">
+          <div class="legend-row">
+            <div class="legend-left"><span class="color-dot" style="background: {{seg.color}}"></span><span class="legend-name">{{seg.name}}</span></div>
+            <span class="legend-value">{{seg.amountText}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div class="summary-card">
+        <span class="group-label" style="margin: 0 0 4px;">Income vs. Spending</span>
+        <span style="font-size: 14px; line-height: 1.5;">{{trendInsight}}</span>
+        <div class="trend-chart">
+          <sc-for list="{{trendMonths}}" as="m" hint-placeholder-count="4">
+            <div class="trend-col">
+              <div class="trend-bars">
+                <div class="trend-bar" style="height: {{m.incomeHeight}}px; background: {{positiveColor}}"></div>
+                <div class="trend-bar" style="height: {{m.spendHeight}}px; background: {{accent}}"></div>
+              </div>
+              <span class="trend-label">{{m.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div class="legend-key">
+          <div class="legend-key-item"><span class="legend-key-swatch" style="background: {{positiveColor}}"></span>Income</div>
+          <div class="legend-key-item"><span class="legend-key-swatch" style="background: {{accent}}"></span>Spending</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= TOOLS TAB (Calculators + AI) ================= -->
+  <sc-if value="{{isToolsTab}}" hint-placeholder-val="{{false}}">
+    <sc-if value="{{showCalculatorList}}" hint-placeholder-val="{{true}}">
+      <div class="navbar">
+        <div class="navbar-title-row"><span class="navbar-title-lg">Tools</span></div>
+        <div class="segmented">
+          <button class="segment-btn" onClick="{{onSetToolsCalculators}}" style="background: {{toolsCalcBg}}; color: {{toolsCalcFg}}">Calculators</button>
+          <button class="segment-btn" onClick="{{onSetToolsAi}}" style="background: {{toolsAiBg}}; color: {{toolsAiFg}}">AI Analysis</button>
+        </div>
+      </div>
+      <sc-if value="{{isToolsCalculators}}" hint-placeholder-val="{{true}}">
+        <div class="content">
+          <div class="list">
+            <sc-for list="{{calculatorsList}}" as="calc" hint-placeholder-count="4">
+              <sc-if value="{{calc.interactive}}" hint-placeholder-val="{{false}}">
+                <button class="row-card" onClick="{{calc.onSelect}}">
+                  <div>
+                    <div class="row-title">{{calc.name}}</div>
+                    <div class="row-sub">{{calc.subtitle}}</div>
+                  </div>
+                  <svg width="8" height="14" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#9CA3AF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </sc-if>
+              <sc-if value="{{calc.notInteractive}}" hint-placeholder-val="{{false}}">
+                <div class="row-card calc-card-disabled">
+                  <div>
+                    <div class="row-title">{{calc.name}}</div>
+                    <div class="row-sub">{{calc.subtitle}}</div>
+                  </div>
+                  <span class="pill-badge">Soon</span>
+                </div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{isToolsAi}}" hint-placeholder-val="{{false}}">
+        <div class="content">
+          <div class="info-card">Uses your own API key, called directly from this device to your chosen AI provider. Nothing passes through a YAMA server — there isn't one.</div>
+          <div class="segmented">
+            <button class="segment-btn" onClick="{{onSetAiAggregate}}" style="background: {{aggregateBg}}; color: {{aggregateFg}}">Aggregate</button>
+            <button class="segment-btn" onClick="{{onSetAiDetailed}}" style="background: {{detailedBg}}; color: {{detailedFg}}">Detailed</button>
+          </div>
+          <button class="primary-btn" onClick="{{onRunAnalysis}}" style="background: {{accent}}">Analyze This Month</button>
+          <sc-if value="{{aiAnalyzing}}" hint-placeholder-val="{{false}}">
+            <div class="spinner-row"><div class="spinner" style="border-top-color: {{accent}}"></div><span>Analyzing your budget…</span></div>
+          </sc-if>
+          <sc-if value="{{aiDone}}" hint-placeholder-val="{{false}}">
+            <div class="result-card">
+              <div class="result-text">You're on track in 6 of 8 categories this month. <b>Dining Out</b> is $48 over budget — trimming about $2/day for the rest of September would close the gap. <b>Auto Maintenance</b> has a healthy $260 cushion built up from previous months.</div>
+              <div class="result-footer">{{aiFooterText}}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{showMortgageCalculator}}" hint-placeholder-val="{{false}}">
+      <div class="navbar">
+        <div class="navbar-title-row">
+          <button class="navbar-back" onClick="{{onBackFromCalculator}}">
+            <svg width="9" height="15" viewBox="0 0 9 15"><path d="M7.5 1.5 1.5 7.5l6 6" stroke="{{accent}}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="navbar-title-sm">Loan Payment</span>
+        </div>
+      </div>
+      <div class="content">
+        <div class="summary-card">
+          <span class="summary-label">Monthly Payment</span>
+          <span class="summary-value" style="color: {{accent}}">{{monthlyPaymentText}}</span>
+        </div>
+        <div class="field-block">
+          <div class="field-label-row"><span class="field-label">Loan Amount</span><span class="field-value">{{loanAmountText}}</span></div>
+          <input type="range" min="50000" max="1000000" step="5000" value="{{loanAmount}}" onChange="{{onLoanAmountChange}}" style="accent-color: {{accent}}">
+        </div>
+        <div class="field-block">
+          <div class="field-label-row"><span class="field-label">Interest Rate</span><span class="field-value">{{rateText}}</span></div>
+          <input type="range" min="2" max="10" step="0.125" value="{{ratePct}}" onChange="{{onRateChange}}" style="accent-color: {{accent}}">
+        </div>
+        <div class="field-block">
+          <span class="field-label">Term</span>
+          <div class="term-toggle">
+            <button class="term-pill" onClick="{{onSelectTerm15}}" style="background: {{term15Bg}}; color: {{term15Fg}}; border-color: {{term15Border}}">15 yr</button>
+            <button class="term-pill" onClick="{{onSelectTerm30}}" style="background: {{term30Bg}}; color: {{term30Fg}}; border-color: {{term30Border}}">30 yr</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <!-- ================= SETTINGS TAB ================= -->
+  <sc-if value="{{isSettingsTab}}" hint-placeholder-val="{{false}}">
+    <div class="navbar">
+      <div class="navbar-title-row"><span class="navbar-title-lg">Settings</span></div>
+    </div>
+    <div class="content">
+      <div class="settings-section">
+        <span class="settings-heading">AI</span>
+        <div class="settings-group">
+          <div class="settings-row">
+            <span class="settings-row-title">Anthropic API Key</span>
+            <span class="settings-row-value">•••• 8f2a</span>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <span class="settings-heading">Backup</span>
+        <div class="settings-group">
+          <div class="settings-row">
+            <span class="settings-row-title">iCloud Backup</span>
+            <button class="toggle {{icloudOnClass}}" onClick="{{onToggleIcloud}}" style="background: {{icloudBg}}"><span class="knob"></span></button>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-title">S3 Backup</span>
+            <span class="settings-row-value">Not configured</span>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <span class="settings-heading">About</span>
+        <div class="settings-group">
+          <div class="settings-row">
+            <span class="settings-row-title">Version</span>
+            <span class="settings-row-value">1.0.0 (MVP)</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-title">Privacy &amp; Data</span>
+            <svg width="8" height="14" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#9CA3AF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= ADD TRANSACTION SHEET ================= -->
+  <sc-if value="{{showAddTransaction}}" hint-placeholder-val="{{false}}">
+    <div class="sheet-backdrop">
+      <div class="sheet-card">
+        <div class="sheet-header">
+          <button class="sheet-header-btn" onClick="{{onCloseAddTransaction}}">Cancel</button>
+          <button class="sheet-header-btn" onClick="{{onSaveTransaction}}" style="color: {{accent}}">Save</button>
+        </div>
+        <input class="amount-input" type="text" inputmode="decimal" placeholder="$0.00" value="{{txnAmount}}" onChange="{{onTxnAmountChange}}">
+        <div class="segmented">
+          <button class="segment-btn" onClick="{{onSetTxnOut}}" style="background: {{txnOutBg}}; color: {{txnOutFg}}">Spending</button>
+          <button class="segment-btn" onClick="{{onSetTxnIn}}" style="background: {{txnInBg}}; color: {{txnInFg}}">Income</button>
+        </div>
+        <input class="text-input" type="text" placeholder="Payee" value="{{txnPayee}}" onChange="{{onTxnPayeeChange}}">
+        <div class="field-block">
+          <span class="field-label">Category</span>
+          <div class="chip-row">
+            <sc-for list="{{txnCategoryChips}}" as="chip" hint-placeholder-count="8">
+              <button class="chip" onClick="{{chip.onSelect}}" style="background: {{chip.bg}}; color: {{chip.fg}}; border-color: {{chip.border}}">{{chip.icon}} {{chip.name}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div class="field-block">
+          <span class="field-label">Account</span>
+          <div class="chip-row">
+            <sc-for list="{{txnAccountChips}}" as="chip" hint-placeholder-count="4">
+              <button class="chip" onClick="{{chip.onSelect}}" style="background: {{chip.bg}}; color: {{chip.fg}}; border-color: {{chip.border}}">{{chip.name}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <input class="text-input" type="text" placeholder="Memo" value="{{txnMemo}}" onChange="{{onTxnMemoChange}}">
+        <div class="settings-row" style="border: 1px solid var(--border); border-radius: 12px;">
+          <span class="settings-row-title">Cleared</span>
+          <button class="toggle {{txnClearedClass}}" onClick="{{onToggleTxnCleared}}" style="background: {{txnClearedBg}}"><span class="knob"></span></button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= TAB BAR ================= -->
+  <div class="tabbar">
+    <button class="tabbtn" onClick="{{selectTabBudget}}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{budgetTabColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="12" y2="17"/></svg>
+      <span class="tabbtn-label" style="color: {{budgetTabColor}}">Budget</span>
+    </button>
+    <button class="tabbtn" onClick="{{selectTabAccounts}}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{accountsTabColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 4l9 6"/><line x1="5" y1="10" x2="5" y2="19"/><line x1="9" y1="10" x2="9" y2="19"/><line x1="15" y1="10" x2="15" y2="19"/><line x1="19" y1="10" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg>
+      <span class="tabbtn-label" style="color: {{accountsTabColor}}">Accounts</span>
+    </button>
+    <button class="tabbtn" onClick="{{selectTabReports}}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{reportsTabColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="5" y2="11"/><line x1="12" y1="19" x2="12" y2="6"/><line x1="19" y1="19" x2="19" y2="14"/></svg>
+      <span class="tabbtn-label" style="color: {{reportsTabColor}}">Reports</span>
+    </button>
+    <button class="tabbtn" onClick="{{selectTabTools}}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{toolsTabColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5 17 4a3 3 0 0 1 4 4l-2.5 2.5M14.5 6.5 5 16l-1 4 4-1 9.5-9.5M14.5 6.5 17.5 9.5"/></svg>
+      <span class="tabbtn-label" style="color: {{toolsTabColor}}">Tools</span>
+    </button>
+    <button class="tabbtn" onClick="{{selectTabSettings}}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{settingsTabColor}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.2 4.7l2.1 2.1M17.7 17.2l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.3l2.1-2.1M17.7 6.8l2.1-2.1"/></svg>
+      <span class="tabbtn-label" style="color: {{settingsTabColor}}">Settings</span>
+    </button>
+  </div>
+  <div class="home-indicator"><div class="home-indicator-bar"></div></div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#0F766E","options":["#0F766E","#2563EB","#B45309","#7C3AED"]},"$preview":{"width":390,"height":844}}'>
+const NEGATIVE = '#B91C1C';
+const NEGATIVE_TINT = '#FDECEC';
+const POSITIVE = '#15803D';
+const POSITIVE_TINT = '#E8F5EC';
+const AMBER = '#B45309';
+const AMBER_TINT = '#FDF3E3';
+const MUTED = '#6B7280';
+const INK = '#14181F';
+const SURFACE = '#FFFFFF';
+const TINT = '#E6F4F2';
+const BORDER = '#E5E7EB';
+const CATEGORY_PALETTE = ['#0F766E', '#2563EB', '#B45309', '#7C3AED', '#DB2777', '#6B7280'];
+
+function fmtMoney(n) {
+  const sign = n < 0 ? '-$' : '$';
+  const abs = Math.abs(n);
+  const hasCents = Math.round(abs * 100) % 100 !== 0;
+  const str = abs.toLocaleString('en-US', {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+  return sign + str;
+}
+
+function monthlyPayment(principal, annualRatePct, years) {
+  const r = (annualRatePct / 100) / 12;
+  const n = years * 12;
+  if (r === 0) return principal / n;
+  const factor = Math.pow(1 + r, n);
+  return (principal * r * factor) / (factor - 1);
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      activeTab: 'budget',
+      monthIndex: 1,
+      collapsedGroups: [],
+      expandedCategoryId: null,
+      categories: [
+        { id: 1, group: 'House', icon: '🏠', name: 'Rent', assigned: 1800, activity: -1800, startBalance: 0 },
+        { id: 2, group: 'House', icon: '⚡', name: 'Utilities', assigned: 150, activity: -98, startBalance: 0 },
+        { id: 3, group: 'Bills', icon: '📱', name: 'Subscriptions', assigned: 40, activity: -40, startBalance: 0 },
+        { id: 4, group: 'Bills', icon: '🚗', name: 'Auto Maintenance', assigned: 50, activity: 0, startBalance: 210 },
+        { id: 5, group: 'Bills', icon: '🔧', name: 'Home Maintenance', assigned: 75, activity: 0, startBalance: 150 },
+        { id: 6, group: 'Day to Day', icon: '🛒', name: 'Groceries', assigned: 500, activity: -412, startBalance: 0 },
+        { id: 7, group: 'Day to Day', icon: '🍽️', name: 'Dining Out', assigned: 150, activity: -198, startBalance: 0 },
+        { id: 8, group: 'Day to Day', icon: '🎬', name: 'Entertainment', assigned: 60, activity: -25, startBalance: 0 },
+      ],
+      selectedAccountId: null,
+      activeCalculator: null,
+      toolsSubTab: 'calculators',
+      loanAmount: 350000,
+      ratePct: 6.5,
+      termYears: 30,
+      aiMode: 'aggregate',
+      aiStatus: 'idle',
+      icloudOn: true,
+      showAddTransaction: false,
+      txnAmount: '',
+      txnDirection: 'out',
+      txnPayee: '',
+      txnCategoryId: null,
+      txnAccountId: null,
+      txnMemo: '',
+      txnCleared: false,
+    };
+  }
+
+  accountsData = [
+    { id: 'checking', name: 'Checking', kind: 'Cash', icon: '🏦', balance: 2145.32, txns: [
+      { date: 'Sep 6', payee: "Trader Joe's", amount: -62.18, running: 2145.32, cleared: true },
+      { date: 'Sep 5', payee: 'Shell Gas', amount: -41.00, running: 2207.50, cleared: true },
+      { date: 'Sep 3', payee: 'Employer Payroll', amount: 2400.00, running: 2248.50, cleared: true },
+      { date: 'Sep 1', payee: 'Landlord', amount: -1800.00, running: -151.50, cleared: true },
+    ]},
+    { id: 'savings', name: 'Savings', kind: 'Cash', icon: '💰', balance: 8900.00, txns: [
+      { date: 'Sep 3', payee: 'Transfer from Checking', amount: 500.00, running: 8900.00, cleared: true },
+      { date: 'Aug 3', payee: 'Transfer from Checking', amount: 500.00, running: 8400.00, cleared: true },
+    ]},
+    { id: 'cash', name: 'Cash', kind: 'Cash', icon: '💵', balance: 60.00, txns: [
+      { date: 'Aug 28', payee: 'ATM Withdrawal', amount: 60.00, running: 60.00, cleared: true },
+    ]},
+    { id: 'creditcard', name: 'Credit Card', kind: 'Credit', icon: '💳', balance: -412.50, txns: [
+      { date: 'Sep 4', payee: 'Amazon', amount: -58.20, running: -412.50, cleared: false },
+      { date: 'Sep 2', payee: 'Netflix', amount: -15.49, running: -354.30, cleared: true },
+    ]},
+    { id: 'autoloan', name: 'Auto Loan', kind: 'Loan', icon: '🚙', balance: -8240.00, txns: [
+      { date: 'Sep 1', payee: 'Loan Payment', amount: 310.00, running: -8240.00, cleared: true },
+    ]},
+    { id: 'investments', name: 'Investments', kind: 'Tracking', icon: '📈', balance: 12500.00, txns: [
+      { date: 'Aug 31', payee: 'Market Change', amount: 210.00, running: 12500.00, cleared: true },
+    ]},
+  ];
+
+  calculatorsData = [
+    { id: 'mortgage', name: 'Loan / Mortgage Payment', subtitle: 'Monthly payment estimate', interactive: true },
+    { id: 'amortization', name: 'Amortization Schedule', subtitle: 'Full payment breakdown', interactive: false },
+    { id: 'interest', name: 'Interest Calculator', subtitle: 'Simple & compound', interactive: false },
+    { id: 'payoff', name: 'Payoff Accelerator', subtitle: 'Extra-payment savings', interactive: false },
+  ];
+
+  selectTab = (tab) => this.setState({ activeTab: tab, expandedCategoryId: null });
+  prevMonth = () => this.setState({ monthIndex: Math.max(0, this.state.monthIndex - 1) });
+  nextMonth = () => this.setState({ monthIndex: Math.min(2, this.state.monthIndex + 1) });
+  toggleGroup = (name) => {
+    const collapsedGroups = this.state.collapsedGroups.includes(name)
+      ? this.state.collapsedGroups.filter((n) => n !== name)
+      : [...this.state.collapsedGroups, name];
+    this.setState({ collapsedGroups });
+  };
+  toggleCategory = (id) => this.setState({ expandedCategoryId: this.state.expandedCategoryId === id ? null : id });
+  adjustAssigned = (id, delta) => {
+    const categories = this.state.categories.map((c) =>
+      c.id === id ? { ...c, assigned: Math.max(0, c.assigned + delta) } : c
+    );
+    this.setState({ categories });
+  };
+  selectAccount = (id) => this.setState({ selectedAccountId: id });
+  backFromAccount = () => this.setState({ selectedAccountId: null });
+  setToolsCalculators = () => this.setState({ toolsSubTab: 'calculators' });
+  setToolsAi = () => this.setState({ toolsSubTab: 'ai' });
+  selectCalculator = (id) => this.setState({ activeCalculator: id });
+  backFromCalculator = () => this.setState({ activeCalculator: null });
+  onLoanAmountChange = (e) => this.setState({ loanAmount: Number(e.target.value) });
+  onRateChange = (e) => this.setState({ ratePct: Number(e.target.value) });
+  selectTerm15 = () => this.setState({ termYears: 15 });
+  selectTerm30 = () => this.setState({ termYears: 30 });
+  setAiAggregate = () => this.setState({ aiMode: 'aggregate', aiStatus: 'idle' });
+  setAiDetailed = () => this.setState({ aiMode: 'detailed', aiStatus: 'idle' });
+  runAnalysis = () => {
+    this.setState({ aiStatus: 'analyzing' });
+    setTimeout(() => this.setState({ aiStatus: 'done' }), 900);
+  };
+  toggleIcloud = () => this.setState({ icloudOn: !this.state.icloudOn });
+
+  openAddTransaction = () => this.setState({ showAddTransaction: true });
+  closeAddTransaction = () => this.setState({
+    showAddTransaction: false, txnAmount: '', txnDirection: 'out', txnPayee: '',
+    txnCategoryId: null, txnAccountId: null, txnMemo: '', txnCleared: false,
+  });
+  onTxnAmountChange = (e) => this.setState({ txnAmount: e.target.value });
+  onTxnPayeeChange = (e) => this.setState({ txnPayee: e.target.value });
+  onTxnMemoChange = (e) => this.setState({ txnMemo: e.target.value });
+  setTxnOut = () => this.setState({ txnDirection: 'out' });
+  setTxnIn = () => this.setState({ txnDirection: 'in' });
+  selectTxnCategory = (id) => this.setState({ txnCategoryId: id });
+  selectTxnAccount = (id) => this.setState({ txnAccountId: id });
+  toggleTxnCleared = () => this.setState({ txnCleared: !this.state.txnCleared });
+  saveTransaction = () => {
+    const { txnAmount, txnDirection, txnPayee, txnCategoryId, txnAccountId, txnMemo, txnCleared, categories } = this.state;
+    const amt = parseFloat(txnAmount);
+    if (!amt || amt <= 0 || !txnAccountId) { this.closeAddTransaction(); return; }
+    const signed = txnDirection === 'out' ? -amt : amt;
+    const account = this.accountsData.find((a) => a.id === txnAccountId);
+    if (account) {
+      account.balance += signed;
+      account.txns.unshift({ date: 'Today', payee: txnPayee || '(no payee)', amount: signed, running: account.balance, cleared: txnCleared });
+    }
+    const nextCategories = txnCategoryId
+      ? categories.map((c) => c.id === txnCategoryId ? { ...c, activity: c.activity + signed } : c)
+      : categories;
+    this.setState({
+      categories: nextCategories,
+      showAddTransaction: false, txnAmount: '', txnDirection: 'out', txnPayee: '',
+      txnCategoryId: null, txnAccountId: null, txnMemo: '', txnCleared: false,
+    });
+  };
+
+  renderVals() {
+    const accent = this.props.accent ?? '#0F766E';
+    const { activeTab, monthIndex, collapsedGroups, expandedCategoryId, categories, selectedAccountId,
+      activeCalculator, toolsSubTab, loanAmount, ratePct, termYears, aiMode, aiStatus, icloudOn,
+      showAddTransaction, txnAmount, txnDirection, txnPayee, txnCategoryId, txnAccountId, txnMemo, txnCleared } = this.state;
+
+    const monthLabels = ['August 2026', 'September 2026', 'October 2026'];
+    const unassignedCashValues = [0, 312, 540];
+    const unassignedCashRaw = unassignedCashValues[monthIndex];
+
+    const mapCat = (c) => {
+      const balance = (c.startBalance || 0) + c.assigned + c.activity;
+      const expanded = expandedCategoryId === c.id;
+      const spent = Math.max(0, -c.activity);
+      const percentSpent = c.assigned > 0 ? Math.min(100, Math.round((spent / c.assigned) * 100)) : (spent > 0 ? 100 : 0);
+      let badgeBg = POSITIVE_TINT, badgeFg = POSITIVE, captionText = `Spent ${fmtMoney(spent)} of ${fmtMoney(c.assigned)}`;
+      if (balance < 0) { badgeBg = NEGATIVE_TINT; badgeFg = NEGATIVE; captionText = `Overspent by ${fmtMoney(-balance)}`; }
+      else if (balance === 0 && c.assigned > 0) { badgeBg = AMBER_TINT; badgeFg = AMBER; captionText = 'Fully spent'; }
+      else if (c.assigned === 0) { badgeBg = BORDER; badgeFg = MUTED; captionText = 'Not budgeted'; }
+      else if (spent === 0) { captionText = 'Funded'; }
+      return {
+        id: c.id,
+        icon: c.icon,
+        name: c.name,
+        assignedText: fmtMoney(c.assigned),
+        balanceText: fmtMoney(balance),
+        percentSpent,
+        badgeBg,
+        badgeFg,
+        captionText,
+        expanded,
+        rowBg: expanded ? TINT : SURFACE,
+        rowBorder: expanded ? accent : BORDER,
+        onToggle: () => this.toggleCategory(c.id),
+        onPlus: () => this.adjustAssigned(c.id, 10),
+        onMinus: () => this.adjustAssigned(c.id, -10),
+      };
+    };
+
+    const groupNames = [];
+    categories.forEach((c) => { if (!groupNames.includes(c.group)) groupNames.push(c.group); });
+    const categoryGroups = groupNames.map((name) => {
+      const groupCats = categories.filter((c) => c.group === name);
+      const subtotal = groupCats.reduce((s, c) => s + ((c.startBalance || 0) + c.assigned + c.activity), 0);
+      const expanded = !collapsedGroups.includes(name);
+      return {
+        id: name,
+        name,
+        subtotalText: fmtMoney(subtotal),
+        expanded,
+        chevronDeg: expanded ? 0 : -90,
+        onToggle: () => this.toggleGroup(name),
+        categories: groupCats.map(mapCat),
+      };
+    });
+
+    const kindOrder = ['Cash', 'Credit', 'Loan', 'Tracking'];
+    const accountGroups = kindOrder
+      .map((kind) => this.accountsData.filter((a) => a.kind === kind))
+      .filter((list) => list.length > 0)
+      .map((list) => ({
+        name: list[0].kind,
+        subtotalText: fmtMoney(list.reduce((s, a) => s + a.balance, 0)),
+        accounts: list.map((a) => ({
+          id: a.id,
+          name: a.name,
+          icon: a.icon,
+          balanceText: fmtMoney(a.balance),
+          balanceColor: a.balance < 0 ? NEGATIVE : INK,
+          onSelect: () => this.selectAccount(a.id),
+        })),
+      }));
+    const totalBalance = this.accountsData.reduce((s, a) => s + a.balance, 0);
+
+    const selectedAccountData = this.accountsData.find((a) => a.id === selectedAccountId) || null;
+    const selectedAccount = selectedAccountData ? {
+      name: selectedAccountData.name,
+      balanceText: fmtMoney(selectedAccountData.balance),
+      balanceColor: selectedAccountData.balance < 0 ? NEGATIVE : INK,
+      transactions: selectedAccountData.txns.map((t) => ({
+        date: t.date,
+        payee: t.payee,
+        amountText: fmtMoney(t.amount),
+        amountColor: t.amount < 0 ? INK : POSITIVE,
+        runningText: fmtMoney(t.running),
+        clearedColor: t.cleared ? POSITIVE : BORDER,
+      })),
+    } : { name: '', balanceText: '', balanceColor: INK, transactions: [] };
+
+    const calculatorsList = this.calculatorsData.map((c) => ({
+      id: c.id,
+      name: c.name,
+      subtitle: c.subtitle,
+      interactive: c.interactive,
+      notInteractive: !c.interactive,
+      onSelect: c.interactive ? () => this.selectCalculator(c.id) : () => {},
+    }));
+
+    const monthlyPaymentRaw = monthlyPayment(loanAmount, ratePct, termYears);
+
+    const spendByCategory = categories
+      .map((c) => ({ name: c.name, spent: Math.max(0, -c.activity) }))
+      .filter((c) => c.spent > 0)
+      .sort((a, b) => b.spent - a.spent);
+    const totalSpent = spendByCategory.reduce((s, c) => s + c.spent, 0);
+    const topN = spendByCategory.slice(0, 5);
+    const otherSum = spendByCategory.slice(5).reduce((s, c) => s + c.spent, 0);
+    const segmentsRaw = otherSum > 0 ? [...topN, { name: 'All Others', spent: otherSum }] : topN;
+    const spendingSegments = segmentsRaw.map((s, i) => ({
+      name: s.name,
+      amountText: fmtMoney(s.spent),
+      percent: totalSpent > 0 ? Math.round((s.spent / totalSpent) * 100) : 0,
+      color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length],
+    }));
+
+    const trendData = [
+      { label: 'Jun', income: 4200, spend: 3800 },
+      { label: 'Jul', income: 4200, spend: 4500 },
+      { label: 'Aug', income: 4300, spend: 3950 },
+      { label: 'Sep', income: 4300, spend: totalSpent },
+    ];
+    const maxVal = Math.max(...trendData.map((m) => Math.max(m.income, m.spend)), 1);
+    const trendMonths = trendData.map((m) => ({
+      label: m.label,
+      incomeHeight: Math.round((m.income / maxVal) * 90),
+      spendHeight: Math.round((m.spend / maxVal) * 90),
+    }));
+    const lastMonth = trendData[trendData.length - 1];
+    const trendInsight = lastMonth.spend > lastMonth.income
+      ? "You're spending more than you earn this month."
+      : (lastMonth.spend < lastMonth.income * 0.9
+        ? "You're spending comfortably less than you earn this month."
+        : "You're spending about as much as you make.");
+
+    const flatCategories = categories.map((c) => ({ id: c.id, name: c.name, icon: c.icon }));
+    const txnCategoryChips = flatCategories.map((c) => {
+      const selected = txnCategoryId === c.id;
+      return {
+        id: c.id, name: c.name, icon: c.icon,
+        bg: selected ? accent : SURFACE, fg: selected ? '#FFFFFF' : INK, border: selected ? accent : BORDER,
+        onSelect: () => this.selectTxnCategory(c.id),
+      };
+    });
+    const txnAccountChips = this.accountsData.map((a) => {
+      const selected = txnAccountId === a.id;
+      return {
+        id: a.id, name: a.name,
+        bg: selected ? accent : SURFACE, fg: selected ? '#FFFFFF' : INK, border: selected ? accent : BORDER,
+        onSelect: () => this.selectTxnAccount(a.id),
+      };
+    });
+
+    return {
+      accent,
+      positiveColor: POSITIVE,
+      isBudgetTab: activeTab === 'budget',
+      isAccountsTab: activeTab === 'accounts',
+      isReportsTab: activeTab === 'reports',
+      isToolsTab: activeTab === 'tools',
+      isSettingsTab: activeTab === 'settings',
+      budgetTabColor: activeTab === 'budget' ? accent : MUTED,
+      accountsTabColor: activeTab === 'accounts' ? accent : MUTED,
+      reportsTabColor: activeTab === 'reports' ? accent : MUTED,
+      toolsTabColor: activeTab === 'tools' ? accent : MUTED,
+      settingsTabColor: activeTab === 'settings' ? accent : MUTED,
+      selectTabBudget: () => this.selectTab('budget'),
+      selectTabAccounts: () => this.selectTab('accounts'),
+      selectTabReports: () => this.selectTab('reports'),
+      selectTabTools: () => this.selectTab('tools'),
+      selectTabSettings: () => this.selectTab('settings'),
+
+      monthLabel: monthLabels[monthIndex],
+      onPrevMonth: this.prevMonth,
+      onNextMonth: this.nextMonth,
+      unassignedCashText: fmtMoney(unassignedCashRaw),
+      unassignedCashColor: unassignedCashRaw < 0 ? NEGATIVE : (unassignedCashRaw > 0 ? POSITIVE : MUTED),
+      categoryGroups,
+      onOpenAddTransaction: this.openAddTransaction,
+
+      showAccountList: !selectedAccountId,
+      showAccountDetail: !!selectedAccountId,
+      accountGroups,
+      totalBalanceText: fmtMoney(totalBalance),
+      selectedAccount,
+      onBackFromAccount: this.backFromAccount,
+
+      totalSpentText: fmtMoney(totalSpent),
+      spendingSegments,
+      trendMonths,
+      trendInsight,
+
+      toolsCalcBg: toolsSubTab === 'calculators' ? accent : 'transparent',
+      toolsCalcFg: toolsSubTab === 'calculators' ? '#FFFFFF' : MUTED,
+      toolsAiBg: toolsSubTab === 'ai' ? accent : 'transparent',
+      toolsAiFg: toolsSubTab === 'ai' ? '#FFFFFF' : MUTED,
+      onSetToolsCalculators: this.setToolsCalculators,
+      onSetToolsAi: this.setToolsAi,
+      isToolsCalculators: toolsSubTab === 'calculators',
+      isToolsAi: toolsSubTab === 'ai',
+
+      showCalculatorList: !activeCalculator,
+      showMortgageCalculator: activeCalculator === 'mortgage',
+      calculatorsList,
+      onBackFromCalculator: this.backFromCalculator,
+      loanAmount,
+      loanAmountText: fmtMoney(loanAmount),
+      ratePct,
+      rateText: ratePct.toFixed(3).replace(/0+$/, '').replace(/\.$/, '') + '%',
+      termYears,
+      term15Bg: termYears === 15 ? accent : SURFACE,
+      term15Fg: termYears === 15 ? '#FFFFFF' : INK,
+      term15Border: termYears === 15 ? accent : BORDER,
+      term30Bg: termYears === 30 ? accent : SURFACE,
+      term30Fg: termYears === 30 ? '#FFFFFF' : INK,
+      term30Border: termYears === 30 ? accent : BORDER,
+      monthlyPaymentText: fmtMoney(Math.round(monthlyPaymentRaw)),
+      onLoanAmountChange: this.onLoanAmountChange,
+      onRateChange: this.onRateChange,
+      onSelectTerm15: this.selectTerm15,
+      onSelectTerm30: this.selectTerm30,
+
+      aggregateBg: aiMode === 'aggregate' ? accent : 'transparent',
+      aggregateFg: aiMode === 'aggregate' ? '#FFFFFF' : MUTED,
+      detailedBg: aiMode === 'detailed' ? accent : 'transparent',
+      detailedFg: aiMode === 'detailed' ? '#FFFFFF' : MUTED,
+      onSetAiAggregate: this.setAiAggregate,
+      onSetAiDetailed: this.setAiDetailed,
+      aiAnalyzing: aiStatus === 'analyzing',
+      aiDone: aiStatus === 'done',
+      onRunAnalysis: this.runAnalysis,
+      aiFooterText: aiMode === 'aggregate'
+        ? 'Sent to your AI provider: category totals only.'
+        : 'Sent to your AI provider: category totals + individual transactions.',
+
+      icloudOn,
+      icloudOnClass: icloudOn ? 'on' : 'off',
+      icloudBg: icloudOn ? accent : BORDER,
+      onToggleIcloud: this.toggleIcloud,
+
+      showAddTransaction,
+      onCloseAddTransaction: this.closeAddTransaction,
+      onSaveTransaction: this.saveTransaction,
+      txnAmount,
+      onTxnAmountChange: this.onTxnAmountChange,
+      txnOutBg: txnDirection === 'out' ? accent : 'transparent',
+      txnOutFg: txnDirection === 'out' ? '#FFFFFF' : MUTED,
+      txnInBg: txnDirection === 'in' ? accent : 'transparent',
+      txnInFg: txnDirection === 'in' ? '#FFFFFF' : MUTED,
+      onSetTxnOut: this.setTxnOut,
+      onSetTxnIn: this.setTxnIn,
+      txnPayee,
+      onTxnPayeeChange: this.onTxnPayeeChange,
+      txnCategoryChips,
+      txnAccountChips,
+      txnMemo,
+      onTxnMemoChange: this.onTxnMemoChange,
+      txnClearedClass: txnCleared ? 'on' : 'off',
+      txnClearedBg: txnCleared ? accent : BORDER,
+      onToggleTxnCleared: this.toggleTxnCleared,
+    };
+  }
+}
+</script>
+</body>
+</html>

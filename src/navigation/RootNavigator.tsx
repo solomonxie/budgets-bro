@@ -6,6 +6,8 @@ import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { AddTransactionModal } from '../screens/transactions/AddTransactionModal';
 import { AccountModal } from '../screens/accounts/AccountModal';
+import { TabBarIcon } from '../components/ui/TabBarIcon';
+import type { TabIconName } from '../components/ui/TabBarIcon';
 import { colors } from '../theme/colors';
 import type { RootTabParamList } from './types';
 
@@ -23,10 +25,24 @@ const navigationTheme = {
   },
 };
 
+const TAB_ICONS: Record<string, TabIconName> = {
+  Budget: 'budget',
+  Accounts: 'accounts',
+  Insights: 'insights',
+};
+
 export function RootNavigator() {
   return (
     <NavigationContainer theme={navigationTheme}>
-      <Tab.Navigator screenOptions={{ headerShown: false, tabBarIcon: () => null }}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarIcon: ({ color }) => (TAB_ICONS[route.name] ? <TabBarIcon name={TAB_ICONS[route.name]} color={color} /> : null),
+          tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textMuted,
+        })}
+      >
         <Tab.Screen name="Budget" component={BudgetStackNavigator} />
         <Tab.Screen name="Accounts" component={AccountsStackNavigator} />
         <Tab.Screen name="Insights" component={InsightsStackNavigator} />

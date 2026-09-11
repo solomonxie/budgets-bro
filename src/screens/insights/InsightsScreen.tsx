@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useInsights } from '../../hooks/useInsights';
+import { useAccounts } from '../../hooks/useAccounts';
+import { netWorth as computeNetWorth } from '../../domain/accountKind';
 import { currentMonth, nextMonth, previousMonth, formatMonthLabel, formatMonthShort } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
@@ -32,7 +34,13 @@ export function InsightsScreen() {
   const navigation = useNavigation<Nav>();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
+  const { accounts } = useAccounts();
   const { width: windowWidth } = useWindowDimensions();
+
+  const netWorth = useMemo(
+    () => computeNetWorth(accounts.map((a) => ({ type: a.account.type, balanceCents: a.balanceCents }))),
+    [accounts],
+  );
 
   const totalSpentCents = spending.reduce((s, c) => s + c.spentCents, 0);
   const top = spending.slice(0, TOP_N);
@@ -160,6 +168,15 @@ export function InsightsScreen() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.label}>Net Worth</Text>
+        <Text style={[styles.value, netWorth.netWorthCents < 0 && styles.negative]}>{formatMoney(netWorth.netWorthCents)}</Text>
+        <View style={styles.netWorthBreakdown}>
+          <Text style={styles.netWorthPart}>Assets {formatMoney(netWorth.assetsCents)}</Text>
+          <Text style={styles.netWorthPart}>Debts {formatMoney(netWorth.debtsCents)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.card}>
         {TOOL_ROWS.map((row, i) => (
           <Pressable
             key={row.screen}
@@ -189,6 +206,9 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   value: { fontSize: 28, fontWeight: '700', color: colors.text },
+  negative: { color: colors.negative },
+  netWorthBreakdown: { flexDirection: 'row', gap: spacing.md },
+  netWorthPart: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   stackBar: { flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden' },
   legendRow: {
     flexDirection: 'row',

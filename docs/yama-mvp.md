@@ -145,12 +145,29 @@ Self-contained pure-function module, no DB/React dependency (`src/finance-tools/
 
 **Privacy tradeoff:** invoking analysis sends financial data to a third-party AI provider chosen by the user. Default mode sends aggregated totals only; detailed mode (explicit opt-in) sends raw payee/memo/amount data. Because the user supplies their own key, usage/cost is auditable in that provider's dashboard — but data still leaves the device to that provider. This must be surfaced in the UI, not just documented here.
 
+**Settings disclosure (light, shown right under each key field):**
+- OpenAI: "Used by AI Analysis. Sent straight from this device to OpenAI when you run an analysis — never stored or seen by us. The key itself never leaves this device, including in backups."
+- AWS S3: "Used only for backups you trigger. The key itself never leaves this device, including in backups — only your board's money data goes to S3, and only when you back up."
+
+## Secrets vs. backups — never mixed
+The AI API key and S3 credentials are provider credentials, not money data, and must never appear in any backup, on-device or off:
+- **Storage boundary**: both live only in `expo-secure-store` (Keychain/Keystore), never in the SQLite DB (`app_settings` holds only theme/active-board, nothing secret) — so no backup or export path that reads the DB can ever touch them.
+- **Keychain accessibility (iOS)**: written with `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, which iOS excludes from iCloud/iTunes device backups and never migrates to a new device.
+- **Auto Backup (Android)**: `android.allowBackup` is `false` — no OS-level backup path exists for this app at all, implicit or otherwise; money data only leaves the device via the explicit backup flows below.
+- **App's own export/backup** (`exportBoardZip`, iCloud/S3 backup): dumps only board-scoped SQLite tables (accounts, categories, budget entries, payees, transactions) — never touches secureStore, so a restored backup can never carry a key.
+
 ## Storage/backup architecture
 - **SQLite** = source of truth. Library: `expo-sqlite` (works under Expo managed workflow + EAS builds, no custom native linking). `op-sqlite`/SQLCipher deferred until at-rest encryption is required.
 - **iCloud backup**: export of the SQLite file into the app's iCloud container (Expo config plugin + entitlement, buildable via EAS).
 - **S3 backup**: user provisions their own bucket + scoped IAM credentials. No backend to presign requests, so the app signs S3 REST calls client-side with `aws4fetch`, keeping the app backend-less.
 - **Backup format**: primary = raw SQLite file copy; secondary/optional = JSON export for portability.
 - **Restore**: pick a backup source → download → validate schema-version tag → full replace of local DB (destructive-and-confirmed, no merge/dedupe for MVP).
+- **S3 credential validation, on save, before the key is accepted** (fail closed — reject and explain, don't silently store an unusable/unsafe credential):
+  1. **Reachable**: sign and send a lightweight request (e.g. `HEAD` the bucket) — confirms the endpoint/region/bucket name resolve at all.
+  2. **Read/write**: write a small marker object (e.g. `.yama/write-test`) and read it back, then delete it — confirms the credential can actually do both, not just list.
+  3. **Not public**: check the bucket's Public Access Block config / ACL — reject if the bucket is publicly readable or writable; this is a personal finance backup target, not a public one.
+  4. **No anonymous access**: repeat the reachability check with no credentials — must fail. If an unauthenticated request succeeds, the bucket policy is too permissive regardless of what this app's own IAM user can do.
+  - Any step failing shows a specific, actionable error (which check failed and why) instead of a generic "invalid credentials" — the user provisioned this bucket themselves and needs to know what to fix in AWS.
 
 ## Tech stack
 | Concern | Choice | Reasoning |

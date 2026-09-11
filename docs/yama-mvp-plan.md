@@ -11,7 +11,7 @@ Version control, Expo/TS app shell, and the skeleton (nav, DB, secure store) eve
 - [x] T0.4 `eas.json` + `app.json` bundle identifier — enables EAS cloud builds
 - [x] T0.5 Navigation shell: React Navigation tab skeleton, stub screens — `src/navigation/`
 - [x] T0.6 SQLite init + versioned migration runner + initial schema — `src/db/`
-- [x] T0.7 Secure-store wrapper for API key/S3 credentials — `src/secure/secureStore.ts`
+- [x] T0.7 Secure-store wrapper for API key/S3 credentials — `src/secure/secureStore.ts`; keys never touch the SQLite DB, written `WHEN_UNLOCKED_THIS_DEVICE_ONLY` (excluded from iCloud/iTunes backup), Android `allowBackup: false` (no OS backup path at all) — see "Secrets vs. backups" in the design doc
 - [x] T0.8 Jest test setup + one sample passing test
 
 ## Phase 1: Domain Schema + Accounts/Categories CRUD
@@ -85,7 +85,7 @@ Additive to a working local ledger — comes after Phase 1's schema is stable.
 
 - [ ] T8.1 Backup file format + version tagging — `src/backup/backupFormat.ts`
 - [ ] T8.2 iCloud export/import (config plugin + entitlement spike) — `src/backup/icloudBackup.ts`
-- [ ] T8.3 S3 backup via aws4fetch + credentials settings screen — `src/backup/s3Backup.ts`
+- [ ] T8.3 S3 backup via aws4fetch + credentials settings screen — `src/backup/s3Backup.ts`. On save, validate before accepting the credential (fail closed, specific error per failing check): reachable (`HEAD` the bucket), read/write (write+read+delete a marker object), not public (Public Access Block/ACL check), no anonymous access (repeat the reachability check unsigned — must fail). See design doc's "S3 credential validation" list.
 - [ ] T8.4 Backup settings screen: manual backup/restore, destructive-restore confirmation
 
 ## Phase 9: Polish & App Store Submission Prep

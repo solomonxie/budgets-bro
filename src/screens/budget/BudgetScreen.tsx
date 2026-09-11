@@ -16,7 +16,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
 import * as categoriesRepo from '../../db/repositories/categoriesRepo';
 import * as budgetsRepo from '../../db/repositories/budgetsRepo';
-import { nextMonth, previousMonth, formatMonthLabel } from '../../domain/month';
+import { nextMonth, previousMonth, lastNMonths, formatMonthLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -53,22 +53,27 @@ export function BudgetScreen() {
     .flat()
     .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
 
-  // Same basis as totalSpentCents above (per-category activity, positive
-  // outflow only) so the comparison is apples to apples — just two cheap
-  // queries for the prior month instead of a second full useBudget load.
-  // prevMonthAssignedByCategory feeds the assign popup's "last month" hint.
-  const [prevMonthSpentCents, setPrevMonthSpentCents] = useState<number | null>(null);
+  // Feeds the assign popup's "last month" hint.
   const [prevMonthAssignedByCategory, setPrevMonthAssignedByCategory] = useState<Record<number, number>>({});
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      const prevMonth = previousMonth(month);
-      const [activity, assigned] = await Promise.all([
-        budgetsRepo.activityThisMonthByCategory(db, boardId, prevMonth),
-        budgetsRepo.assignedThisMonthByCategory(db, boardId, prevMonth),
-      ]);
-      setPrevMonthSpentCents(Object.values(activity).reduce((sum, v) => sum + Math.max(0, -v), 0));
-      setPrevMonthAssignedByCategory(assigned);
+      setPrevMonthAssignedByCategory(await budgetsRepo.assignedThisMonthByCategory(db, boardId, previousMonth(month)));
+    })();
+  }, [month, boardId, dataVersion]);
+
+  // Trailing 12 months ending the month before this one, for the top
+  // card's compare — an average is more stable than any single prior
+  // month (which might've had an unusual one-off expense), and reads as
+  // "your typical month" rather than a specific point of comparison.
+  const [avgMonthlySpentCents, setAvgMonthlySpentCents] = useState<number | null>(null);
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      const months = lastNMonths(previousMonth(month), 12);
+      const totals = await budgetsRepo.totalActivityByMonth(db, boardId, months);
+      const spentByMonth = months.map((m) => Math.max(0, -(totals[m] ?? 0)));
+      setAvgMonthlySpentCents(Math.round(spentByMonth.reduce((sum, v) => sum + v, 0) / spentByMonth.length));
     })();
   }, [month, boardId, dataVersion]);
 
@@ -174,12 +179,12 @@ export function BudgetScreen() {
             Unassigned: {formatMoney(unassignedCents)}
           </Text>
         </View>
-        {prevMonthSpentCents != null ? (
+        {avgMonthlySpentCents != null ? (
           <View style={styles.compareBlock}>
-            <Text style={styles.compareLabel}>Last Month</Text>
-            <Text style={styles.compareValue}>{formatMoney(prevMonthSpentCents)}</Text>
-            {prevMonthSpentCents > 0 ? (
-              <Text style={styles.compareDelta}>{Math.round((totalSpentCents / prevMonthSpentCents) * 100)}% reached</Text>
+            <Text style={styles.compareLabel}>12-Mo Avg</Text>
+            <Text style={styles.compareValue}>{formatMoney(avgMonthlySpentCents)}</Text>
+            {avgMonthlySpentCents > 0 ? (
+              <Text style={styles.compareDelta}>{Math.round((totalSpentCents / avgMonthlySpentCents) * 100)}% reached</Text>
             ) : null}
           </View>
         ) : null}
@@ -302,9 +307,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   compareBlock: { alignItems: 'flex-end' },
-  compareLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
-  compareValue: { fontSize: 16, fontWeight: '600', color: colors.textMuted, marginTop: 4 },
-  compareDelta: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginTop: 2 },
+  // Sized to match summaryLabel/summaryValue/unassignedHint line for line,
+  // so the two halves' three rows land at the same height instead of the
+  // right half reading visually shorter.
+  compareLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  compareValue: { fontSize: 26, fontWeight: '700', color: colors.textMuted, marginTop: 4 },
+  compareDelta: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginTop: 4 },
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4, color: colors.text },
   unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },

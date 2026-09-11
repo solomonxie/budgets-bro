@@ -5,6 +5,7 @@ import {
   CUMULATIVE_ASSIGNED,
   CUMULATIVE_ACTIVITY,
   ACTIVITY_THIS_MONTH,
+  TOTAL_ACTIVITY_BY_MONTH,
   TOTAL_ASSIGNED_THROUGH_MONTH,
   TOTAL_ACTIVITY_THROUGH_MONTH,
   CASH_ACCOUNTS_BALANCE_THROUGH_MONTH,
@@ -60,6 +61,19 @@ export async function activityThisMonthByCategory(db: SQLiteDatabase, boardId: n
   const rows = await db.getAllAsync<{ category_id: number; total: number }>(ACTIVITY_THIS_MONTH, start, endExclusive, boardId);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
+  return map;
+}
+
+// One row per calendar month (ungrouped by category) across `months` —
+// ascending, contiguous, e.g. from domain/month.lastNMonths — for a
+// trailing-months average/median comparison.
+export async function totalActivityByMonth(db: SQLiteDatabase, boardId: number, months: string[]): Promise<Record<string, number>> {
+  if (months.length === 0) return {};
+  const start = `${months[0]}-01`;
+  const endExclusive = `${nextMonth(months[months.length - 1])}-01`;
+  const rows = await db.getAllAsync<{ month: string; total: number }>(TOTAL_ACTIVITY_BY_MONTH, start, endExclusive, boardId);
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.month] = r.total;
   return map;
 }
 

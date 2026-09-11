@@ -14,6 +14,14 @@ export const ACTIVITY_THIS_MONTH = `
   WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND board_id = ? GROUP BY category_id
 `;
 
+// Ungrouped version of ACTIVITY_THIS_MONTH across a month range — one row
+// per calendar month instead of per category, for a trailing-months
+// average/median (see budgetsRepo.totalActivityByMonth).
+export const TOTAL_ACTIVITY_BY_MONTH = `
+  SELECT substr(date, 1, 7) as month, SUM(amount_cents) as total FROM transactions
+  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND board_id = ? GROUP BY month
+`;
+
 export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ?';
 
 // Ungrouped version of CUMULATIVE_ACTIVITY: total categorized activity

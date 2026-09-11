@@ -115,6 +115,15 @@ export function InsightsScreen() {
     });
   })();
 
+  // Same "trailing 12 months, excluding the month being looked at" rule as
+  // Budget's top-card compare — averaged over this chart's own monthTotals
+  // (the visible top-N stack), not a separate full-ledger total, so the
+  // benchmark line is on the same scale as what's actually plotted.
+  const priorMonthCount = Math.max(0, monthTotals.length - 1);
+  const benchmarkWindow = monthTotals.slice(Math.max(0, priorMonthCount - 12), priorMonthCount);
+  const benchmarkCents =
+    benchmarkWindow.length > 0 ? Math.round(benchmarkWindow.reduce((sum, v) => sum + v, 0) / benchmarkWindow.length) : null;
+
   const fittedWidth = Math.max(200, windowWidth - spacing.md * 2 - spacing.md * 2 - Y_AXIS_WIDTH);
   const chartWidth = Math.max(fittedWidth, trendMonths.length * MONTH_WIDTH);
   const chartHeight = 130;
@@ -167,7 +176,9 @@ export function InsightsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>Category Trends</Text>
-        <Text style={styles.sectionHint}>All time — drag to scroll, tap an icon to hide/show that category.</Text>
+        <Text style={styles.sectionHint}>
+          All time — drag to scroll, tap an icon to hide/show that category. Dashed line is your 12-month average.
+        </Text>
         {trend.series.length === 0 ? (
           <Text style={styles.empty}>Not enough history yet.</Text>
         ) : (
@@ -179,6 +190,11 @@ export function InsightsScreen() {
                     {formatAxisValue(v)}
                   </Text>
                 ))}
+                {benchmarkCents != null ? (
+                  <Text style={[styles.yAxisLabel, styles.yAxisBenchmarkLabel, { top: pointY(benchmarkCents) - 7 }]}>
+                    avg
+                  </Text>
+                ) : null}
               </View>
               <ScrollView
                 ref={trendScrollRef}
@@ -213,6 +229,17 @@ export function InsightsScreen() {
                         strokeLinejoin="round"
                       />
                     ))}
+                    {benchmarkCents != null ? (
+                      <Line
+                        x1={0}
+                        y1={pointY(benchmarkCents)}
+                        x2={chartWidth}
+                        y2={pointY(benchmarkCents)}
+                        stroke={colors.accent}
+                        strokeWidth={1.5}
+                        strokeDasharray="6,4"
+                      />
+                    ) : null}
                   </Svg>
                   <View style={[styles.trendXLabels, { width: chartWidth }]}>
                     {trendMonths.map((m, i) => {
@@ -299,6 +326,7 @@ const styles = StyleSheet.create({
   trendChartRow: { flexDirection: 'row' },
   yAxis: { position: 'relative' },
   yAxisLabel: { position: 'absolute', right: 6, fontSize: 10, color: colors.textMuted },
+  yAxisBenchmarkLabel: { color: colors.accent, fontWeight: '700' },
   trendXLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   trendLabel: { fontSize: 10, color: colors.textMuted },
   trendLabelYear: { fontWeight: '700', color: colors.text },

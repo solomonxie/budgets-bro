@@ -213,6 +213,7 @@ export function BudgetScreen() {
                             onBlur={() => commitAssignedDraft(item.category.id)}
                             onSubmitEditing={() => commitAssignedDraft(item.category.id)}
                             selectTextOnFocus
+                            autoFocus
                           />
                         </View>
                       ) : null}

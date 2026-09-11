@@ -4,7 +4,6 @@ import { Pressable, Text } from 'react-native';
 import { BudgetScreen } from '../screens/budget/BudgetScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { YnabImportScreen } from '../screens/insights/YnabImportScreen';
-import { SettingsHeaderButton } from '../components/ui/SettingsHeaderButton';
 import { RowMenuButton } from '../components/ui/RowMenuButton';
 import { colors } from '../theme/colors';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,7 +31,7 @@ export function BudgetStackNavigator() {
       <Stack.Screen
         name="BudgetHome"
         component={BudgetScreen}
-        options={{ title: 'Budget', headerLeft: () => <SettingsHeaderButton />, headerRight: () => <BudgetHeaderRight /> }}
+        options={{ title: 'Budget', headerRight: () => <BudgetHeaderRight /> }}
       />
       <Stack.Screen
         name="Transactions"

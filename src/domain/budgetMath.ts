@@ -35,7 +35,7 @@ export function categoryCaption(
     case 'unbudgeted':
       return 'Not budgeted';
     case 'fully-spent':
-      return 'Fully spent';
+      return `Fully spent ${formatMoney(spentThisMonthCents)}`;
     default:
       return spentThisMonthCents > 0
         ? `Spent ${formatMoney(spentThisMonthCents)} of ${formatMoney(assignedThisMonthCents)}`

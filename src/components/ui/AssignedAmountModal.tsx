@@ -78,10 +78,10 @@ export function AssignedAmountModal({
 }
 
 const styles = StyleSheet.create({
-  // The amount field autofocuses (keyboard opens immediately) — sits in
-  // the upper third instead of vertically centered, so there's a real gap
+  // The amount field autofocuses (keyboard opens immediately) — sits a
+  // bit above center instead of dead-centered, so there's a real gap
   // above the keyboard rather than the card landing right on top of it.
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '18%', paddingHorizontal: spacing.lg },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '30%', paddingHorizontal: spacing.lg },
   card: {
     width: '100%',
     maxWidth: 340,

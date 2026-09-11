@@ -1,8 +1,15 @@
 // Row shapes as returned by expo-sqlite (snake_case columns), before mapping
 // into the camelCase domain types in src/domain/types.ts.
 
+export interface BoardRow {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
 export interface AccountRow {
   id: number;
+  board_id: number;
   name: string;
   type: string;
   on_budget: number;
@@ -18,6 +25,7 @@ export interface AccountRow {
 
 export interface CategoryGroupRow {
   id: number;
+  board_id: number;
   name: string;
   sort_order: number;
   archived_at: string | null;
@@ -25,6 +33,7 @@ export interface CategoryGroupRow {
 
 export interface CategoryRow {
   id: number;
+  board_id: number;
   group_id: number;
   name: string;
   icon: string | null;
@@ -35,6 +44,7 @@ export interface CategoryRow {
 
 export interface BudgetEntryRow {
   id: number;
+  board_id: number;
   category_id: number;
   month: string;
   assigned_cents: number;
@@ -42,11 +52,13 @@ export interface BudgetEntryRow {
 
 export interface PayeeRow {
   id: number;
+  board_id: number;
   name: string;
 }
 
 export interface TransactionRow {
   id: number;
+  board_id: number;
   account_id: number;
   category_id: number | null;
   payee_id: number | null;

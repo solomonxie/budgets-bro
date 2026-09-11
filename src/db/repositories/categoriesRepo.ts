@@ -25,13 +25,13 @@ function mapCategoryRow(row: CategoryRow): Category {
   };
 }
 
-export async function listCategoryGroups(db: SQLiteDatabase): Promise<CategoryGroup[]> {
-  const rows = await db.getAllAsync<CategoryGroupRow>(LIST_CATEGORY_GROUPS);
+export async function listCategoryGroups(db: SQLiteDatabase, boardId: number): Promise<CategoryGroup[]> {
+  const rows = await db.getAllAsync<CategoryGroupRow>(LIST_CATEGORY_GROUPS, boardId);
   return rows.map(mapGroupRow);
 }
 
-export async function listCategories(db: SQLiteDatabase): Promise<Category[]> {
-  const rows = await db.getAllAsync<CategoryRow>(LIST_CATEGORIES);
+export async function listCategories(db: SQLiteDatabase, boardId: number): Promise<Category[]> {
+  const rows = await db.getAllAsync<CategoryRow>(LIST_CATEGORIES, boardId);
   return rows.map(mapCategoryRow);
 }
 
@@ -45,29 +45,38 @@ export async function findCategoryByLinkedAccount(db: SQLiteDatabase, accountId:
   return row ? mapCategoryRow(row) : null;
 }
 
-export async function findOrCreateCategoryGroup(db: SQLiteDatabase, name: string): Promise<number> {
-  const existing = await db.getFirstAsync<CategoryGroupRow>('SELECT * FROM category_groups WHERE name = ?', name);
+export async function findOrCreateCategoryGroup(db: SQLiteDatabase, boardId: number, name: string): Promise<number> {
+  const existing = await db.getFirstAsync<CategoryGroupRow>(
+    'SELECT * FROM category_groups WHERE name = ? AND board_id = ?',
+    name,
+    boardId,
+  );
   if (existing) return existing.id;
-  return createCategoryGroup(db, name);
+  return createCategoryGroup(db, boardId, name);
 }
 
-export async function findOrCreateCategory(db: SQLiteDatabase, groupId: number, name: string): Promise<number> {
-  const existing = await db.getFirstAsync<CategoryRow>('SELECT * FROM categories WHERE group_id = ? AND name = ?', groupId, name);
+export async function findOrCreateCategory(db: SQLiteDatabase, boardId: number, groupId: number, name: string): Promise<number> {
+  const existing = await db.getFirstAsync<CategoryRow>(
+    'SELECT * FROM categories WHERE group_id = ? AND name = ? AND board_id = ?',
+    groupId,
+    name,
+    boardId,
+  );
   if (existing) return existing.id;
-  return createCategory(db, { groupId, name, icon: null });
+  return createCategory(db, boardId, { groupId, name, icon: null });
 }
 
-async function nextSortOrder(db: SQLiteDatabase, table: 'categories' | 'category_groups', groupId?: number): Promise<number> {
+async function nextSortOrder(db: SQLiteDatabase, boardId: number, table: 'categories' | 'category_groups', groupId?: number): Promise<number> {
   const row =
     table === 'categories'
       ? await db.getFirstAsync<{ max: number | null }>('SELECT MAX(sort_order) as max FROM categories WHERE group_id = ?', groupId!)
-      : await db.getFirstAsync<{ max: number | null }>('SELECT MAX(sort_order) as max FROM category_groups');
+      : await db.getFirstAsync<{ max: number | null }>('SELECT MAX(sort_order) as max FROM category_groups WHERE board_id = ?', boardId);
   return (row?.max ?? -1) + 1;
 }
 
-export async function createCategoryGroup(db: SQLiteDatabase, name: string): Promise<number> {
-  const sortOrder = await nextSortOrder(db, 'category_groups');
-  const result = await db.runAsync('INSERT INTO category_groups (name, sort_order) VALUES (?, ?)', name, sortOrder);
+export async function createCategoryGroup(db: SQLiteDatabase, boardId: number, name: string): Promise<number> {
+  const sortOrder = await nextSortOrder(db, boardId, 'category_groups');
+  const result = await db.runAsync('INSERT INTO category_groups (board_id, name, sort_order) VALUES (?, ?, ?)', boardId, name, sortOrder);
   return result.lastInsertRowId;
 }
 
@@ -79,11 +88,12 @@ export interface CategoryInput {
 
 export async function createCategory(
   db: SQLiteDatabase,
+  boardId: number,
   input: CategoryInput,
   linkedAccountId: number | null = null,
 ): Promise<number> {
-  const sortOrder = await nextSortOrder(db, 'categories', input.groupId);
-  const result = await db.runAsync(INSERT_CATEGORY, input.groupId, input.name, input.icon, linkedAccountId, sortOrder);
+  const sortOrder = await nextSortOrder(db, boardId, 'categories', input.groupId);
+  const result = await db.runAsync(INSERT_CATEGORY, boardId, input.groupId, input.name, input.icon, linkedAccountId, sortOrder);
   return result.lastInsertRowId;
 }
 
@@ -139,15 +149,15 @@ async function reorder(
   });
 }
 
-export async function moveCategory(db: SQLiteDatabase, categoryId: number, direction: MoveDirection): Promise<void> {
+export async function moveCategory(db: SQLiteDatabase, boardId: number, categoryId: number, direction: MoveDirection): Promise<void> {
   const category = await getCategory(db, categoryId);
   if (!category) return;
-  const siblingIds = (await listCategories(db)).filter((c) => c.groupId === category.groupId).map((c) => c.id);
+  const siblingIds = (await listCategories(db, boardId)).filter((c) => c.groupId === category.groupId).map((c) => c.id);
   await reorder(db, 'categories', siblingIds, categoryId, direction);
 }
 
-export async function moveCategoryGroup(db: SQLiteDatabase, groupId: number, direction: MoveDirection): Promise<void> {
-  const groupIds = (await listCategoryGroups(db)).map((g) => g.id);
+export async function moveCategoryGroup(db: SQLiteDatabase, boardId: number, groupId: number, direction: MoveDirection): Promise<void> {
+  const groupIds = (await listCategoryGroups(db, boardId)).map((g) => g.id);
   await reorder(db, 'category_groups', groupIds, groupId, direction);
 }
 
@@ -155,15 +165,15 @@ const LOAN_PAYMENTS_GROUP = 'Loan Payments';
 
 // Auto-creates/renames/archives the "Payment: <account>" category a
 // loan/mortgage account owns 1:1 — see accountKind.isLoanLikeType.
-export async function ensurePaymentCategory(db: SQLiteDatabase, accountId: number, accountName: string): Promise<void> {
+export async function ensurePaymentCategory(db: SQLiteDatabase, boardId: number, accountId: number, accountName: string): Promise<void> {
   const existing = await findCategoryByLinkedAccount(db, accountId);
   const name = `Payment: ${accountName}`;
   if (existing) {
     if (existing.name !== name) await renameCategory(db, existing.id, name);
     return;
   }
-  const groupId = await findOrCreateCategoryGroup(db, LOAN_PAYMENTS_GROUP);
-  await createCategory(db, { groupId, name, icon: '🏦' }, accountId);
+  const groupId = await findOrCreateCategoryGroup(db, boardId, LOAN_PAYMENTS_GROUP);
+  await createCategory(db, boardId, { groupId, name, icon: '🏦' }, accountId);
 }
 
 export async function archivePaymentCategory(db: SQLiteDatabase, accountId: number): Promise<void> {

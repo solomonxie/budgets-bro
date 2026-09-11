@@ -13,11 +13,12 @@ export function ClosedAccountsScreen() {
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const dataVersion = useAppStore((s) => s.dataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
-    setAccounts(await accountsRepo.listClosedAccounts(db));
-  }, []);
+    setAccounts(await accountsRepo.listClosedAccounts(db, boardId));
+  }, [boardId]);
 
   useEffect(() => {
     refresh();

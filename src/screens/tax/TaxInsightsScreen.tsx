@@ -18,6 +18,7 @@ function toCents(text: string): number {
 // inputs — not tax advice, and no filing-status/bracket logic yet.
 export function TaxInsightsScreen() {
   const month = useAppStore((s) => s.currentMonth);
+  const boardId = useAppStore((s) => s.currentBoardId);
   const year = month.slice(0, 4);
   const [ledgerTotals, setLedgerTotals] = useState({ incomeCents: 0, spendingCents: 0 });
   const [additionalIncome, setAdditionalIncome] = useState('');
@@ -26,10 +27,10 @@ export function TaxInsightsScreen() {
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      const totals = await reportsRepo.incomeAndSpendingInRange(db, `${year}-01-01`, `${Number(year) + 1}-01-01`);
+      const totals = await reportsRepo.incomeAndSpendingInRange(db, boardId, `${year}-01-01`, `${Number(year) + 1}-01-01`);
       setLedgerTotals(totals);
     })();
-  }, [year]);
+  }, [year, boardId]);
 
   const estimatedTaxableIncomeCents = ledgerTotals.incomeCents + toCents(additionalIncome) - toCents(deductions);
 

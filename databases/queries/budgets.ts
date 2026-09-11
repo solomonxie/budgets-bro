@@ -1,26 +1,26 @@
-export const ASSIGNED_THIS_MONTH = 'SELECT category_id, assigned_cents FROM budget_entries WHERE month = ?';
+export const ASSIGNED_THIS_MONTH = 'SELECT category_id, assigned_cents FROM budget_entries WHERE month = ? AND board_id = ?';
 
 export const CUMULATIVE_ASSIGNED = `
-  SELECT category_id, SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? GROUP BY category_id
+  SELECT category_id, SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ? GROUP BY category_id
 `;
 
 export const CUMULATIVE_ACTIVITY = `
   SELECT category_id, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date < ? GROUP BY category_id
+  WHERE category_id IS NOT NULL AND date < ? AND board_id = ? GROUP BY category_id
 `;
 
 export const ACTIVITY_THIS_MONTH = `
   SELECT category_id, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date >= ? AND date < ? GROUP BY category_id
+  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND board_id = ? GROUP BY category_id
 `;
 
-export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ?';
+export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ?';
 
 // Ungrouped version of CUMULATIVE_ACTIVITY: total categorized activity
 // across every category, used with TOTAL_ASSIGNED_THROUGH_MONTH to get one
 // combined "Available" balance for all categories at once.
 export const TOTAL_ACTIVITY_THROUGH_MONTH = `
-  SELECT SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ?
+  SELECT SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ? AND board_id = ?
 `;
 
 // Unassigned Cash = (money sitting in cash accounts) − (money already
@@ -35,15 +35,15 @@ const CASH_ACCOUNT_TYPES = `('checking', 'cash', 'savings', 'income')`;
 
 export const CASH_ACCOUNTS_BALANCE_THROUGH_MONTH = `
   SELECT
-    (SELECT COALESCE(SUM(opening_balance_cents), 0) FROM accounts WHERE type IN ${CASH_ACCOUNT_TYPES} AND archived_at IS NULL)
+    (SELECT COALESCE(SUM(opening_balance_cents), 0) FROM accounts WHERE type IN ${CASH_ACCOUNT_TYPES} AND archived_at IS NULL AND board_id = ?)
     +
     (SELECT COALESCE(SUM(t.amount_cents), 0) FROM transactions t
      JOIN accounts a ON a.id = t.account_id
-     WHERE a.type IN ${CASH_ACCOUNT_TYPES} AND a.archived_at IS NULL AND t.date < ?)
+     WHERE a.type IN ${CASH_ACCOUNT_TYPES} AND a.archived_at IS NULL AND a.board_id = ? AND t.date < ?)
     AS total
 `;
 
 export const UPSERT_ASSIGNED_CENTS = `
-  INSERT INTO budget_entries (category_id, month, assigned_cents) VALUES (?, ?, ?)
+  INSERT INTO budget_entries (category_id, month, assigned_cents, board_id) VALUES (?, ?, ?, ?)
   ON CONFLICT(category_id, month) DO UPDATE SET assigned_cents = excluded.assigned_cents
 `;

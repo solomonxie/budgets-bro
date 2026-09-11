@@ -22,9 +22,10 @@ function mapRow(row: AccountRow): Account {
   };
 }
 
-export async function listAccounts(db: SQLiteDatabase): Promise<Account[]> {
+export async function listAccounts(db: SQLiteDatabase, boardId: number): Promise<Account[]> {
   const rows = await db.getAllAsync<AccountRow>(
-    'SELECT * FROM accounts WHERE archived_at IS NULL ORDER BY type, name',
+    'SELECT * FROM accounts WHERE archived_at IS NULL AND board_id = ? ORDER BY type, name',
+    boardId,
   );
   return rows.map(mapRow);
 }
@@ -34,8 +35,8 @@ export interface AccountWithBalance {
   balanceCents: number;
 }
 
-export async function listAccountsWithBalances(db: SQLiteDatabase): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES);
+export async function listAccountsWithBalances(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
+  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES, boardId);
   return rows.map((row) => ({
     account: mapRow(row),
     balanceCents: row.opening_balance_cents + row.activity_cents,
@@ -47,8 +48,12 @@ export async function getAccount(db: SQLiteDatabase, id: number): Promise<Accoun
   return row ? mapRow(row) : null;
 }
 
-export async function findAccountByName(db: SQLiteDatabase, name: string): Promise<Account | null> {
-  const row = await db.getFirstAsync<AccountRow>('SELECT * FROM accounts WHERE name = ? AND archived_at IS NULL', name);
+export async function findAccountByName(db: SQLiteDatabase, boardId: number, name: string): Promise<Account | null> {
+  const row = await db.getFirstAsync<AccountRow>(
+    'SELECT * FROM accounts WHERE name = ? AND board_id = ? AND archived_at IS NULL',
+    name,
+    boardId,
+  );
   return row ? mapRow(row) : null;
 }
 
@@ -63,11 +68,12 @@ export interface AccountInput {
   originationDate?: string | null;
 }
 
-export async function createAccount(db: SQLiteDatabase, input: AccountInput): Promise<number> {
+export async function createAccount(db: SQLiteDatabase, boardId: number, input: AccountInput): Promise<number> {
   const onBudget = input.type !== 'tracking' ? 1 : 0;
   const result = await db.runAsync(
-    `INSERT INTO accounts (name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    boardId,
     input.name,
     input.type,
     onBudget,
@@ -78,11 +84,11 @@ export async function createAccount(db: SQLiteDatabase, input: AccountInput): Pr
     input.originationDate ?? null,
   );
   const id = result.lastInsertRowId;
-  if (isLoanLikeType(input.type)) await categoriesRepo.ensurePaymentCategory(db, id, input.name);
+  if (isLoanLikeType(input.type)) await categoriesRepo.ensurePaymentCategory(db, boardId, id, input.name);
   return id;
 }
 
-export async function updateAccount(db: SQLiteDatabase, id: number, input: AccountInput): Promise<void> {
+export async function updateAccount(db: SQLiteDatabase, boardId: number, id: number, input: AccountInput): Promise<void> {
   const onBudget = input.type !== 'tracking' ? 1 : 0;
   await db.runAsync(
     `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
@@ -99,7 +105,7 @@ export async function updateAccount(db: SQLiteDatabase, id: number, input: Accou
     id,
   );
   if (isLoanLikeType(input.type)) {
-    await categoriesRepo.ensurePaymentCategory(db, id, input.name);
+    await categoriesRepo.ensurePaymentCategory(db, boardId, id, input.name);
   } else {
     await categoriesRepo.archivePaymentCategory(db, id);
   }
@@ -110,8 +116,8 @@ export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<vo
   await categoriesRepo.archivePaymentCategory(db, id);
 }
 
-export async function listClosedAccounts(db: SQLiteDatabase): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_CLOSED_ACCOUNTS_WITH_BALANCES);
+export async function listClosedAccounts(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
+  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_CLOSED_ACCOUNTS_WITH_BALANCES, boardId);
   return rows.map((row) => ({
     account: mapRow(row),
     balanceCents: row.opening_balance_cents + row.activity_cents,

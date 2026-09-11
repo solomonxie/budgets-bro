@@ -15,6 +15,7 @@ export function AddTransactionModal() {
   const { open: isOpen, editingTransactionId, presetAccountId } = useAppStore((s) => s.transactionModal);
   const close = useAppStore((s) => s.closeTransactionModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
   const { groups, categories } = useCategories();
   const { payees } = usePayees();
@@ -107,9 +108,9 @@ export function AddTransactionModal() {
       isInterest: direction === 'in' && isInterest,
     };
     if (editingTransactionId != null) {
-      await transactionsRepo.updateTransaction(db, { ...input, id: editingTransactionId });
+      await transactionsRepo.updateTransaction(db, boardId, { ...input, id: editingTransactionId });
     } else {
-      await transactionsRepo.createTransaction(db, input);
+      await transactionsRepo.createTransaction(db, boardId, input);
     }
     bumpDataVersion();
     close();

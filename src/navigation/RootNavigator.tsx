@@ -8,6 +8,7 @@ import { AddTransactionModal } from '../screens/transactions/AddTransactionModal
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import type { TabIconName } from '../components/ui/TabBarIcon';
+import { useBootstrapActiveBoard } from '../hooks/useBoards';
 import { colors } from '../theme/colors';
 import type { RootTabParamList } from './types';
 
@@ -32,6 +33,7 @@ const TAB_ICONS: Record<string, TabIconName> = {
 };
 
 export function RootNavigator() {
+  useBootstrapActiveBoard();
   return (
     <NavigationContainer theme={navigationTheme}>
       <Tab.Navigator

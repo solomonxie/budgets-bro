@@ -31,6 +31,7 @@ export function AccountDetailScreen() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
+  const boardId = useAppStore((s) => s.currentBoardId);
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
@@ -66,7 +67,7 @@ export function AccountDetailScreen() {
     }
     const deltaCents = computeBalanceCorrectionCents(balanceCents, Math.round(parsed * 100));
     const db = await getDb();
-    await transactionsRepo.correctBalance(db, accountId, deltaCents);
+    await transactionsRepo.correctBalance(db, boardId, accountId, deltaCents);
     bumpDataVersion();
     setCorrecting(false);
     setActualBalance('');

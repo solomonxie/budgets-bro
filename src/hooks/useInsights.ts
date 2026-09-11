@@ -12,18 +12,19 @@ export function useInsights(month: string) {
   const [trendPoints, setTrendPoints] = useState<CategoryTrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const dataVersion = useAppStore((s) => s.dataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
     const months = lastNMonths(month, TREND_MONTHS);
     const [spendingRows, trendRows] = await Promise.all([
-      reportsRepo.spendingByCategory(db, month),
-      reportsRepo.spendingByCategoryOverMonths(db, months),
+      reportsRepo.spendingByCategory(db, boardId, month),
+      reportsRepo.spendingByCategoryOverMonths(db, boardId, months),
     ]);
     setSpending(spendingRows);
     setTrendPoints(trendRows);
     setLoading(false);
-  }, [month]);
+  }, [month, boardId]);
 
   useEffect(() => {
     refresh();

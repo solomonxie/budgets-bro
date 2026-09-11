@@ -36,6 +36,7 @@ export function BudgetScreen() {
   const month = useAppStore((s) => s.currentMonth);
   const setMonth = useAppStore((s) => s.setCurrentMonth);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
   const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
@@ -57,8 +58,8 @@ export function BudgetScreen() {
 
   const submitPrompt = async (value: string) => {
     const db = await getDb();
-    if (prompt?.type === 'newGroup') await categoriesRepo.createCategoryGroup(db, value);
-    else if (prompt?.type === 'newCategory') await categoriesRepo.createCategory(db, { groupId: prompt.groupId, name: value, icon: null });
+    if (prompt?.type === 'newGroup') await categoriesRepo.createCategoryGroup(db, boardId, value);
+    else if (prompt?.type === 'newCategory') await categoriesRepo.createCategory(db, boardId, { groupId: prompt.groupId, name: value, icon: null });
     else if (prompt?.type === 'renameGroup') await categoriesRepo.renameCategoryGroup(db, prompt.groupId, value);
     else if (prompt?.type === 'renameCategory') await categoriesRepo.renameCategory(db, prompt.categoryId, value);
     bumpDataVersion();
@@ -97,13 +98,13 @@ export function BudgetScreen() {
 
   const moveGroup = async (groupId: number, direction: 'up' | 'down') => {
     const db = await getDb();
-    await categoriesRepo.moveCategoryGroup(db, groupId, direction);
+    await categoriesRepo.moveCategoryGroup(db, boardId, groupId, direction);
     bumpDataVersion();
   };
 
   const moveCategory = async (categoryId: number, direction: 'up' | 'down') => {
     const db = await getDb();
-    await categoriesRepo.moveCategory(db, categoryId, direction);
+    await categoriesRepo.moveCategory(db, boardId, categoryId, direction);
     bumpDataVersion();
   };
 

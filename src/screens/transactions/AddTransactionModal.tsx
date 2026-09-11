@@ -8,6 +8,7 @@ import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
+import { DateField } from '../../components/ui/DateField';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
@@ -31,7 +32,6 @@ export function AddTransactionModal() {
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
   const [date, setDate] = useState(currentDateISO());
-  const [cleared, setCleared] = useState(false);
   const [isInterest, setIsInterest] = useState(false);
 
   useEffect(() => {
@@ -48,7 +48,6 @@ export function AddTransactionModal() {
         setAccountId(t.accountId);
         setMemo(t.memo ?? '');
         setDate(t.date);
-        setCleared(t.cleared);
         setIsInterest(t.isInterest);
       })();
     } else if (accounts.length > 0) {
@@ -67,7 +66,6 @@ export function AddTransactionModal() {
     setCategoryId(null);
     setMemo('');
     setDate(currentDateISO());
-    setCleared(false);
     setIsInterest(false);
   };
 
@@ -98,7 +96,6 @@ export function AddTransactionModal() {
       memo: memo || null,
       amountCents,
       date,
-      cleared,
       isInterest: direction === 'in' && isInterest,
     };
     if (editingTransactionId != null) {
@@ -241,23 +238,13 @@ export function AddTransactionModal() {
           onChangeText={setMemo}
           placeholderTextColor={colors.textMuted}
         />
-        <TextInput
-          style={styles.textInput}
-          placeholder="YYYY-MM-DD"
-          value={date}
-          onChangeText={setDate}
-          placeholderTextColor={colors.textMuted}
-        />
+        <DateField label="Date" value={date} onChange={setDate} />
         {direction === 'in' ? (
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Interest income</Text>
             <Switch value={isInterest} onValueChange={setIsInterest} trackColor={{ true: colors.accent, false: colors.border }} />
           </View>
         ) : null}
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Cleared</Text>
-          <Switch value={cleared} onValueChange={setCleared} trackColor={{ true: colors.accent, false: colors.border }} />
-        </View>
         {isEditing ? (
           <Pressable style={styles.deleteButton} onPress={remove}>
             <Text style={styles.deleteButtonText}>Delete Transaction</Text>

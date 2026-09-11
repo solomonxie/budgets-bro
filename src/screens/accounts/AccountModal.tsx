@@ -29,6 +29,7 @@ export function AccountModal() {
   const { open: isOpen, editingAccountId } = useAppStore((s) => s.accountModal);
   const close = useAppStore((s) => s.closeAccountModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
   const isEditing = editingAccountId != null;
 
   const [name, setName] = useState('');
@@ -92,9 +93,9 @@ export function AccountModal() {
       originationDate: isLoanLike ? originationDate : null,
     };
     if (editingAccountId != null) {
-      await accountsRepo.updateAccount(db, editingAccountId, input);
+      await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
     } else {
-      await accountsRepo.createAccount(db, input);
+      await accountsRepo.createAccount(db, boardId, input);
     }
     bumpDataVersion();
     close();

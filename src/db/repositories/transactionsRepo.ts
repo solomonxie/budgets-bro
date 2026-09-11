@@ -29,17 +29,22 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
 
 export async function listTransactionsForAccount(
   db: SQLiteDatabase,
+  boardId: number,
   accountId: number,
 ): Promise<TransactionWithLabels[]> {
   const rows = await db.getAllAsync<TransactionJoinRow>(
-    `${SELECT_WITH_LABELS} WHERE t.account_id = ? ORDER BY t.date DESC, t.id DESC`,
+    `${SELECT_WITH_LABELS} WHERE t.account_id = ? AND t.board_id = ? ORDER BY t.date DESC, t.id DESC`,
     accountId,
+    boardId,
   );
   return rows.map(mapRow);
 }
 
-export async function listTransactions(db: SQLiteDatabase): Promise<TransactionWithLabels[]> {
-  const rows = await db.getAllAsync<TransactionJoinRow>(`${SELECT_WITH_LABELS} ORDER BY t.date DESC, t.id DESC`);
+export async function listTransactions(db: SQLiteDatabase, boardId: number): Promise<TransactionWithLabels[]> {
+  const rows = await db.getAllAsync<TransactionJoinRow>(
+    `${SELECT_WITH_LABELS} WHERE t.board_id = ? ORDER BY t.date DESC, t.id DESC`,
+    boardId,
+  );
   return rows.map(mapRow);
 }
 
@@ -70,6 +75,7 @@ export interface CreateTransactionInput {
 // the payment stays budgetable while the loan's balance stays accurate.
 async function postLinkedAccountLeg(
   db: SQLiteDatabase,
+  boardId: number,
   input: { categoryId: number | null; accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string; cleared: boolean },
 ): Promise<void> {
   if (input.categoryId == null) return;
@@ -77,6 +83,7 @@ async function postLinkedAccountLeg(
   if (!category?.linkedAccountId || category.linkedAccountId === input.accountId) return;
   await db.runAsync(
     INSERT_TRANSACTION,
+    boardId,
     category.linkedAccountId,
     null,
     input.payeeId,
@@ -90,12 +97,13 @@ async function postLinkedAccountLeg(
   );
 }
 
-export async function createTransaction(db: SQLiteDatabase, input: CreateTransactionInput): Promise<number> {
-  const payeeId = input.payeeName ? await findOrCreatePayee(db, input.payeeName) : null;
+export async function createTransaction(db: SQLiteDatabase, boardId: number, input: CreateTransactionInput): Promise<number> {
+  const payeeId = input.payeeName ? await findOrCreatePayee(db, boardId, input.payeeName) : null;
   let insertedId = 0;
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
       INSERT_TRANSACTION,
+      boardId,
       input.accountId,
       input.categoryId,
       payeeId,
@@ -108,7 +116,7 @@ export async function createTransaction(db: SQLiteDatabase, input: CreateTransac
       null,
     );
     insertedId = result.lastInsertRowId;
-    await postLinkedAccountLeg(db, { ...input, payeeId });
+    await postLinkedAccountLeg(db, boardId, { ...input, payeeId });
   });
   return insertedId;
 }
@@ -120,8 +128,8 @@ export interface UpdateTransactionInput extends CreateTransactionInput {
 // Scope cut: editing a transaction doesn't re-derive/rebalance a linked
 // loan-account leg created at insert time — deleting and re-entering it
 // keeps the loan balance correct if the category changes.
-export async function updateTransaction(db: SQLiteDatabase, input: UpdateTransactionInput): Promise<void> {
-  const payeeId = input.payeeName ? await findOrCreatePayee(db, input.payeeName) : null;
+export async function updateTransaction(db: SQLiteDatabase, boardId: number, input: UpdateTransactionInput): Promise<void> {
+  const payeeId = input.payeeName ? await findOrCreatePayee(db, boardId, input.payeeName) : null;
   await db.runAsync(
     UPDATE_TRANSACTION,
     input.accountId,
@@ -150,10 +158,11 @@ export interface CreateTransferInput {
   memo: string | null;
 }
 
-export async function createTransfer(db: SQLiteDatabase, input: CreateTransferInput): Promise<void> {
+export async function createTransfer(db: SQLiteDatabase, boardId: number, input: CreateTransferInput): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      'INSERT INTO transactions (account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?, ?)',
+      boardId,
       input.fromAccountId,
       -Math.abs(input.amountCents),
       input.date,
@@ -161,7 +170,8 @@ export async function createTransfer(db: SQLiteDatabase, input: CreateTransferIn
       input.toAccountId,
     );
     await db.runAsync(
-      'INSERT INTO transactions (account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?, ?)',
+      boardId,
       input.toAccountId,
       Math.abs(input.amountCents),
       input.date,
@@ -173,11 +183,12 @@ export async function createTransfer(db: SQLiteDatabase, input: CreateTransferIn
 
 // Creates one uncategorized adjustment transaction for `deltaCents` — the
 // "Correct Balance" action, not a separate reconciliation mechanism.
-export async function correctBalance(db: SQLiteDatabase, accountId: number, deltaCents: number): Promise<void> {
+export async function correctBalance(db: SQLiteDatabase, boardId: number, accountId: number, deltaCents: number): Promise<void> {
   if (deltaCents === 0) return;
-  const payeeId = await findOrCreatePayee(db, 'Balance Adjustment');
+  const payeeId = await findOrCreatePayee(db, boardId, 'Balance Adjustment');
   await db.runAsync(
-    'INSERT INTO transactions (account_id, payee_id, amount_cents, date, cleared) VALUES (?, ?, ?, ?, 1)',
+    'INSERT INTO transactions (board_id, account_id, payee_id, amount_cents, date, cleared) VALUES (?, ?, ?, ?, ?, 1)',
+    boardId,
     accountId,
     payeeId,
     deltaCents,
@@ -201,11 +212,14 @@ export interface ImportTransactionInput {
 // Upsert for the YNAB importer, keyed on the UNIQUE `import_id`: re-running
 // the same export refreshes a row's fields instead of leaving it stale when
 // the source data changed (e.g. a corrected amount or re-categorization).
-export async function importTransaction(db: SQLiteDatabase, input: ImportTransactionInput): Promise<'inserted' | 'updated'> {
+// Known scope cut: `import_id` is unique globally, not per-board — importing
+// the exact same YNAB export into two different boards would collide and
+// update one board's row instead of creating a second copy in the other.
+export async function importTransaction(db: SQLiteDatabase, boardId: number, input: ImportTransactionInput): Promise<'inserted' | 'updated'> {
   const existing = await db.getFirstAsync<{ id: number }>('SELECT id FROM transactions WHERE import_id = ?', input.importId);
   await db.runAsync(
-    `INSERT INTO transactions (account_id, category_id, payee_id, memo, amount_cents, date, cleared, is_interest, transfer_account_id, import_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, cleared, is_interest, transfer_account_id, import_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(import_id) DO UPDATE SET
        category_id = excluded.category_id,
        payee_id = excluded.payee_id,
@@ -216,6 +230,7 @@ export async function importTransaction(db: SQLiteDatabase, input: ImportTransac
        is_interest = excluded.is_interest,
        transfer_account_id = excluded.transfer_account_id,
        updated_at = datetime('now')`,
+    boardId,
     input.accountId,
     input.categoryId,
     input.payeeId,

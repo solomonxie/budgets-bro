@@ -8,16 +8,17 @@ export function useTransactions(accountId?: number) {
   const [transactions, setTransactions] = useState<TransactionWithLabels[]>([]);
   const [loading, setLoading] = useState(true);
   const dataVersion = useAppStore((s) => s.dataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
     const list =
       accountId != null
-        ? await transactionsRepo.listTransactionsForAccount(db, accountId)
-        : await transactionsRepo.listTransactions(db);
+        ? await transactionsRepo.listTransactionsForAccount(db, boardId, accountId)
+        : await transactionsRepo.listTransactions(db, boardId);
     setTransactions(list);
     setLoading(false);
-  }, [accountId]);
+  }, [accountId, boardId]);
 
   useEffect(() => {
     refresh();

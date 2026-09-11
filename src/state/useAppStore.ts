@@ -5,6 +5,12 @@ interface AppState {
   currentMonth: string; // 'YYYY-MM'
   setCurrentMonth: (month: string) => void;
 
+  // Which board (tenant/namespace) every screen reads and writes —
+  // persisted separately via useBoards' bootstrap effect, not here (this
+  // store stays DB-free).
+  currentBoardId: number;
+  setCurrentBoardId: (id: number) => void;
+
   // `editingTransactionId` is null for "new transaction", set for editing an
   // existing one — same sheet, same fields, prefilled. `presetAccountId` is
   // only used for "new" (opened from an account page — defaults the account
@@ -31,6 +37,9 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   currentMonth: currentMonth(),
   setCurrentMonth: (month) => set({ currentMonth: month }),
+
+  currentBoardId: 1,
+  setCurrentBoardId: (id) => set({ currentBoardId: id }),
 
   transactionModal: { open: false, editingTransactionId: null, presetAccountId: null },
   openAddTransaction: (presetAccountId) =>

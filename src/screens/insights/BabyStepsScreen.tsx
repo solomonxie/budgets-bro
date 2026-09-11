@@ -10,11 +10,13 @@ import * as reportsRepo from '../../db/repositories/reportsRepo';
 import { accountKind } from '../../domain/accountKind';
 import { currentMonth, previousMonth } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { useAppStore } from '../../state/useAppStore';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-const EMERGENCY_FUND_KEY = 'babySteps.emergencyFundAccountId';
-const MANUAL_STEPS_KEY = 'babySteps.manual';
+// Board-scoped — each board has its own emergency fund pick and checkboxes.
+const emergencyFundKey = (boardId: number) => `babySteps.emergencyFundAccountId:${boardId}`;
+const manualStepsKey = (boardId: number) => `babySteps.manual:${boardId}`;
 const STARTER_FUND_CENTS = 100_000; // $1,000
 
 interface ManualSteps {
@@ -28,6 +30,7 @@ interface ManualSteps {
 // the steps this app has no data for (retirement %, college fund, giving).
 export function BabyStepsScreen() {
   const { accounts } = useAccounts();
+  const boardId = useAppStore((s) => s.currentBoardId);
   const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<number | null>(null);
   const [avgMonthlySpendingCents, setAvgMonthlySpendingCents] = useState(0);
   const [manual, setManual] = useState<ManualSteps>({ step4: false, step5: false, step7: false });
@@ -35,9 +38,9 @@ export function BabyStepsScreen() {
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      const savedId = await settingsRepo.getSetting(db, EMERGENCY_FUND_KEY);
-      if (savedId) setEmergencyFundAccountId(Number(savedId));
-      const savedManual = await settingsRepo.getJsonSetting<ManualSteps>(db, MANUAL_STEPS_KEY, {
+      const savedId = await settingsRepo.getSetting(db, emergencyFundKey(boardId));
+      setEmergencyFundAccountId(savedId ? Number(savedId) : null);
+      const savedManual = await settingsRepo.getJsonSetting<ManualSteps>(db, manualStepsKey(boardId), {
         step4: false,
         step5: false,
         step7: false,
@@ -46,10 +49,10 @@ export function BabyStepsScreen() {
 
       const month = currentMonth();
       const threeMonthsAgo = previousMonth(previousMonth(previousMonth(month)));
-      const totals = await reportsRepo.incomeAndSpendingInRange(db, `${threeMonthsAgo}-01`, `${month}-01`);
+      const totals = await reportsRepo.incomeAndSpendingInRange(db, boardId, `${threeMonthsAgo}-01`, `${month}-01`);
       setAvgMonthlySpendingCents(Math.round(totals.spendingCents / 3));
     })();
-  }, []);
+  }, [boardId]);
 
   const cashLikeAccounts = accounts.filter((a) => ['Cash', 'Savings'].includes(accountKind(a.account.type)));
   const emergencyFundCents = accounts.find((a) => a.account.id === emergencyFundAccountId)?.balanceCents ?? 0;
@@ -64,14 +67,14 @@ export function BabyStepsScreen() {
   const selectEmergencyFund = async (accountId: number) => {
     setEmergencyFundAccountId(accountId);
     const db = await getDb();
-    await settingsRepo.setSetting(db, EMERGENCY_FUND_KEY, String(accountId));
+    await settingsRepo.setSetting(db, emergencyFundKey(boardId), String(accountId));
   };
 
   const toggleManual = async (key: keyof ManualSteps) => {
     const next = { ...manual, [key]: !manual[key] };
     setManual(next);
     const db = await getDb();
-    await settingsRepo.setJsonSetting(db, MANUAL_STEPS_KEY, next);
+    await settingsRepo.setJsonSetting(db, manualStepsKey(boardId), next);
   };
 
   return (

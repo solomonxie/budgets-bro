@@ -22,9 +22,10 @@ async function sumOrZero(
 
 export async function assignedThisMonthByCategory(
   db: SQLiteDatabase,
+  boardId: number,
   month: string,
 ): Promise<Record<number, number>> {
-  const rows = await db.getAllAsync<{ category_id: number; assigned_cents: number }>(ASSIGNED_THIS_MONTH, month);
+  const rows = await db.getAllAsync<{ category_id: number; assigned_cents: number }>(ASSIGNED_THIS_MONTH, month, boardId);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.assigned_cents;
   return map;
@@ -32,9 +33,10 @@ export async function assignedThisMonthByCategory(
 
 export async function cumulativeAssignedByCategory(
   db: SQLiteDatabase,
+  boardId: number,
   throughMonth: string,
 ): Promise<Record<number, number>> {
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ASSIGNED, throughMonth);
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ASSIGNED, throughMonth, boardId);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
@@ -42,45 +44,47 @@ export async function cumulativeAssignedByCategory(
 
 export async function cumulativeActivityByCategory(
   db: SQLiteDatabase,
+  boardId: number,
   throughMonth: string,
 ): Promise<Record<number, number>> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ACTIVITY, endExclusive);
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ACTIVITY, endExclusive, boardId);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
 }
 
-export async function activityThisMonthByCategory(db: SQLiteDatabase, month: string): Promise<Record<number, number>> {
+export async function activityThisMonthByCategory(db: SQLiteDatabase, boardId: number, month: string): Promise<Record<number, number>> {
   const start = `${month}-01`;
   const endExclusive = `${nextMonth(month)}-01`;
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(ACTIVITY_THIS_MONTH, start, endExclusive);
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(ACTIVITY_THIS_MONTH, start, endExclusive, boardId);
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
 }
 
-export async function totalAssignedThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
-  return sumOrZero(db, TOTAL_ASSIGNED_THROUGH_MONTH, throughMonth);
+export async function totalAssignedThroughMonth(db: SQLiteDatabase, boardId: number, throughMonth: string): Promise<number> {
+  return sumOrZero(db, TOTAL_ASSIGNED_THROUGH_MONTH, throughMonth, boardId);
 }
 
-export async function totalActivityThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
+export async function totalActivityThroughMonth(db: SQLiteDatabase, boardId: number, throughMonth: string): Promise<number> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  return sumOrZero(db, TOTAL_ACTIVITY_THROUGH_MONTH, endExclusive);
+  return sumOrZero(db, TOTAL_ACTIVITY_THROUGH_MONTH, endExclusive, boardId);
 }
 
-export async function cashAccountsBalanceThroughMonth(db: SQLiteDatabase, throughMonth: string): Promise<number> {
+export async function cashAccountsBalanceThroughMonth(db: SQLiteDatabase, boardId: number, throughMonth: string): Promise<number> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  return sumOrZero(db, CASH_ACCOUNTS_BALANCE_THROUGH_MONTH, endExclusive);
+  return sumOrZero(db, CASH_ACCOUNTS_BALANCE_THROUGH_MONTH, boardId, boardId, endExclusive);
 }
 
 export async function setAssignedCents(
   db: SQLiteDatabase,
+  boardId: number,
   categoryId: number,
   month: string,
   assignedCents: number,
 ): Promise<void> {
-  await db.runAsync(UPSERT_ASSIGNED_CENTS, categoryId, month, assignedCents);
+  await db.runAsync(UPSERT_ASSIGNED_CENTS, categoryId, month, assignedCents, boardId);
 }
 
 // Moves a category's full current balance back to Unassigned Cash by
@@ -89,7 +93,13 @@ export async function setAssignedCents(
 // Doesn't clamp at 0: the balance may have been funded by an earlier month's
 // rollover, so this month's own assigned entry legitimately needs to go
 // negative to cancel it out.
-export async function moveToUnassigned(db: SQLiteDatabase, categoryId: number, month: string, balanceCents: number): Promise<void> {
+export async function moveToUnassigned(
+  db: SQLiteDatabase,
+  boardId: number,
+  categoryId: number,
+  month: string,
+  balanceCents: number,
+): Promise<void> {
   if (balanceCents <= 0) return;
   const current = await sumOrZero(
     db,
@@ -97,5 +107,5 @@ export async function moveToUnassigned(db: SQLiteDatabase, categoryId: number, m
     categoryId,
     month,
   );
-  await setAssignedCents(db, categoryId, month, current - balanceCents);
+  await setAssignedCents(db, boardId, categoryId, month, current - balanceCents);
 }

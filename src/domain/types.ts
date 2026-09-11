@@ -1,3 +1,9 @@
+export interface Board {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
 export type AccountType =
   | 'checking'
   | 'savings'

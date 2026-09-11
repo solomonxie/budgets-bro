@@ -9,7 +9,9 @@ import { AddTransactionModal } from '../screens/transactions/AddTransactionModal
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import type { TabIconName } from '../components/ui/TabBarIcon';
+import { CenterAddButton } from '../components/ui/CenterAddButton';
 import { useBootstrapActiveBoard } from '../hooks/useBoards';
+import { useAppStore } from '../state/useAppStore';
 import { colors } from '../theme/colors';
 import type { RootTabParamList } from './types';
 
@@ -34,6 +36,13 @@ const TAB_ICONS: Record<string, TabIconName> = {
   Settings: 'settings',
 };
 
+// Never actually navigated to — the "AddTransaction" tab's tabPress
+// listener (below) intercepts the press and opens the Add Transaction
+// sheet instead, same as the floating button it replaces.
+function NoopScreen() {
+  return null;
+}
+
 export function RootNavigator() {
   useBootstrapActiveBoard();
   return (
@@ -54,6 +63,17 @@ export function RootNavigator() {
       >
         <Tab.Screen name="Budget" component={BudgetStackNavigator} />
         <Tab.Screen name="Accounts" component={AccountsStackNavigator} />
+        <Tab.Screen
+          name="AddTransaction"
+          component={NoopScreen}
+          options={{ tabBarButton: (props) => <CenterAddButton {...props} />, tabBarLabel: () => null }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              useAppStore.getState().openAddTransaction();
+            },
+          }}
+        />
         <Tab.Screen name="Insights" component={InsightsStackNavigator} />
         <Tab.Screen name="Settings" component={SettingsStackNavigator} />
       </Tab.Navigator>

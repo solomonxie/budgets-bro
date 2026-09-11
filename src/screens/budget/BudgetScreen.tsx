@@ -4,7 +4,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
@@ -139,7 +138,7 @@ export function BudgetScreen() {
   };
 
   return (
-    <ScreenContainer scroll floating={<FloatingAddButton />}>
+    <ScreenContainer scroll>
       <MonthNav
         label={formatMonthLabel(month)}
         onPrevious={() => setMonth(previousMonth(month))}

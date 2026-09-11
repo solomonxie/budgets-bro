@@ -8,11 +8,12 @@ export function categoryBalanceCents(cumulativeAssignedCents: number, cumulative
   return cumulativeAssignedCents + cumulativeActivityCents;
 }
 
-// `totalUncategorizedCents` is a signed sum (uncategorized, non-transfer
-// transactions) — not just positive inflows, so a negative balance
-// correction correctly reduces this instead of being ignored.
-export function unassignedCashCents(totalUncategorizedCents: number, totalAssignedCents: number): number {
-  return totalUncategorizedCents - totalAssignedCents;
+// Unassigned Cash = money actually sitting in cash accounts minus money
+// already assigned to categories (spent or not) — same identity as a single
+// category's balance, just summed over the whole budget instead of one
+// category vs. one account.
+export function unassignedCashCents(cashAccountsBalanceCents: number, totalCategoryBalanceCents: number): number {
+  return cashAccountsBalanceCents - totalCategoryBalanceCents;
 }
 
 export function categoryStatus(balanceCents: number, assignedThisMonthCents: number): CategoryStatus {

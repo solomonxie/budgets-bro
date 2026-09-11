@@ -16,22 +16,30 @@ export const ACTIVITY_THIS_MONTH = `
 
 export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ?';
 
-// Signed sum of money available to budget through `throughMonth`: cash
-// accounts' opening balances (dateless, always available) plus uncategorized,
-// non-transfer transaction activity — includes negative balance-correction
-// amounts on purpose. Restricted to actual cash (checking/cash/savings/
-// income) accounts — credit cards, loans/mortgages, and tracking accounts
-// don't hold assignable cash and would otherwise blow up this total with
-// e.g. a mortgage's opening principal.
+// Ungrouped version of CUMULATIVE_ACTIVITY: total categorized activity
+// across every category, used with TOTAL_ASSIGNED_THROUGH_MONTH to get one
+// combined "Available" balance for all categories at once.
+export const TOTAL_ACTIVITY_THROUGH_MONTH = `
+  SELECT SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ?
+`;
+
+// Unassigned Cash = (money sitting in cash accounts) − (money already
+// assigned to categories, spent or not). Restricted to actual cash
+// (checking/cash/savings/income) accounts — credit cards, loans/mortgages,
+// and tracking accounts don't hold assignable cash and would otherwise blow
+// up this total with e.g. a mortgage's opening principal. A transfer into a
+// cash account counts like any other transaction here (it's just another
+// account's own outflow, so it nets out); the corresponding "money assigned"
+// side already accounts for anything categorized, transfers included.
 const CASH_ACCOUNT_TYPES = `('checking', 'cash', 'savings', 'income')`;
 
-export const TOTAL_UNCATEGORIZED_THROUGH_MONTH = `
+export const CASH_ACCOUNTS_BALANCE_THROUGH_MONTH = `
   SELECT
     (SELECT COALESCE(SUM(opening_balance_cents), 0) FROM accounts WHERE type IN ${CASH_ACCOUNT_TYPES} AND archived_at IS NULL)
     +
     (SELECT COALESCE(SUM(t.amount_cents), 0) FROM transactions t
      JOIN accounts a ON a.id = t.account_id
-     WHERE t.category_id IS NULL AND t.transfer_account_id IS NULL AND a.type IN ${CASH_ACCOUNT_TYPES} AND t.date < ?)
+     WHERE a.type IN ${CASH_ACCOUNT_TYPES} AND a.archived_at IS NULL AND t.date < ?)
     AS total
 `;
 

@@ -96,10 +96,8 @@ export function TransactionsScreen() {
                     {t.categoryName ?? 'Uncategorized'}
                   </Text>
                 </View>
-                <View style={[styles.clearedDot, { backgroundColor: t.cleared ? colors.positive : colors.border }]} />
-                <Text style={[styles.amount, t.amountCents < 0 ? styles.negative : styles.positive]}>
-                  {formatMoney(t.amountCents)}
-                </Text>
+                <View style={[styles.signDot, { backgroundColor: t.amountCents < 0 ? colors.negative : colors.positive }]} />
+                <Text style={styles.amount}>{formatMoney(t.amountCents)}</Text>
               </Pressable>
             ))}
           </View>
@@ -146,10 +144,8 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
   payee: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  clearedDot: { width: 8, height: 8, borderRadius: 999 },
-  amount: { fontSize: 15, fontWeight: '700' },
-  negative: { color: colors.negative },
-  positive: { color: colors.positive },
+  signDot: { width: 8, height: 8, borderRadius: 999 },
+  amount: { fontSize: 15, fontWeight: '700', color: colors.text },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.lg },
   deleteBar: { backgroundColor: colors.negative, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   deleteBarText: { color: '#fff', fontWeight: '700' },

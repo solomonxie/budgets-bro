@@ -1,6 +1,6 @@
 # YAMA — Yet Another Money App
 
-> 🚧 Work in progress — not yet functional.
+> 🚧 Work in progress.
 
 Free, privacy-first, YNAB-style budgeting for iOS. Envelope budgeting, common financial calculators, and optional AI analysis — no backend, no subscription.
 
@@ -29,6 +29,4 @@ npm start
 ```
 
 ## Screenshots
-<img src="docs/screenshots/budget.jpg" alt="Budget screen" width="320">
-
-_From the design prototype — app UI isn't built yet._
+<img src="docs/screenshots/budget.png" alt="Budget screen" width="320"> <img src="docs/screenshots/insights.png" alt="Insights screen" width="320">

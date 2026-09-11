@@ -26,11 +26,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 999,
     backgroundColor: colors.accent,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
   },
   text: {
     color: '#fff',

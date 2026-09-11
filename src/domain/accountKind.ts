@@ -30,13 +30,19 @@ export interface NetWorth {
 // Cash/savings/tracking accounts are assets; credit/loan balances are stored
 // negative (debt) — Net Worth is the sum of everything either way, but
 // Assets/Debts are broken out since lumping them into one number isn't
-// meaningful on its own.
-export function netWorth(accounts: { type: AccountType; balanceCents: number }[]): NetWorth {
+// meaningful on its own. A mortgage's `houseValueCents` (from
+// accountHouseValueHistoryRepo's latest entry) is folded in as its
+// offsetting asset, so a mortgage nets to home equity, not just the debt.
+export function netWorth(accounts: { type: AccountType; balanceCents: number; houseValueCents?: number }[]): NetWorth {
   let assetsCents = 0;
   let debtsCents = 0;
-  for (const { type, balanceCents } of accounts) {
-    if (LIABILITY_KINDS.includes(accountKind(type))) debtsCents += -balanceCents;
-    else assetsCents += balanceCents;
+  for (const { type, balanceCents, houseValueCents } of accounts) {
+    if (LIABILITY_KINDS.includes(accountKind(type))) {
+      debtsCents += -balanceCents;
+      if (type === 'mortgage' && houseValueCents != null) assetsCents += houseValueCents;
+    } else {
+      assetsCents += balanceCents;
+    }
   }
   return { assetsCents, debtsCents, netWorthCents: assetsCents - debtsCents };
 }

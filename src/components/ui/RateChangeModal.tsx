@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
+import { DateField } from './DateField';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -42,7 +43,7 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>Rate Change</Text>
           <TextField label="Rate (annual %)" value={ratePercent} onChangeText={setRatePercent} keyboardType="decimal-pad" placeholder="e.g. 6.25" autoFocus />
-          <TextField label="Effective Date" value={effectiveDate} onChangeText={setEffectiveDate} placeholder="YYYY-MM-DD" />
+          <DateField label="Effective Date" value={effectiveDate} onChange={setEffectiveDate} />
           <View style={styles.actions}>
             {onDelete ? (
               <Pressable onPress={onDelete}>

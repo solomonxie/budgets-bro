@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { formatMoney } from '../../domain/money';
 
 interface AssignedAmountModalProps {
   visible: boolean;
   categoryName: string;
   categoryIcon: string | null;
   initialCents: number;
+  unassignedCents: number;
   onSave: (cents: number) => void;
   onHistory: () => void;
   onClose: () => void;
@@ -24,19 +26,39 @@ export function AssignedAmountModal({
   categoryName,
   categoryIcon,
   initialCents,
+  unassignedCents,
   onSave,
   onHistory,
   onClose,
 }: AssignedAmountModalProps) {
   const [value, setValue] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (visible) setValue((initialCents / 100).toString());
+    if (visible) {
+      setValue((initialCents / 100).toString());
+      setError(null);
+    }
   }, [visible, initialCents]);
+
+  // Raising this category's assignment draws from unassigned cash — capped
+  // at what's currently unassigned plus whatever's already here (lowering
+  // it, or moving money between categories, never needs this check).
+  const availableCents = unassignedCents + initialCents;
+
+  const changeValue = (text: string) => {
+    setValue(text);
+    if (error) setError(null);
+  };
 
   const done = () => {
     const parsed = parseFloat(value);
-    onSave(Number.isNaN(parsed) ? 0 : Math.round(parsed * 100));
+    const cents = Number.isNaN(parsed) ? 0 : Math.round(parsed * 100);
+    if (cents > availableCents) {
+      setError(`Exceeds unassigned cash by ${formatMoney(cents - availableCents)}`);
+      return;
+    }
+    onSave(cents);
     onClose();
   };
 
@@ -53,11 +75,13 @@ export function AssignedAmountModal({
             style={styles.amountInput}
             keyboardType="decimal-pad"
             value={value}
-            onChangeText={setValue}
+            onChangeText={changeValue}
             autoFocus
             selectTextOnFocus
             onSubmitEditing={done}
           />
+          <Text style={styles.unassignedHint}>Unassigned: {formatMoney(unassignedCents)}</Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <View style={styles.actions}>
             <View style={styles.sideSlot} />
             <View style={styles.centerActions}>
@@ -101,6 +125,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 6,
   },
+  unassignedHint: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
+  errorText: { fontSize: 12, color: colors.negative, textAlign: 'center', fontWeight: '600' },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
   sideSlot: { minWidth: 50 },
   sideSlotRight: { alignItems: 'flex-end' },

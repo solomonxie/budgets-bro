@@ -34,11 +34,25 @@ export async function renamePayee(db: SQLiteDatabase, id: number, name: string):
   await db.runAsync('UPDATE payees SET name = ? WHERE id = ?', name, id);
 }
 
-// Auto-creates/renames the payee a loan/mortgage account owns 1:1, named
-// after it — selecting it on a transaction posts a mirrored credit to the
-// account (see transactionsRepo.postLinkedAccountLeg), regardless of
-// whatever category that transaction uses.
-export async function ensurePaymentPayee(db: SQLiteDatabase, boardId: number, accountId: number, accountName: string): Promise<void> {
+// Manual delete from Settings' payee management — clears the payee off any
+// transaction that used it (foreign_keys is ON, so leaving it set would
+// block the delete) instead of deleting those transactions. Never call this
+// on an account-linked payee (ensureAccountPayee owns those; deleting one
+// out from under its account would silently break that account's transfer
+// linkage until the account is next edited).
+export async function deletePayee(db: SQLiteDatabase, id: number): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE transactions SET payee_id = NULL WHERE payee_id = ?', id);
+    await db.runAsync('DELETE FROM payees WHERE id = ?', id);
+  });
+}
+
+// Auto-creates/renames the payee every account owns 1:1, named after it —
+// selecting it on a transaction posts a mirrored leg to that account (see
+// transactionsRepo.postLinkedAccountLeg), which is how inter-account
+// transfers and loan/mortgage payments both work, regardless of whatever
+// category the transaction uses.
+export async function ensureAccountPayee(db: SQLiteDatabase, boardId: number, accountId: number, accountName: string): Promise<void> {
   const existing = await findPayeeByLinkedAccount(db, accountId);
   if (existing) {
     if (existing.name !== accountName) await renamePayee(db, existing.id, accountName);
@@ -52,6 +66,6 @@ export async function ensurePaymentPayee(db: SQLiteDatabase, boardId: number, ac
   await db.runAsync('INSERT INTO payees (board_id, name, linked_account_id) VALUES (?, ?, ?)', boardId, accountName, accountId);
 }
 
-export async function unlinkPaymentPayee(db: SQLiteDatabase, accountId: number): Promise<void> {
+export async function unlinkAccountPayee(db: SQLiteDatabase, accountId: number): Promise<void> {
   await db.runAsync('UPDATE payees SET linked_account_id = NULL WHERE linked_account_id = ?', accountId);
 }

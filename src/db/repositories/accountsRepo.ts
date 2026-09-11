@@ -1,7 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
-import { isLoanLikeType } from '../../domain/accountKind';
 import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
 import * as payeesRepo from './payeesRepo';
 
@@ -93,7 +92,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     input.originalHousePriceCents ?? null,
   );
   const id = result.lastInsertRowId;
-  if (isLoanLikeType(input.type)) await payeesRepo.ensurePaymentPayee(db, boardId, id, input.name);
+  await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
   return id;
 }
 
@@ -113,16 +112,12 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
     input.originalHousePriceCents ?? null,
     id,
   );
-  if (isLoanLikeType(input.type)) {
-    await payeesRepo.ensurePaymentPayee(db, boardId, id, input.name);
-  } else {
-    await payeesRepo.unlinkPaymentPayee(db, id);
-  }
+  await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
 }
 
 export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync("UPDATE accounts SET archived_at = datetime('now') WHERE id = ?", id);
-  await payeesRepo.unlinkPaymentPayee(db, id);
+  await payeesRepo.unlinkAccountPayee(db, id);
 }
 
 export async function listClosedAccounts(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
@@ -133,6 +128,8 @@ export async function listClosedAccounts(db: SQLiteDatabase, boardId: number): P
   }));
 }
 
-export async function reopenAccount(db: SQLiteDatabase, id: number): Promise<void> {
+export async function reopenAccount(db: SQLiteDatabase, boardId: number, id: number): Promise<void> {
   await db.runAsync('UPDATE accounts SET archived_at = NULL WHERE id = ?', id);
+  const account = await getAccount(db, id);
+  if (account) await payeesRepo.ensureAccountPayee(db, boardId, id, account.name);
 }

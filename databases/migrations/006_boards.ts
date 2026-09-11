@@ -34,10 +34,15 @@ export async function up(db: SQLiteDatabase): Promise<void> {
   }
   await db.execAsync("INSERT OR IGNORE INTO boards (id, name) VALUES (1, 'My Budget');");
 
+  // No REFERENCES clause here — SQLite's ALTER TABLE ADD COLUMN refuses a
+  // column that combines a REFERENCES clause with a non-NULL DEFAULT
+  // ("Cannot add a REFERENCES column with non-NULL default value"). The FK
+  // is enforced at the application level instead (boardsRepo.deleteBoard
+  // already cascades deletes across these tables manually).
   const boardScopedTables = ['accounts', 'category_groups', 'categories', 'budget_entries', 'transactions'];
   for (const table of boardScopedTables) {
     if (!(await hasColumn(db, table, 'board_id'))) {
-      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN board_id INTEGER NOT NULL REFERENCES boards(id) DEFAULT 1;`);
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN board_id INTEGER NOT NULL DEFAULT 1;`);
     }
     await db.execAsync(`CREATE INDEX IF NOT EXISTS idx_${table}_board ON ${table}(board_id);`);
   }

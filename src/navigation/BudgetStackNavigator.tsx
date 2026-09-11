@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Pressable, Text } from 'react-native';
 import { BudgetScreen } from '../screens/budget/BudgetScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
+import { SettingsButton } from '../components/ui/SettingsButton';
 import { colors } from '../theme/colors';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { BudgetStackParamList } from './types';
@@ -24,7 +25,7 @@ export function BudgetStackNavigator() {
       <Stack.Screen
         name="BudgetHome"
         component={BudgetScreen}
-        options={{ title: 'Budget', headerRight: () => <BudgetHeaderRight /> }}
+        options={{ title: 'Budget', headerLeft: () => <SettingsButton />, headerRight: () => <BudgetHeaderRight /> }}
       />
       <Stack.Screen name="Transactions" component={TransactionsScreen} options={{ title: 'Transactions' }} />
     </Stack.Navigator>

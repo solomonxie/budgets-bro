@@ -3,7 +3,6 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { SettingsButton } from '../../components/ui/SettingsButton';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountHouseValues } from '../../hooks/useAccountHouseValues';
 import { useAppStore } from '../../state/useAppStore';
@@ -51,7 +50,6 @@ export function AccountsScreen() {
 
   return (
     <ScreenContainer scroll>
-      <SettingsButton />
       <View style={styles.netWorthCard}>
         <View style={styles.netWorthHeader}>
           <Text style={styles.netWorthLabel}>Net Worth</Text>

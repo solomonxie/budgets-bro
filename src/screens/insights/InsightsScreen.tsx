@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { MonthNav } from '../../components/ui/MonthNav';
-import { SettingsButton } from '../../components/ui/SettingsButton';
 import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { useInsights } from '../../hooks/useInsights';
 import { currentMonth, nextMonth, previousMonth, formatMonthLabel, formatMonthShort } from '../../domain/month';
@@ -125,7 +124,6 @@ export function InsightsScreen() {
 
   return (
     <ScreenContainer scroll>
-      <SettingsButton />
       <MonthNav
         label={formatMonthLabel(month)}
         onPrevious={() => setMonth(previousMonth(month))}

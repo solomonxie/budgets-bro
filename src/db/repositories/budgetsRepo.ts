@@ -100,26 +100,3 @@ export async function setAssignedCents(
 ): Promise<void> {
   await db.runAsync(UPSERT_ASSIGNED_CENTS, categoryId, month, assignedCents, boardId);
 }
-
-// Moves a category's full current balance back to Unassigned Cash by
-// reducing this month's assigned amount by the balance — correct regardless
-// of which past month actually funded it, since balance is a cumulative sum.
-// Doesn't clamp at 0: the balance may have been funded by an earlier month's
-// rollover, so this month's own assigned entry legitimately needs to go
-// negative to cancel it out.
-export async function moveToUnassigned(
-  db: SQLiteDatabase,
-  boardId: number,
-  categoryId: number,
-  month: string,
-  balanceCents: number,
-): Promise<void> {
-  if (balanceCents <= 0) return;
-  const current = await sumOrZero(
-    db,
-    'SELECT assigned_cents as total FROM budget_entries WHERE category_id = ? AND month = ?',
-    categoryId,
-    month,
-  );
-  await setAssignedCents(db, boardId, categoryId, month, current - balanceCents);
-}

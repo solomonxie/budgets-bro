@@ -9,7 +9,6 @@ import { AddTransactionModal } from '../screens/transactions/AddTransactionModal
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import type { TabIconName } from '../components/ui/TabBarIcon';
-import { CenterAddButton } from '../components/ui/CenterAddButton';
 import { useBootstrapActiveBoard } from '../hooks/useBoards';
 import { useAppStore } from '../state/useAppStore';
 import { colors } from '../theme/colors';
@@ -32,6 +31,7 @@ const navigationTheme = {
 const TAB_ICONS: Record<string, TabIconName> = {
   Budget: 'budget',
   Accounts: 'accounts',
+  AddTransaction: 'add',
   Insights: 'insights',
   Settings: 'settings',
 };
@@ -66,7 +66,7 @@ export function RootNavigator() {
         <Tab.Screen
           name="AddTransaction"
           component={NoopScreen}
-          options={{ tabBarButton: (props) => <CenterAddButton {...props} />, tabBarLabel: () => null }}
+          options={{ tabBarLabel: 'Spend' }}
           listeners={{
             tabPress: (e) => {
               e.preventDefault();

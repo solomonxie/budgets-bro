@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type TabIconName = 'budget' | 'accounts' | 'insights' | 'settings';
+export type TabIconName = 'budget' | 'accounts' | 'add' | 'insights' | 'settings';
 
 interface TabBarIconProps {
   name: TabIconName;
@@ -9,8 +9,8 @@ interface TabBarIconProps {
 }
 
 // Simple single-color line icons (react-native-svg — already a dependency,
-// no icon-font package needed for just three glyphs) — flat outline style
-// like YNAB's tab bar, not filled/colorful.
+// no icon-font package needed for just a handful of glyphs) — flat outline
+// style like YNAB's tab bar, not filled/colorful.
 export function TabBarIcon({ name, color, size = 22 }: TabBarIconProps) {
   const stroke = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
@@ -28,6 +28,11 @@ export function TabBarIcon({ name, color, size = 22 }: TabBarIconProps) {
           <Path d="M5 10v9M10 10v9M14 10v9M19 10v9" {...stroke} />
           <Path d="M3 19h18" {...stroke} />
         </>
+      ) : name === 'add' ? (
+        // Bolder stroke than the others — this one's an action button
+        // standing in for a tab, not a destination, so it reads a little
+        // heavier at a glance.
+        <Path d="M12 4v16M4 12h16" stroke={color} strokeWidth={2.6} strokeLinecap="round" />
       ) : name === 'insights' ? (
         <>
           <Path d="M4 20V11" {...stroke} />

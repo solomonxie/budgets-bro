@@ -1,13 +1,12 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { CategoryGroupRow, CategoryRow } from '../schema';
 import type { Category, CategoryGroup } from '../../domain/types';
-import {
-  LIST_CATEGORIES,
-  LIST_CATEGORY_GROUPS,
-  INSERT_CATEGORY,
-  UPDATE_CATEGORY,
-  ARCHIVE_CATEGORIES_IN_GROUP,
-} from '../../../databases/queries/categories';
+import { LIST_CATEGORIES, LIST_CATEGORY_GROUPS, INSERT_CATEGORY, UPDATE_CATEGORY } from '../../../databases/queries/categories';
+
+// Deleting a group shouldn't take its categories down with it — they land
+// here instead, kept and budgetable, just no longer organized under the
+// deleted group.
+const UNGROUPED_CATEGORY_GROUP = 'Ungrouped';
 
 function mapGroupRow(row: CategoryGroupRow): CategoryGroup {
   return { id: row.id, name: row.name, sortOrder: row.sort_order, archivedAt: row.archived_at };
@@ -21,7 +20,6 @@ function mapCategoryRow(row: CategoryRow): Category {
     icon: row.icon,
     sortOrder: row.sort_order,
     archivedAt: row.archived_at,
-    linkedAccountId: row.linked_account_id,
   };
 }
 
@@ -37,11 +35,6 @@ export async function listCategories(db: SQLiteDatabase, boardId: number): Promi
 
 export async function getCategory(db: SQLiteDatabase, id: number): Promise<Category | null> {
   const row = await db.getFirstAsync<CategoryRow>('SELECT * FROM categories WHERE id = ?', id);
-  return row ? mapCategoryRow(row) : null;
-}
-
-export async function findCategoryByLinkedAccount(db: SQLiteDatabase, accountId: number): Promise<Category | null> {
-  const row = await db.getFirstAsync<CategoryRow>('SELECT * FROM categories WHERE linked_account_id = ?', accountId);
   return row ? mapCategoryRow(row) : null;
 }
 
@@ -86,14 +79,9 @@ export interface CategoryInput {
   icon: string | null;
 }
 
-export async function createCategory(
-  db: SQLiteDatabase,
-  boardId: number,
-  input: CategoryInput,
-  linkedAccountId: number | null = null,
-): Promise<number> {
+export async function createCategory(db: SQLiteDatabase, boardId: number, input: CategoryInput): Promise<number> {
   const sortOrder = await nextSortOrder(db, boardId, 'categories', input.groupId);
-  const result = await db.runAsync(INSERT_CATEGORY, boardId, input.groupId, input.name, input.icon, linkedAccountId, sortOrder);
+  const result = await db.runAsync(INSERT_CATEGORY, boardId, input.groupId, input.name, input.icon, sortOrder);
   return result.lastInsertRowId;
 }
 
@@ -103,8 +91,7 @@ export async function updateCategory(db: SQLiteDatabase, id: number, input: Cate
 
 // Renaming doesn't touch `icon` — categories no longer get icons from a
 // picker (the user types an emoji straight into the name), but this must
-// not blank out a legacy category's icon (e.g. the auto-generated loan
-// payment category's 🏦).
+// not blank out a legacy category's icon.
 export async function renameCategory(db: SQLiteDatabase, id: number, name: string): Promise<void> {
   await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', name, id);
 }
@@ -117,9 +104,15 @@ export async function archiveCategory(db: SQLiteDatabase, id: number): Promise<v
   await db.runAsync("UPDATE categories SET archived_at = datetime('now') WHERE id = ?", id);
 }
 
-export async function archiveCategoryGroup(db: SQLiteDatabase, id: number): Promise<void> {
+// Moves the group's categories into "Ungrouped" (creating it if needed)
+// instead of archiving them — deleting a group is an organizational
+// change, not a reason to lose budget history for everything in it.
+export async function archiveCategoryGroup(db: SQLiteDatabase, boardId: number, id: number): Promise<void> {
   await db.withTransactionAsync(async () => {
-    await db.runAsync(ARCHIVE_CATEGORIES_IN_GROUP, id);
+    const targetGroupId = await findOrCreateCategoryGroup(db, boardId, UNGROUPED_CATEGORY_GROUP);
+    if (targetGroupId !== id) {
+      await db.runAsync('UPDATE categories SET group_id = ? WHERE group_id = ? AND archived_at IS NULL', targetGroupId, id);
+    }
     await db.runAsync("UPDATE category_groups SET archived_at = datetime('now') WHERE id = ?", id);
   });
 }
@@ -161,43 +154,3 @@ export async function moveCategoryGroup(db: SQLiteDatabase, boardId: number, gro
   await reorder(db, 'category_groups', groupIds, groupId, direction);
 }
 
-const LOAN_PAYMENTS_GROUP = 'Loan Payments';
-
-// Auto-creates/renames/archives the "Payment: <account>" category a
-// loan/mortgage account owns 1:1 — see accountKind.isLoanLikeType.
-export async function ensurePaymentCategory(db: SQLiteDatabase, boardId: number, accountId: number, accountName: string): Promise<void> {
-  const existing = await findCategoryByLinkedAccount(db, accountId);
-  const groupId = await findOrCreateCategoryGroup(db, boardId, LOAN_PAYMENTS_GROUP);
-  const name = `Payment: ${accountName}`;
-  if (existing) {
-    // Only auto-rename the category this function generated (lives in the
-    // auto "Loan Payments" group) — one the user manually linked via the
-    // Budget screen's Link action (linkCategoryToAccount) keeps whatever
-    // name/group they gave it.
-    if (existing.groupId === groupId && existing.name !== name) await renameCategory(db, existing.id, name);
-    return;
-  }
-  await createCategory(db, boardId, { groupId, name, icon: '🏦' }, accountId);
-}
-
-export async function archivePaymentCategory(db: SQLiteDatabase, accountId: number): Promise<void> {
-  const existing = await findCategoryByLinkedAccount(db, accountId);
-  if (existing) await archiveCategory(db, existing.id);
-}
-
-// Manually links an existing category to a loan/mortgage account — same
-// linked_account_id column ensurePaymentCategory uses, but user-chosen
-// instead of auto-generated. A category/account is linked to at most one
-// counterpart each, so linking steals the link away from whatever other
-// category (if any) currently points at that account.
-export async function linkCategoryToAccount(db: SQLiteDatabase, categoryId: number, accountId: number): Promise<void> {
-  const existing = await findCategoryByLinkedAccount(db, accountId);
-  if (existing && existing.id !== categoryId) {
-    await db.runAsync('UPDATE categories SET linked_account_id = NULL WHERE id = ?', existing.id);
-  }
-  await db.runAsync('UPDATE categories SET linked_account_id = ? WHERE id = ?', accountId, categoryId);
-}
-
-export async function unlinkCategory(db: SQLiteDatabase, categoryId: number): Promise<void> {
-  await db.runAsync('UPDATE categories SET linked_account_id = NULL WHERE id = ?', categoryId);
-}

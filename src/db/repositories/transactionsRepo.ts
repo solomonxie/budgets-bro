@@ -2,8 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { TransactionJoinRow } from '../schema';
 import type { TransactionWithLabels } from '../../domain/types';
 import { currentDateISO } from '../../domain/month';
-import { findOrCreatePayee } from './payeesRepo';
-import { getCategory } from './categoriesRepo';
+import { findOrCreatePayee, getPayee } from './payeesRepo';
 import { SELECT_WITH_LABELS, INSERT_TRANSACTION, UPDATE_TRANSACTION, LAST_CATEGORY_FOR_PAYEE } from '../../../databases/queries/transactions';
 
 function mapRow(row: TransactionJoinRow): TransactionWithLabels {
@@ -69,22 +68,23 @@ export interface CreateTransactionInput {
   isInterest?: boolean;
 }
 
-// If `categoryId` is a loan/mortgage account's auto-generated payment
-// category (see categoriesRepo.ensurePaymentCategory), also posts the
-// mirrored credit to that loan account so its balance drops accordingly —
-// the payment stays budgetable while the loan's balance stays accurate.
+// If `payeeId` is a loan/mortgage account's auto-generated payment payee
+// (see payeesRepo.ensurePaymentPayee), also posts the mirrored credit to
+// that loan account so its balance drops accordingly — regardless of
+// whatever category the original transaction used, since the linkage is
+// by payee, not category.
 async function postLinkedAccountLeg(
   db: SQLiteDatabase,
   boardId: number,
-  input: { categoryId: number | null; accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string; cleared: boolean },
+  input: { accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string; cleared: boolean },
 ): Promise<void> {
-  if (input.categoryId == null) return;
-  const category = await getCategory(db, input.categoryId);
-  if (!category?.linkedAccountId || category.linkedAccountId === input.accountId) return;
+  if (input.payeeId == null) return;
+  const payee = await getPayee(db, input.payeeId);
+  if (!payee?.linkedAccountId || payee.linkedAccountId === input.accountId) return;
   await db.runAsync(
     INSERT_TRANSACTION,
     boardId,
-    category.linkedAccountId,
+    payee.linkedAccountId,
     null,
     input.payeeId,
     input.memo,

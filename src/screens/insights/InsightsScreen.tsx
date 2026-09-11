@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Svg, { Line, Rect } from 'react-native-svg';
+import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
@@ -29,7 +29,6 @@ const SERIES_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'];
 const OTHER_COLOR = colors.textMuted;
 const TOP_N = 5;
 const MONTH_WIDTH = 44;
-const BAR_WIDTH = 22;
 const Y_AXIS_WIDTH = 44;
 
 // Compact axis label — formatMoney's full "$1,234.56" is too wide for a
@@ -102,6 +101,19 @@ export function InsightsScreen() {
   // series summed), not any single series' peak.
   const monthTotals = trendMonths.map((_, i) => visibleSeries.reduce((sum, s) => sum + s.values[i], 0));
   const maxValue = Math.max(1, ...monthTotals);
+
+  // Each series' band sits between the running total *before* it and
+  // *after* it — stacked area, so a month's total spend is one glance
+  // (the top edge) instead of mentally summing crossing lines.
+  const stackedBands = (() => {
+    let runningTotals = trendMonths.map(() => 0);
+    return visibleSeries.map((s) => {
+      const bottoms = runningTotals;
+      const tops = trendMonths.map((_, i) => runningTotals[i] + s.values[i]);
+      runningTotals = tops;
+      return { categoryId: s.categoryId, color: s.color, bottoms, tops };
+    });
+  })();
 
   const fittedWidth = Math.max(200, windowWidth - spacing.md * 2 - spacing.md * 2 - Y_AXIS_WIDTH);
   const chartWidth = Math.max(fittedWidth, trendMonths.length * MONTH_WIDTH);
@@ -179,26 +191,28 @@ export function InsightsScreen() {
                     {yTicks.map((v) => (
                       <Line key={v} x1={0} y1={pointY(v)} x2={chartWidth} y2={pointY(v)} stroke={colors.border} strokeWidth={1} />
                     ))}
-                    {trendMonths.map((_, i) => {
-                      let cumulative = 0;
-                      return visibleSeries.map((s) => {
-                        const v = s.values[i];
-                        const bottom = pointY(cumulative);
-                        const top = pointY(cumulative + v);
-                        cumulative += v;
-                        if (v <= 0) return null;
-                        return (
-                          <Rect
-                            key={`${s.categoryId}-${i}`}
-                            x={pointX(i) - BAR_WIDTH / 2}
-                            y={top}
-                            width={BAR_WIDTH}
-                            height={bottom - top}
-                            fill={s.color}
-                          />
-                        );
-                      });
-                    })}
+                    {stackedBands.map((band) => (
+                      <Polygon
+                        key={band.categoryId}
+                        points={[
+                          ...trendMonths.map((_, i) => `${pointX(i)},${pointY(band.tops[i])}`),
+                          ...trendMonths.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(band.bottoms[arr.length - 1 - i])}`),
+                        ].join(' ')}
+                        fill={band.color}
+                        fillOpacity={0.55}
+                      />
+                    ))}
+                    {stackedBands.map((band) => (
+                      <Polyline
+                        key={`${band.categoryId}-edge`}
+                        points={trendMonths.map((_, i) => `${pointX(i)},${pointY(band.tops[i])}`).join(' ')}
+                        fill="none"
+                        stroke={band.color}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
                   </Svg>
                   <View style={[styles.trendXLabels, { width: chartWidth }]}>
                     {trendMonths.map((m, i) => {

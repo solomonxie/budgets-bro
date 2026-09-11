@@ -5,9 +5,12 @@ import { Chip } from '../../components/ui/Chip';
 import { TextField } from '../../components/ui/TextField';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
+import * as transactionsRepo from '../../db/repositories/transactionsRepo';
+import { useAccounts } from '../../hooks/useAccounts';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
+import { computeBalanceCorrectionCents } from '../../domain/register';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { Account, AccountType } from '../../domain/types';
@@ -30,11 +33,14 @@ export function AccountModal() {
   const close = useAppStore((s) => s.closeAccountModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
+  const { accounts } = useAccounts();
   const isEditing = editingAccountId != null;
 
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [openingBalance, setOpeningBalance] = useState('0');
+  const [latestBalance, setLatestBalance] = useState('0');
+  const [loadedBalanceCents, setLoadedBalanceCents] = useState(0);
   const [interestRate, setInterestRate] = useState('');
   const [termMonths, setTermMonths] = useState('');
   const [originalPrincipal, setOriginalPrincipal] = useState('');
@@ -45,6 +51,8 @@ export function AccountModal() {
     setName('');
     setType('checking');
     setOpeningBalance('0');
+    setLatestBalance('0');
+    setLoadedBalanceCents(0);
     setInterestRate('');
     setTermMonths('');
     setOriginalPrincipal('');
@@ -59,15 +67,22 @@ export function AccountModal() {
       const db = await getDb();
       const account = await accountsRepo.getAccount(db, editingAccountId);
       if (!account) return;
+      const balanceCents = accounts.find((a) => a.account.id === editingAccountId)?.balanceCents ?? account.openingBalanceCents;
       setName(account.name);
       setType(account.type);
       setOpeningBalance((account.openingBalanceCents / 100).toString());
+      setLatestBalance((balanceCents / 100).toString());
+      setLoadedBalanceCents(balanceCents);
       setInterestRate(account.interestRateBps != null ? (account.interestRateBps / 100).toString() : '');
       setTermMonths(account.termMonths != null ? String(account.termMonths) : '');
       setOriginalPrincipal(account.originalPrincipalCents != null ? (account.originalPrincipalCents / 100).toString() : '');
       setOriginationDate(account.originationDate ?? currentDateISO());
       setArchivedAt(account.archivedAt);
     })();
+    // Deliberately excludes `accounts` — it refreshes on every write (dataVersion
+    // bump), and re-running this would clobber in-progress edits with the DB's
+    // latest saved balance instead of just seeding the field once on open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingAccountId]);
 
   const cancel = () => {
@@ -94,6 +109,9 @@ export function AccountModal() {
     };
     if (editingAccountId != null) {
       await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
+      const actualBalanceCents = Math.round(parseFloat(latestBalance || '0') * 100);
+      const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
+      if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
     } else {
       await accountsRepo.createAccount(db, boardId, input);
     }
@@ -162,6 +180,15 @@ export function AccountModal() {
             keyboardType="decimal-pad"
             placeholder="0.00"
           />
+          {isEditing ? (
+            <TextField
+              label="Latest Balance"
+              value={latestBalance}
+              onChangeText={setLatestBalance}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+            />
+          ) : null}
           {isLoanLike ? (
             <>
               <Text style={styles.sectionLabel}>Loan Terms (for the payoff projection on the account page)</Text>

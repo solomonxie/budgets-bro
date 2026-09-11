@@ -1,35 +1,57 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useCategories } from '../../hooks/useCategories';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { formatMoney } from '../../domain/money';
+import { lastNMonths, formatMonthLabel, currentMonth } from '../../domain/month';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { TransactionWithLabels } from '../../domain/types';
+import type { BudgetStackParamList } from '../../navigation/types';
+
+type Route = RouteProp<BudgetStackParamList, 'Transactions'>;
 
 interface DateGroup {
   date: string;
   items: TransactionWithLabels[];
 }
 
+const MONTH_FILTER_OPTIONS = lastNMonths(currentMonth(), 12).reverse();
+
 export function TransactionsScreen() {
+  const route = useRoute<Route>();
   const { transactions, refresh } = useTransactions();
+  const { groups, categories } = useCategories();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+  const [monthFilter, setMonthFilter] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
+  // Arriving from the Budget screen's "Details" button presets both filters.
+  useEffect(() => {
+    if (route.params?.categoryId != null) setCategoryFilter(route.params.categoryId);
+    if (route.params?.month != null) setMonthFilter(route.params.month);
+  }, [route.params]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return transactions;
-    return transactions.filter(
-      (t) => (t.payeeName ?? '').toLowerCase().includes(q) || (t.memo ?? '').toLowerCase().includes(q),
-    );
-  }, [transactions, query]);
+    return transactions.filter((t) => {
+      if (categoryFilter != null && t.categoryId !== categoryFilter) return false;
+      if (monthFilter != null && !t.date.startsWith(monthFilter)) return false;
+      if (q && !(t.payeeName ?? '').toLowerCase().includes(q) && !(t.memo ?? '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [transactions, query, categoryFilter, monthFilter]);
 
   const grouped = useMemo<DateGroup[]>(() => {
     const byDate: DateGroup[] = [];
@@ -54,6 +76,12 @@ export function TransactionsScreen() {
     refresh();
   };
 
+  const categoryFilterLabel = categoryFilter == null ? '' : (() => {
+    const c = categories.find((cat) => cat.id === categoryFilter);
+    return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
+  })();
+  const monthFilterLabel = monthFilter == null ? '' : formatMonthLabel(monthFilter);
+
   return (
     <ScreenContainer>
       <View style={styles.toolbar}>
@@ -72,6 +100,71 @@ export function TransactionsScreen() {
         >
           <Text style={styles.selectLink}>{selectMode ? 'Done' : 'Select'}</Text>
         </Pressable>
+      </View>
+      <View style={styles.filterRow}>
+        <View style={styles.filterField}>
+          <DropdownField label="Category" valueLabel={categoryFilterLabel} placeholder="All Categories">
+            {(close) => (
+              <>
+                <DropdownOption
+                  label="All Categories"
+                  selected={categoryFilter == null}
+                  onPress={() => {
+                    setCategoryFilter(null);
+                    close();
+                  }}
+                />
+                {groups.map((group) => {
+                  const groupCategories = categories.filter((c) => c.groupId === group.id);
+                  if (groupCategories.length === 0) return null;
+                  return (
+                    <View key={group.id}>
+                      <DropdownGroupLabel label={group.name} />
+                      {groupCategories.map((c) => (
+                        <DropdownOption
+                          key={c.id}
+                          label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                          selected={categoryFilter === c.id}
+                          onPress={() => {
+                            setCategoryFilter(c.id);
+                            close();
+                          }}
+                        />
+                      ))}
+                    </View>
+                  );
+                })}
+              </>
+            )}
+          </DropdownField>
+        </View>
+        <View style={styles.filterField}>
+          <DropdownField label="Month" valueLabel={monthFilterLabel} placeholder="All Months">
+            {(close) => (
+              <>
+                <DropdownOption
+                  label="All Months"
+                  selected={monthFilter == null}
+                  onPress={() => {
+                    setMonthFilter(null);
+                    close();
+                  }}
+                />
+                {MONTH_FILTER_OPTIONS.map((m) => (
+                  <DropdownOption
+                    key={m}
+                    label={formatMonthLabel(m)}
+                    selected={monthFilter === m}
+                    onPress={() => {
+                      setMonthFilter(m);
+                      close();
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </DropdownField>
+        </View>
       </View>
       <FlatList
         style={{ flex: 1 }}
@@ -102,7 +195,7 @@ export function TransactionsScreen() {
             ))}
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No transactions yet.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>No transactions match.</Text>}
       />
       {selectMode && selectedIds.length > 0 ? (
         <Pressable style={styles.deleteBar} onPress={deleteSelected}>
@@ -127,6 +220,8 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   selectLink: { color: colors.accent, fontWeight: '600' },
+  filterRow: { flexDirection: 'row', gap: spacing.sm },
+  filterField: { flex: 1 },
   dateGroup: { marginBottom: spacing.sm },
   dateHeader: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 4 },
   row: {

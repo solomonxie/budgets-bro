@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { TextField } from '../../components/ui/TextField';
 import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
-import { withRunningBalances, computeBalanceCorrectionCents } from '../../domain/register';
+import { withRunningBalances } from '../../domain/register';
 import { formatMoney } from '../../domain/money';
-import { getDb } from '../../db/client';
-import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
@@ -28,10 +25,8 @@ export function AccountDetailScreen() {
   const { accountId } = route.params;
   const { accounts, loading } = useAccounts();
   const { transactions } = useTransactions(accountId);
-  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
-  const boardId = useAppStore((s) => s.currentBoardId);
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
@@ -54,54 +49,13 @@ export function AccountDetailScreen() {
     });
   }, [navigation, accountWithBalance, accountId, openEditAccount]);
 
-  const [correcting, setCorrecting] = useState(false);
-  const [actualBalance, setActualBalance] = useState('');
-
   const rows = useMemo(() => withRunningBalances(transactions, balanceCents), [transactions, balanceCents]);
-
-  const saveCorrection = async () => {
-    const parsed = parseFloat(actualBalance);
-    if (Number.isNaN(parsed)) {
-      setCorrecting(false);
-      return;
-    }
-    const deltaCents = computeBalanceCorrectionCents(balanceCents, Math.round(parsed * 100));
-    const db = await getDb();
-    await transactionsRepo.correctBalance(db, boardId, accountId, deltaCents);
-    bumpDataVersion();
-    setCorrecting(false);
-    setActualBalance('');
-  };
 
   return (
     <ScreenContainer>
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Balance</Text>
         <Text style={[styles.summaryValue, balanceCents < 0 && styles.negative]}>{formatMoney(balanceCents)}</Text>
-        {correcting ? (
-          <View style={styles.correctForm}>
-            <TextField
-              placeholder="Actual balance"
-              keyboardType="decimal-pad"
-              value={actualBalance}
-              onChangeText={setActualBalance}
-            />
-            <View style={styles.correctActions}>
-              <Pressable onPress={() => setCorrecting(false)}>
-                <Text style={styles.cancelLink}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.saveButton} onPress={saveCorrection}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.summaryLinks}>
-            <Pressable onPress={() => setCorrecting(true)}>
-              <Text style={styles.correctLink}>Correct Balance</Text>
-            </Pressable>
-          </View>
-        )}
       </View>
       {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
         <LoanDetailsCard account={accountWithBalance.account} balanceCents={balanceCents} />
@@ -145,13 +99,6 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   summaryValue: { fontSize: 30, fontWeight: '700', color: colors.text },
-  summaryLinks: { flexDirection: 'row', alignItems: 'center' },
-  correctLink: { color: colors.accent, fontWeight: '600', fontSize: 13 },
-  correctForm: { gap: spacing.sm, marginTop: spacing.xs },
-  correctActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: spacing.md },
-  cancelLink: { color: colors.textMuted, fontWeight: '600' },
-  saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },
-  saveButtonText: { color: '#fff', fontWeight: '700' },
   txnRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

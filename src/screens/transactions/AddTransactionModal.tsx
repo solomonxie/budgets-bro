@@ -7,6 +7,7 @@ import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
+import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
@@ -26,7 +27,6 @@ export function AddTransactionModal() {
   const [amount, setAmount] = useState('');
   const [direction, setDirection] = useState<'out' | 'in'>('out');
   const [payee, setPayee] = useState('');
-  const [showPayeeSuggestions, setShowPayeeSuggestions] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
@@ -64,7 +64,6 @@ export function AddTransactionModal() {
     setAmount('');
     setDirection('out');
     setPayee('');
-    setShowPayeeSuggestions(false);
     setCategoryId(null);
     setMemo('');
     setDate(currentDateISO());
@@ -77,17 +76,12 @@ export function AddTransactionModal() {
     reset();
   };
 
-  const selectPayeeSuggestion = async (name: string, id: number) => {
+  const selectPayee = async (name: string, id: number) => {
     setPayee(name);
-    setShowPayeeSuggestions(false);
     const db = await getDb();
     const lastCategoryId = await transactionsRepo.getLastCategoryIdForPayee(db, id);
     if (lastCategoryId != null) setCategoryId(lastCategoryId);
   };
-
-  const payeeSuggestions = payees.filter(
-    (p) => payee.trim().length > 0 && p.name.toLowerCase().includes(payee.trim().toLowerCase()) && p.name !== payee,
-  );
 
   const save = async () => {
     const parsed = parseFloat(amount);
@@ -169,28 +163,15 @@ export function AddTransactionModal() {
             <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>Income</Text>
           </Pressable>
         </View>
-        <View>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Payee"
-            value={payee}
-            onChangeText={(v) => {
-              setPayee(v);
-              setShowPayeeSuggestions(true);
-            }}
-            onFocus={() => setShowPayeeSuggestions(true)}
-            placeholderTextColor={colors.textMuted}
-          />
-          {showPayeeSuggestions && payeeSuggestions.length > 0 ? (
-            <View style={styles.suggestions}>
-              {payeeSuggestions.slice(0, 5).map((p) => (
-                <Pressable key={p.id} style={styles.suggestionRow} onPress={() => selectPayeeSuggestion(p.name, p.id)}>
-                  <Text style={styles.suggestionText}>{p.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
+        <SearchableDropdownField
+          label="Payee"
+          valueLabel={payee}
+          placeholder="Payee"
+          searchPlaceholder="Search or type a new payee"
+          options={payees.map((p) => ({ id: p.id, label: p.name }))}
+          onSelect={(o) => selectPayee(o.label, o.id)}
+          onUseText={setPayee}
+        />
         <DropdownField
           label="Category"
           valueLabel={
@@ -314,16 +295,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     color: colors.text,
   },
-  suggestions: {
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
-  suggestionRow: { paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
-  suggestionText: { fontSize: 14, color: colors.text },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',

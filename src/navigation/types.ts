@@ -2,7 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type BudgetStackParamList = {
   BudgetHome: undefined;
-  Transactions: undefined;
+  Transactions: { categoryId?: number; month?: string } | undefined;
   YnabImport: undefined;
 };
 

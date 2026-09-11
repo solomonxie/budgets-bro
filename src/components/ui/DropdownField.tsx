@@ -20,7 +20,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
 
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <Pressable style={styles.field} onPress={() => setOpen(true)}>
         <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
           {valueLabel || placeholder}
@@ -30,7 +30,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         <Pressable style={styles.backdrop} onPress={close}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <ScrollView>{children(close)}</ScrollView>
+            <ScrollView keyboardShouldPersistTaps="handled">{children(close)}</ScrollView>
             <Pressable style={styles.cancel} onPress={close}>
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>

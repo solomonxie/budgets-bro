@@ -180,7 +180,7 @@ export function BudgetScreen() {
         </View>
         {avgMonthlySpentCents != null ? (
           <View style={styles.compareBlock}>
-            <Text style={styles.compareLabel}>12-Mo Avg</Text>
+            <Text style={styles.compareLabel}>12 Months Avg</Text>
             <Text style={styles.compareValue}>{formatMoney(avgMonthlySpentCents)}</Text>
             {avgMonthlySpentCents > 0 ? (
               <Text style={styles.compareDelta}>{Math.round((totalSpentCents / avgMonthlySpentCents) * 100)}% reached</Text>

@@ -36,6 +36,9 @@ export type SettingsStackParamList = {
 export type RootTabParamList = {
   Budget: NavigatorScreenParams<BudgetStackParamList>;
   Accounts: NavigatorScreenParams<AccountsStackParamList>;
+  // Fake tab — its tabPress listener opens the Add Transaction sheet
+  // instead of navigating; see RootNavigator's NoopScreen.
+  AddTransaction: undefined;
   Insights: NavigatorScreenParams<InsightsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
 };

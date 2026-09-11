@@ -4,7 +4,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
 import { withRunningBalances } from '../../domain/register';
@@ -87,7 +86,6 @@ export function AccountDetailScreen() {
         )}
         ListEmptyComponent={<Text style={styles.empty}>No transactions yet.</Text>}
       />
-      <FloatingAddButton accountId={accountId} />
     </ScreenContainer>
   );
 }

@@ -10,6 +10,7 @@ interface AssignedAmountModalProps {
   categoryIcon: string | null;
   initialCents: number;
   unassignedCents: number;
+  lastMonthAssignedCents: number;
   onSave: (cents: number) => void;
   onHistory: () => void;
   onClose: () => void;
@@ -27,6 +28,7 @@ export function AssignedAmountModal({
   categoryIcon,
   initialCents,
   unassignedCents,
+  lastMonthAssignedCents,
   onSave,
   onHistory,
   onClose,
@@ -80,7 +82,9 @@ export function AssignedAmountModal({
             selectTextOnFocus
             onSubmitEditing={done}
           />
-          <Text style={styles.unassignedHint}>Unassigned: {formatMoney(unassignedCents)}</Text>
+          <Text style={styles.unassignedHint}>
+            Unassigned: {formatMoney(unassignedCents)}   ·   Last month: {formatMoney(lastMonthAssignedCents)}
+          </Text>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <View style={styles.actions}>
             <View style={styles.sideSlot} />

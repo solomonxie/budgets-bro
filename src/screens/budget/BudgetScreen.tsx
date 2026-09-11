@@ -10,6 +10,7 @@ import { PromptModal } from '../../components/ui/PromptModal';
 import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { MonthNav } from '../../components/ui/MonthNav';
 import { AssignedAmountModal } from '../../components/ui/AssignedAmountModal';
+import { DisclosureChevron } from '../../components/ui/DisclosureChevron';
 import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
@@ -197,7 +198,7 @@ export function BudgetScreen() {
           <View key={group.id} style={styles.group}>
             <View style={styles.groupHeader}>
               <Pressable style={styles.groupHeaderMain} onPress={() => toggleGroup(group.id)}>
-                <Text style={styles.chevron}>{collapsed ? '›' : '⌄'}</Text>
+                <DisclosureChevron expanded={!collapsed} size={18} />
                 <Text style={styles.groupLabel}>{group.name}</Text>
               </Pressable>
               <Text style={styles.groupSub}>{formatMoney(subtotal)}</Text>
@@ -317,7 +318,6 @@ const styles = StyleSheet.create({
   group: { gap: spacing.xs },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
   groupHeaderMain: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chevron: { color: colors.textMuted, width: 14 },
   groupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   groupSub: { marginLeft: 'auto', fontSize: 12, fontWeight: '700', color: colors.textMuted },
   emptyGroup: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 2 },

@@ -62,8 +62,8 @@ describe('categoryCaption', () => {
     expect(categoryCaption('unbudgeted', 0, 0, 0)).toBe('Not budgeted');
   });
 
-  it('reports fully spent', () => {
-    expect(categoryCaption('fully-spent', 5000, 5000, 0)).toBe('Fully spent');
+  it('reports fully spent with the amount', () => {
+    expect(categoryCaption('fully-spent', 5000, 5000, 0)).toBe('Fully spent $50');
   });
 
   it('reports funded with no spending', () => {

@@ -1,6 +1,6 @@
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type TabIconName = 'budget' | 'accounts' | 'insights';
+export type TabIconName = 'budget' | 'accounts' | 'insights' | 'settings';
 
 interface TabBarIconProps {
   name: TabIconName;
@@ -28,11 +28,20 @@ export function TabBarIcon({ name, color, size = 22 }: TabBarIconProps) {
           <Path d="M5 10v9M10 10v9M14 10v9M19 10v9" {...stroke} />
           <Path d="M3 19h18" {...stroke} />
         </>
-      ) : (
+      ) : name === 'insights' ? (
         <>
           <Path d="M4 20V11" {...stroke} />
           <Path d="M11 20V6" {...stroke} />
           <Path d="M18 20v-7" {...stroke} />
+        </>
+      ) : (
+        <>
+          <Path d="M3 6h18" {...stroke} />
+          <Circle cx="8" cy="6" r="2" fill={color} />
+          <Path d="M3 12h18" {...stroke} />
+          <Circle cx="16" cy="12" r="2" fill={color} />
+          <Path d="M3 18h18" {...stroke} />
+          <Circle cx="8" cy="18" r="2" fill={color} />
         </>
       )}
     </Svg>

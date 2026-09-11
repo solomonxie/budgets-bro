@@ -54,14 +54,21 @@ export function BudgetScreen() {
     .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
 
   // Same basis as totalSpentCents above (per-category activity, positive
-  // outflow only) so the comparison is apples to apples — just one cheap
-  // query for the prior month instead of a second full useBudget load.
+  // outflow only) so the comparison is apples to apples — just two cheap
+  // queries for the prior month instead of a second full useBudget load.
+  // prevMonthAssignedByCategory feeds the assign popup's "last month" hint.
   const [prevMonthSpentCents, setPrevMonthSpentCents] = useState<number | null>(null);
+  const [prevMonthAssignedByCategory, setPrevMonthAssignedByCategory] = useState<Record<number, number>>({});
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      const activity = await budgetsRepo.activityThisMonthByCategory(db, boardId, previousMonth(month));
+      const prevMonth = previousMonth(month);
+      const [activity, assigned] = await Promise.all([
+        budgetsRepo.activityThisMonthByCategory(db, boardId, prevMonth),
+        budgetsRepo.assignedThisMonthByCategory(db, boardId, prevMonth),
+      ]);
       setPrevMonthSpentCents(Object.values(activity).reduce((sum, v) => sum + Math.max(0, -v), 0));
+      setPrevMonthAssignedByCategory(assigned);
     })();
   }, [month, boardId, dataVersion]);
 
@@ -274,6 +281,7 @@ export function BudgetScreen() {
         categoryIcon={editingItem?.category.icon ?? null}
         initialCents={editingItem?.assignedThisMonthCents ?? 0}
         unassignedCents={unassignedCents}
+        lastMonthAssignedCents={editingItem ? (prevMonthAssignedByCategory[editingItem.category.id] ?? 0) : 0}
         onSave={saveAssigned}
         onHistory={openHistory}
         onClose={() => setEditingItem(null)}

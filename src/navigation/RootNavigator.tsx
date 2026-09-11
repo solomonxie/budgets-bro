@@ -4,9 +4,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AccountsStackNavigator } from './AccountsStackNavigator';
 import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
-import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { AddTransactionModal } from '../screens/transactions/AddTransactionModal';
 import { AccountModal } from '../screens/accounts/AccountModal';
+import { SettingsModal } from '../screens/settings/SettingsModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import type { TabIconName } from '../components/ui/TabBarIcon';
 import { useBootstrapActiveBoard } from '../hooks/useBoards';
@@ -30,10 +30,9 @@ const navigationTheme = {
 
 const TAB_ICONS: Record<string, TabIconName> = {
   Budget: 'budget',
-  Accounts: 'accounts',
   AddTransaction: 'add',
+  Accounts: 'accounts',
   Insights: 'insights',
-  Settings: 'settings',
 };
 
 // Never actually navigated to — the "AddTransaction" tab's tabPress
@@ -62,7 +61,6 @@ export function RootNavigator() {
         })}
       >
         <Tab.Screen name="Budget" component={BudgetStackNavigator} />
-        <Tab.Screen name="Accounts" component={AccountsStackNavigator} />
         <Tab.Screen
           name="AddTransaction"
           component={NoopScreen}
@@ -74,11 +72,12 @@ export function RootNavigator() {
             },
           }}
         />
+        <Tab.Screen name="Accounts" component={AccountsStackNavigator} />
         <Tab.Screen name="Insights" component={InsightsStackNavigator} />
-        <Tab.Screen name="Settings" component={SettingsStackNavigator} />
       </Tab.Navigator>
       <AddTransactionModal />
       <AccountModal />
+      <SettingsModal />
     </NavigationContainer>
   );
 }

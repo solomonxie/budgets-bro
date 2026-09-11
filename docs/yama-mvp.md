@@ -17,7 +17,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 - Bank-linking / Plaid / automatic transaction import (a one-time YNAB data import is in scope — see below — but it's manual and user-initiated, not a live bank sync)
 - Multi-user, family, or shared budgets
 - Android (iOS-only initially)
-- Push notifications, reminders, recurring-transaction automation
+- Push notifications, reminders (recurring-transaction *templates* are in scope post-MVP — see Recurring Transactions below — but posting them happens lazily on app open, not via a push/background job)
 - CSV import (possible post-MVP; manual entry only for MVP)
 - Multi-currency (single currency assumed)
 - Advanced reporting/BI beyond the two native reports described below (spending breakdown, income vs spending)
@@ -45,7 +45,36 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 
 Balances are computed, not stored, to avoid drift bugs.
 
-**Correcting a balance**: no reconciliation UI/terminology — if an account's real-world balance drifts from what YAMA computes, the user enters the actual balance and YAMA creates one uncategorized adjustment transaction for the difference (payee "Balance Adjustment"). It flows through the same Unassigned Cash math as any other uncategorized transaction, positive or negative — no special-cased reconciliation logic needed.
+**Correcting a balance**: no reconciliation UI/terminology — if an account's real-world balance drifts from what YAMA computes, the user enters the actual balance and YAMA creates one uncategorized adjustment transaction for the difference (payee "Balance Adjustment"). It flows through the same Unassigned Cash math as any other uncategorized transaction, positive or negative — no special-cased reconciliation logic needed. Reachable from the Edit Account sheet — a "Latest Balance" field right under Opening Balance; changing it and saving posts the adjustment.
+
+## Loan/mortgage payments today (shipped)
+A loan/mortgage-*typed* account (`accounts.type IN ('loan','mortgage')`) owns exactly one auto-generated, auto-renamed budget category: "Payment: `<account name>`" (`categories.linked_account_id`, group "Loan Payments"). Categorizing *any* transaction under that specific category posts a second, mirrored transaction into the linked account for the same amount (opposite sign), paired via `transfer_account_id` — so a $800 outflow categorized "Payment: Dachang House debt" both spends from the budget *and* reduces that loan account's balance by $800, automatically.
+
+This is a *category*-based link, not a payee-based one, and it only fires for that one specific auto-generated category — a transaction categorized under some other category (e.g. an imported "Mortgage" category that isn't the linked one) does **not** touch the loan account's balance. It also only exists for accounts *typed* loan/mortgage in this app — an account whose type was guessed wrong by the YNAB importer (e.g. a mortgage debt account imported as `loan` because its name contained "debt", not "mortgage") still gets the mechanism (both types behave identically here), but an account that's a plain `tracking` type doesn't.
+
+## Loan/mortgage accounts v2 (designed, not yet built)
+Today, a mortgage is two unrelated accounts if the user wants to track both the debt and the home's value (one `loan`/`mortgage`-typed, one `tracking`-typed) — no shared identity, no combined equity number. Redesign: **one account is the whole mortgage** — its debt side and its value side.
+
+- **Debt side** — unchanged mechanics (balance = opening + transactions, reduced by linked-category payments), but the single static `interest_rate_bps` column becomes a history: new table `account_rate_history` (id, account_id, rate_bps, effective_date) — a mortgage's rate isn't fixed for its life (renewals, refinances, variable-rate resets). The latest entry is "current rate"; the full series lets a retrospective "interest paid to date" figure use the *actual* rate that applied at each point instead of extrapolating today's rate backward.
+- **Value side** — new table `account_value_entries` (id, account_id, value_cents, as_of_date, note nullable, created_at) — a manually-entered log of the home's market value over time (user's own estimate; no external valuation API). Latest entry = "current value". This table is generic, not mortgage-specific — see Tracking/investment accounts below, which reuses it.
+- **Equity** = latest value entry − debt balance. Shown on the account page instead of two separate Net Worth rows.
+- **Payoff projection** — extends `finance-tools/amortization.ts` (already computes projected payoff from balance + rate + term) to take the rate *history* (so past-interest figures are accurate) plus an optional extra/early-payment input (lump sum or recurring add-on) to recompute a faster payoff date. Still a pure function, still no DB/React dependency.
+- **Account page** becomes the "intelligence" surface: current debt, current value, equity, rate history list, payoff projection card (adjustable extra-payment input), value history log/chart — all local, no network.
+- **Migration**: existing split accounts (debt + tracking) aren't auto-merged — a "Merge into one mortgage account" action folds a tracking account's value into a mortgage account's new value log and archives the tracking account, but the tool itself isn't built yet.
+
+## Tracking/investment accounts (designed, not yet built)
+Non-cash accounts (RRSP/TFSA-style investments, or any `tracking` account) get the same `account_value_entries` log as the mortgage's value side. Logging a new snapshot supports two entry modes, since users track this two different ways:
+1. **Exact gain since last track** — user types the period's $ gain/loss directly; new value = old value + entered gain.
+2. **Latest total balance** — user types the current total; gain since last track = new value − old value, computed automatically.
+
+Both modes store the same row shape (`value_cents` absolute, `gain_cents` delta, `as_of_date`, `mode`) — the UI difference is only which field the user fills in. Account "balance" for a tracking account becomes the latest `account_value_entries.value_cents` instead of opening_balance + transactions (transactions still exist for any real cash movement in/out, e.g. a contribution, but growth/decline is tracked separately from cash flow).
+
+## Recurring/scheduled transactions (designed, not yet built)
+New table `scheduled_transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents, frequency, interval_n, next_date, end_date nullable, auto_post boolean, is_interest, created_at) mirroring a real transaction's shape. Two posting modes, chosen per schedule:
+- **Manual approve** — an "Upcoming" list (Budget or History screen) shows what's due; tapping one posts it as a real transaction with today's date, prefilled from the template.
+- **Auto-post** — posted automatically once `next_date` arrives, checked lazily when the app opens/foregrounds (no push notifications or OS background jobs — out of scope per Non-goals above).
+
+Scope cut for v1: no YNAB-style "Age of Money"/next-month-funding-plan integration — schedules are a posting convenience, not a forecasting engine.
 
 ## Core UI
 Reference: real YNAB's screenshots. YAMA reuses the interaction patterns that carry the core budgeting workflow; the goal-tracking and cosmetic extras noted above stay out for MVP.

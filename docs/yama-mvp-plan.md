@@ -97,6 +97,19 @@ Converts a working skeleton into a submittable app.
 - [ ] T9.4 TestFlight build via EAS + manual QA pass
 - [ ] T9.5 EAS Submit to App Store
 
+## Phase 10: Loan/mortgage v2, investment tracking, recurring transactions
+Requested as a follow-up; design captured in [`yama-mvp.md`](yama-mvp.md#loanmortgage-accounts-v2-designed-not-yet-built). Not blocking Phase 9 (App Store submission) — pick up whenever.
+
+- [ ] T10.1 `account_rate_history` table (id, account_id, rate_bps, effective_date) replacing the single static `interest_rate_bps` column on loan/mortgage accounts; migration backfills one row per existing account from its current rate
+- [ ] T10.2 `account_value_entries` table (id, account_id, value_cents, as_of_date, note, created_at, gain_cents nullable, mode nullable) — generic manual value log, shared by mortgage "current home value" and tracking/investment accounts
+- [ ] T10.3 Merge loan/mortgage debt + a separate tracking (value) account into one combined account — one-time migration action, archives the tracking account
+- [ ] T10.4 `finance-tools/amortization.ts`: accept a rate history (not just one rate) for accurate to-date interest, plus an optional extra/early-payment input for a revised payoff date
+- [ ] T10.5 Mortgage account page: equity (value − debt), rate history list, value history log, payoff projection card with adjustable extra-payment input
+- [ ] T10.6 Tracking/investment account page: value log entry form with the two modes (exact gain vs. latest total balance, auto-computing the delta for the latter)
+- [ ] T10.7 `scheduled_transactions` table + repo (frequency, interval, next_date, end_date, auto_post)
+- [ ] T10.8 "Upcoming" list (manual-approve schedules) + lazy auto-post check on app foreground for `auto_post` schedules
+- [ ] T10.9 Scheduled-transaction CRUD UI (create/edit/pause/delete a schedule, from the transaction entry sheet or a dedicated list)
+
 ## Backlog
 Not sequenced against the phases above — pick up opportunistically.
 

@@ -4,11 +4,20 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
+import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { useBoards } from '../../hooks/useBoards';
+import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
+import * as payeesRepo from '../../db/repositories/payeesRepo';
 import { secureStore } from '../../secure/secureStore';
 import { exportBoardZip } from '../../export/exportBoard';
+import { pickYnabExport } from '../../import/pickYnabExport';
+import { importYnabExport } from '../../import/ynabImporter';
+import type { YnabImportResult } from '../../import/ynabImporter';
+import { pickAppExport } from '../../import/pickAppExport';
+import { importAppExport } from '../../import/appExportImporter';
+import type { AppExportImportResult } from '../../import/appExportImporter';
 import { useAppStore } from '../../state/useAppStore';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -16,18 +25,32 @@ import { spacing } from '../../theme/spacing';
 const THEME_KEY = 'theme_preference';
 type ThemePreference = 'dark' | 'light';
 
-type PromptState = { type: 'newBoard' } | { type: 'renameBoard'; boardId: number; initial: string } | null;
+type PromptState =
+  | { type: 'newBoard' }
+  | { type: 'renameBoard'; boardId: number; initial: string }
+  | { type: 'renamePayee'; payeeId: number; initial: string }
+  | null;
 
 export function SettingsScreen() {
   const { boards, currentBoardId, switchBoard, addBoard, renameBoard, removeBoard } = useBoards();
   const boardId = useAppStore((s) => s.currentBoardId);
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const { payees, refresh: refreshPayees } = usePayees();
   const [prompt, setPrompt] = useState<PromptState>(null);
+  const [selectedPayeeId, setSelectedPayeeId] = useState<number | null>(null);
+  const [payeeNameInput, setPayeeNameInput] = useState('');
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
   const [aiApiKey, setAiApiKey] = useState('');
   const [s3AccessKeyId, setS3AccessKeyId] = useState('');
   const [s3SecretAccessKey, setS3SecretAccessKey] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<YnabImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreResult, setRestoreResult] = useState<AppExportImportResult | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -60,6 +83,45 @@ export function SettingsScreen() {
     }
   };
 
+  const runImport = async () => {
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const files = await pickYnabExport();
+      if (!files) return;
+      setImporting(true);
+      const db = await getDb();
+      const summary = await importYnabExport(db, boardId, files);
+      setImportResult(summary);
+      bumpDataVersion();
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Import failed.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Restores this app's own export as a brand-new board and switches to it
+  // — never merged into the currently active board.
+  const runRestore = async () => {
+    setRestoreError(null);
+    setRestoreResult(null);
+    try {
+      const files = await pickAppExport();
+      if (!files) return;
+      setRestoring(true);
+      const db = await getDb();
+      const summary = await importAppExport(db, files);
+      setRestoreResult(summary);
+      bumpDataVersion();
+      await switchBoard(summary.boardId);
+    } catch (e) {
+      setRestoreError(e instanceof Error ? e.message : 'Restore failed.');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const runExport = async () => {
     setExporting(true);
     try {
@@ -79,8 +141,46 @@ export function SettingsScreen() {
       await switchBoard(id);
     } else if (prompt?.type === 'renameBoard') {
       await renameBoard(prompt.boardId, value);
+    } else if (prompt?.type === 'renamePayee') {
+      const db = await getDb();
+      await payeesRepo.renamePayee(db, prompt.payeeId, value);
+      setPayeeNameInput(value);
+      refreshPayees();
     }
     setPrompt(null);
+  };
+
+  const selectedPayee = payees.find((p) => p.id === selectedPayeeId) ?? null;
+
+  const selectPayee = (id: number, name: string) => {
+    setSelectedPayeeId(id);
+    setPayeeNameInput(name);
+  };
+
+  const createPayee = async (name: string) => {
+    const db = await getDb();
+    const id = await payeesRepo.findOrCreatePayee(db, boardId, name);
+    refreshPayees();
+    if (id != null) selectPayee(id, name.trim());
+  };
+
+  const deleteSelectedPayee = () => {
+    if (selectedPayeeId == null) return;
+    Alert.alert(`Delete "${payeeNameInput}"?`, 'Past transactions keep their amounts but lose this payee. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await payeesRepo.deletePayee(db, selectedPayeeId);
+          setSelectedPayeeId(null);
+          setPayeeNameInput('');
+          refreshPayees();
+          bumpDataVersion();
+        },
+      },
+    ]);
   };
 
   const confirmDeleteBoard = (id: number, name: string) => {
@@ -124,6 +224,37 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Payees</Text>
+        <Text style={styles.sectionHint}>Pick a payee to rename or delete it, or type a new name to create one.</Text>
+        <SearchableDropdownField
+          label="Payee"
+          valueLabel={payeeNameInput}
+          placeholder="Select or create…"
+          searchPlaceholder="Search or type a new payee"
+          options={payees.map((p) => ({ id: p.id, label: p.linkedAccountId != null ? `${p.name} (account)` : p.name }))}
+          onSelect={(o) => selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))}
+          onUseText={createPayee}
+        />
+        {selectedPayee != null ? (
+          selectedPayee.linkedAccountId != null ? (
+            <Text style={styles.sectionHint}>Linked to an account — managed automatically, can&rsquo;t be renamed or deleted here.</Text>
+          ) : (
+            <View style={styles.payeeActions}>
+              <Pressable
+                style={styles.payeeActionButton}
+                onPress={() => setPrompt({ type: 'renamePayee', payeeId: selectedPayee.id, initial: payeeNameInput })}
+              >
+                <Text style={styles.payeeActionText}>Rename</Text>
+              </Pressable>
+              <Pressable style={styles.payeeActionButton} onPress={deleteSelectedPayee}>
+                <Text style={[styles.payeeActionText, styles.deletePayeeText]}>Delete</Text>
+              </Pressable>
+            </View>
+          )
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionHeading}>Appearance</Text>
         <View style={styles.segmented}>
           {(['dark', 'light'] as const).map((opt) => (
@@ -141,7 +272,10 @@ export function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>OpenAI</Text>
-        <Text style={styles.sectionHint}>Used by AI Analysis. Stored securely on this device only.</Text>
+        <Text style={styles.sectionHint}>
+          Used by AI Analysis. Sent straight from this device to OpenAI when you run an analysis — never stored or
+          seen by us. The key itself never leaves this device, including in backups.
+        </Text>
         <TextField
           placeholder="sk-..."
           value={aiApiKey}
@@ -155,7 +289,10 @@ export function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>AWS S3</Text>
-        <Text style={styles.sectionHint}>Used for cloud backups. Stored securely on this device only.</Text>
+        <Text style={styles.sectionHint}>
+          Used only for backups you trigger. The key itself never leaves this device, including in backups — only
+          your board&rsquo;s money data goes to S3, and only when you back up.
+        </Text>
         <TextField
           label="Access Key ID"
           value={s3AccessKeyId}
@@ -177,6 +314,32 @@ export function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>Data</Text>
+        <Pressable style={styles.importButton} onPress={runImport} disabled={importing}>
+          {importing ? <ActivityIndicator /> : <Text style={styles.importButtonText}>Import from YNAB…</Text>}
+        </Pressable>
+        {importError ? <Text style={styles.errorText}>{importError}</Text> : null}
+        {importResult ? (
+          <View style={styles.group}>
+            <ImportResultRow label="Transactions imported" value={importResult.transactionsInserted} />
+            <ImportResultRow label="Transactions updated" value={importResult.transactionsUpdated} />
+            <ImportResultRow label="Budgeted amounts written" value={importResult.budgetEntriesWritten} />
+            <ImportResultRow label="Accounts created" value={importResult.accountsCreated} />
+            <ImportResultRow label="Categories created" value={importResult.categoriesCreated} />
+          </View>
+        ) : null}
+        <Pressable style={styles.importButton} onPress={runRestore} disabled={restoring}>
+          {restoring ? <ActivityIndicator /> : <Text style={styles.importButtonText}>Import App Backup…</Text>}
+        </Pressable>
+        <Text style={styles.sectionHint}>Pick a .zip from this app's own "Export Board as .zip" — restores it as a new board.</Text>
+        {restoreError ? <Text style={styles.errorText}>{restoreError}</Text> : null}
+        {restoreResult ? (
+          <View style={styles.group}>
+            <ImportResultRow label="Restored into board" value={restoreResult.boardName} />
+            <ImportResultRow label="Accounts" value={restoreResult.accountsImported} />
+            <ImportResultRow label="Categories" value={restoreResult.categoriesImported} />
+            <ImportResultRow label="Transactions" value={restoreResult.transactionsImported} />
+          </View>
+        ) : null}
         <Pressable style={styles.exportButton} onPress={runExport} disabled={exporting}>
           {exporting ? <ActivityIndicator color="#fff" /> : <Text style={styles.exportButtonText}>Export Board as .zip</Text>}
         </Pressable>
@@ -194,13 +357,22 @@ export function SettingsScreen() {
 
       <PromptModal
         visible={prompt != null}
-        title={prompt?.type === 'newBoard' ? 'New Board' : 'Rename Board'}
-        placeholder="e.g. Personal Budget"
+        title={prompt?.type === 'newBoard' ? 'New Board' : prompt?.type === 'renamePayee' ? 'Rename Payee' : 'Rename Board'}
+        placeholder={prompt?.type === 'renamePayee' ? 'Payee name' : 'e.g. Personal Budget'}
         initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
         onCancel={() => setPrompt(null)}
         onSubmit={submitPrompt}
       />
     </ScreenContainer>
+  );
+}
+
+function ImportResultRow({ label, value }: { label: string; value: number | string }) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.rowTitle}>{label}</Text>
+      <Text style={styles.rowValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -222,6 +394,20 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
+  payeeActions: { flexDirection: 'row', gap: spacing.sm },
+  payeeActionButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  payeeActionText: { fontWeight: '600', fontSize: 14, color: colors.text },
+  deletePayeeText: { color: colors.negative },
+  errorText: { color: colors.negative, fontSize: 13 },
+  importButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  importButtonText: { color: colors.text, fontWeight: '700', fontSize: 15 },
   exportButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   exportButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

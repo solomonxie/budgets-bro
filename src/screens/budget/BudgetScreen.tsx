@@ -237,6 +237,7 @@ export function BudgetScreen() {
         categoryName={editingItem?.category.name ?? ''}
         categoryIcon={editingItem?.category.icon ?? null}
         initialCents={editingItem?.assignedThisMonthCents ?? 0}
+        unassignedCents={unassignedCents}
         onSave={saveAssigned}
         onHistory={openHistory}
         onClose={() => setEditingItem(null)}

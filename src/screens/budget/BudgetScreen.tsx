@@ -234,7 +234,6 @@ export function BudgetScreen() {
         <Text style={styles.addGroupButtonText}>+ New Group</Text>
       </Pressable>
       <View style={{ height: 80 }} />
-      <FloatingAddButton />
 
       <PromptModal
         visible={prompt != null}

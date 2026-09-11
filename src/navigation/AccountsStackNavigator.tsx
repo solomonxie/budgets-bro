@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AccountsScreen } from '../screens/accounts/AccountsScreen';
 import { AccountDetailScreen } from '../screens/accounts/AccountDetailScreen';
+import { ClosedAccountsScreen } from '../screens/accounts/ClosedAccountsScreen';
 import { SettingsHeaderButton } from '../components/ui/SettingsHeaderButton';
 import type { AccountsStackParamList } from './types';
 
@@ -15,6 +16,7 @@ export function AccountsStackNavigator() {
         options={{ title: 'Accounts', headerLeft: () => <SettingsHeaderButton /> }}
       />
       <Stack.Screen name="AccountDetail" component={AccountDetailScreen} options={{ title: '' }} />
+      <Stack.Screen name="ClosedAccounts" component={ClosedAccountsScreen} options={{ title: 'Closed Accounts' }} />
     </Stack.Navigator>
   );
 }

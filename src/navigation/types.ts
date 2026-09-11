@@ -8,6 +8,7 @@ export type BudgetStackParamList = {
 export type AccountsStackParamList = {
   AccountsList: undefined;
   AccountDetail: { accountId: number };
+  ClosedAccounts: undefined;
 };
 
 export type InsightsStackParamList = {

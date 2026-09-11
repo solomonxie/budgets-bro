@@ -48,6 +48,9 @@ export function AccountsScreen() {
       <Pressable style={styles.addButton} onPress={openAddAccount}>
         <Text style={styles.addButtonText}>+ Add Account</Text>
       </Pressable>
+      <Pressable style={styles.closedLink} onPress={() => navigation.navigate('ClosedAccounts')}>
+        <Text style={styles.closedLinkText}>Closed Accounts</Text>
+      </Pressable>
     </ScreenContainer>
   );
 }
@@ -69,6 +72,8 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowValue: { fontSize: 15, fontWeight: '700', color: colors.text },
   negative: { color: colors.negative },
-  addButton: { alignItems: 'center', paddingVertical: spacing.sm, marginBottom: 80 },
+  addButton: { alignItems: 'center', paddingVertical: spacing.sm },
   addButtonText: { color: colors.accent, fontWeight: '700' },
+  closedLink: { alignItems: 'center', paddingVertical: spacing.sm, marginBottom: 80 },
+  closedLinkText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
 });

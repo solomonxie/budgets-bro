@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { Chip } from '../../components/ui/Chip';
 import { TextField } from '../../components/ui/TextField';
@@ -10,7 +10,7 @@ import { isLoanLikeType } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { AccountType } from '../../domain/types';
+import type { Account, AccountType } from '../../domain/types';
 
 const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
   { value: 'checking', label: 'Checking' },
@@ -38,6 +38,7 @@ export function AccountModal() {
   const [termMonths, setTermMonths] = useState('');
   const [originalPrincipal, setOriginalPrincipal] = useState('');
   const [originationDate, setOriginationDate] = useState(currentDateISO());
+  const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
 
   const reset = () => {
     setName('');
@@ -47,6 +48,7 @@ export function AccountModal() {
     setTermMonths('');
     setOriginalPrincipal('');
     setOriginationDate(currentDateISO());
+    setArchivedAt(null);
   };
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export function AccountModal() {
       setTermMonths(account.termMonths != null ? String(account.termMonths) : '');
       setOriginalPrincipal(account.originalPrincipalCents != null ? (account.originalPrincipalCents / 100).toString() : '');
       setOriginationDate(account.originationDate ?? currentDateISO());
+      setArchivedAt(account.archivedAt);
     })();
   }, [isOpen, editingAccountId]);
 
@@ -93,6 +96,37 @@ export function AccountModal() {
     } else {
       await accountsRepo.createAccount(db, input);
     }
+    bumpDataVersion();
+    close();
+    reset();
+  };
+
+  const closeAccount = () => {
+    Alert.alert(
+      `Close "${name}"?`,
+      'Hides it from your accounts list. Its transactions are kept, not deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Close Account',
+          style: 'destructive',
+          onPress: async () => {
+            if (editingAccountId == null) return;
+            const db = await getDb();
+            await accountsRepo.archiveAccount(db, editingAccountId);
+            bumpDataVersion();
+            close();
+            reset();
+          },
+        },
+      ],
+    );
+  };
+
+  const reopenAccount = async () => {
+    if (editingAccountId == null) return;
+    const db = await getDb();
+    await accountsRepo.reopenAccount(db, editingAccountId);
     bumpDataVersion();
     close();
     reset();
@@ -154,6 +188,19 @@ export function AccountModal() {
               <TextField label="Origination Date" value={originationDate} onChangeText={setOriginationDate} placeholder="YYYY-MM-DD" />
             </>
           ) : null}
+          {isEditing ? (
+            <View style={styles.dangerZone}>
+              {archivedAt ? (
+                <Pressable onPress={reopenAccount}>
+                  <Text style={styles.reopenLink}>Reopen Account</Text>
+                </Pressable>
+              ) : (
+                <Pressable onPress={closeAccount}>
+                  <Text style={styles.closeLink}>Close Account</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
         </ScrollView>
       </ScreenContainer>
     </Modal>
@@ -170,4 +217,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginTop: spacing.xs },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  dangerZone: { marginTop: spacing.md, alignItems: 'center' },
+  closeLink: { color: colors.negative, fontWeight: '600', fontSize: 14 },
+  reopenLink: { color: colors.accent, fontWeight: '600', fontSize: 14 },
 });

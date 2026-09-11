@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
 import { isLoanLikeType } from '../../domain/accountKind';
-import { LIST_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
+import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
 import * as categoriesRepo from './categoriesRepo';
 
 function mapRow(row: AccountRow): Account {
@@ -108,4 +108,16 @@ export async function updateAccount(db: SQLiteDatabase, id: number, input: Accou
 export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync("UPDATE accounts SET archived_at = datetime('now') WHERE id = ?", id);
   await categoriesRepo.archivePaymentCategory(db, id);
+}
+
+export async function listClosedAccounts(db: SQLiteDatabase): Promise<AccountWithBalance[]> {
+  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_CLOSED_ACCOUNTS_WITH_BALANCES);
+  return rows.map((row) => ({
+    account: mapRow(row),
+    balanceCents: row.opening_balance_cents + row.activity_cents,
+  }));
+}
+
+export async function reopenAccount(db: SQLiteDatabase, id: number): Promise<void> {
+  await db.runAsync('UPDATE accounts SET archived_at = NULL WHERE id = ?', id);
 }

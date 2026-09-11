@@ -8,17 +8,21 @@ import {
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
+import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { Account } from '../../domain/types';
 
 // Full-context amortization projection for a loan/mortgage account: its
 // stored terms plus the ledger's *actual* current balance, so extra
-// payments already made show up as a shorter projected payoff.
+// payments already made show up as a shorter projected payoff. Rate comes
+// from the account's rate history (its latest entry), not a static column
+// — see accountRateHistoryRepo.
 export function LoanDetailsCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
   const openEditAccount = useAppStore((s) => s.openEditAccount);
+  const { currentRateBps } = useAccountRateHistory(account.id);
 
-  if (account.interestRateBps == null || account.termMonths == null || account.originalPrincipalCents == null) {
+  if (currentRateBps == null || account.termMonths == null || account.originalPrincipalCents == null) {
     return (
       <View style={styles.card}>
         <Text style={styles.label}>Loan Details</Text>
@@ -31,15 +35,15 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
   }
 
   const outstandingCents = Math.max(0, -balanceCents);
-  const scheduledPaymentCents = monthlyPaymentCents(account.originalPrincipalCents, account.interestRateBps, account.termMonths);
-  const remainingMonths = remainingMonthsToPayoff(outstandingCents, account.interestRateBps, scheduledPaymentCents);
+  const scheduledPaymentCents = monthlyPaymentCents(account.originalPrincipalCents, currentRateBps, account.termMonths);
+  const remainingMonths = remainingMonthsToPayoff(outstandingCents, currentRateBps, scheduledPaymentCents);
   const remainingInterestCents = totalInterestRemainingCents(outstandingCents, scheduledPaymentCents, remainingMonths);
   const payoffDate = Number.isFinite(remainingMonths) ? addMonths(currentDateISO(), remainingMonths) : null;
 
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Loan Details</Text>
-      <Row label="Rate" value={`${(account.interestRateBps / 100).toFixed(2)}%`} />
+      <Row label="Rate" value={`${(currentRateBps / 100).toFixed(2)}%`} />
       <Row label="Scheduled payment" value={`${formatMoney(scheduledPaymentCents)}/mo`} />
       <Row
         label="Projected payoff"

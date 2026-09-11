@@ -167,16 +167,37 @@ const LOAN_PAYMENTS_GROUP = 'Loan Payments';
 // loan/mortgage account owns 1:1 — see accountKind.isLoanLikeType.
 export async function ensurePaymentCategory(db: SQLiteDatabase, boardId: number, accountId: number, accountName: string): Promise<void> {
   const existing = await findCategoryByLinkedAccount(db, accountId);
+  const groupId = await findOrCreateCategoryGroup(db, boardId, LOAN_PAYMENTS_GROUP);
   const name = `Payment: ${accountName}`;
   if (existing) {
-    if (existing.name !== name) await renameCategory(db, existing.id, name);
+    // Only auto-rename the category this function generated (lives in the
+    // auto "Loan Payments" group) — one the user manually linked via the
+    // Budget screen's Link action (linkCategoryToAccount) keeps whatever
+    // name/group they gave it.
+    if (existing.groupId === groupId && existing.name !== name) await renameCategory(db, existing.id, name);
     return;
   }
-  const groupId = await findOrCreateCategoryGroup(db, boardId, LOAN_PAYMENTS_GROUP);
   await createCategory(db, boardId, { groupId, name, icon: '🏦' }, accountId);
 }
 
 export async function archivePaymentCategory(db: SQLiteDatabase, accountId: number): Promise<void> {
   const existing = await findCategoryByLinkedAccount(db, accountId);
   if (existing) await archiveCategory(db, existing.id);
+}
+
+// Manually links an existing category to a loan/mortgage account — same
+// linked_account_id column ensurePaymentCategory uses, but user-chosen
+// instead of auto-generated. A category/account is linked to at most one
+// counterpart each, so linking steals the link away from whatever other
+// category (if any) currently points at that account.
+export async function linkCategoryToAccount(db: SQLiteDatabase, categoryId: number, accountId: number): Promise<void> {
+  const existing = await findCategoryByLinkedAccount(db, accountId);
+  if (existing && existing.id !== categoryId) {
+    await db.runAsync('UPDATE categories SET linked_account_id = NULL WHERE id = ?', existing.id);
+  }
+  await db.runAsync('UPDATE categories SET linked_account_id = ? WHERE id = ?', accountId, categoryId);
+}
+
+export async function unlinkCategory(db: SQLiteDatabase, categoryId: number): Promise<void> {
+  await db.runAsync('UPDATE categories SET linked_account_id = NULL WHERE id = ?', categoryId);
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,10 +10,14 @@ import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { AssignedAmountModal } from '../../components/ui/AssignedAmountModal';
+import { LinkAccountModal } from '../../components/ui/LinkAccountModal';
 import { useBudget } from '../../hooks/useBudget';
+import { useAccounts } from '../../hooks/useAccounts';
+import { useCategories } from '../../hooks/useCategories';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
 import * as categoriesRepo from '../../db/repositories/categoriesRepo';
+import { isLoanLikeType } from '../../domain/accountKind';
 import { nextMonth, previousMonth, formatMonthLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
@@ -46,10 +50,13 @@ export function BudgetScreen() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
+  const { accounts } = useAccounts();
+  const { categories } = useCategories();
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
   const [editingItem, setEditingItem] = useState<CategoryBudgetItem | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
 
   const saveAssigned = (cents: number) => {
     if (!editingItem) return;
@@ -57,9 +64,38 @@ export function BudgetScreen() {
     setEditingItem(null);
   };
 
-  const openDetails = () => {
+  const openHistory = () => {
     if (!editingItem) return;
     navigation.navigate('Transactions', { categoryId: editingItem.category.id, month });
+    setEditingItem(null);
+  };
+
+  // Loan/mortgage accounts not already linked to some other category —
+  // the current category's own link (if any) stays selectable/checked.
+  const eligibleLinkAccounts = useMemo(() => {
+    const linkedElsewhere = new Set(
+      categories.filter((c) => c.linkedAccountId != null && c.id !== editingItem?.category.id).map((c) => c.linkedAccountId),
+    );
+    return accounts
+      .filter((a) => isLoanLikeType(a.account.type) && !linkedElsewhere.has(a.account.id))
+      .map((a) => ({ id: a.account.id, name: a.account.name }));
+  }, [accounts, categories, editingItem]);
+
+  const linkToAccount = async (accountId: number) => {
+    if (!editingItem) return;
+    const db = await getDb();
+    await categoriesRepo.linkCategoryToAccount(db, editingItem.category.id, accountId);
+    bumpDataVersion();
+    setLinkModalOpen(false);
+    setEditingItem(null);
+  };
+
+  const unlinkAccount = async () => {
+    if (!editingItem) return;
+    const db = await getDb();
+    await categoriesRepo.unlinkCategory(db, editingItem.category.id);
+    bumpDataVersion();
+    setLinkModalOpen(false);
     setEditingItem(null);
   };
 
@@ -237,13 +273,22 @@ export function BudgetScreen() {
       />
 
       <AssignedAmountModal
-        visible={editingItem != null}
+        visible={editingItem != null && !linkModalOpen}
         categoryName={editingItem?.category.name ?? ''}
         categoryIcon={editingItem?.category.icon ?? null}
         initialCents={editingItem?.assignedThisMonthCents ?? 0}
         onSave={saveAssigned}
-        onDetails={openDetails}
+        onHistory={openHistory}
+        onLink={() => setLinkModalOpen(true)}
         onClose={() => setEditingItem(null)}
+      />
+      <LinkAccountModal
+        visible={linkModalOpen}
+        eligibleAccounts={eligibleLinkAccounts}
+        currentlyLinkedAccountId={editingItem?.category.linkedAccountId ?? null}
+        onSelect={linkToAccount}
+        onUnlink={unlinkAccount}
+        onClose={() => setLinkModalOpen(false)}
       />
     </ScreenContainer>
   );

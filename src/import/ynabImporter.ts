@@ -71,10 +71,10 @@ async function ensureAccountId(
         name: existing.name,
         type: 'tracking',
         openingBalanceCents: existing.openingBalanceCents,
-        interestRateBps: existing.interestRateBps,
         termMonths: existing.termMonths,
         originalPrincipalCents: existing.originalPrincipalCents,
         originationDate: existing.originationDate,
+        originalHousePriceCents: existing.originalHousePriceCents,
       });
     }
     return existing.id;

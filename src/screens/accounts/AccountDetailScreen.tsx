@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -11,7 +11,6 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { withRunningBalances, computeBalanceCorrectionCents } from '../../domain/register';
 import { formatMoney } from '../../domain/money';
 import { getDb } from '../../db/client';
-import * as accountsRepo from '../../db/repositories/accountsRepo';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
@@ -27,7 +26,7 @@ export function AccountDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { accountId } = route.params;
-  const { accounts } = useAccounts();
+  const { accounts, loading } = useAccounts();
   const { transactions } = useTransactions(accountId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
@@ -35,6 +34,12 @@ export function AccountDetailScreen() {
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
+
+  // Closing the account (from Edit) removes it from `accounts` — bounce
+  // back to the list instead of showing a blank detail page.
+  useEffect(() => {
+    if (!loading && !accountWithBalance) navigation.goBack();
+  }, [loading, accountWithBalance, navigation]);
 
   useEffect(() => {
     if (!accountWithBalance) return;
@@ -67,26 +72,6 @@ export function AccountDetailScreen() {
     setActualBalance('');
   };
 
-  const closeAccount = () => {
-    Alert.alert(
-      `Close "${accountWithBalance?.account.name}"?`,
-      'Hides it from your accounts list. Its transactions are kept, not deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Close Account',
-          style: 'destructive',
-          onPress: async () => {
-            const db = await getDb();
-            await accountsRepo.archiveAccount(db, accountId);
-            bumpDataVersion();
-            navigation.goBack();
-          },
-        },
-      ],
-    );
-  };
-
   return (
     <ScreenContainer>
       <View style={styles.summaryCard}>
@@ -113,9 +98,6 @@ export function AccountDetailScreen() {
           <View style={styles.summaryLinks}>
             <Pressable onPress={() => setCorrecting(true)}>
               <Text style={styles.correctLink}>Correct Balance</Text>
-            </Pressable>
-            <Pressable onPress={closeAccount}>
-              <Text style={styles.closeLink}>Close Account</Text>
             </Pressable>
           </View>
         )}
@@ -162,9 +144,8 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   summaryValue: { fontSize: 30, fontWeight: '700', color: colors.text },
-  summaryLinks: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryLinks: { flexDirection: 'row', alignItems: 'center' },
   correctLink: { color: colors.accent, fontWeight: '600', fontSize: 13 },
-  closeLink: { color: colors.negative, fontWeight: '600', fontSize: 13 },
   correctForm: { gap: spacing.sm, marginTop: spacing.xs },
   correctActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: spacing.md },
   cancelLink: { color: colors.textMuted, fontWeight: '600' },

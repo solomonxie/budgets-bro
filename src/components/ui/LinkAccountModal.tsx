@@ -1,10 +1,14 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 interface EligibleAccount {
   id: number;
   name: string;
+  // Name of the *other* category currently linked to this account, if
+  // any — picking this account moves the link here and away from that
+  // one (see categoriesRepo.linkCategoryToAccount).
+  linkedToOtherCategory?: string | null;
 }
 
 interface LinkAccountModalProps {
@@ -16,10 +20,12 @@ interface LinkAccountModalProps {
   onClose: () => void;
 }
 
-// Links this category to a debt account (mortgage/loan) — a transaction
-// categorized here then also posts to that account, reducing its balance.
-// Only one category can be linked per account; picking one steals the
-// link away from wherever it currently sits.
+// Links this category to a debt account (mortgage/loan). Once linked, a
+// transaction categorized here does two things: it counts as spending
+// against this category's budget *and* posts a matching credit to the
+// linked account, reducing its debt — same as a real loan payment. Only
+// one category can be linked per account; picking one steals the link
+// away from wherever it currently sits.
 export function LinkAccountModal({ visible, eligibleAccounts, currentlyLinkedAccountId, onSelect, onUnlink, onClose }: LinkAccountModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -27,15 +33,21 @@ export function LinkAccountModal({ visible, eligibleAccounts, currentlyLinkedAcc
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>Link to Account</Text>
           <Text style={styles.hint}>
-            Transactions categorized here also post to the linked account, reducing its debt.
+            Once linked, a transaction categorized here also posts to the account below, reducing its debt — like
+            recording a real loan/mortgage payment in one step. Only one category can be linked per account.
           </Text>
           <ScrollView>
             {eligibleAccounts.length === 0 ? (
-              <Text style={styles.empty}>No eligible debt accounts (loan/mortgage) to link.</Text>
+              <Text style={styles.empty}>No loan/mortgage accounts to link. Create one first (Accounts → + Add Account).</Text>
             ) : (
               eligibleAccounts.map((a) => (
                 <Pressable key={a.id} style={styles.option} onPress={() => onSelect(a.id)}>
-                  <Text style={styles.optionText}>{a.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.optionText}>{a.name}</Text>
+                    {a.linkedToOtherCategory ? (
+                      <Text style={styles.optionSub}>Currently linked to “{a.linkedToOtherCategory}” — picking this moves it here</Text>
+                    ) : null}
+                  </View>
                   {currentlyLinkedAccountId === a.id ? <Text style={styles.check}>✓</Text> : null}
                 </Pressable>
               ))
@@ -76,8 +88,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: spacing.sm,
   },
   optionText: { fontSize: 15, color: colors.text },
+  optionSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   check: { color: colors.accent, fontWeight: '700' },
   unlink: {
     alignItems: 'center',

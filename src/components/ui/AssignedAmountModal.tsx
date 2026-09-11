@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { RowMenuButton } from './RowMenuButton';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -16,9 +17,9 @@ interface AssignedAmountModalProps {
 
 // YNAB-style "tap the amount, get a big number field" popup — a modal
 // instead of expanding the category row in place, so the list doesn't
-// reflow every time a category is tapped. Cancel/Save stay centered as
-// the primary action; Link and History are secondary, pinned to the
-// opposite corners.
+// reflow every time a category is tapped. Cancel/Save are the only bottom
+// buttons, centered; History and Link to Account are secondary, tucked
+// into a "⋯" menu bottom-right instead of competing for the same row.
 export function AssignedAmountModal({
   visible,
   categoryName,
@@ -59,11 +60,7 @@ export function AssignedAmountModal({
             onSubmitEditing={save}
           />
           <View style={styles.actions}>
-            <View style={styles.sideSlot}>
-              <Pressable onPress={onLink}>
-                <Text style={styles.sideText}>Link</Text>
-              </Pressable>
-            </View>
+            <View style={styles.sideSlot} />
             <View style={styles.centerActions}>
               <Pressable onPress={onClose}>
                 <Text style={styles.cancelText}>Cancel</Text>
@@ -73,9 +70,7 @@ export function AssignedAmountModal({
               </Pressable>
             </View>
             <View style={[styles.sideSlot, styles.sideSlotRight]}>
-              <Pressable onPress={onHistory}>
-                <Text style={styles.sideText}>History</Text>
-              </Pressable>
+              <RowMenuButton items={[{ label: 'History', onPress: onHistory }, { label: 'Link to Account', onPress: onLink }]} />
             </View>
           </View>
         </Pressable>
@@ -106,9 +101,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
-  sideSlot: { minWidth: 50 },
+  sideSlot: { minWidth: 32 },
   sideSlotRight: { alignItems: 'flex-end' },
-  sideText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   centerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   cancelText: { color: colors.textMuted, fontWeight: '600' },
   saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },

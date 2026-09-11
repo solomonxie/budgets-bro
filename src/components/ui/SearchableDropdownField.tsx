@@ -64,7 +64,7 @@ export function SearchableDropdownField({
               onChangeText={setQuery}
               autoFocus
             />
-            <ScrollView>
+            <ScrollView keyboardShouldPersistTaps="handled">
               {query.trim() && !hasExactMatch ? (
                 <Pressable
                   style={styles.option}

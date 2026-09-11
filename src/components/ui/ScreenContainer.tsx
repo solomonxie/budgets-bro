@@ -16,7 +16,9 @@ export function ScreenContainer({ children, scroll, floating }: ScreenContainerP
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
       {scroll ? (
-        <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {children}
+        </ScrollView>
       ) : (
         <View style={styles.content}>{children}</View>
       )}

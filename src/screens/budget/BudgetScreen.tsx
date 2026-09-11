@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { FloatingAddButton } from '../../components/ui/FloatingAddButton';
@@ -7,6 +9,7 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
+import { AssignedAmountModal } from '../../components/ui/AssignedAmountModal';
 import { useBudget } from '../../hooks/useBudget';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
@@ -16,7 +19,11 @@ import { formatMoney } from '../../domain/money';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { CategoryStatus } from '../../domain/budgetMath';
+import type { CategoryBudgetItem } from '../../hooks/useBudget';
 import type { Category, CategoryGroup } from '../../domain/types';
+import type { BudgetStackParamList } from '../../navigation/types';
+
+type Nav = NativeStackNavigationProp<BudgetStackParamList, 'BudgetHome'>;
 
 const STATUS_COLORS: Record<CategoryStatus, { bg: string; fg: string }> = {
   overspent: { bg: colors.negativeTint, fg: colors.negative },
@@ -33,23 +40,27 @@ type PromptState =
   | null;
 
 export function BudgetScreen() {
+  const navigation = useNavigation<Nav>();
   const month = useAppStore((s) => s.currentMonth);
   const setMonth = useAppStore((s) => s.setCurrentMonth);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { groups, itemsByGroup, unassignedCents, setAssigned, moveToUnassigned } = useBudget(month);
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<number[]>([]);
-  const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
+  const [editingItem, setEditingItem] = useState<CategoryBudgetItem | null>(null);
   const [prompt, setPrompt] = useState<PromptState>(null);
-  const [assignedDraft, setAssignedDraft] = useState<string | null>(null);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
-  const commitAssignedDraft = (categoryId: number) => {
-    if (assignedDraft != null) {
-      const parsed = parseFloat(assignedDraft);
-      setAssigned(categoryId, Number.isNaN(parsed) ? 0 : Math.round(parsed * 100));
-    }
-    setAssignedDraft(null);
+  const saveAssigned = (cents: number) => {
+    if (!editingItem) return;
+    setAssigned(editingItem.category.id, cents);
+    setEditingItem(null);
+  };
+
+  const openDetails = () => {
+    if (!editingItem) return;
+    navigation.navigate('Transactions', { categoryId: editingItem.category.id, month });
+    setEditingItem(null);
   };
 
   const toggleGroup = (id: number) => {
@@ -164,7 +175,6 @@ export function BudgetScreen() {
                 ? <Text style={styles.emptyGroup}>No categories yet.</Text>
                 : items.map((item) => {
                   const statusColors = STATUS_COLORS[item.status];
-                  const expanded = expandedCategoryId === item.category.id;
                   const spentThisMonth = Math.max(0, -item.activityThisMonthCents);
                   const percentSpent =
                     item.assignedThisMonthCents > 0
@@ -174,18 +184,12 @@ export function BudgetScreen() {
                         : 0;
 
                   return (
-                    <View
-                      key={item.category.id}
-                      style={[styles.catRow, { borderColor: expanded ? colors.accent : colors.border, backgroundColor: expanded ? colors.tint : colors.surface }]}
-                    >
+                    <Pressable key={item.category.id} style={styles.catRow} onPress={() => setEditingItem(item)}>
                       <View style={styles.catRowTop}>
-                        <Pressable
-                          style={styles.catNameRow}
-                          onPress={() => setExpandedCategoryId(expanded ? null : item.category.id)}
-                        >
+                        <View style={styles.catNameRow}>
                           {item.category.icon ? <Text style={styles.catIcon}>{item.category.icon}</Text> : null}
                           <Text style={styles.catName}>{item.category.name}</Text>
-                        </Pressable>
+                        </View>
                         <StatusBadge text={formatMoney(item.balanceCents)} bg={statusColors.bg} fg={statusColors.fg} />
                         <RowMenuButton
                           items={[
@@ -193,6 +197,9 @@ export function BudgetScreen() {
                               label: 'Rename',
                               onPress: () => setPrompt({ type: 'renameCategory', categoryId: item.category.id, initial: item.category.name }),
                             },
+                            ...(item.balanceCents > 0
+                              ? [{ label: 'Move to Unassigned', onPress: () => moveToUnassigned(item.category.id, item.balanceCents) }]
+                              : []),
                             { label: 'Move Up', onPress: () => moveCategory(item.category.id, 'up') },
                             { label: 'Move Down', onPress: () => moveCategory(item.category.id, 'down') },
                             { label: 'Delete', destructive: true, onPress: () => deleteCategory(item.category) },
@@ -201,31 +208,7 @@ export function BudgetScreen() {
                       </View>
                       <ProgressBar percent={percentSpent} color={statusColors.fg} />
                       <Text style={styles.caption}>{item.captionText}</Text>
-                      {expanded ? (
-                        <View style={styles.quickAssign}>
-                          <Text style={styles.assignLabel}>Assigned</Text>
-                          <TextInput
-                            style={styles.assignInput}
-                            keyboardType="decimal-pad"
-                            value={assignedDraft ?? (item.assignedThisMonthCents / 100).toString()}
-                            onFocus={() => setAssignedDraft((item.assignedThisMonthCents / 100).toString())}
-                            onChangeText={setAssignedDraft}
-                            onBlur={() => commitAssignedDraft(item.category.id)}
-                            onSubmitEditing={() => commitAssignedDraft(item.category.id)}
-                            selectTextOnFocus
-                            autoFocus
-                          />
-                        </View>
-                      ) : null}
-                      {expanded && item.balanceCents > 0 ? (
-                        <Pressable
-                          style={styles.moveToUnassignedBtn}
-                          onPress={() => moveToUnassigned(item.category.id, item.balanceCents)}
-                        >
-                          <Text style={styles.moveToUnassignedText}>Move {formatMoney(item.balanceCents)} to Unassigned</Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
+                    </Pressable>
                   );
                 })}
           </View>
@@ -252,6 +235,16 @@ export function BudgetScreen() {
         onCancel={() => setPrompt(null)}
         onSubmit={submitPrompt}
       />
+
+      <AssignedAmountModal
+        visible={editingItem != null}
+        categoryName={editingItem?.category.name ?? ''}
+        categoryIcon={editingItem?.category.icon ?? null}
+        initialCents={editingItem?.assignedThisMonthCents ?? 0}
+        onSave={saveAssigned}
+        onDetails={openDetails}
+        onClose={() => setEditingItem(null)}
+      />
     </ScreenContainer>
   );
 }
@@ -276,37 +269,12 @@ const styles = StyleSheet.create({
   groupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   groupSub: { marginLeft: 'auto', fontSize: 12, fontWeight: '700', color: colors.textMuted },
   emptyGroup: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 2 },
-  catRow: { borderWidth: 1, borderRadius: 14, padding: spacing.sm, gap: spacing.xs },
+  catRow: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 14, padding: spacing.sm, gap: spacing.xs },
   catRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   catNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   catIcon: { fontSize: 17 },
   catName: { fontSize: 15, fontWeight: '600', color: colors.text },
   caption: { fontSize: 11, color: colors.textMuted },
-  quickAssign: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-    paddingTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  assignLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
-  assignInput: {
-    minWidth: 90,
-    textAlign: 'right',
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: colors.background,
-  },
-  moveToUnassignedBtn: { alignItems: 'center', paddingTop: spacing.xs },
-  moveToUnassignedText: { fontSize: 12, fontWeight: '600', color: colors.accent },
   addGroupButton: {
     alignItems: 'center',
     paddingVertical: spacing.sm,

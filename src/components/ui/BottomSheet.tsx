@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -12,6 +12,10 @@ interface BottomSheetProps {
   // Pinned above the scrollable list, not part of the scroll — the search
   // box on a searchable picker.
   stickyContent?: ReactNode;
+  // Pins the list to this exact height instead of shrink-wrapping to
+  // content — so a search that narrows the results to one or two rows
+  // doesn't shrink the sheet down to a sliver behind the keyboard.
+  listHeight?: number;
   children: ReactNode;
 }
 
@@ -24,7 +28,7 @@ interface BottomSheetProps {
 // scrolled to its top (scrollY <= 0) so it never fights the list's own
 // scroll — dragging down mid-list just scrolls back up like normal; once
 // you're at the top, the same drag starts pulling the sheet down instead.
-export function BottomSheet({ title, onClose, stickyContent, children }: BottomSheetProps) {
+export function BottomSheet({ title, onClose, stickyContent, listHeight, children }: BottomSheetProps) {
   const t = useT();
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
@@ -45,39 +49,46 @@ export function BottomSheet({ title, onClose, stickyContent, children }: BottomS
   ).current;
 
   return (
-    <Pressable style={styles.backdrop} onPress={onClose}>
-      <Animated.View style={[styles.card, { transform: [{ translateY }] }]} {...panResponder.panHandlers}>
-        <Pressable onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <View style={styles.header}>
-            <Pressable onPress={onClose} hitSlop={10}>
-              <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
-            </Pressable>
-            <Text style={styles.title} numberOfLines={1}>
-              {title}
-            </Text>
-            <Text style={[styles.headerBtn, styles.headerBtnGhost]}>{t('common.cancel')}</Text>
-          </View>
-          {stickyContent}
-          <ScrollView
-            style={styles.list}
-            keyboardShouldPersistTaps="handled"
-            scrollEventThrottle={16}
-            onScroll={(e) => {
-              scrollY.current = e.nativeEvent.contentOffset.y;
-            }}
-          >
-            {children}
-          </ScrollView>
-        </Pressable>
-      </Animated.View>
-      <SafeAreaView edges={['bottom']} />
-    </Pressable>
+    // The Modal is its own native surface, so it doesn't get the OS's
+    // automatic keyboard-resize handling — without this, the sheet stays
+    // anchored to the (now keyboard-covered) bottom of the screen instead
+    // of sliding up above the keyboard.
+    <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <Pressable style={styles.backdropTouch} onPress={onClose}>
+        <Animated.View style={[styles.card, { transform: [{ translateY }] }]} {...panResponder.panHandlers}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.handle} />
+            <View style={styles.header}>
+              <Pressable onPress={onClose} hitSlop={10}>
+                <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
+              </Pressable>
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text style={[styles.headerBtn, styles.headerBtnGhost]}>{t('common.cancel')}</Text>
+            </View>
+            {stickyContent}
+            <ScrollView
+              style={[styles.list, listHeight != null && { height: listHeight, flexShrink: 0 }]}
+              keyboardShouldPersistTaps="handled"
+              scrollEventThrottle={16}
+              onScroll={(e) => {
+                scrollY.current = e.nativeEvent.contentOffset.y;
+              }}
+            >
+              {children}
+            </ScrollView>
+          </Pressable>
+        </Animated.View>
+        <SafeAreaView edges={['bottom']} />
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1 },
+  backdropTouch: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   card: {
     maxHeight: '65%',
     backgroundColor: colors.background,

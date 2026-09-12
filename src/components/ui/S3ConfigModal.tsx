@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { TextField } from './TextField';
-import { testS3Connection } from '../../sync/s3Provider';
+import { testS3Connection, DEFAULT_S3_KEY_PREFIX } from '../../sync/s3Provider';
 import type { S3ConfigInput } from '../../sync/s3Provider';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -15,22 +15,21 @@ interface S3ConfigModalProps {
 }
 
 // Full-screen form for adding one S3 bucket to back up to — Save runs
-// testS3Connection first (a real upload+delete round-trip) and only calls
-// onSaved, which persists the config, once that succeeds.
+// testS3Connection first (auto-detects the region, then a real
+// upload+delete round-trip) and only calls onSaved, which persists the
+// config, once that succeeds.
 export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps) {
   const t = useT();
-  const [name, setName] = useState('');
   const [bucket, setBucket] = useState('');
-  const [region, setRegion] = useState('');
+  const [keyPrefix, setKeyPrefix] = useState(DEFAULT_S3_KEY_PREFIX);
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretAccessKey, setSecretAccessKey] = useState('');
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reset = () => {
-    setName('');
     setBucket('');
-    setRegion('');
+    setKeyPrefix(DEFAULT_S3_KEY_PREFIX);
     setAccessKeyId('');
     setSecretAccessKey('');
     setError(null);
@@ -42,15 +41,16 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
   };
 
   const save = async () => {
-    if (!bucket.trim() || !region.trim() || !accessKeyId.trim() || !secretAccessKey.trim()) {
+    if (!bucket.trim() || !accessKeyId.trim() || !secretAccessKey.trim()) {
       setError(t('s3ConfigModal.missingFields'));
       return;
     }
-    const input: S3ConfigInput = { name: name.trim(), bucket: bucket.trim(), region: region.trim(), accessKeyId: accessKeyId.trim(), secretAccessKey: secretAccessKey.trim() };
+    const connection = { bucket: bucket.trim(), keyPrefix: keyPrefix.trim(), accessKeyId: accessKeyId.trim(), secretAccessKey: secretAccessKey.trim() };
     setTesting(true);
     setError(null);
     try {
-      await testS3Connection(input);
+      const region = await testS3Connection(connection);
+      const input: S3ConfigInput = { ...connection, region };
       await onSaved(input);
       reset();
     } catch (e) {
@@ -73,9 +73,15 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-          <TextField label={t('s3ConfigModal.nameLabel')} value={name} onChangeText={setName} placeholder={t('s3ConfigModal.namePlaceholder')} />
           <TextField label={t('settings.s3BucketLabel')} value={bucket} onChangeText={setBucket} autoCapitalize="none" autoCorrect={false} />
-          <TextField label={t('settings.s3RegionLabel')} value={region} onChangeText={setRegion} placeholder="e.g. us-east-1" autoCapitalize="none" autoCorrect={false} />
+          <TextField
+            label={t('s3ConfigModal.keyPrefixLabel')}
+            value={keyPrefix}
+            onChangeText={setKeyPrefix}
+            placeholder={t('s3ConfigModal.keyPrefixPlaceholder')}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
           <TextField label={t('settings.s3AccessKeyLabel')} value={accessKeyId} onChangeText={setAccessKeyId} autoCapitalize="none" autoCorrect={false} />
           <TextField label={t('settings.s3SecretKeyLabel')} value={secretAccessKey} onChangeText={setSecretAccessKey} autoCapitalize="none" autoCorrect={false} secureTextEntry />
           {testing ? <Text style={styles.hint}>{t('s3ConfigModal.testing')}</Text> : null}

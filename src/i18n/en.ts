@@ -68,7 +68,6 @@ export const en = {
   'settings.s3AccessKeyLabel': 'Access Key ID',
   'settings.s3SecretKeyLabel': 'Secret Access Key',
   'settings.s3BucketLabel': 'Bucket',
-  'settings.s3RegionLabel': 'Region',
   'settings.addS3BackupLink': '+ Add S3 Backup',
   'settings.localBackupHeading': 'Local Backup',
   'settings.localBackupHint':
@@ -78,10 +77,10 @@ export const en = {
   'settings.deleteS3ConfigConfirmTitle': 'Delete "{name}"?',
   'settings.deleteS3ConfigConfirmMessage': 'Backups already in this bucket are left alone — only the saved connection is removed.',
   's3ConfigModal.title': 'Add S3 Backup',
-  's3ConfigModal.nameLabel': 'Name',
-  's3ConfigModal.namePlaceholder': 'e.g. Personal Backup',
-  's3ConfigModal.missingFields': 'Fill in the bucket, region, and both keys.',
-  's3ConfigModal.testing': 'Testing connection…',
+  's3ConfigModal.keyPrefixLabel': 'Key prefix (optional)',
+  's3ConfigModal.keyPrefixPlaceholder': 'e.g. backups — for a bucket shared with other stuff',
+  's3ConfigModal.missingFields': 'Fill in the bucket and both keys.',
+  's3ConfigModal.testing': 'Detecting region & testing connection…',
   's3ConfigModal.testFailed': 'Could not connect: {error}',
   'settings.syncHeading': 'Cloud Sync',
   'settings.syncHint':

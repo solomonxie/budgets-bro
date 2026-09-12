@@ -8,21 +8,37 @@ import type { CloudProvider } from './types';
 
 const CONFIGS_KEY = 'sync_s3_configs';
 
-// Bucket/region/name are plain settings; access key + secret live in
-// secureStore instead, keyed by `id` — see secureStore.getS3Credentials.
+// Pre-fills the config form's key-prefix field — matches app.json's slug.
+// Keeps backups namespaced if the bucket is ever shared with another app,
+// without the user having to think one up. Per-sync dated filenames were
+// considered too (a history instead of one rolling latest.zip) but that's
+// what S3 bucket versioning is for — see DESIGN.md's object-key note —
+// doing it here would mean hand-rolling ListObjectsV2 pagination just to
+// find "latest".
+export const DEFAULT_S3_KEY_PREFIX = 'yet-another-money-app';
+
+// Bucket identifies the config (no separate display name) — region is
+// auto-detected (see detectBucketRegion), never typed by the user. keyPrefix
+// is optional: an object-key folder to nest backups under, for buckets
+// shared with other stuff. Access key + secret live in secureStore instead,
+// keyed by `id` — see secureStore.getS3Credentials.
 export interface S3ConfigMeta {
   id: string;
-  name: string;
   bucket: string;
   region: string;
+  keyPrefix?: string;
 }
 
-export interface S3ConfigInput {
-  name: string;
+// What testS3Connection needs before a region is known.
+export interface S3ConnectionInput {
   bucket: string;
-  region: string;
+  keyPrefix?: string;
   accessKeyId: string;
   secretAccessKey: string;
+}
+
+export interface S3ConfigInput extends S3ConnectionInput {
+  region: string;
 }
 
 interface S3Config extends S3ConfigMeta {
@@ -34,19 +50,31 @@ function newConfigId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Strips slashes off both ends so callers can type "backups", "backups/",
+// or "/backups/" and get the same one clean segment prepended to object
+// keys — see joinKey below.
+function normalizePrefix(keyPrefix: string | undefined): string | undefined {
+  const trimmed = keyPrefix?.trim().replace(/^\/+|\/+$/g, '');
+  return trimmed || undefined;
+}
+
+function joinKey(keyPrefix: string | undefined, key: string): string {
+  return keyPrefix ? `${keyPrefix}/${key}` : key;
+}
+
 export async function listS3Configs(db: SQLiteDatabase): Promise<S3ConfigMeta[]> {
   return settingsRepo.getJsonSetting<S3ConfigMeta[]>(db, CONFIGS_KEY, []);
 }
 
 // Saves the config — call testS3Connection first if the caller wants to
-// reject bad credentials before they're persisted (Settings' "Add S3
-// Backup" form does).
+// reject bad credentials (and get the auto-detected region) before they're
+// persisted (Settings' "Add S3 Backup" form does).
 export async function addS3Config(db: SQLiteDatabase, input: S3ConfigInput): Promise<string> {
   const id = newConfigId();
   const configs = await listS3Configs(db);
   await settingsRepo.setJsonSetting(db, CONFIGS_KEY, [
     ...configs,
-    { id, name: input.name.trim() || input.bucket.trim(), bucket: input.bucket.trim(), region: input.region.trim() },
+    { id, bucket: input.bucket.trim(), region: input.region.trim(), keyPrefix: normalizePrefix(input.keyPrefix) },
   ]);
   await secureStore.setS3Credentials(id, input.accessKeyId.trim(), input.secretAccessKey.trim());
   return id;
@@ -183,14 +211,36 @@ async function checkNoAnonymousAccess(config: S3Config): Promise<void> {
   if (res.ok) throw new Error('Bucket allows anonymous (unsigned) access — restrict its bucket policy/ACLs');
 }
 
+// S3 stamps the bucket's real region on the `x-amz-bucket-region` response
+// header for any request to the region-less global endpoint — even an
+// unauthenticated one that 403s — so the user never has to look up or type
+// their bucket's region. Standard trick AWS's own SDKs/CLI use.
+async function detectBucketRegion(bucket: string): Promise<string> {
+  let res: Response;
+  try {
+    res = await fetch(`https://${bucket}.s3.amazonaws.com/`, { method: 'HEAD' });
+  } catch (e) {
+    throw new Error(`Bucket unreachable — ${e instanceof Error ? e.message : String(e)}`);
+  }
+  const region = res.headers.get('x-amz-bucket-region');
+  if (region) return region;
+  if (res.status === 404) throw new Error('Bucket unreachable — bucket not found');
+  throw new Error("Could not determine the bucket's region — check the bucket name.");
+}
+
 // Proves the credentials can actually write, read, and clean up after
 // themselves in this bucket (not just reach it), and that the bucket isn't
 // publicly exposed. Thrown message is shown as-is in the config form.
-export async function testS3Connection(input: S3ConfigInput): Promise<void> {
-  const config: S3Config = { id: '_test_', name: input.name, bucket: input.bucket.trim(), region: input.region.trim(), accessKeyId: input.accessKeyId.trim(), secretAccessKey: input.secretAccessKey.trim() };
+// Returns the auto-detected region so the caller can persist it — see
+// detectBucketRegion.
+export async function testS3Connection(input: S3ConnectionInput): Promise<string> {
+  const bucket = input.bucket.trim();
+  const keyPrefix = normalizePrefix(input.keyPrefix);
+  const region = await detectBucketRegion(bucket);
+  const config: S3Config = { id: '_test_', bucket, region, accessKeyId: input.accessKeyId.trim(), secretAccessKey: input.secretAccessKey.trim() };
   await checkReachable(config);
 
-  const key = `.yet-another-money-app-connection-test-${Date.now()}`;
+  const key = joinKey(keyPrefix, `.yet-another-money-app-connection-test-${Date.now()}`);
   const marker = utf8ToBytes('ok');
   await put(config, key, marker);
   try {
@@ -204,6 +254,7 @@ export async function testS3Connection(input: S3ConfigInput): Promise<void> {
 
   await checkNotPublic(config);
   await checkNoAnonymousAccess(config);
+  return region;
 }
 
 function toProvider(meta: S3ConfigMeta): CloudProvider {
@@ -211,13 +262,13 @@ function toProvider(meta: S3ConfigMeta): CloudProvider {
     id: `aws-s3:${meta.id}`,
     async upload(bytes, fileName) {
       const config = await resolveConfig(meta);
-      if (!config) throw new Error(`S3 config "${meta.name}" is missing its credentials`);
-      await put(config, fileName, bytes);
+      if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
+      await put(config, joinKey(meta.keyPrefix, fileName), bytes);
     },
     async downloadLatest(fileName) {
       const config = await resolveConfig(meta);
       if (!config) return null;
-      return get(config, fileName);
+      return get(config, joinKey(meta.keyPrefix, fileName));
     },
   };
 }

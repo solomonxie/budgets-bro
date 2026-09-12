@@ -90,6 +90,60 @@ export async function removeS3Config(db: SQLiteDatabase, id: string): Promise<vo
   await secureStore.clearS3Credentials(id);
 }
 
+// One row per past "Save" attempt in the Add S3 Backup form, success or
+// failure — so a retry (or adding a second bucket with the same keys) never
+// has to retype anything. Credentials live in secureStore keyed by the
+// draft's own id, same as a real config's (see secureStore.getS3Credentials)
+// — never in the plain settings JSON below.
+export interface S3DraftMeta {
+  id: string;
+  bucket: string;
+  keyPrefix?: string;
+  accessKeyId: string;
+  savedAt: number;
+}
+
+const DRAFTS_KEY = 'sync_s3_drafts';
+
+function newDraftId(): string {
+  return `s3draft_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export async function listS3Drafts(db: SQLiteDatabase): Promise<S3DraftMeta[]> {
+  return settingsRepo.getJsonSetting<S3DraftMeta[]>(db, DRAFTS_KEY, []);
+}
+
+// Same bucket+prefix+accessKeyId overwrites its earlier draft (and bumps it
+// to the top) instead of piling up duplicates on every retry. Returns the
+// draft's id so a caller can remove it once the attempt actually succeeds.
+export async function saveS3Draft(db: SQLiteDatabase, input: S3ConnectionInput): Promise<string> {
+  const bucket = input.bucket.trim();
+  const keyPrefix = normalizePrefix(input.keyPrefix);
+  const accessKeyId = input.accessKeyId.trim();
+  const drafts = await listS3Drafts(db);
+  const existing = drafts.find((d) => d.bucket === bucket && d.keyPrefix === keyPrefix && d.accessKeyId === accessKeyId);
+  const id = existing?.id ?? newDraftId();
+  const meta: S3DraftMeta = { id, bucket, keyPrefix, accessKeyId, savedAt: Date.now() };
+  await settingsRepo.setJsonSetting(db, DRAFTS_KEY, [meta, ...drafts.filter((d) => d.id !== id)]);
+  await secureStore.setS3Credentials(id, accessKeyId, input.secretAccessKey.trim());
+  return id;
+}
+
+export async function getS3Draft(db: SQLiteDatabase, id: string): Promise<S3ConnectionInput | null> {
+  const drafts = await listS3Drafts(db);
+  const meta = drafts.find((d) => d.id === id);
+  if (!meta) return null;
+  const creds = await secureStore.getS3Credentials(id);
+  if (!creds) return null;
+  return { bucket: meta.bucket, keyPrefix: meta.keyPrefix, ...creds };
+}
+
+export async function removeS3Draft(db: SQLiteDatabase, id: string): Promise<void> {
+  const drafts = await listS3Drafts(db);
+  await settingsRepo.setJsonSetting(db, DRAFTS_KEY, drafts.filter((d) => d.id !== id));
+  await secureStore.clearS3Credentials(id);
+}
+
 async function resolveConfig(meta: S3ConfigMeta): Promise<S3Config | null> {
   const creds = await secureStore.getS3Credentials(meta.id);
   return creds ? { ...meta, ...creds } : null;

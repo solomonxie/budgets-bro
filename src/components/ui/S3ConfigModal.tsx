@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { TextField } from './TextField';
-import { testS3Connection, DEFAULT_S3_KEY_PREFIX } from '../../sync/s3Provider';
-import type { S3ConfigInput } from '../../sync/s3Provider';
+import { getDb } from '../../db/client';
+import {
+  testS3Connection,
+  listS3Drafts,
+  saveS3Draft,
+  getS3Draft,
+  removeS3Draft,
+  DEFAULT_S3_KEY_PREFIX,
+} from '../../sync/s3Provider';
+import type { S3ConfigInput, S3DraftMeta } from '../../sync/s3Provider';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -26,6 +34,16 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
   const [secretAccessKey, setSecretAccessKey] = useState('');
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<S3DraftMeta[]>([]);
+
+  const refreshDrafts = async () => {
+    const db = await getDb();
+    setDrafts(await listS3Drafts(db));
+  };
+
+  useEffect(() => {
+    if (visible) refreshDrafts();
+  }, [visible]);
 
   const reset = () => {
     setBucket('');
@@ -40,6 +58,23 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
     onCancel();
   };
 
+  const fillFromDraft = async (id: string) => {
+    const db = await getDb();
+    const draft = await getS3Draft(db, id);
+    if (!draft) return;
+    setBucket(draft.bucket);
+    setKeyPrefix(draft.keyPrefix ?? DEFAULT_S3_KEY_PREFIX);
+    setAccessKeyId(draft.accessKeyId);
+    setSecretAccessKey(draft.secretAccessKey);
+    setError(null);
+  };
+
+  const deleteDraft = async (id: string) => {
+    const db = await getDb();
+    await removeS3Draft(db, id);
+    refreshDrafts();
+  };
+
   const save = async () => {
     if (!bucket.trim() || !accessKeyId.trim() || !secretAccessKey.trim()) {
       setError(t('s3ConfigModal.missingFields'));
@@ -48,15 +83,21 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
     const connection = { bucket: bucket.trim(), keyPrefix: keyPrefix.trim(), accessKeyId: accessKeyId.trim(), secretAccessKey: secretAccessKey.trim() };
     setTesting(true);
     setError(null);
+    const db = await getDb();
+    // Saved before testing — so a failed attempt is never lost, and a retry
+    // (or a second bucket reusing the same keys) never has to retype anything.
+    const draftId = await saveS3Draft(db, connection);
     try {
       const region = await testS3Connection(connection);
       const input: S3ConfigInput = { ...connection, region };
       await onSaved(input);
+      await removeS3Draft(db, draftId);
       reset();
     } catch (e) {
       setError(t('s3ConfigModal.testFailed', { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setTesting(false);
+      refreshDrafts();
     }
   };
 
@@ -86,6 +127,30 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
           <TextField label={t('settings.s3SecretKeyLabel')} value={secretAccessKey} onChangeText={setSecretAccessKey} autoCapitalize="none" autoCorrect={false} secureTextEntry />
           {testing ? <Text style={styles.hint}>{t('s3ConfigModal.testing')}</Text> : null}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          {drafts.length > 0 ? (
+            <View style={styles.draftsSection}>
+              <Text style={styles.draftsHeading}>{t('s3ConfigModal.draftsHeading')}</Text>
+              <Text style={styles.hint}>{t('s3ConfigModal.draftsHint')}</Text>
+              {drafts.map((draft) => (
+                <Pressable key={draft.id} style={styles.draftRow} onPress={() => fillFromDraft(draft.id)}>
+                  <View style={styles.draftRowMain}>
+                    <Text style={styles.draftBucket}>{draft.bucket}</Text>
+                    {draft.keyPrefix ? <Text style={styles.draftSub}>{draft.keyPrefix}</Text> : null}
+                  </View>
+                  <Pressable
+                    hitSlop={10}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      deleteDraft(draft.id);
+                    }}
+                  >
+                    <Text style={styles.draftDelete}>✕</Text>
+                  </Pressable>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </ScrollView>
       </ScreenContainer>
     </Modal>
@@ -100,4 +165,21 @@ const styles = StyleSheet.create({
   form: { gap: spacing.md, paddingTop: spacing.md },
   hint: { fontSize: 13, color: colors.textMuted },
   errorText: { fontSize: 13, color: colors.negative },
+  draftsSection: { marginTop: spacing.md, gap: spacing.xs },
+  draftsHeading: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  draftRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+  },
+  draftRowMain: { flex: 1, gap: 2 },
+  draftBucket: { fontSize: 14, fontWeight: '600', color: colors.text },
+  draftSub: { fontSize: 12, color: colors.textMuted },
+  draftDelete: { fontSize: 15, color: colors.textMuted, paddingLeft: spacing.md },
 });

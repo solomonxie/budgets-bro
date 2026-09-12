@@ -80,37 +80,37 @@ One-time, idempotent import of a user's existing YNAB register export — see [`
 - [x] T7.4 Import screen: zip file picker (Insights tab), result counts, runs inside one DB transaction
 - [x] T7.5 Parser verified against a real export (2489 register rows / 945 plan rows, all dates/amounts/months parsed, transfers detected); full on-device round-trip still untested
 
-## Phase 8: iCloud/S3 Backup & Restore
-Additive to a working local ledger — comes after Phase 1's schema is stable.
+## Phase 8: Loan/mortgage v2, investment tracking, recurring transactions
+Requested as a follow-up; design captured in [`yama-mvp.md`](yama-mvp.md#loanmortgage-accounts-v2-designed-not-yet-built). Moved ahead of Backup/Polish — pick up now.
 
-- [ ] T8.1 Backup file format + version tagging — `src/backup/backupFormat.ts`
-- [ ] T8.2 iCloud export/import (config plugin + entitlement spike) — `src/backup/icloudBackup.ts`
-- [ ] T8.3 S3 backup via aws4fetch + credentials settings screen — `src/backup/s3Backup.ts`. On save, validate before accepting the credential (fail closed, specific error per failing check): reachable (`HEAD` the bucket), read/write (write+read+delete a marker object), not public (Public Access Block/ACL check), no anonymous access (repeat the reachability check unsigned — must fail). See design doc's "S3 credential validation" list.
-- [ ] T8.4 Backup settings screen: manual backup/restore, destructive-restore confirmation
+- [x] T8.1 `account_rate_history` table (id, account_id, rate_bps, effective_date) replacing the single static `interest_rate_bps` column on loan/mortgage accounts; migration backfills one row per existing account from its current rate. Edit Account shows the tracked list (add/edit/delete) for an existing loan/mortgage account.
+- [x] T8.1b Debt-account linkage moved from category to **payee**: a loan/mortgage account auto-owns a payee named after it (`payees.linked_account_id`); selecting that payee on a transaction posts a mirrored credit to the account, regardless of category. Migration backfills a linked payee for every existing loan/mortgage account. (Supersedes an earlier category-based version — see `yama-mvp.md`.)
+- [x] T8.1c "Original House Price" field + computed "Down payment: $X" hint (Original House Price − Original Principal).
+- [x] T8.2 `account_house_value_history` table (id, account_id, value_cents, effective_date, created_at) — manual value log for a mortgage's home value, feeding Net Worth as the offsetting asset (`HouseValueCard`, `accountHouseValueHistoryRepo`). Ships the mortgage side of the design's `account_value_entries`; not yet generalized to tracking/investment accounts (still needed for T8.6) or renamed/reused as one generic table
+- [ ] T8.3 Merge loan/mortgage debt + a separate tracking (value) account into one combined account — one-time migration action, archives the tracking account
+- [x] T8.4 `remainingMonthsToPayoff`/`totalInterestRemainingCents` already take a total payment amount, so an extra/early payment composes by adding to the scheduled payment rather than needing a new signature — see `LoanDetailsCard`'s extra-payment field; unit test confirms it shortens the payoff (rate-history support already shipped in T8.1)
+- [x] T8.5 Mortgage account page: equity (value − debt) and value history log (`HouseValueCard`), payoff projection card with an adjustable extra-payment input (`LoanDetailsCard`) — rate history list already shipped in T8.1
+- [ ] T8.6 Tracking/investment account page: value log entry form with the two modes (exact gain vs. latest total balance, auto-computing the delta for the latter)
+- [ ] T8.7 `scheduled_transactions` table + repo (frequency, interval, next_date, end_date, auto_post)
+- [ ] T8.8 "Upcoming" list (manual-approve schedules) + lazy auto-post check on app foreground for `auto_post` schedules
+- [ ] T8.9 Scheduled-transaction CRUD UI (create/edit/pause/delete a schedule, from the transaction entry sheet or a dedicated list)
 
-## Phase 9: Polish & App Store Submission Prep
+## Phase 9: Cloud Backup & Restore
+Superseded by [`docs/design/cloud-sync/`](design/cloud-sync/DESIGN.md), built as a follow-up ahead of this phase's original slot — see that design/plan for the authoritative task breakdown. Below reconciles this phase's original tasks against what actually shipped.
+
+- [x] T9.1 Backup file format — `src/sync/buildBackup.ts` (zip-bytes builder) + `src/sync/parseBackupZip.ts` (parser) + `src/sync/types.ts` (`CloudProvider` shape), extracted from the pre-existing share-sheet export/import so cloud and manual paths share one implementation. No separate version tag beyond the zip's existing table dump — not needed yet at one format.
+- [ ] T9.2 iCloud dropped: no first-party Expo module — needs a native module, a dev-client build, and a paid Apple Developer account. Re-scoped to **Google Drive** as the second provider instead — still open, blocked on a user-owned Google Cloud Console OAuth Client ID (see `docs/design/cloud-sync/IMPLEMENT_PLAN.md` T2.3–T2.5, T4.2).
+- [x] T9.3 S3 backup — `src/sync/s3Provider.ts` (hand-rolled SigV4 signing, `@noble/hashes` for HMAC since `expo-crypto` has no HMAC primitive) + `S3ConfigModal.tsx`. `testS3Connection` runs the full fail-closed checklist on save: reachable (`HEAD` the bucket), read/write/delete a marker object, not public (`GetBucketPublicAccessBlock` — all four block flags must be true), no anonymous access (repeats the reachability check unsigned — must fail).
+- [x] T9.4 Backup settings screen — S3 section in `SettingsScreen.tsx`: add/remove bucket configs, auto-sync toggle, "Last synced", "Sync Now", "Restore Latest from Cloud" (creates a new board, same confirmation as today's file-based restore).
+
+## Phase 10: Polish & App Store Submission Prep
 Converts a working skeleton into a submittable app.
 
-- [ ] T9.1 App icon/splash/branding assets
-- [ ] T9.2 Empty states, error boundaries, minimal onboarding
-- [ ] T9.3 Privacy nutrition label content + App Store metadata/screenshots (disclose AI/backup data flows)
-- [ ] T9.4 TestFlight build via EAS + manual QA pass
-- [ ] T9.5 EAS Submit to App Store
-
-## Phase 10: Loan/mortgage v2, investment tracking, recurring transactions
-Requested as a follow-up; design captured in [`yama-mvp.md`](yama-mvp.md#loanmortgage-accounts-v2-designed-not-yet-built). Not blocking Phase 9 (App Store submission) — pick up whenever.
-
-- [x] T10.1 `account_rate_history` table (id, account_id, rate_bps, effective_date) replacing the single static `interest_rate_bps` column on loan/mortgage accounts; migration backfills one row per existing account from its current rate. Edit Account shows the tracked list (add/edit/delete) for an existing loan/mortgage account.
-- [x] T10.1b Debt-account linkage moved from category to **payee**: a loan/mortgage account auto-owns a payee named after it (`payees.linked_account_id`); selecting that payee on a transaction posts a mirrored credit to the account, regardless of category. Migration backfills a linked payee for every existing loan/mortgage account. (Supersedes an earlier category-based version — see `yama-mvp.md`.)
-- [x] T10.1c "Original House Price" field + computed "Down payment: $X" hint (Original House Price − Original Principal).
-- [ ] T10.2 `account_value_entries` table (id, account_id, value_cents, as_of_date, note, created_at, gain_cents nullable, mode nullable) — generic manual value log, shared by mortgage "current home value" and tracking/investment accounts
-- [ ] T10.3 Merge loan/mortgage debt + a separate tracking (value) account into one combined account — one-time migration action, archives the tracking account
-- [ ] T10.4 `finance-tools/amortization.ts`: accept an optional extra/early-payment input for a revised payoff date (rate-history support already shipped in T10.1)
-- [ ] T10.5 Mortgage account page: equity (value − debt), value history log, payoff projection card with adjustable extra-payment input (rate history list already shipped in T10.1)
-- [ ] T10.6 Tracking/investment account page: value log entry form with the two modes (exact gain vs. latest total balance, auto-computing the delta for the latter)
-- [ ] T10.7 `scheduled_transactions` table + repo (frequency, interval, next_date, end_date, auto_post)
-- [ ] T10.8 "Upcoming" list (manual-approve schedules) + lazy auto-post check on app foreground for `auto_post` schedules
-- [ ] T10.9 Scheduled-transaction CRUD UI (create/edit/pause/delete a schedule, from the transaction entry sheet or a dedicated list)
+- [ ] T10.1 App icon/splash/branding assets
+- [ ] T10.2 Empty states, error boundaries, minimal onboarding
+- [ ] T10.3 Privacy nutrition label content + App Store metadata/screenshots (disclose AI/backup data flows)
+- [ ] T10.4 TestFlight build via EAS + manual QA pass
+- [ ] T10.5 EAS Submit to App Store
 
 ## Backlog
 Not sequenced against the phases above — pick up opportunistically.

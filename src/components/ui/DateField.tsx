@@ -12,6 +12,11 @@ interface DateFieldProps {
   // Skips the label row above the field to save vertical space — `label`
   // is still used as the picker card's title.
   hideLabel?: boolean;
+  // "Sep 12" instead of "September 12, 2026" — for a tight layout (e.g.
+  // side by side with another field) where the year is rarely the point.
+  // Off by default: other callers (loan origination, house value history)
+  // show multi-year-old dates where the year is exactly the point.
+  shortFormat?: boolean;
 }
 
 function parseDate(value: string): Date {
@@ -23,15 +28,17 @@ function formatDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function formatDisplay(date: Date, locale: string): string {
-  return date.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' });
+function formatDisplay(date: Date, locale: string, shortFormat?: boolean): string {
+  return shortFormat
+    ? date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+    : date.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 // A hand-rolled scroll-wheel picker kept losing the drag gesture inside the
 // confirm-sheet Modal, however it was built — this is the real OS date
 // picker (spinner wheels on iOS, same widget on Android via this library),
 // so it just scrolls.
-export function DateField({ label, value, onChange, hideLabel }: DateFieldProps) {
+export function DateField({ label, value, onChange, hideLabel, shortFormat }: DateFieldProps) {
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseDate(value));
@@ -50,7 +57,7 @@ export function DateField({ label, value, onChange, hideLabel }: DateFieldProps)
     <View>
       {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
       <Pressable style={styles.field} onPress={openPicker}>
-        <Text style={styles.valueText}>{formatDisplay(parseDate(value), localeTag(language))}</Text>
+        <Text style={styles.valueText}>{formatDisplay(parseDate(value), localeTag(language), shortFormat)}</Text>
         <Text style={styles.chevron}>▾</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>

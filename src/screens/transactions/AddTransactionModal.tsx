@@ -268,7 +268,7 @@ export function AddTransactionModal() {
           </View>
           <View style={styles.row}>
             <View style={styles.half}>
-              <DateField hideLabel label={t('common.date')} value={date} onChange={setDate} />
+              <DateField hideLabel shortFormat label={t('common.date')} value={date} onChange={setDate} />
             </View>
             <View style={styles.half}>
               <DropdownField

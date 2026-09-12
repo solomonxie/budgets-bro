@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { nextMonth } from '../../domain/month';
+import { nextMonth, currentDateISO } from '../../domain/month';
 import {
   SPENDING_BY_CATEGORY,
   SPENDING_BY_CATEGORY_OVER_MONTHS,
@@ -21,6 +21,7 @@ export async function spendingByCategory(db: SQLiteDatabase, boardId: number, mo
     SPENDING_BY_CATEGORY,
     start,
     endExclusive,
+    currentDateISO(),
     boardId,
   );
   return rows.map((r) => ({ categoryId: r.category_id, name: r.name, icon: r.icon, spentCents: r.total }));
@@ -44,6 +45,7 @@ export async function spendingByCategoryOverMonths(db: SQLiteDatabase, boardId: 
     SPENDING_BY_CATEGORY_OVER_MONTHS,
     start,
     endExclusive,
+    currentDateISO(),
     boardId,
   );
   return rows.map((r) => ({ categoryId: r.category_id, name: r.name, icon: r.icon, month: r.month, spentCents: r.total }));
@@ -69,14 +71,17 @@ export async function incomeAndSpendingInRange(
   startDate: string,
   endDateExclusive: string,
 ): Promise<RangeTotals> {
+  const today = currentDateISO();
   const row = await db.getFirstAsync<{ income_cents: number; spending_cents: number }>(
     INCOME_AND_SPENDING_IN_RANGE,
     boardId,
     startDate,
     endDateExclusive,
+    today,
     boardId,
     startDate,
     endDateExclusive,
+    today,
   );
   return { incomeCents: row?.income_cents ?? 0, spendingCents: row?.spending_cents ?? 0 };
 }

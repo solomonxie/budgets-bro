@@ -4,27 +4,36 @@ export const CUMULATIVE_ASSIGNED = `
   SELECT category_id, SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ? GROUP BY category_id
 `;
 
-// Every activity query below also excludes scheduled/future transactions
-// (date <= today, on top of whatever month-range bound it already has) —
-// a future-dated transaction inside the target month/range hasn't
-// happened yet and shouldn't count as spent. See
-// databases/queries/transactions.ts.
+// Every activity query below also:
+// - excludes scheduled/future transactions (date <= today, on top of
+//   whatever month-range bound it already has) — a future-dated
+//   transaction inside the target month/range hasn't happened yet and
+//   shouldn't count as spent. See databases/queries/transactions.ts.
+// - only counts on-budget accounts (JOIN ... AND a.on_budget = 1) — a
+//   category is money assigned out of an on-budget account's cash; a
+//   tracking account (net-worth-only, outside the envelope system) was
+//   never assigned anything, so a category on one of its transactions
+//   (if the UI ever let one through) must not count as spent. Matches
+//   reports.ts's INCOME_AND_SPENDING_IN_RANGE, which already did this.
 export const CUMULATIVE_ACTIVITY = `
-  SELECT category_id, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date < ? AND date <= ? AND board_id = ? GROUP BY category_id
+  SELECT t.category_id, SUM(t.amount_cents) as total FROM transactions t
+  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+  WHERE t.category_id IS NOT NULL AND t.date < ? AND t.date <= ? AND t.board_id = ? GROUP BY t.category_id
 `;
 
 export const ACTIVITY_THIS_MONTH = `
-  SELECT category_id, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND date <= ? AND board_id = ? GROUP BY category_id
+  SELECT t.category_id, SUM(t.amount_cents) as total FROM transactions t
+  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+  WHERE t.category_id IS NOT NULL AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.board_id = ? GROUP BY t.category_id
 `;
 
 // Ungrouped version of ACTIVITY_THIS_MONTH across a month range — one row
 // per calendar month instead of per category, for a trailing-months
 // average/median (see budgetsRepo.totalActivityByMonth).
 export const TOTAL_ACTIVITY_BY_MONTH = `
-  SELECT substr(date, 1, 7) as month, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND date <= ? AND board_id = ? GROUP BY month
+  SELECT substr(t.date, 1, 7) as month, SUM(t.amount_cents) as total FROM transactions t
+  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+  WHERE t.category_id IS NOT NULL AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.board_id = ? GROUP BY month
 `;
 
 export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ?';
@@ -33,7 +42,9 @@ export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total
 // across every category, used with TOTAL_ASSIGNED_THROUGH_MONTH to get one
 // combined "Available" balance for all categories at once.
 export const TOTAL_ACTIVITY_THROUGH_MONTH = `
-  SELECT SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ? AND date <= ? AND board_id = ?
+  SELECT SUM(t.amount_cents) as total FROM transactions t
+  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+  WHERE t.category_id IS NOT NULL AND t.date < ? AND t.date <= ? AND t.board_id = ?
 `;
 
 // Unassigned Cash = (money sitting in cash accounts) − (money already

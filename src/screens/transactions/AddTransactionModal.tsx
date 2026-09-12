@@ -18,7 +18,11 @@ import { useCategories } from '../../hooks/useCategories';
 import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
-import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
+import {
+  DropdownField,
+  DropdownGroupLabel,
+  DropdownOption,
+} from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { DateField } from '../../components/ui/DateField';
 import { useT } from '../../i18n';
@@ -43,7 +47,11 @@ const AMOUNT_ACCESSORY_ID = 'add-transaction-amount-accessory';
 
 export function AddTransactionModal() {
   const t = useT();
-  const { open: isOpen, editingTransactionId, presetAccountId } = useAppStore((s) => s.transactionModal);
+  const {
+    open: isOpen,
+    editingTransactionId,
+    presetAccountId,
+  } = useAppStore((s) => s.transactionModal);
   const close = useAppStore((s) => s.closeTransactionModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
@@ -60,6 +68,15 @@ export function AddTransactionModal() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
+  // Tracking accounts sit outside the envelope system entirely (net-worth-
+  // only, never assigned money — see accountsRepo's on_budget derivation),
+  // so a category there wouldn't mean anything: there's no assigned cash
+  // for it to be spent out of. Budget activity queries already guard
+  // against this server-side (see databases/queries/budgets.ts), but the
+  // field shouldn't even be offered here.
+  const isTrackingAccount =
+    accounts.find((a) => a.account.id === accountId)?.account.type ===
+    'tracking';
   const [date, setDate] = useState(currentDateISO());
 
   useEffect(() => {
@@ -67,7 +84,10 @@ export function AddTransactionModal() {
     if (editingTransactionId != null) {
       (async () => {
         const db = await getDb();
-        const t = await transactionsRepo.getTransaction(db, editingTransactionId);
+        const t = await transactionsRepo.getTransaction(
+          db,
+          editingTransactionId,
+        );
         if (!t) return;
         setAmount(String(Math.abs(t.amountCents)));
         setDirection(t.amountCents < 0 ? 'out' : 'in');
@@ -86,7 +106,8 @@ export function AddTransactionModal() {
     // focus effect below so an unrelated `accounts` refetch (e.g. another
     // screen bumping dataVersion) never steals focus back to the amount
     // field mid-edit.
-    if (!isOpen || editingTransactionId != null || accounts.length === 0) return;
+    if (!isOpen || editingTransactionId != null || accounts.length === 0)
+      return;
     setAccountId((prev) => presetAccountId ?? prev ?? accounts[0].account.id);
   }, [isOpen, editingTransactionId, presetAccountId, accounts]);
 
@@ -115,7 +136,10 @@ export function AddTransactionModal() {
   const selectPayee = async (name: string, id: number) => {
     setPayee(name);
     const db = await getDb();
-    const lastCategoryId = await transactionsRepo.getLastCategoryIdForPayee(db, id);
+    const lastCategoryId = await transactionsRepo.getLastCategoryIdForPayee(
+      db,
+      id,
+    );
     if (lastCategoryId != null) setCategoryId(lastCategoryId);
   };
 
@@ -129,14 +153,20 @@ export function AddTransactionModal() {
     const db = await getDb();
     const input = {
       accountId,
-      categoryId,
+      // Defense in depth — the field's hidden and cleared on account switch
+      // for a tracking account already, but never let a stale categoryId
+      // slip through regardless.
+      categoryId: isTrackingAccount ? null : categoryId,
       payeeName: payee,
       memo: memo || null,
       amountCents,
       date,
     };
     if (editingTransactionId != null) {
-      await transactionsRepo.updateTransaction(db, boardId, { ...input, id: editingTransactionId });
+      await transactionsRepo.updateTransaction(db, boardId, {
+        ...input,
+        id: editingTransactionId,
+      });
     } else {
       await transactionsRepo.createTransaction(db, boardId, input);
     }
@@ -164,9 +194,20 @@ export function AddTransactionModal() {
   };
 
   return (
-    <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={cancel}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
+    <Modal
+      visible={isOpen}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={cancel}
+    >
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.sheet}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.header}>
             <Pressable onPress={cancel}>
               <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
@@ -178,23 +219,52 @@ export function AddTransactionModal() {
             placeholder={t('spend.amountPlaceholder')}
             keyboardType="number-pad"
             keyboardAppearance="dark"
-            inputAccessoryViewID={Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined}
+            inputAccessoryViewID={
+              Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
+            }
             value={amount ? `$${formatAmountDigits(amount)}` : ''}
-            onChangeText={(text) => setAmount(text.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 9))}
+            onChangeText={(text) =>
+              setAmount(
+                text
+                  .replace(/\D/g, '')
+                  .replace(/^0+(?=\d)/, '')
+                  .slice(0, 9),
+              )
+            }
             placeholderTextColor={colors.textMuted}
           />
           <View style={styles.segmented}>
             <Pressable
-              style={[styles.segment, direction === 'out' && styles.segmentActive]}
+              style={[
+                styles.segment,
+                direction === 'out' && styles.segmentActive,
+              ]}
               onPress={() => setDirection('out')}
             >
-              <Text style={[styles.segmentText, direction === 'out' && styles.segmentTextActive]}>{t('spend.spending')}</Text>
+              <Text
+                style={[
+                  styles.segmentText,
+                  direction === 'out' && styles.segmentTextActive,
+                ]}
+              >
+                {t('spend.spending')}
+              </Text>
             </Pressable>
             <Pressable
-              style={[styles.segment, direction === 'in' && styles.segmentActive]}
+              style={[
+                styles.segment,
+                direction === 'in' && styles.segmentActive,
+              ]}
               onPress={() => setDirection('in')}
             >
-              <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>{t('spend.income')}</Text>
+              <Text
+                style={[
+                  styles.segmentText,
+                  direction === 'in' && styles.segmentTextActive,
+                ]}
+              >
+                {t('spend.income')}
+              </Text>
             </Pressable>
           </View>
           <View style={styles.row}>
@@ -211,59 +281,73 @@ export function AddTransactionModal() {
                 onUseText={setPayee}
               />
             </View>
-            <View style={styles.half}>
-              <DropdownField
-                compact
-                hideLabel
-                label={t('common.category')}
-                valueLabel={
-                  categoryId == null
-                    ? ''
-                    : (() => {
-                        const c = categories.find((cat) => cat.id === categoryId);
-                        return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
-                      })()
-                }
-                placeholder={t('common.uncategorized')}
-              >
-                {(close) => (
-                  <>
-                    <DropdownOption
-                      label={t('common.uncategorized')}
-                      selected={categoryId == null}
-                      onPress={() => {
-                        setCategoryId(null);
-                        close();
-                      }}
-                    />
-                    {groups.map((group) => {
-                      const groupCategories = categories.filter((c) => c.groupId === group.id);
-                      if (groupCategories.length === 0) return null;
-                      return (
-                        <View key={group.id}>
-                          <DropdownGroupLabel label={group.name} />
-                          {groupCategories.map((c) => (
-                            <DropdownOption
-                              key={c.id}
-                              label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                              selected={categoryId === c.id}
-                              onPress={() => {
-                                setCategoryId(c.id);
-                                close();
-                              }}
-                            />
-                          ))}
-                        </View>
-                      );
-                    })}
-                  </>
-                )}
-              </DropdownField>
-            </View>
+            {isTrackingAccount ? null : (
+              <View style={styles.half}>
+                <DropdownField
+                  compact
+                  hideLabel
+                  label={t('common.category')}
+                  valueLabel={
+                    categoryId == null
+                      ? ''
+                      : (() => {
+                          const c = categories.find(
+                            (cat) => cat.id === categoryId,
+                          );
+                          return c
+                            ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                            : '';
+                        })()
+                  }
+                  placeholder={t('common.uncategorized')}
+                >
+                  {(close) => (
+                    <>
+                      <DropdownOption
+                        label={t('common.uncategorized')}
+                        selected={categoryId == null}
+                        onPress={() => {
+                          setCategoryId(null);
+                          close();
+                        }}
+                      />
+                      {groups.map((group) => {
+                        const groupCategories = categories.filter(
+                          (c) => c.groupId === group.id,
+                        );
+                        if (groupCategories.length === 0) return null;
+                        return (
+                          <View key={group.id}>
+                            <DropdownGroupLabel label={group.name} />
+                            {groupCategories.map((c) => (
+                              <DropdownOption
+                                key={c.id}
+                                label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                                selected={categoryId === c.id}
+                                onPress={() => {
+                                  setCategoryId(c.id);
+                                  close();
+                                }}
+                              />
+                            ))}
+                          </View>
+                        );
+                      })}
+                    </>
+                  )}
+                </DropdownField>
+              </View>
+            )}
           </View>
           <View style={styles.row}>
             <View style={styles.half}>
-              <DateField hideLabel shortFormat label={t('common.date')} value={date} onChange={setDate} />
+              <DateField
+                hideLabel
+                shortFormat
+                label={t('common.date')}
+                value={date}
+                onChange={setDate}
+              />
             </View>
             <View style={styles.half}>
               <DropdownField
@@ -271,7 +355,10 @@ export function AddTransactionModal() {
                 hideLabel
                 label={t('common.account')}
                 placeholder={t('common.account')}
-                valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}
+                valueLabel={
+                  accounts.find((a) => a.account.id === accountId)?.account
+                    .name ?? ''
+                }
               >
                 {(close) => (
                   <>
@@ -282,6 +369,7 @@ export function AddTransactionModal() {
                         selected={accountId === account.id}
                         onPress={() => {
                           setAccountId(account.id);
+                          if (account.type === 'tracking') setCategoryId(null);
                           close();
                         }}
                       />
@@ -304,14 +392,19 @@ export function AddTransactionModal() {
           </Pressable>
           {isEditing ? (
             <Pressable style={styles.deleteButton} onPress={remove}>
-              <Text style={styles.deleteButtonText}>{t('spend.deleteTransaction')}</Text>
+              <Text style={styles.deleteButtonText}>
+                {t('spend.deleteTransaction')}
+              </Text>
             </Pressable>
           ) : null}
         </ScrollView>
         {Platform.OS === 'ios' ? (
           <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
             <View style={styles.accessoryBar}>
-              <Pressable onPress={() => amountInputRef.current?.blur()} hitSlop={10}>
+              <Pressable
+                onPress={() => amountInputRef.current?.blur()}
+                hitSlop={10}
+              >
                 <Text style={styles.accessoryDoneText}>{t('common.done')}</Text>
               </Pressable>
             </View>
@@ -324,14 +417,24 @@ export function AddTransactionModal() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  sheet: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.background, flexGrow: 1 },
+  sheet: {
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: colors.background,
+    flexGrow: 1,
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between' },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
   // Payee+category, then date+account — each pair side by side instead of
   // stacked, so the form reads shorter without dropping any field.
   row: { flexDirection: 'row', gap: spacing.sm },
   half: { flex: 1 },
-  bigSaveButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  bigSaveButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
   bigSaveButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   accessoryBar: {
     flexDirection: 'row',
@@ -349,8 +452,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 6,
   },
-  segmented: { flexDirection: 'row', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 3, gap: 3 },
-  segment: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 3,
+    gap: 3,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },

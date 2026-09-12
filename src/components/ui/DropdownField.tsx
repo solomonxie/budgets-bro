@@ -18,9 +18,14 @@ interface DropdownFieldProps {
   // long/grouped ones (category, payee). Leave off only where a filter
   // dropdown genuinely benefits from the extra room (see TransactionsScreen).
   compact?: boolean;
+  // Skips the label row above the field to save vertical space — the
+  // picker sheet/page still uses `label` as its title, and `placeholder`
+  // becomes the only clue to what the field is when empty, so pass a
+  // meaningful one.
+  hideLabel?: boolean;
 }
 
-export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact }: DropdownFieldProps) {
+export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -37,7 +42,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
 
   return (
     <View>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label && !hideLabel ? <Text style={styles.label}>{label}</Text> : null}
       <Pressable style={styles.field} onPress={openPicker}>
         <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
           {valueLabel || placeholder}

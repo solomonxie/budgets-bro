@@ -13,7 +13,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/useAppStore';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
@@ -203,80 +202,100 @@ export function AddTransactionModal() {
               <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>{t('spend.income')}</Text>
             </Pressable>
           </View>
-          <SearchableDropdownField
-            compact
-            label={t('common.payee')}
-            valueLabel={payee}
-            placeholder={t('spend.payeePlaceholder')}
-            searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-            options={payees.map((p) => ({ id: p.id, label: p.name }))}
-            onSelect={(o) => selectPayee(o.label, o.id)}
-            onUseText={setPayee}
-          />
-          <DropdownField
-            compact
-            label={t('common.category')}
-            valueLabel={
-              categoryId == null
-                ? ''
-                : (() => {
-                    const c = categories.find((cat) => cat.id === categoryId);
-                    return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
-                  })()
-            }
-            placeholder={t('common.uncategorized')}
-          >
-            {(close) => (
-              <>
-                <DropdownOption
-                  label={t('common.uncategorized')}
-                  selected={categoryId == null}
-                  onPress={() => {
-                    setCategoryId(null);
-                    close();
-                  }}
-                />
-                {groups.map((group) => {
-                  const groupCategories = categories.filter((c) => c.groupId === group.id);
-                  if (groupCategories.length === 0) return null;
-                  return (
-                    <View key={group.id}>
-                      <DropdownGroupLabel label={group.name} />
-                      {groupCategories.map((c) => (
-                        <DropdownOption
-                          key={c.id}
-                          label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                          selected={categoryId === c.id}
-                          onPress={() => {
-                            setCategoryId(c.id);
-                            close();
-                          }}
-                        />
-                      ))}
-                    </View>
-                  );
-                })}
-              </>
-            )}
-          </DropdownField>
-          <DateField label={t('common.date')} value={date} onChange={setDate} />
-          <DropdownField compact label={t('common.account')} valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
-            {(close) => (
-              <>
-                {accounts.map(({ account }) => (
-                  <DropdownOption
-                    key={account.id}
-                    label={account.name}
-                    selected={accountId === account.id}
-                    onPress={() => {
-                      setAccountId(account.id);
-                      close();
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </DropdownField>
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <SearchableDropdownField
+                compact
+                hideLabel
+                label={t('common.payee')}
+                valueLabel={payee}
+                placeholder={t('spend.payeePlaceholder')}
+                searchPlaceholder={t('spend.payeeSearchPlaceholder')}
+                options={payees.map((p) => ({ id: p.id, label: p.name }))}
+                onSelect={(o) => selectPayee(o.label, o.id)}
+                onUseText={setPayee}
+              />
+            </View>
+            <View style={styles.half}>
+              <DropdownField
+                compact
+                hideLabel
+                label={t('common.category')}
+                valueLabel={
+                  categoryId == null
+                    ? ''
+                    : (() => {
+                        const c = categories.find((cat) => cat.id === categoryId);
+                        return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
+                      })()
+                }
+                placeholder={t('common.uncategorized')}
+              >
+                {(close) => (
+                  <>
+                    <DropdownOption
+                      label={t('common.uncategorized')}
+                      selected={categoryId == null}
+                      onPress={() => {
+                        setCategoryId(null);
+                        close();
+                      }}
+                    />
+                    {groups.map((group) => {
+                      const groupCategories = categories.filter((c) => c.groupId === group.id);
+                      if (groupCategories.length === 0) return null;
+                      return (
+                        <View key={group.id}>
+                          <DropdownGroupLabel label={group.name} />
+                          {groupCategories.map((c) => (
+                            <DropdownOption
+                              key={c.id}
+                              label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                              selected={categoryId === c.id}
+                              onPress={() => {
+                                setCategoryId(c.id);
+                                close();
+                              }}
+                            />
+                          ))}
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+              </DropdownField>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <DateField hideLabel label={t('common.date')} value={date} onChange={setDate} />
+            </View>
+            <View style={styles.half}>
+              <DropdownField
+                compact
+                hideLabel
+                label={t('common.account')}
+                placeholder={t('common.account')}
+                valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}
+              >
+                {(close) => (
+                  <>
+                    {accounts.map(({ account }) => (
+                      <DropdownOption
+                        key={account.id}
+                        label={account.name}
+                        selected={accountId === account.id}
+                        onPress={() => {
+                          setAccountId(account.id);
+                          close();
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+              </DropdownField>
+            </View>
+          </View>
           <TextInput
             style={styles.textInput}
             placeholder={t('spend.memoPlaceholder')}
@@ -291,17 +310,15 @@ export function AddTransactionModal() {
               <Switch value={isInterest} onValueChange={setIsInterest} trackColor={{ true: colors.accent, false: colors.border }} />
             </View>
           ) : null}
+          <Pressable style={styles.bigSaveButton} onPress={save}>
+            <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
+          </Pressable>
           {isEditing ? (
             <Pressable style={styles.deleteButton} onPress={remove}>
               <Text style={styles.deleteButtonText}>{t('spend.deleteTransaction')}</Text>
             </Pressable>
           ) : null}
         </ScrollView>
-        <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
-          <Pressable style={styles.bigSaveButton} onPress={save}>
-            <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
-          </Pressable>
-        </SafeAreaView>
         {Platform.OS === 'ios' ? (
           <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
             <View style={styles.accessoryBar}>
@@ -321,9 +338,10 @@ const styles = StyleSheet.create({
   sheet: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.background, flexGrow: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between' },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
-  // Pinned outside the ScrollView (not just the last item in it) — always
-  // reachable without scrolling, even while the keyboard is up.
-  bottomBar: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
+  // Payee+category, then date+account — each pair side by side instead of
+  // stacked, so the form reads shorter without dropping any field.
+  row: { flexDirection: 'row', gap: spacing.sm },
+  half: { flex: 1 },
   bigSaveButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   bigSaveButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   accessoryBar: {

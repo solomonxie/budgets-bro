@@ -9,6 +9,9 @@ interface DateFieldProps {
   label: string;
   value: string; // 'YYYY-MM-DD'
   onChange: (date: string) => void;
+  // Skips the label row above the field to save vertical space — `label`
+  // is still used as the picker card's title.
+  hideLabel?: boolean;
 }
 
 function parseDate(value: string): Date {
@@ -28,7 +31,7 @@ function formatDisplay(date: Date, locale: string): string {
 // confirm-sheet Modal, however it was built — this is the real OS date
 // picker (spinner wheels on iOS, same widget on Android via this library),
 // so it just scrolls.
-export function DateField({ label, value, onChange }: DateFieldProps) {
+export function DateField({ label, value, onChange, hideLabel }: DateFieldProps) {
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseDate(value));
@@ -45,7 +48,7 @@ export function DateField({ label, value, onChange }: DateFieldProps) {
 
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
       <Pressable style={styles.field} onPress={openPicker}>
         <Text style={styles.valueText}>{formatDisplay(parseDate(value), localeTag(language))}</Text>
         <Text style={styles.chevron}>▾</Text>

@@ -50,6 +50,11 @@ interface SearchableDropdownFieldProps {
   // doc comment. Off by default (a full-screen page, same as before) since
   // most callers of this one manage a long list.
   compact?: boolean;
+  // Skips the label row above the field to save vertical space — the
+  // picker sheet/page still uses `label` as its title, and `placeholder`
+  // becomes the only clue to what the field is when empty, so pass a
+  // meaningful one.
+  hideLabel?: boolean;
 }
 
 export function SearchableDropdownField({
@@ -61,6 +66,7 @@ export function SearchableDropdownField({
   onSelect,
   onUseText,
   compact,
+  hideLabel,
 }: SearchableDropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -136,7 +142,7 @@ export function SearchableDropdownField({
 
   return (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
       <Pressable style={styles.field} onPress={openPicker}>
         <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
           {valueLabel || placeholder}

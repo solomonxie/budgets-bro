@@ -285,7 +285,6 @@ export const en = {
   'spend.payeePlaceholder': 'Payee',
   'spend.payeeSearchPlaceholder': 'Search or type a new payee',
   'spend.memoPlaceholder': 'Memo',
-  'spend.interestIncome': 'Interest income',
   'spend.deleteTransaction': 'Delete Transaction',
   'spend.deleteConfirmTitle': 'Delete transaction?',
 

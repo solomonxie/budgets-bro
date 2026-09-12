@@ -161,7 +161,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: cents(rand(5600, 6000) * inflation),
       date: day(month, 1),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -170,7 +169,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: cents(rand(5600, 6000) * inflation),
       date: day(month, 15),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -179,7 +177,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: cents(rand(4000, 4400) * inflation),
       date: day(month, 1),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -188,7 +185,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: cents(rand(4000, 4400) * inflation),
       date: day(month, 15),
-      isInterest: false,
     });
 
     // Mortgages — principal (transfer, moves the loan balance) + interest
@@ -201,7 +197,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -lakeview.principalCents,
       date: day(month, 1),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -210,7 +205,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Mortgage interest',
       amountCents: -lakeview.interestCents,
       date: day(month, 1),
-      isInterest: false,
     });
     const whistler = whistlerSchedule[i];
     await transactionsRepo.createTransaction(db, boardId, {
@@ -220,7 +214,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -whistler.principalCents,
       date: day(month, 1),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -229,7 +222,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Mortgage interest',
       amountCents: -whistler.interestCents,
       date: day(month, 1),
-      isInterest: false,
     });
 
     // Property tax — quarterly.
@@ -241,7 +233,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -cents(rand(1300, 1600) * 3),
         date: day(month, 2),
-        isInterest: false,
       });
     }
     await transactionsRepo.createTransaction(db, boardId, {
@@ -251,7 +242,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -cents(rand(170, 200)),
       date: day(month, 3),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -260,7 +250,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -cents(rand(180, 260)),
       date: day(month, 8),
-      isInterest: false,
     });
     if (Math.random() < 0.3) {
       await transactionsRepo.createTransaction(db, boardId, {
@@ -270,7 +259,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -cents(rand(150, 650)),
         date: day(month, 12),
-        isInterest: false,
       });
     }
 
@@ -283,7 +271,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -cents(rand(120, 220)),
         date: day(month, 3 + g * 6),
-        isInterest: false,
       });
     }
     for (let d = 0; d < 5; d++) {
@@ -294,7 +281,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -cents(rand(45, 130)),
         date: day(month, 4 + d * 5),
-        isInterest: false,
       });
     }
     for (let g = 0; g < 3; g++) {
@@ -305,7 +291,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -cents(rand(55, 90)),
         date: day(month, 6 + g * 8),
-        isInterest: false,
       });
     }
 
@@ -320,7 +305,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -amt,
         date: day(month, 9 + s * 7),
-        isInterest: false,
       });
     }
     const subAmt = cents(rand(60, 75));
@@ -332,7 +316,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -subAmt,
       date: day(month, 5),
-      isInterest: false,
     });
     if (i % 6 === 2) {
       const travelAmt = cents(rand(3500, 6500));
@@ -344,7 +327,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -travelAmt,
         date: day(month, 18),
-        isInterest: false,
       });
     }
     for (let h = 0; h < 2; h++) {
@@ -355,7 +337,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         memo: null,
         amountCents: -cents(rand(40, 90)),
         date: day(month, 14 + h * 10),
-        isInterest: false,
       });
     }
     await transactionsRepo.createTransaction(db, boardId, {
@@ -365,7 +346,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -cents(135),
       date: day(month, 4),
-      isInterest: false,
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
@@ -374,7 +354,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -cents(250),
       date: day(month, 20),
-      isInterest: false,
     });
 
     // Pay most (not all) of the card's balance each month — a small
@@ -389,7 +368,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -ccPayment,
       date: day(month, 26),
-      isInterest: false,
     });
 
     // Retirement/investment contributions + simulated growth.
@@ -401,7 +379,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -rrspContribution,
       date: day(month, 27),
-      isInterest: false,
     });
     const rrspGrowth = Math.round(rrspBalance * rand(-0.01, 0.02));
     rrspBalance += rrspContribution + rrspGrowth;
@@ -412,7 +389,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Market growth',
       amountCents: rrspGrowth,
       date: day(month, 28),
-      isInterest: true,
     });
 
     const tfsaContribution = cents(650);
@@ -423,7 +399,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -tfsaContribution,
       date: day(month, 27),
-      isInterest: false,
     });
     const tfsaGrowth = Math.round(tfsaBalance * rand(-0.01, 0.02));
     tfsaBalance += tfsaContribution + tfsaGrowth;
@@ -434,7 +409,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Market growth',
       amountCents: tfsaGrowth,
       date: day(month, 28),
-      isInterest: true,
     });
 
     const investContribution = cents(1200);
@@ -445,7 +419,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -investContribution,
       date: day(month, 27),
-      isInterest: false,
     });
     const investGrowth = Math.round(investBalance * rand(-0.015, 0.025));
     investBalance += investContribution + investGrowth;
@@ -456,7 +429,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Market growth',
       amountCents: investGrowth,
       date: day(month, 28),
-      isInterest: true,
     });
 
     // Sweep whatever's left in Chequing past a comfortable cushion into
@@ -469,7 +441,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents: -savingsTransfer,
       date: day(month, 28),
-      isInterest: false,
     });
     const savingsInterest = Math.round(savingsBalance * rand(0.002, 0.004));
     savingsBalance += savingsTransfer + savingsInterest;
@@ -480,7 +451,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Interest',
       amountCents: savingsInterest,
       date: day(month, 28),
-      isInterest: true,
     });
 
     // Budget — assign roughly what the month spent, plus a small buffer.

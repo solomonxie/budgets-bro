@@ -283,7 +283,6 @@ export const zh: Record<keyof typeof en, string> = {
   'spend.payeePlaceholder': '收款方',
   'spend.payeeSearchPlaceholder': '搜索或输入新的收款方',
   'spend.memoPlaceholder': '备注',
-  'spend.interestIncome': '利息收入',
   'spend.deleteTransaction': '删除交易',
   'spend.deleteConfirmTitle': '删除该交易？',
 

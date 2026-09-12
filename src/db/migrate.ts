@@ -11,6 +11,7 @@ import { up as up009 } from '../../databases/migrations/009_payee_per_account';
 import { up as up010 } from '../../databases/migrations/010_transaction_import_id_per_board';
 import { up as up011 } from '../../databases/migrations/011_house_value_history';
 import { up as up012 } from '../../databases/migrations/012_drop_transaction_cleared';
+import { up as up013 } from '../../databases/migrations/013_drop_transaction_is_interest';
 
 type Migration = { version: number; up: (db: SQLiteDatabase) => Promise<void> };
 
@@ -27,6 +28,7 @@ const migrations: Migration[] = [
   { version: 10, up: up010 },
   { version: 11, up: up011 },
   { version: 12, up: up012 },
+  { version: 13, up: up013 },
 ];
 
 // Small versioned migration runner: expo-sqlite has no built-in migration

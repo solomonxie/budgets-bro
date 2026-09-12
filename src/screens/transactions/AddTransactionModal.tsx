@@ -8,7 +8,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -62,7 +61,6 @@ export function AddTransactionModal() {
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
   const [date, setDate] = useState(currentDateISO());
-  const [isInterest, setIsInterest] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,7 +76,6 @@ export function AddTransactionModal() {
         setAccountId(t.accountId);
         setMemo(t.memo ?? '');
         setDate(t.date);
-        setIsInterest(t.isInterest);
       })();
     }
   }, [isOpen, editingTransactionId]);
@@ -108,7 +105,6 @@ export function AddTransactionModal() {
     setCategoryId(null);
     setMemo('');
     setDate(currentDateISO());
-    setIsInterest(false);
   };
 
   const cancel = () => {
@@ -138,7 +134,6 @@ export function AddTransactionModal() {
       memo: memo || null,
       amountCents,
       date,
-      isInterest: direction === 'in' && isInterest,
     };
     if (editingTransactionId != null) {
       await transactionsRepo.updateTransaction(db, boardId, { ...input, id: editingTransactionId });
@@ -304,12 +299,6 @@ export function AddTransactionModal() {
             placeholderTextColor={colors.textMuted}
             keyboardAppearance="dark"
           />
-          {direction === 'in' ? (
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{t('spend.interestIncome')}</Text>
-              <Switch value={isInterest} onValueChange={setIsInterest} trackColor={{ true: colors.accent, false: colors.border }} />
-            </View>
-          ) : null}
           <Pressable style={styles.bigSaveButton} onPress={save}>
             <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
           </Pressable>
@@ -375,17 +364,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     color: colors.text,
   },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  switchLabel: { fontSize: 15, color: colors.text },
   deleteButton: { alignItems: 'center', paddingVertical: spacing.sm },
   deleteButtonText: { color: colors.negative, fontWeight: '700' },
 });

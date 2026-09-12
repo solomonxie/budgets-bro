@@ -5,11 +5,14 @@ interface TextFieldProps extends TextInputProps {
   label?: string;
 }
 
+// keyboardAppearance="dark" — the app is dark-only for now (see
+// theme/colors.ts), but the system keyboard doesn't follow that on its own;
+// override via props if/when a light theme ships.
 export function TextField({ label, style, ...props }: TextFieldProps) {
   return (
     <View style={styles.container}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput style={[styles.input, style]} placeholderTextColor={colors.textMuted} {...props} />
+      <TextInput style={[styles.input, style]} placeholderTextColor={colors.textMuted} keyboardAppearance="dark" {...props} />
     </View>
   );
 }

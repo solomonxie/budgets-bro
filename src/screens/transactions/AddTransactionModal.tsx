@@ -1,5 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  InputAccessoryView,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/useAppStore';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
@@ -26,6 +40,8 @@ function formatAmountDigits(digits: string): string {
     maximumFractionDigits: 2,
   });
 }
+
+const AMOUNT_ACCESSORY_ID = 'add-transaction-amount-accessory';
 
 export function AddTransactionModal() {
   const t = useT();
@@ -155,140 +171,170 @@ export function AddTransactionModal() {
 
   return (
     <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={cancel}>
-      <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Pressable onPress={cancel}>
-            <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
-          </Pressable>
-          <Pressable onPress={save}>
-            <Text style={[styles.headerBtn, styles.saveBtn]}>{t('common.save')}</Text>
-          </Pressable>
-        </View>
-        <TextInput
-          ref={amountInputRef}
-          style={styles.amountInput}
-          placeholder={t('spend.amountPlaceholder')}
-          keyboardType="number-pad"
-          value={amount ? `$${formatAmountDigits(amount)}` : ''}
-          onChangeText={(text) => setAmount(text.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 9))}
-          placeholderTextColor={colors.textMuted}
-        />
-        <View style={styles.segmented}>
-          <Pressable
-            style={[styles.segment, direction === 'out' && styles.segmentActive]}
-            onPress={() => setDirection('out')}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <Pressable onPress={cancel}>
+              <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
+            </Pressable>
+          </View>
+          <TextInput
+            ref={amountInputRef}
+            style={styles.amountInput}
+            placeholder={t('spend.amountPlaceholder')}
+            keyboardType="number-pad"
+            keyboardAppearance="dark"
+            inputAccessoryViewID={Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined}
+            value={amount ? `$${formatAmountDigits(amount)}` : ''}
+            onChangeText={(text) => setAmount(text.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 9))}
+            placeholderTextColor={colors.textMuted}
+          />
+          <View style={styles.segmented}>
+            <Pressable
+              style={[styles.segment, direction === 'out' && styles.segmentActive]}
+              onPress={() => setDirection('out')}
+            >
+              <Text style={[styles.segmentText, direction === 'out' && styles.segmentTextActive]}>{t('spend.spending')}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.segment, direction === 'in' && styles.segmentActive]}
+              onPress={() => setDirection('in')}
+            >
+              <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>{t('spend.income')}</Text>
+            </Pressable>
+          </View>
+          <SearchableDropdownField
+            compact
+            label={t('common.payee')}
+            valueLabel={payee}
+            placeholder={t('spend.payeePlaceholder')}
+            searchPlaceholder={t('spend.payeeSearchPlaceholder')}
+            options={payees.map((p) => ({ id: p.id, label: p.name }))}
+            onSelect={(o) => selectPayee(o.label, o.id)}
+            onUseText={setPayee}
+          />
+          <DropdownField
+            compact
+            label={t('common.category')}
+            valueLabel={
+              categoryId == null
+                ? ''
+                : (() => {
+                    const c = categories.find((cat) => cat.id === categoryId);
+                    return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
+                  })()
+            }
+            placeholder={t('common.uncategorized')}
           >
-            <Text style={[styles.segmentText, direction === 'out' && styles.segmentTextActive]}>{t('spend.spending')}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.segment, direction === 'in' && styles.segmentActive]}
-            onPress={() => setDirection('in')}
-          >
-            <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>{t('spend.income')}</Text>
-          </Pressable>
-        </View>
-        <SearchableDropdownField
-          compact
-          label={t('common.payee')}
-          valueLabel={payee}
-          placeholder={t('spend.payeePlaceholder')}
-          searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-          options={payees.map((p) => ({ id: p.id, label: p.name }))}
-          onSelect={(o) => selectPayee(o.label, o.id)}
-          onUseText={setPayee}
-        />
-        <DropdownField
-          compact
-          label={t('common.category')}
-          valueLabel={
-            categoryId == null
-              ? ''
-              : (() => {
-                  const c = categories.find((cat) => cat.id === categoryId);
-                  return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
-                })()
-          }
-          placeholder={t('common.uncategorized')}
-        >
-          {(close) => (
-            <>
-              <DropdownOption
-                label={t('common.uncategorized')}
-                selected={categoryId == null}
-                onPress={() => {
-                  setCategoryId(null);
-                  close();
-                }}
-              />
-              {groups.map((group) => {
-                const groupCategories = categories.filter((c) => c.groupId === group.id);
-                if (groupCategories.length === 0) return null;
-                return (
-                  <View key={group.id}>
-                    <DropdownGroupLabel label={group.name} />
-                    {groupCategories.map((c) => (
-                      <DropdownOption
-                        key={c.id}
-                        label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                        selected={categoryId === c.id}
-                        onPress={() => {
-                          setCategoryId(c.id);
-                          close();
-                        }}
-                      />
-                    ))}
-                  </View>
-                );
-              })}
-            </>
-          )}
-        </DropdownField>
-        <DateField label={t('common.date')} value={date} onChange={setDate} />
-        <DropdownField compact label={t('common.account')} valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
-          {(close) => (
-            <>
-              {accounts.map(({ account }) => (
+            {(close) => (
+              <>
                 <DropdownOption
-                  key={account.id}
-                  label={account.name}
-                  selected={accountId === account.id}
+                  label={t('common.uncategorized')}
+                  selected={categoryId == null}
                   onPress={() => {
-                    setAccountId(account.id);
+                    setCategoryId(null);
                     close();
                   }}
                 />
-              ))}
-            </>
-          )}
-        </DropdownField>
-        <TextInput
-          style={styles.textInput}
-          placeholder={t('spend.memoPlaceholder')}
-          value={memo}
-          onChangeText={setMemo}
-          placeholderTextColor={colors.textMuted}
-        />
-        {direction === 'in' ? (
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>{t('spend.interestIncome')}</Text>
-            <Switch value={isInterest} onValueChange={setIsInterest} trackColor={{ true: colors.accent, false: colors.border }} />
-          </View>
-        ) : null}
-        {isEditing ? (
-          <Pressable style={styles.deleteButton} onPress={remove}>
-            <Text style={styles.deleteButtonText}>{t('spend.deleteTransaction')}</Text>
+                {groups.map((group) => {
+                  const groupCategories = categories.filter((c) => c.groupId === group.id);
+                  if (groupCategories.length === 0) return null;
+                  return (
+                    <View key={group.id}>
+                      <DropdownGroupLabel label={group.name} />
+                      {groupCategories.map((c) => (
+                        <DropdownOption
+                          key={c.id}
+                          label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                          selected={categoryId === c.id}
+                          onPress={() => {
+                            setCategoryId(c.id);
+                            close();
+                          }}
+                        />
+                      ))}
+                    </View>
+                  );
+                })}
+              </>
+            )}
+          </DropdownField>
+          <DateField label={t('common.date')} value={date} onChange={setDate} />
+          <DropdownField compact label={t('common.account')} valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
+            {(close) => (
+              <>
+                {accounts.map(({ account }) => (
+                  <DropdownOption
+                    key={account.id}
+                    label={account.name}
+                    selected={accountId === account.id}
+                    onPress={() => {
+                      setAccountId(account.id);
+                      close();
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </DropdownField>
+          <TextInput
+            style={styles.textInput}
+            placeholder={t('spend.memoPlaceholder')}
+            value={memo}
+            onChangeText={setMemo}
+            placeholderTextColor={colors.textMuted}
+            keyboardAppearance="dark"
+          />
+          {direction === 'in' ? (
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>{t('spend.interestIncome')}</Text>
+              <Switch value={isInterest} onValueChange={setIsInterest} trackColor={{ true: colors.accent, false: colors.border }} />
+            </View>
+          ) : null}
+          {isEditing ? (
+            <Pressable style={styles.deleteButton} onPress={remove}>
+              <Text style={styles.deleteButtonText}>{t('spend.deleteTransaction')}</Text>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+        <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
+          <Pressable style={styles.bigSaveButton} onPress={save}>
+            <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
           </Pressable>
+        </SafeAreaView>
+        {Platform.OS === 'ios' ? (
+          <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
+            <View style={styles.accessoryBar}>
+              <Pressable onPress={() => amountInputRef.current?.blur()} hitSlop={10}>
+                <Text style={styles.accessoryDoneText}>{t('common.done')}</Text>
+              </Pressable>
+            </View>
+          </InputAccessoryView>
         ) : null}
-      </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.background },
   sheet: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.background, flexGrow: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between' },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
-  saveBtn: { color: colors.accent },
+  // Pinned outside the ScrollView (not just the last item in it) — always
+  // reachable without scrolling, even while the keyboard is up.
+  bottomBar: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
+  bigSaveButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  bigSaveButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  accessoryBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  accessoryDoneText: { fontSize: 16, fontWeight: '600', color: colors.accent },
   amountInput: {
     fontSize: 40,
     fontWeight: '700',

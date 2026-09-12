@@ -76,12 +76,18 @@ both the file-picker path and the cloud-download path.
 ## Providers
 
 **S3** — raw `fetch` with an AWS Signature V4 header (`expo-crypto` for
-SHA-256/HMAC; no SDK — the AWS JS SDK assumes Node APIs RN doesn't have).
-Needs two new fields the current UI is missing: **bucket** and **region**
-(not secret — store via `settingsRepo`, alongside access key ID/secret which
-stay in `secureStore`). Object key: `<boardId>/latest.zip` (single rolling
-object, not a history — simplest correct thing; versioning can be a bucket
-setting on the user's side if they want history).
+SHA-256/HMAC; no SDK — the AWS JS SDK assumes Node APIs RN doesn't have). No
+separate display name — the bucket name is the identifier. **Region** is
+never typed by the user: S3 stamps the real region on the
+`x-amz-bucket-region` response header for any request to the region-less
+global endpoint, even an unauthenticated one that 403s, so
+`testS3Connection` detects it automatically before running its checks
+(store via `settingsRepo`, alongside access key ID/secret which stay in
+`secureStore`). Optional **key prefix** nests backups under a folder, for a
+bucket shared with other stuff — object key:
+`<keyPrefix>/<boardId>/latest.zip` (single rolling object, not a history —
+simplest correct thing; versioning can be a bucket setting on the user's
+side if they want history).
 
 **Local** — no credentials, no network: writes the same zip to
 `Paths.document/backups/<boardId>/latest.zip`. Not off-device protection —

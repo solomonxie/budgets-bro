@@ -108,7 +108,7 @@ export function SettingsScreen() {
   };
 
   const confirmRemoveS3Config = (config: S3ConfigMeta) => {
-    Alert.alert(t('settings.deleteS3ConfigConfirmTitle', { name: config.name }), t('settings.deleteS3ConfigConfirmMessage'), [
+    Alert.alert(t('settings.deleteS3ConfigConfirmTitle', { name: config.bucket }), t('settings.deleteS3ConfigConfirmMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -416,8 +416,8 @@ export function SettingsScreen() {
           {s3Configs.map((config) => (
             <View key={config.id} style={styles.row}>
               <View style={styles.s3ConfigMain}>
-                <Text style={styles.rowTitle}>{config.name}</Text>
-                <Text style={styles.rowValue}>{`${config.bucket} · ${config.region}`}</Text>
+                <Text style={styles.rowTitle}>{config.bucket}</Text>
+                <Text style={styles.rowValue}>{config.keyPrefix ? `${config.region} · ${config.keyPrefix}` : config.region}</Text>
               </View>
               <RowMenuButton items={[{ label: t('common.delete'), destructive: true, onPress: () => confirmRemoveS3Config(config) }]} />
             </View>

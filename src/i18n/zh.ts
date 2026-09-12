@@ -72,8 +72,9 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.addS3BackupLink': '+ 添加 S3 备份',
   'settings.localBackupHeading': '本地备份',
   'settings.localBackupHint':
-    '将备份副本保存在本设备存储中，与 App 的其他文件放在一起——无需账号或密钥。由于未被排除在备份之外，它会自动包含在你正常的 iPhone 备份（iCloud 或 Finder/电脑）中。在正式设备版本上（而非当前开发环境），它也会出现在"文件"App 的"本机"位置。',
+    '本设备上的安全快照，用于撤销一次错误的导入或从数据损坏中恢复——并不能防止手机丢失或更换，因为它和你的实时数据存放在同一处本机存储中。在正式设备版本上（而非当前开发环境），它会出现在"文件"App 的"本机"位置，可手动复制到别处（iCloud Drive、邮件、AirDrop）。若需要真正的离机备份，请使用上方的 S3。',
   'settings.localBackupToggle': '在本设备保存备份',
+  'settings.localBackupSavedNote': '与 App 的其他文件保存在一起。',
   'settings.deleteS3ConfigConfirmTitle': '删除"{name}"？',
   'settings.deleteS3ConfigConfirmMessage': '存储桶中已有的备份不受影响——仅移除已保存的连接信息。',
   's3ConfigModal.title': '添加 S3 备份',

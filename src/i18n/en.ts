@@ -72,8 +72,9 @@ export const en = {
   'settings.addS3BackupLink': '+ Add S3 Backup',
   'settings.localBackupHeading': 'Local Backup',
   'settings.localBackupHint':
-    'Saves a backup copy on this device’s storage, alongside the app’s other files — no account or credentials needed. Since it’s not excluded from backups, it’s included automatically in your normal iPhone backup (iCloud or Finder/computer). On a real device build (not this dev environment) it’s also visible in the Files app, under "On My iPhone".',
+    'A safety-net snapshot on this device, useful for undoing a bad import or recovering from data corruption — not protection against losing or replacing this phone, since it lives in the same on-device storage as your live data. On a real device build (not this dev environment) it’s visible in the Files app under "On My iPhone", so you can manually copy it elsewhere (iCloud Drive, email, AirDrop). For real off-device backup, use S3 above.',
   'settings.localBackupToggle': 'Save a backup on this device',
+  'settings.localBackupSavedNote': 'Saved alongside the app’s other files.',
   'settings.deleteS3ConfigConfirmTitle': 'Delete "{name}"?',
   'settings.deleteS3ConfigConfirmMessage': 'Backups already in this bucket are left alone — only the saved connection is removed.',
   's3ConfigModal.title': 'Add S3 Backup',

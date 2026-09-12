@@ -6,12 +6,17 @@ import type { CloudProvider } from './types';
 const ENABLED_KEY = 'sync_local_enabled';
 const BACKUP_DIR_NAME = 'backups';
 
-// Documents (not cache) — survives app relaunches, and since nothing marks
-// it excluded-from-backup, it rides along in the user's normal encrypted
-// device backup (iCloud or Finder/iTunes) automatically. Visible in the iOS
-// Files app under "On My iPhone" once UIFileSharingEnabled ships via the
-// expo-file-system plugin config in app.json — that flag only takes effect
-// in a real build/dev-client, not Expo Go.
+// Documents (not cache) — survives app relaunches. Not a hedge against
+// losing/replacing the phone or deleting the app, though: expo-sqlite's own
+// database already lives at Documents/SQLite/, the same sandbox this zip
+// sits in, so both disappear together on app deletion and both get restored
+// together by a full device restore either way — this doesn't add off-
+// device coverage the live DB didn't already have. Its actual job is a
+// rollback snapshot (undo a bad import, recover from DB corruption) plus a
+// manually-retrievable file — visible in the iOS Files app under "On My
+// iPhone" once UIFileSharingEnabled ships via the expo-file-system plugin
+// config in app.json, though that flag only takes effect in a real
+// build/dev-client, not Expo Go. Real off-device backup is s3Provider.ts.
 function backupDir(): Directory {
   return new Directory(Paths.document, BACKUP_DIR_NAME);
 }
@@ -32,12 +37,6 @@ export async function isLocalBackupEnabled(db: SQLiteDatabase): Promise<boolean>
 
 export async function setLocalBackupEnabled(db: SQLiteDatabase, enabled: boolean): Promise<void> {
   await settingsRepo.setSetting(db, ENABLED_KEY, enabled ? 'true' : 'false');
-}
-
-// Shown in Settings so the path is inspectable (e.g. in the simulator via
-// Finder, or `xcrun simctl get_app_container`) without guessing at it.
-export function localBackupDirUri(): string {
-  return backupDir().uri;
 }
 
 function toProvider(): CloudProvider {

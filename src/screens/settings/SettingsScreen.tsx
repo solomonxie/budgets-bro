@@ -15,7 +15,7 @@ import { secureStore } from '../../secure/secureStore';
 import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
 import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
-import { isLocalBackupEnabled, setLocalBackupEnabled, localBackupDirUri } from '../../sync/localProvider';
+import { isLocalBackupEnabled, setLocalBackupEnabled } from '../../sync/localProvider';
 import {
   syncNow,
   isAutoSyncEnabled,
@@ -436,7 +436,7 @@ export function SettingsScreen() {
           <Text style={styles.switchLabel}>{t('settings.localBackupToggle')}</Text>
           <Switch value={localBackupOn} onValueChange={toggleLocalBackup} trackColor={{ true: colors.accent, false: colors.border }} />
         </View>
-        {localBackupOn ? <Text style={styles.rowValue}>{localBackupDirUri()}</Text> : null}
+        {localBackupOn ? <Text style={styles.rowValue}>{t('settings.localBackupSavedNote')}</Text> : null}
       </View>
 
       <View style={styles.section}>

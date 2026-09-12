@@ -25,23 +25,47 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
   };
 }
 
+// Excludes scheduled/future transactions (date > today) — those are
+// deliberately not "real" yet, see listFutureTransactionsForAccount.
 export async function listTransactionsForAccount(
   db: SQLiteDatabase,
   boardId: number,
   accountId: number,
 ): Promise<TransactionWithLabels[]> {
   const rows = await db.getAllAsync<TransactionJoinRow>(
-    `${SELECT_WITH_LABELS} WHERE t.account_id = ? AND t.board_id = ? ORDER BY t.date DESC, t.id DESC`,
+    `${SELECT_WITH_LABELS} WHERE t.account_id = ? AND t.board_id = ? AND t.date <= ? ORDER BY t.date DESC, t.id DESC`,
     accountId,
     boardId,
+    currentDateISO(),
   );
   return rows.map(mapRow);
 }
 
+// Powers the account page's expandable "Scheduled" box — the mirror image
+// of listTransactionsForAccount's date filter. Ascending (soonest first),
+// unlike every other list here, since "what's coming up next" reads better
+// than "most recently scheduled first" for a forward-looking list.
+export async function listFutureTransactionsForAccount(
+  db: SQLiteDatabase,
+  boardId: number,
+  accountId: number,
+): Promise<TransactionWithLabels[]> {
+  const rows = await db.getAllAsync<TransactionJoinRow>(
+    `${SELECT_WITH_LABELS} WHERE t.account_id = ? AND t.board_id = ? AND t.date > ? ORDER BY t.date ASC, t.id ASC`,
+    accountId,
+    boardId,
+    currentDateISO(),
+  );
+  return rows.map(mapRow);
+}
+
+// Excludes scheduled/future transactions (date > today) — see
+// listTransactionsForAccount.
 export async function listTransactions(db: SQLiteDatabase, boardId: number): Promise<TransactionWithLabels[]> {
   const rows = await db.getAllAsync<TransactionJoinRow>(
-    `${SELECT_WITH_LABELS} WHERE t.board_id = ? ORDER BY t.date DESC, t.id DESC`,
+    `${SELECT_WITH_LABELS} WHERE t.board_id = ? AND t.date <= ? ORDER BY t.date DESC, t.id DESC`,
     boardId,
+    currentDateISO(),
   );
   return rows.map(mapRow);
 }

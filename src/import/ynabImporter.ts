@@ -166,7 +166,6 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
       const payeeId = !isTransfer && payeeName ? await findOrCreatePayee(db, boardId, payeeName) : null;
       const amountCents = parseMoneyToCents(row['Inflow']) - parseMoneyToCents(row['Outflow']);
       const memo = (row['Memo'] ?? '').trim() || null;
-      const isInterest = amountCents > 0 && /interest/i.test(row['Category'] ?? '');
       const date = parseYnabDate(row['Date']);
 
       // Account + date + payee is the natural key: YNAB already combines
@@ -183,7 +182,6 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
         memo,
         amountCents,
         date,
-        isInterest,
         transferAccountId,
         importId: `ynab:${contentKey}|#${occurrence}`,
       });

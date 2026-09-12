@@ -91,7 +91,6 @@ export interface Transaction {
   memo: string | null;
   amountCents: number;
   date: string; // 'YYYY-MM-DD'
-  isInterest: boolean;
   transferAccountId: number | null;
   importId: string | null;
   createdAt: string;

@@ -14,7 +14,6 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
     memo: row.memo,
     amountCents: row.amount_cents,
     date: row.date,
-    isInterest: row.is_interest === 1,
     transferAccountId: row.transfer_account_id,
     importId: row.import_id,
     createdAt: row.created_at,
@@ -87,7 +86,6 @@ export interface CreateTransactionInput {
   memo: string | null;
   amountCents: number; // signed
   date: string;
-  isInterest?: boolean;
 }
 
 // If `payeeId` is an account's auto-generated payee (see
@@ -113,7 +111,6 @@ async function postLinkedAccountLeg(
     input.memo,
     -input.amountCents,
     input.date,
-    0,
     input.accountId,
     null,
   );
@@ -132,7 +129,6 @@ export async function createTransaction(db: SQLiteDatabase, boardId: number, inp
       input.memo,
       input.amountCents,
       input.date,
-      input.isInterest ? 1 : 0,
       null,
       null,
     );
@@ -159,7 +155,6 @@ export async function updateTransaction(db: SQLiteDatabase, boardId: number, inp
     input.memo,
     input.amountCents,
     input.date,
-    input.isInterest ? 1 : 0,
     input.id,
   );
 }
@@ -223,7 +218,6 @@ export interface ImportTransactionInput {
   memo: string | null;
   amountCents: number;
   date: string;
-  isInterest: boolean;
   transferAccountId: number | null;
   importId: string;
 }
@@ -241,15 +235,14 @@ export async function importTransaction(db: SQLiteDatabase, boardId: number, inp
     boardId,
   );
   await db.runAsync(
-    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, is_interest, transfer_account_id, import_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(board_id, import_id) DO UPDATE SET
        category_id = excluded.category_id,
        payee_id = excluded.payee_id,
        memo = excluded.memo,
        amount_cents = excluded.amount_cents,
        date = excluded.date,
-       is_interest = excluded.is_interest,
        transfer_account_id = excluded.transfer_account_id,
        updated_at = datetime('now')`,
     boardId,
@@ -259,7 +252,6 @@ export async function importTransaction(db: SQLiteDatabase, boardId: number, inp
     input.memo,
     input.amountCents,
     input.date,
-    input.isInterest ? 1 : 0,
     input.transferAccountId,
     input.importId,
   );

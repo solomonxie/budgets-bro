@@ -83,7 +83,6 @@ export interface TransactionRow {
   memo: string | null;
   amount_cents: number;
   date: string;
-  is_interest: number;
   transfer_account_id: number | null;
   import_id: string | null;
   created_at: string;

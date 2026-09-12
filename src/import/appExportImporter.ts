@@ -103,8 +103,8 @@ export async function importAppExport(db: SQLiteDatabase, files: PickedAppExport
       const newPayeeId = t.payee_id != null ? (payeeIdMap.get(t.payee_id) ?? null) : null;
       const newTransferAccountId = t.transfer_account_id != null ? (accountIdMap.get(t.transfer_account_id) ?? null) : null;
       await db.runAsync(
-        `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, is_interest, transfer_account_id, import_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         boardId,
         newAccountId,
         newCategoryId,
@@ -112,7 +112,6 @@ export async function importAppExport(db: SQLiteDatabase, files: PickedAppExport
         t.memo,
         t.amount_cents,
         t.date,
-        t.is_interest,
         newTransferAccountId,
         t.import_id,
         t.created_at,

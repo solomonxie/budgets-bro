@@ -6,13 +6,13 @@ export const SELECT_WITH_LABELS = `
 `;
 
 export const INSERT_TRANSACTION = `
-  INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, is_interest, transfer_account_id, import_id)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 export const UPDATE_TRANSACTION = `
   UPDATE transactions
-  SET account_id = ?, category_id = ?, payee_id = ?, memo = ?, amount_cents = ?, date = ?, is_interest = ?, updated_at = datetime('now')
+  SET account_id = ?, category_id = ?, payee_id = ?, memo = ?, amount_cents = ?, date = ?, updated_at = datetime('now')
   WHERE id = ?
 `;
 

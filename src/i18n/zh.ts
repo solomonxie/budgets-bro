@@ -187,6 +187,7 @@ export const zh: Record<keyof typeof en, string> = {
   'loanDetailsCard.editTerms': '编辑贷款条款',
   'loanDetailsCard.rateLabel': '利率',
   'loanDetailsCard.scheduledPaymentLabel': '每期还款',
+  'loanDetailsCard.extraPaymentLabel': '每月额外还款',
   'loanDetailsCard.projectedPayoffLabel': '预计还清日期',
   'loanDetailsCard.payoffValue': '{date}（{months} 个月）',
   'loanDetailsCard.paymentTooLow': '还款金额过低，无法还清',

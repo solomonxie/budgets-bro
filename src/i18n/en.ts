@@ -188,6 +188,7 @@ export const en = {
   'loanDetailsCard.editTerms': 'Edit Loan Terms',
   'loanDetailsCard.rateLabel': 'Rate',
   'loanDetailsCard.scheduledPaymentLabel': 'Scheduled payment',
+  'loanDetailsCard.extraPaymentLabel': 'Extra monthly payment',
   'loanDetailsCard.projectedPayoffLabel': 'Projected payoff',
   'loanDetailsCard.payoffValue': '{date} ({months} mo)',
   'loanDetailsCard.paymentTooLow': 'Payment too low to pay off',

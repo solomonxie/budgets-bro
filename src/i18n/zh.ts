@@ -70,6 +70,10 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.s3BucketLabel': '存储桶（Bucket）',
   'settings.s3RegionLabel': '区域（Region）',
   'settings.addS3BackupLink': '+ 添加 S3 备份',
+  'settings.localBackupHeading': '本地备份',
+  'settings.localBackupHint':
+    '将备份副本保存在本设备存储中，与 App 的其他文件放在一起——无需账号或密钥。由于未被排除在备份之外，它会自动包含在你正常的 iPhone 备份（iCloud 或 Finder/电脑）中。在正式设备版本上（而非当前开发环境），它也会出现在"文件"App 的"本机"位置。',
+  'settings.localBackupToggle': '在本设备保存备份',
   'settings.deleteS3ConfigConfirmTitle': '删除"{name}"？',
   'settings.deleteS3ConfigConfirmMessage': '存储桶中已有的备份不受影响——仅移除已保存的连接信息。',
   's3ConfigModal.title': '添加 S3 备份',
@@ -85,6 +89,7 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.lastSyncedNever': '上次同步：从未',
   'settings.syncNow': '立即同步',
   'settings.syncFailed': '同步失败。',
+  'settings.noProviderConfigured': '尚未配置备份目标 — 请在下方添加 S3 备份或本地备份。',
   'settings.restoreFromCloud': '从云端还原最新备份',
   'settings.noCloudBackupFound': '云端尚未找到备份。',
   'settings.dataHeading': '数据',

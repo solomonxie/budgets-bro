@@ -27,6 +27,13 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-sharing",
+      [
+        "expo-file-system",
+        {
+          "enableFileSharing": true,
+          "supportsOpeningDocumentsInPlace": true
+        }
+      ],
       "@react-native-community/datetimepicker"
     ]
   }

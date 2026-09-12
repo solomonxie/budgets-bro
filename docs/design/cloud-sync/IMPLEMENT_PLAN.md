@@ -14,6 +14,7 @@ file contention.
 
 - [x] T2.1 `sync/s3Provider.ts` — SigV4-signed `fetch` PUT/GET against `<bucket>.s3.<region>.amazonaws.com/<boardId>/latest.zip`; used `@noble/hashes` for HMAC-SHA256 instead of `expo-crypto` (confirmed against SDK 57 docs: expo-crypto has no HMAC, only plain digests) — see `src/sync/s3Provider.ts` — depends: T1.3
 - [x] T2.2 S3 bucket/region storage — used `settingsRepo.getSetting`/`setSetting` directly with local key constants in `s3Provider.ts` (same pattern as `hooks/useLanguage.ts`), no changes needed to `secureStore.ts`/`settingsRepo.ts` themselves; access key ID/secret stay in the existing `secureStore` fields — see `src/sync/s3Provider.ts` — depends: none
+- [x] T2.6 `sync/localProvider.ts` — writes to `Paths.document/backups/<boardId>/latest.zip` (no credentials); toggle in Settings enables/disables it as a `collectProviders()` entry — see `src/sync/localProvider.ts` — depends: T1.3
 - [ ] T2.3 `sync/googleDriveProvider.ts` — `expo-auth-session` PKCE auth against `drive.appdata` scope, Drive REST v3 multipart upload/download to `appDataFolder`; implements `CloudProvider` — see `docs/design/cloud-sync/DESIGN.md` (Providers → Google Drive) — depends: T1.3
 - [ ] T2.4 Google Cloud Console setup (user-owned, blocking T2.3's redirect config) — create OAuth Client ID (type iOS, bundle id `com.example.yama`), add self as test user for the `drive.appdata` scope, hand back the Client ID — see `docs/design/cloud-sync/DESIGN.md` (Providers → Google Drive) — depends: none
 - [ ] T2.5 `app.json` — register the custom URL scheme for the Google OAuth redirect once T2.4's Client ID is in hand — see `app.json` — depends: T2.4
@@ -31,5 +32,6 @@ control.
 
 - [x] T4.1 S3 section: added Bucket/Region fields next to existing key fields — see `src/screens/settings/SettingsScreen.tsx` — depends: T2.2
 - [ ] T4.2 New Google Drive section: Connect/Disconnect, shows linked account — see `src/screens/settings/SettingsScreen.tsx` — depends: T2.3
+- [x] T4.5 Local Backup section: single toggle + the on-device path shown for inspection — see `src/screens/settings/SettingsScreen.tsx` — depends: T2.6
 - [x] T4.3 Auto-sync toggle, "Last synced" (absolute time, not relative — simplification, see DESIGN.md note), "Sync Now" button — see `src/screens/settings/SettingsScreen.tsx` — depends: T3.1
 - [x] T4.4 "Restore Latest from Cloud" — downloads via `cloudSync.downloadLatestBackup`, parses with `parseBackupZip`, imports via existing `importAppExport` (new board, same as today's file-based restore) — see `src/screens/settings/SettingsScreen.tsx` — depends: T1.2, T2.1

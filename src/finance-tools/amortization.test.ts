@@ -35,6 +35,14 @@ describe('remainingMonthsToPayoff', () => {
     expect(remainingMonthsToPayoff(principal, rate, payment)).toBeLessThanOrEqual(term + 1);
     expect(remainingMonthsToPayoff(principal, rate, payment)).toBeGreaterThan(term - 2);
   });
+
+  it('an extra payment on top of the scheduled amount shortens the payoff', () => {
+    const principal = 30_000_000;
+    const rate = 600;
+    const scheduled = monthlyPaymentCents(principal, rate, 360);
+    const withExtra = remainingMonthsToPayoff(principal, rate, scheduled + 20_000);
+    expect(withExtra).toBeLessThan(remainingMonthsToPayoff(principal, rate, scheduled));
+  });
 });
 
 describe('totalInterestRemainingCents', () => {

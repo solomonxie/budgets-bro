@@ -1,6 +1,9 @@
 // Standard fixed-rate amortization math. Pure functions, no DB/React
 // dependency — used by both the mortgage/loan account detail card and any
-// standalone calculator screen.
+// standalone calculator screen. `remainingMonthsToPayoff`/
+// `totalInterestRemainingCents` take the total monthly payment, so an
+// extra/early payment is just added to the scheduled payment by the caller
+// (see LoanDetailsCard) — no separate "extra payment" function needed.
 
 export function monthlyRateFromBps(annualRateBps: number): number {
   return annualRateBps / 10000 / 12;

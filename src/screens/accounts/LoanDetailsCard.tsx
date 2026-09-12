@@ -13,6 +13,7 @@ import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { TextField } from '../../components/ui/TextField';
 import type { Account } from '../../domain/types';
 
 // Full-context amortization projection for a loan/mortgage account: its
@@ -24,6 +25,7 @@ import type { Account } from '../../domain/types';
 export function LoanDetailsCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
+  const [extraPayment, setExtraPayment] = useState('');
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const { currentRateBps } = useAccountRateHistory(account.id);
 
@@ -41,8 +43,10 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
 
   const outstandingCents = Math.max(0, -balanceCents);
   const scheduledPaymentCents = monthlyPaymentCents(account.originalPrincipalCents, currentRateBps, account.termMonths);
-  const remainingMonths = remainingMonthsToPayoff(outstandingCents, currentRateBps, scheduledPaymentCents);
-  const remainingInterestCents = totalInterestRemainingCents(outstandingCents, scheduledPaymentCents, remainingMonths);
+  const extraPaymentCents = Math.round((parseFloat(extraPayment) || 0) * 100);
+  const totalPaymentCents = scheduledPaymentCents + extraPaymentCents;
+  const remainingMonths = remainingMonthsToPayoff(outstandingCents, currentRateBps, totalPaymentCents);
+  const remainingInterestCents = totalInterestRemainingCents(outstandingCents, totalPaymentCents, remainingMonths);
   const payoffDate = Number.isFinite(remainingMonths) ? addMonths(currentDateISO(), remainingMonths) : null;
 
   return (
@@ -60,6 +64,13 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
         <>
           <Row label={t('loanDetailsCard.rateLabel')} value={`${(currentRateBps / 100).toFixed(2)}%`} />
           <Row label={t('loanDetailsCard.scheduledPaymentLabel')} value={t('common.perMonth', { amount: formatMoney(scheduledPaymentCents) })} />
+          <TextField
+            label={t('loanDetailsCard.extraPaymentLabel')}
+            value={extraPayment}
+            onChangeText={setExtraPayment}
+            keyboardType="decimal-pad"
+            placeholder={t('common.amountPlaceholder')}
+          />
           <Row
             label={t('loanDetailsCard.projectedPayoffLabel')}
             value={payoffDate ? t('loanDetailsCard.payoffValue', { date: payoffDate, months: remainingMonths }) : t('loanDetailsCard.paymentTooLow')}

@@ -9,12 +9,14 @@ import {
 } from '../../finance-tools/amortization';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 // Ad-hoc mortgage/loan calculator — same math as the per-account Loan
 // Details card, but for "what if" numbers not tied to a real account.
 export function CalculatorsHomeScreen() {
+  const t = useT();
   const [principal, setPrincipal] = useState('300000');
   const [rate, setRate] = useState('6.5');
   const [termMonths, setTermMonths] = useState('360');
@@ -33,23 +35,23 @@ export function CalculatorsHomeScreen() {
   return (
     <ScreenContainer scroll>
       <View style={styles.card}>
-        <Text style={styles.title}>Mortgage / Loan Calculator</Text>
-        <TextField label="Loan Amount" value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" />
-        <TextField label="Interest Rate (annual %)" value={rate} onChangeText={setRate} keyboardType="decimal-pad" />
-        <TextField label="Term (months)" value={termMonths} onChangeText={setTermMonths} keyboardType="number-pad" />
+        <Text style={styles.title}>{t('calculators.title')}</Text>
+        <TextField label={t('calculators.loanAmountLabel')} value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" />
+        <TextField label={t('calculators.interestRateLabel')} value={rate} onChangeText={setRate} keyboardType="decimal-pad" />
+        <TextField label={t('common.termMonthsLabel')} value={termMonths} onChangeText={setTermMonths} keyboardType="number-pad" />
       </View>
 
       {result ? (
         <View style={styles.card}>
-          <Row label="Monthly payment" value={`${formatMoney(result.paymentCents)}/mo`} big />
-          <Row label="Total interest paid" value={formatMoney(result.totalInterestCents)} />
-          <Row label="Payoff date (from today)" value={result.payoffDate} />
+          <Row label={t('calculators.monthlyPaymentLabel')} value={t('common.perMonth', { amount: formatMoney(result.paymentCents) })} big />
+          <Row label={t('calculators.totalInterestLabel')} value={formatMoney(result.totalInterestCents)} />
+          <Row label={t('calculators.payoffDateLabel')} value={result.payoffDate} />
         </View>
       ) : null}
 
       <View style={styles.card}>
-        <Text style={styles.title}>More calculators</Text>
-        <Text style={styles.hint}>Simple/compound interest and extra-payment payoff acceleration — coming soon.</Text>
+        <Text style={styles.title}>{t('calculators.moreHeading')}</Text>
+        <Text style={styles.hint}>{t('calculators.moreHint')}</Text>
       </View>
     </ScreenContainer>
   );

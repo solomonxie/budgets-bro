@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -22,6 +23,7 @@ function parseMonth(month: string): Date {
 // custom year-row + month-grid picker for the same "real OS widget, so
 // it just scrolls" reason DateField moved to it.
 export function MonthPickerModal({ visible, month, onSelect, onClose }: MonthPickerModalProps) {
+  const t = useT();
   const [draft, setDraft] = useState(() => parseMonth(month));
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function MonthPickerModal({ visible, month, onSelect, onClose }: MonthPic
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Month</Text>
+          <Text style={styles.title}>{t('monthPickerModal.title')}</Text>
           <DateTimePicker
             value={draft}
             mode="date"
@@ -47,7 +49,7 @@ export function MonthPickerModal({ visible, month, onSelect, onClose }: MonthPic
             style={styles.picker}
           />
           <Pressable style={styles.confirmBtn} onPress={confirm}>
-            <Text style={styles.confirmBtnText}>Done</Text>
+            <Text style={styles.confirmBtnText}>{t('common.done')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

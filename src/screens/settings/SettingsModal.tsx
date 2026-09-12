@@ -2,6 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SettingsScreen } from './SettingsScreen';
 import { useAppStore } from '../../state/useAppStore';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -9,6 +10,7 @@ import { spacing } from '../../theme/spacing';
 // instead) — a plain full-screen Modal, since SettingsScreen has no
 // navigation dependency of its own to preserve.
 export function SettingsModal() {
+  const t = useT();
   const open = useAppStore((s) => s.settingsModal.open);
   const close = useAppStore((s) => s.closeSettings);
 
@@ -16,9 +18,9 @@ export function SettingsModal() {
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
       <SafeAreaView style={styles.headerSafeArea} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.title}>{t('settingsModal.title')}</Text>
           <Pressable onPress={close} hitSlop={10}>
-            <Text style={styles.doneBtn}>Done</Text>
+            <Text style={styles.doneBtn}>{t('common.done')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

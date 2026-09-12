@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
@@ -7,10 +7,16 @@ import { PromptModal } from '../../components/ui/PromptModal';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { useBoards } from '../../hooks/useBoards';
 import { usePayees } from '../../hooks/usePayees';
+import { useLanguageSetting } from '../../hooks/useLanguage';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as payeesRepo from '../../db/repositories/payeesRepo';
 import { secureStore } from '../../secure/secureStore';
+import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
+import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
+import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
+import { syncNow, isAutoSyncEnabled, setAutoSyncEnabled, getLastSyncedSummary, downloadLatestBackup } from '../../sync/cloudSync';
+import { parseBackupZip } from '../../sync/parseBackupZip';
 import { exportBoardZip } from '../../export/exportBoard';
 import { pickYnabExport } from '../../import/pickYnabExport';
 import { importYnabExport } from '../../import/ynabImporter';
@@ -18,7 +24,9 @@ import type { YnabImportResult } from '../../import/ynabImporter';
 import { pickAppExport } from '../../import/pickAppExport';
 import { importAppExport } from '../../import/appExportImporter';
 import type { AppExportImportResult } from '../../import/appExportImporter';
+import { seedDemoBoard } from '../../db/seed/demoBoard';
 import { useAppStore } from '../../state/useAppStore';
+import { useT, LANGUAGES } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -32,6 +40,8 @@ type PromptState =
   | null;
 
 export function SettingsScreen() {
+  const t = useT();
+  const { language, selectLanguage } = useLanguageSetting();
   const { boards, currentBoardId, switchBoard, addBoard, renameBoard, removeBoard } = useBoards();
   const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -42,8 +52,13 @@ export function SettingsScreen() {
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
   const [aiApiKey, setAiApiKey] = useState('');
-  const [s3AccessKeyId, setS3AccessKeyId] = useState('');
-  const [s3SecretAccessKey, setS3SecretAccessKey] = useState('');
+  const [s3Configs, setS3Configs] = useState<S3ConfigMeta[]>([]);
+  const [s3ModalOpen, setS3ModalOpen] = useState(false);
+  const [autoSync, setAutoSync] = useState(true);
+  const [lastSyncedAt, setLastSyncedAtState] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [restoringFromCloud, setRestoringFromCloud] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<YnabImportResult | null>(null);
@@ -58,9 +73,9 @@ export function SettingsScreen() {
       const savedTheme = await settingsRepo.getSetting(db, THEME_KEY);
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
       setAiApiKey((await secureStore.getAiApiKey()) ?? '');
-      const s3 = await secureStore.getS3Credentials();
-      setS3AccessKeyId(s3?.accessKeyId ?? '');
-      setS3SecretAccessKey(s3?.secretAccessKey ?? '');
+      setS3Configs(await listS3Configs(db));
+      setAutoSync(await isAutoSyncEnabled(db));
+      setLastSyncedAtState(await getLastSyncedSummary(db));
     })();
   }, []);
 
@@ -75,11 +90,72 @@ export function SettingsScreen() {
     else await secureStore.clearAiApiKey();
   };
 
-  const saveS3Credentials = async () => {
-    if (s3AccessKeyId.trim() && s3SecretAccessKey.trim()) {
-      await secureStore.setS3Credentials(s3AccessKeyId.trim(), s3SecretAccessKey.trim());
-    } else {
-      await secureStore.clearS3Credentials();
+  const addS3Backup = async (input: S3ConfigInput) => {
+    const db = await getDb();
+    await addS3Config(db, input);
+    setS3Configs(await listS3Configs(db));
+    setS3ModalOpen(false);
+  };
+
+  const confirmRemoveS3Config = (config: S3ConfigMeta) => {
+    Alert.alert(t('settings.deleteS3ConfigConfirmTitle', { name: config.name }), t('settings.deleteS3ConfigConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await removeS3Config(db, config.id);
+          setS3Configs(await listS3Configs(db));
+        },
+      },
+    ]);
+  };
+
+  const toggleAutoSync = async (value: boolean) => {
+    setAutoSync(value);
+    const db = await getDb();
+    await setAutoSyncEnabled(db, value);
+  };
+
+  const runSyncNow = async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const db = await getDb();
+      const board = boards.find((b) => b.id === boardId);
+      if (!board) return;
+      await syncNow(db, boardId, board.name);
+      setLastSyncedAtState(await getLastSyncedSummary(db));
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : t('settings.syncFailed'));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Same "always creates a new board" behavior as Import App Backup below —
+  // this just fetches the bytes from cloud instead of a file picker.
+  const runRestoreFromCloud = async () => {
+    setRestoringFromCloud(true);
+    setRestoreError(null);
+    setRestoreResult(null);
+    try {
+      const db = await getDb();
+      const bytes = await downloadLatestBackup(db, boardId);
+      if (!bytes) {
+        setRestoreError(t('settings.noCloudBackupFound'));
+        return;
+      }
+      const files = await parseBackupZip(bytes);
+      const summary = await importAppExport(db, files);
+      setRestoreResult(summary);
+      bumpDataVersion();
+      await switchBoard(summary.boardId);
+    } catch (e) {
+      setRestoreError(e instanceof Error ? e.message : t('settings.restoreFailed'));
+    } finally {
+      setRestoringFromCloud(false);
     }
   };
 
@@ -95,7 +171,7 @@ export function SettingsScreen() {
       setImportResult(summary);
       bumpDataVersion();
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : 'Import failed.');
+      setImportError(e instanceof Error ? e.message : t('settings.importFailed'));
     } finally {
       setImporting(false);
     }
@@ -116,7 +192,7 @@ export function SettingsScreen() {
       bumpDataVersion();
       await switchBoard(summary.boardId);
     } catch (e) {
-      setRestoreError(e instanceof Error ? e.message : 'Restore failed.');
+      setRestoreError(e instanceof Error ? e.message : t('settings.restoreFailed'));
     } finally {
       setRestoring(false);
     }
@@ -129,7 +205,7 @@ export function SettingsScreen() {
       const board = boards.find((b) => b.id === boardId);
       await exportBoardZip(db, boardId, board?.name ?? 'board');
     } catch (e) {
-      Alert.alert('Export failed', e instanceof Error ? e.message : 'Something went wrong.');
+      Alert.alert(t('settings.exportFailedTitle'), e instanceof Error ? e.message : t('settings.exportFailedFallback'));
     } finally {
       setExporting(false);
     }
@@ -166,42 +242,52 @@ export function SettingsScreen() {
 
   const deleteSelectedPayee = () => {
     if (selectedPayeeId == null) return;
-    Alert.alert(`Delete "${payeeNameInput}"?`, 'Past transactions keep their amounts but lose this payee. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          const db = await getDb();
-          await payeesRepo.deletePayee(db, selectedPayeeId);
-          setSelectedPayeeId(null);
-          setPayeeNameInput('');
-          refreshPayees();
-          bumpDataVersion();
+    Alert.alert(
+      t('settings.deletePayeeConfirmTitle', { name: payeeNameInput }),
+      t('settings.deletePayeeConfirmMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            const db = await getDb();
+            await payeesRepo.deletePayee(db, selectedPayeeId);
+            setSelectedPayeeId(null);
+            setPayeeNameInput('');
+            refreshPayees();
+            bumpDataVersion();
+          },
         },
-      },
-    ]);
+      ],
+    );
+  };
+
+  // Always makes a fresh one — deleting the demo board doesn't bring it back
+  // on its own (see useEnsureDemoBoard), so this is the only way back.
+  const runCreateDemoBoard = async () => {
+    const db = await getDb();
+    const id = await seedDemoBoard(db);
+    bumpDataVersion();
+    await switchBoard(id);
   };
 
   const confirmDeleteBoard = (id: number, name: string) => {
     if (boards.length <= 1) {
-      Alert.alert('Can’t delete your only board', 'Create another board first.');
+      Alert.alert(t('settings.cantDeleteOnlyBoardTitle'), t('settings.cantDeleteOnlyBoardMessage'));
       return;
     }
-    Alert.alert(`Delete "${name}"?`, 'Every account, category, and transaction in it is deleted too. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => removeBoard(id) },
+    Alert.alert(t('settings.deleteBoardConfirmTitle', { name }), t('settings.deleteBoardConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => removeBoard(id) },
     ]);
   };
 
   return (
-    <ScreenContainer scroll>
+    <ScreenContainer scroll modal>
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Budget Boards</Text>
-        <Text style={styles.sectionHint}>
-          A board is a self-contained budget — its own accounts, categories, and transactions. Switch boards to
-          keep separate budgets (e.g. personal vs. a shared one) in one app.
-        </Text>
+        <Text style={styles.sectionHeading}>{t('settings.boardsHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
         <View style={styles.group}>
           {boards.map((board) => (
             <Pressable key={board.id} style={styles.row} onPress={() => switchBoard(board.id)}>
@@ -211,43 +297,44 @@ export function SettingsScreen() {
               </View>
               <RowMenuButton
                 items={[
-                  { label: 'Rename', onPress: () => setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name }) },
-                  { label: 'Delete', destructive: true, onPress: () => confirmDeleteBoard(board.id, board.name) },
+                  { label: t('common.rename'), onPress: () => setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name }) },
+                  { label: t('settings.createDemoBoard'), onPress: runCreateDemoBoard },
+                  { label: t('common.delete'), destructive: true, onPress: () => confirmDeleteBoard(board.id, board.name) },
                 ]}
               />
             </Pressable>
           ))}
         </View>
         <Pressable style={styles.addLink} onPress={() => setPrompt({ type: 'newBoard' })}>
-          <Text style={styles.addLinkText}>+ New Board</Text>
+          <Text style={styles.addLinkText}>{t('settings.newBoardLink')}</Text>
         </Pressable>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Payees</Text>
-        <Text style={styles.sectionHint}>Pick a payee to rename or delete it, or type a new name to create one.</Text>
+        <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.payeesHint')}</Text>
         <SearchableDropdownField
-          label="Payee"
+          label={t('common.payee')}
           valueLabel={payeeNameInput}
-          placeholder="Select or create…"
-          searchPlaceholder="Search or type a new payee"
+          placeholder={t('settings.payeeSelectPlaceholder')}
+          searchPlaceholder={t('settings.payeeSearchPlaceholder')}
           options={payees.map((p) => ({ id: p.id, label: p.linkedAccountId != null ? `${p.name} (account)` : p.name }))}
           onSelect={(o) => selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))}
           onUseText={createPayee}
         />
         {selectedPayee != null ? (
           selectedPayee.linkedAccountId != null ? (
-            <Text style={styles.sectionHint}>Linked to an account — managed automatically, can&rsquo;t be renamed or deleted here.</Text>
+            <Text style={styles.sectionHint}>{t('settings.payeeLinkedHint')}</Text>
           ) : (
             <View style={styles.payeeActions}>
               <Pressable
                 style={styles.payeeActionButton}
                 onPress={() => setPrompt({ type: 'renamePayee', payeeId: selectedPayee.id, initial: payeeNameInput })}
               >
-                <Text style={styles.payeeActionText}>Rename</Text>
+                <Text style={styles.payeeActionText}>{t('common.rename')}</Text>
               </Pressable>
               <Pressable style={styles.payeeActionButton} onPress={deleteSelectedPayee}>
-                <Text style={[styles.payeeActionText, styles.deletePayeeText]}>Delete</Text>
+                <Text style={[styles.payeeActionText, styles.deletePayeeText]}>{t('common.delete')}</Text>
               </Pressable>
             </View>
           )
@@ -255,27 +342,37 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Appearance</Text>
+        <Text style={styles.sectionHeading}>{t('settings.appearanceHeading')}</Text>
         <View style={styles.segmented}>
           {(['dark', 'light'] as const).map((opt) => (
             <Pressable key={opt} style={[styles.segment, theme === opt && styles.segmentActive]} onPress={() => selectTheme(opt)}>
               <Text style={[styles.segmentText, theme === opt && styles.segmentTextActive]}>
-                {opt === 'dark' ? 'Dark' : 'Light'}
+                {opt === 'dark' ? t('settings.themeDark') : t('settings.themeLight')}
               </Text>
             </Pressable>
           ))}
         </View>
-        {theme === 'light' ? (
-          <Text style={styles.sectionHint}>Light theme is coming soon — your preference is saved for when it ships.</Text>
-        ) : null}
+        {theme === 'light' ? <Text style={styles.sectionHint}>{t('settings.themeLightHint')}</Text> : null}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>OpenAI</Text>
-        <Text style={styles.sectionHint}>
-          Used by AI Analysis. Sent straight from this device to OpenAI when you run an analysis — never stored or
-          seen by us. The key itself never leaves this device, including in backups.
-        </Text>
+        <Text style={styles.sectionHeading}>{t('settings.languageHeading')}</Text>
+        <View style={styles.segmented}>
+          {LANGUAGES.map((opt) => (
+            <Pressable
+              key={opt.code}
+              style={[styles.segment, language === opt.code && styles.segmentActive]}
+              onPress={() => selectLanguage(opt.code)}
+            >
+              <Text style={[styles.segmentText, language === opt.code && styles.segmentTextActive]}>{t(opt.labelKey)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>{t('settings.openaiHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.openaiHint')}</Text>
         <TextField
           placeholder="sk-..."
           value={aiApiKey}
@@ -288,68 +385,82 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>AWS S3</Text>
-        <Text style={styles.sectionHint}>
-          Used only for backups you trigger. The key itself never leaves this device, including in backups — only
-          your board&rsquo;s money data goes to S3, and only when you back up.
-        </Text>
-        <TextField
-          label="Access Key ID"
-          value={s3AccessKeyId}
-          onChangeText={setS3AccessKeyId}
-          onBlur={saveS3Credentials}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TextField
-          label="Secret Access Key"
-          value={s3SecretAccessKey}
-          onChangeText={setS3SecretAccessKey}
-          onBlur={saveS3Credentials}
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-        />
+        <Text style={styles.sectionHeading}>{t('settings.s3Heading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.s3Hint')}</Text>
+        <View style={styles.group}>
+          {s3Configs.map((config) => (
+            <View key={config.id} style={styles.row}>
+              <View style={styles.s3ConfigMain}>
+                <Text style={styles.rowTitle}>{config.name}</Text>
+                <Text style={styles.rowValue}>{`${config.bucket} · ${config.region}`}</Text>
+              </View>
+              <RowMenuButton items={[{ label: t('common.delete'), destructive: true, onPress: () => confirmRemoveS3Config(config) }]} />
+            </View>
+          ))}
+        </View>
+        <Pressable style={styles.addLink} onPress={() => setS3ModalOpen(true)}>
+          <Text style={styles.addLinkText}>{t('settings.addS3BackupLink')}</Text>
+        </Pressable>
+        <S3ConfigModal visible={s3ModalOpen} onCancel={() => setS3ModalOpen(false)} onSaved={addS3Backup} />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Data</Text>
+        <Text style={styles.sectionHeading}>{t('settings.syncHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.syncHint')}</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>{t('settings.autoSyncToggle')}</Text>
+          <Switch value={autoSync} onValueChange={toggleAutoSync} trackColor={{ true: colors.accent, false: colors.border }} />
+        </View>
+        <Text style={styles.sectionHint}>
+          {lastSyncedAt ? t('settings.lastSynced', { time: new Date(lastSyncedAt).toLocaleString() }) : t('settings.lastSyncedNever')}
+        </Text>
+        {syncError ? <Text style={styles.errorText}>{syncError}</Text> : null}
+        <Pressable style={styles.importButton} onPress={runSyncNow} disabled={syncing}>
+          {syncing ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.syncNow')}</Text>}
+        </Pressable>
+        <Pressable style={styles.importButton} onPress={runRestoreFromCloud} disabled={restoringFromCloud}>
+          {restoringFromCloud ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.restoreFromCloud')}</Text>}
+        </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>{t('settings.dataHeading')}</Text>
         <Pressable style={styles.importButton} onPress={runImport} disabled={importing}>
-          {importing ? <ActivityIndicator /> : <Text style={styles.importButtonText}>Import from YNAB…</Text>}
+          {importing ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.importYnab')}</Text>}
         </Pressable>
         {importError ? <Text style={styles.errorText}>{importError}</Text> : null}
         {importResult ? (
           <View style={styles.group}>
-            <ImportResultRow label="Transactions imported" value={importResult.transactionsInserted} />
-            <ImportResultRow label="Transactions updated" value={importResult.transactionsUpdated} />
-            <ImportResultRow label="Budgeted amounts written" value={importResult.budgetEntriesWritten} />
-            <ImportResultRow label="Accounts created" value={importResult.accountsCreated} />
-            <ImportResultRow label="Categories created" value={importResult.categoriesCreated} />
+            <ImportResultRow label={t('settings.importResultTxnInserted')} value={importResult.transactionsInserted} />
+            <ImportResultRow label={t('settings.importResultTxnUpdated')} value={importResult.transactionsUpdated} />
+            <ImportResultRow label={t('settings.importResultBudgetWritten')} value={importResult.budgetEntriesWritten} />
+            <ImportResultRow label={t('settings.importResultAccountsCreated')} value={importResult.accountsCreated} />
+            <ImportResultRow label={t('settings.importResultCategoriesCreated')} value={importResult.categoriesCreated} />
           </View>
         ) : null}
         <Pressable style={styles.importButton} onPress={runRestore} disabled={restoring}>
-          {restoring ? <ActivityIndicator /> : <Text style={styles.importButtonText}>Import App Backup…</Text>}
+          {restoring ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.importAppBackup')}</Text>}
         </Pressable>
-        <Text style={styles.sectionHint}>Pick a .zip from this app's own "Export Board as .zip" — restores it as a new board.</Text>
+        <Text style={styles.sectionHint}>{t('settings.importAppBackupHint')}</Text>
         {restoreError ? <Text style={styles.errorText}>{restoreError}</Text> : null}
         {restoreResult ? (
           <View style={styles.group}>
-            <ImportResultRow label="Restored into board" value={restoreResult.boardName} />
-            <ImportResultRow label="Accounts" value={restoreResult.accountsImported} />
-            <ImportResultRow label="Categories" value={restoreResult.categoriesImported} />
-            <ImportResultRow label="Transactions" value={restoreResult.transactionsImported} />
+            <ImportResultRow label={t('settings.restoreResultBoard')} value={restoreResult.boardName} />
+            <ImportResultRow label={t('settings.restoreResultAccounts')} value={restoreResult.accountsImported} />
+            <ImportResultRow label={t('settings.restoreResultCategories')} value={restoreResult.categoriesImported} />
+            <ImportResultRow label={t('settings.restoreResultTransactions')} value={restoreResult.transactionsImported} />
           </View>
         ) : null}
         <Pressable style={styles.exportButton} onPress={runExport} disabled={exporting}>
-          {exporting ? <ActivityIndicator color="#fff" /> : <Text style={styles.exportButtonText}>Export Board as .zip</Text>}
+          {exporting ? <ActivityIndicator color="#fff" /> : <Text style={styles.exportButtonText}>{t('settings.exportBoard')}</Text>}
         </Pressable>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>About</Text>
+        <Text style={styles.sectionHeading}>{t('settings.aboutHeading')}</Text>
         <View style={styles.group}>
           <View style={styles.row}>
-            <Text style={styles.rowTitle}>Version</Text>
+            <Text style={styles.rowTitle}>{t('settings.version')}</Text>
             <Text style={styles.rowValue}>1.0.0 (MVP)</Text>
           </View>
         </View>
@@ -357,8 +468,14 @@ export function SettingsScreen() {
 
       <PromptModal
         visible={prompt != null}
-        title={prompt?.type === 'newBoard' ? 'New Board' : prompt?.type === 'renamePayee' ? 'Rename Payee' : 'Rename Board'}
-        placeholder={prompt?.type === 'renamePayee' ? 'Payee name' : 'e.g. Personal Budget'}
+        title={
+          prompt?.type === 'newBoard'
+            ? t('settings.newBoardTitle')
+            : prompt?.type === 'renamePayee'
+              ? t('settings.renamePayeeTitle')
+              : t('settings.renameBoardTitle')
+        }
+        placeholder={prompt?.type === 'renamePayee' ? t('settings.payeeNamePlaceholder') : t('settings.boardNamePlaceholder')}
         initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
         onCancel={() => setPrompt(null)}
         onSubmit={submitPrompt}
@@ -383,6 +500,7 @@ const styles = StyleSheet.create({
   group: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 14, overflow: 'hidden' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
   boardRowMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  s3ConfigMain: { gap: 2 },
   radio: { width: 16, height: 16, borderRadius: 999, borderWidth: 2, borderColor: colors.border },
   radioActive: { borderColor: colors.accent, backgroundColor: colors.accent },
   rowTitle: { fontSize: 15, color: colors.text },
@@ -394,6 +512,17 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  switchLabel: { fontSize: 15, color: colors.text },
   payeeActions: { flexDirection: 'row', gap: spacing.sm },
   payeeActionButton: {
     flex: 1,

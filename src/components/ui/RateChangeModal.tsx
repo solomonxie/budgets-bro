@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
 import { DateField } from './DateField';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -21,6 +22,7 @@ interface RateChangeModalProps {
 // Add/edit one row of a loan's interest-rate history (rate + the date it
 // took effect) — same small-card modal shell as PromptModal, two fields.
 export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete }: RateChangeModalProps) {
+  const t = useT();
   const [ratePercent, setRatePercent] = useState(initial.ratePercent);
   const [effectiveDate, setEffectiveDate] = useState(initial.effectiveDate);
 
@@ -41,23 +43,30 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Rate Change</Text>
-          <TextField label="Rate (annual %)" value={ratePercent} onChangeText={setRatePercent} keyboardType="decimal-pad" placeholder="e.g. 6.25" autoFocus />
-          <DateField label="Effective Date" value={effectiveDate} onChange={setEffectiveDate} />
+          <Text style={styles.title}>{t('rateChangeModal.title')}</Text>
+          <TextField
+            label={t('rateChangeModal.rateLabel')}
+            value={ratePercent}
+            onChangeText={setRatePercent}
+            keyboardType="decimal-pad"
+            placeholder={t('rateChangeModal.ratePlaceholder')}
+            autoFocus
+          />
+          <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
           <View style={styles.actions}>
             {onDelete ? (
               <Pressable onPress={onDelete}>
-                <Text style={styles.deleteText}>Delete</Text>
+                <Text style={styles.deleteText}>{t('common.delete')}</Text>
               </Pressable>
             ) : (
               <View />
             )}
             <View style={styles.rightActions}>
               <Pressable onPress={onCancel}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable style={styles.saveButton} onPress={submit}>
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
               </Pressable>
             </View>
           </View>

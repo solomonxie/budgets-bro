@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { getDb } from '../db/client';
 import * as boardsRepo from '../db/repositories/boardsRepo';
 import * as settingsRepo from '../db/repositories/settingsRepo';
+import { seedDemoBoard } from '../db/seed/demoBoard';
 import type { Board } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
 
 const ACTIVE_BOARD_KEY = 'active_board_id';
+const DEMO_BOARD_SEEDED_KEY = 'demo_board_seeded';
 
 // Restores whichever board was active last session — mounted once near the
 // app root so every screen sees the right board from the start, not just
@@ -19,6 +21,25 @@ export function useBootstrapActiveBoard() {
       if (saved) setCurrentBoardId(Number(saved));
     })();
   }, [setCurrentBoardId]);
+}
+
+// Gives every install a "Show Others" demo board (fake, higher-end finances)
+// to switch to before showing someone the app — once only, ever, tracked by
+// a settings flag rather than re-checked by name so deleting it doesn't
+// bring it back uninvited. Settings' "Create Demo Board" button reuses
+// seedDemoBoard directly for a deliberate, on-demand re-creation instead.
+export function useEnsureDemoBoard() {
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      const seeded = await settingsRepo.getSetting(db, DEMO_BOARD_SEEDED_KEY);
+      if (seeded) return;
+      await seedDemoBoard(db);
+      await settingsRepo.setSetting(db, DEMO_BOARD_SEEDED_KEY, '1');
+      bumpDataVersion();
+    })();
+  }, [bumpDataVersion]);
 }
 
 export function useBoards() {

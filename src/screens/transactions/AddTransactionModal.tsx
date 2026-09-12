@@ -9,11 +9,26 @@ import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { DateField } from '../../components/ui/DateField';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
 
+// YNAB-style amount entry: `amount` holds raw digits, always read right-to-
+// left as cents — typing "4444" reads as $44.44, no decimal point needed.
+function centsFromAmountDigits(digits: string): number {
+  return digits ? parseInt(digits, 10) : 0;
+}
+
+function formatAmountDigits(digits: string): string {
+  return (centsFromAmountDigits(digits) / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function AddTransactionModal() {
+  const t = useT();
   const { open: isOpen, editingTransactionId, presetAccountId } = useAppStore((s) => s.transactionModal);
   const close = useAppStore((s) => s.closeTransactionModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -41,7 +56,7 @@ export function AddTransactionModal() {
         const db = await getDb();
         const t = await transactionsRepo.getTransaction(db, editingTransactionId);
         if (!t) return;
-        setAmount((Math.abs(t.amountCents) / 100).toString());
+        setAmount(String(Math.abs(t.amountCents)));
         setDirection(t.amountCents < 0 ? 'out' : 'in');
         setPayee(t.payeeName ?? '');
         setCategoryId(t.categoryId);
@@ -50,14 +65,26 @@ export function AddTransactionModal() {
         setDate(t.date);
         setIsInterest(t.isInterest);
       })();
-    } else if (accounts.length > 0) {
-      // A preset (opened from an account page) always wins; otherwise keep
-      // remembering whatever account was last used.
-      setAccountId((prev) => presetAccountId ?? prev ?? accounts[0].account.id);
     }
-    // Autofocus the amount field and pop the number pad the instant the sheet opens.
-    requestAnimationFrame(() => amountInputRef.current?.focus());
+  }, [isOpen, editingTransactionId]);
+
+  useEffect(() => {
+    // A preset (opened from an account page) always wins; otherwise keep
+    // remembering whatever account was last used. Kept separate from the
+    // focus effect below so an unrelated `accounts` refetch (e.g. another
+    // screen bumping dataVersion) never steals focus back to the amount
+    // field mid-edit.
+    if (!isOpen || editingTransactionId != null || accounts.length === 0) return;
+    setAccountId((prev) => presetAccountId ?? prev ?? accounts[0].account.id);
   }, [isOpen, editingTransactionId, presetAccountId, accounts]);
+
+  useEffect(() => {
+    // Autofocus the amount field and pop the number pad — but only the
+    // instant the sheet opens for a brand-new transaction, never when
+    // editing an existing one (its amount is already known).
+    if (!isOpen || editingTransactionId != null) return;
+    requestAnimationFrame(() => amountInputRef.current?.focus());
+  }, [isOpen, editingTransactionId]);
 
   const reset = () => {
     setAmount('');
@@ -82,12 +109,12 @@ export function AddTransactionModal() {
   };
 
   const save = async () => {
-    const parsed = parseFloat(amount);
-    if (!parsed || parsed <= 0 || accountId == null) {
+    const enteredCents = centsFromAmountDigits(amount);
+    if (!enteredCents || accountId == null) {
       cancel();
       return;
     }
-    const amountCents = Math.round(parsed * 100) * (direction === 'out' ? -1 : 1);
+    const amountCents = enteredCents * (direction === 'out' ? -1 : 1);
     const db = await getDb();
     const input = {
       accountId,
@@ -110,10 +137,10 @@ export function AddTransactionModal() {
 
   const remove = () => {
     if (editingTransactionId == null) return;
-    Alert.alert('Delete transaction?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('spend.deleteConfirmTitle'), t('common.cannotBeUndone'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           const db = await getDb();
@@ -131,19 +158,19 @@ export function AddTransactionModal() {
       <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Pressable onPress={cancel}>
-            <Text style={styles.headerBtn}>Cancel</Text>
+            <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
           </Pressable>
           <Pressable onPress={save}>
-            <Text style={[styles.headerBtn, styles.saveBtn]}>Save</Text>
+            <Text style={[styles.headerBtn, styles.saveBtn]}>{t('common.save')}</Text>
           </Pressable>
         </View>
         <TextInput
           ref={amountInputRef}
           style={styles.amountInput}
-          placeholder="$0.00"
-          keyboardType="decimal-pad"
-          value={amount}
-          onChangeText={setAmount}
+          placeholder={t('spend.amountPlaceholder')}
+          keyboardType="number-pad"
+          value={amount ? `$${formatAmountDigits(amount)}` : ''}
+          onChangeText={(text) => setAmount(text.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 9))}
           placeholderTextColor={colors.textMuted}
         />
         <View style={styles.segmented}>
@@ -151,26 +178,28 @@ export function AddTransactionModal() {
             style={[styles.segment, direction === 'out' && styles.segmentActive]}
             onPress={() => setDirection('out')}
           >
-            <Text style={[styles.segmentText, direction === 'out' && styles.segmentTextActive]}>Spending</Text>
+            <Text style={[styles.segmentText, direction === 'out' && styles.segmentTextActive]}>{t('spend.spending')}</Text>
           </Pressable>
           <Pressable
             style={[styles.segment, direction === 'in' && styles.segmentActive]}
             onPress={() => setDirection('in')}
           >
-            <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>Income</Text>
+            <Text style={[styles.segmentText, direction === 'in' && styles.segmentTextActive]}>{t('spend.income')}</Text>
           </Pressable>
         </View>
         <SearchableDropdownField
-          label="Payee"
+          compact
+          label={t('common.payee')}
           valueLabel={payee}
-          placeholder="Payee"
-          searchPlaceholder="Search or type a new payee"
+          placeholder={t('spend.payeePlaceholder')}
+          searchPlaceholder={t('spend.payeeSearchPlaceholder')}
           options={payees.map((p) => ({ id: p.id, label: p.name }))}
           onSelect={(o) => selectPayee(o.label, o.id)}
           onUseText={setPayee}
         />
         <DropdownField
-          label="Category"
+          compact
+          label={t('common.category')}
           valueLabel={
             categoryId == null
               ? ''
@@ -179,12 +208,12 @@ export function AddTransactionModal() {
                   return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
                 })()
           }
-          placeholder="Uncategorized"
+          placeholder={t('common.uncategorized')}
         >
           {(close) => (
             <>
               <DropdownOption
-                label="Uncategorized"
+                label={t('common.uncategorized')}
                 selected={categoryId == null}
                 onPress={() => {
                   setCategoryId(null);
@@ -214,8 +243,8 @@ export function AddTransactionModal() {
             </>
           )}
         </DropdownField>
-        <DateField label="Date" value={date} onChange={setDate} />
-        <DropdownField label="Account" valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
+        <DateField label={t('common.date')} value={date} onChange={setDate} />
+        <DropdownField compact label={t('common.account')} valueLabel={accounts.find((a) => a.account.id === accountId)?.account.name ?? ''}>
           {(close) => (
             <>
               {accounts.map(({ account }) => (
@@ -234,20 +263,20 @@ export function AddTransactionModal() {
         </DropdownField>
         <TextInput
           style={styles.textInput}
-          placeholder="Memo"
+          placeholder={t('spend.memoPlaceholder')}
           value={memo}
           onChangeText={setMemo}
           placeholderTextColor={colors.textMuted}
         />
         {direction === 'in' ? (
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Interest income</Text>
+            <Text style={styles.switchLabel}>{t('spend.interestIncome')}</Text>
             <Switch value={isInterest} onValueChange={setIsInterest} trackColor={{ true: colors.accent, false: colors.border }} />
           </View>
         ) : null}
         {isEditing ? (
           <Pressable style={styles.deleteButton} onPress={remove}>
-            <Text style={styles.deleteButtonText}>Delete Transaction</Text>
+            <Text style={styles.deleteButtonText}>{t('spend.deleteTransaction')}</Text>
           </Pressable>
         ) : null}
       </ScrollView>

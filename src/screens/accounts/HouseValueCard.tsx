@@ -9,6 +9,7 @@ import { HouseValueModal } from '../../components/ui/HouseValueModal';
 import type { HouseValueChangeValue } from '../../components/ui/HouseValueModal';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { Account, AccountHouseValueChange } from '../../domain/types';
@@ -22,6 +23,7 @@ const CHART_HEIGHT = 56;
 // Collapsed to one summary line by default — tap to expand, so it doesn't
 // push the transaction list off screen.
 export function HouseValueCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { history, currentValueCents, refresh } = useAccountHouseValueHistory(account.id);
@@ -62,18 +64,18 @@ export function HouseValueCard({ account, balanceCents }: { account: Account; ba
   return (
     <View style={styles.card}>
       <Pressable style={styles.summaryRow} onPress={() => setExpanded((v) => !v)}>
-        <Text style={styles.label}>Home Value</Text>
+        <Text style={styles.label}>{t('houseValueCard.label')}</Text>
         <View style={styles.summaryRight}>
-          <Text style={styles.summaryText}>{currentValueCents == null ? 'Not set' : formatMoney(currentValueCents)}</Text>
+          <Text style={styles.summaryText}>{currentValueCents == null ? t('houseValueCard.notSet') : formatMoney(currentValueCents)}</Text>
           <Text style={styles.chevron}>{expanded ? '▾' : '›'}</Text>
         </View>
       </Pressable>
       {expanded ? (
         <>
           {currentValueCents == null ? (
-            <Text style={styles.hint}>No home value recorded yet.</Text>
+            <Text style={styles.hint}>{t('houseValueCard.noValueYet')}</Text>
           ) : equityCents != null ? (
-            <Text style={styles.hint}>Equity: {formatMoney(equityCents)}</Text>
+            <Text style={styles.hint}>{t('houseValueCard.equity', { amount: formatMoney(equityCents) })}</Text>
           ) : null}
           {chronological.length > 1 ? (
             <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
@@ -83,11 +85,11 @@ export function HouseValueCard({ account, balanceCents }: { account: Account; ba
           {history.map((h) => (
             <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
               <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
-              <Text style={styles.rowDate}>effective {h.effectiveDate}</Text>
+              <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: h.effectiveDate })}</Text>
             </Pressable>
           ))}
           <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
-            <Text style={styles.addBtnText}>+ Update Home Value</Text>
+            <Text style={styles.addBtnText}>{t('houseValueCard.updateButton')}</Text>
           </Pressable>
         </>
       ) : null}

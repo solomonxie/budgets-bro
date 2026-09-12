@@ -7,14 +7,27 @@ import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountHouseValues } from '../../hooks/useAccountHouseValues';
 import { useAppStore } from '../../state/useAppStore';
 import { ACCOUNT_KIND_ORDER, accountKind, netWorth as computeNetWorth } from '../../domain/accountKind';
+import type { AccountKind } from '../../domain/types';
 import { formatMoney } from '../../domain/money';
+import { useT } from '../../i18n';
+import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { AccountsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountsList'>;
 
+const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
+  Cash: 'accounts.kindCash',
+  Savings: 'accounts.kindSavings',
+  Income: 'accounts.kindIncome',
+  Credit: 'accounts.kindCredit',
+  Loan: 'accounts.kindLoan',
+  Tracking: 'accounts.kindTracking',
+};
+
 export function AccountsScreen() {
+  const t = useT();
   const navigation = useNavigation<Nav>();
   const openAddAccount = useAppStore((s) => s.openAddAccount);
   const { accounts } = useAccounts();
@@ -52,24 +65,24 @@ export function AccountsScreen() {
     <ScreenContainer scroll>
       <View style={styles.netWorthCard}>
         <View style={styles.netWorthHeader}>
-          <Text style={styles.netWorthLabel}>Net Worth</Text>
+          <Text style={styles.netWorthLabel}>{t('accounts.netWorth')}</Text>
           <Pressable onPress={() => setAccountPickerOpen(true)}>
-            <Text style={styles.customizeLink}>Customize</Text>
+            <Text style={styles.customizeLink}>{t('accounts.customize')}</Text>
           </Pressable>
         </View>
         <Text style={[styles.netWorthValue, netWorth.netWorthCents < 0 && styles.negative]}>
           {formatMoney(netWorth.netWorthCents)}
         </Text>
         <View style={styles.netWorthBreakdown}>
-          <Text style={styles.netWorthPart}>Assets {formatMoney(netWorth.assetsCents)}</Text>
-          <Text style={styles.netWorthPart}>Debts {formatMoney(netWorth.debtsCents)}</Text>
+          <Text style={styles.netWorthPart}>{t('accounts.assets', { amount: formatMoney(netWorth.assetsCents) })}</Text>
+          <Text style={styles.netWorthPart}>{t('accounts.debts', { amount: formatMoney(netWorth.debtsCents) })}</Text>
         </View>
       </View>
 
       <Modal visible={accountPickerOpen} transparent animationType="fade" onRequestClose={() => setAccountPickerOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setAccountPickerOpen(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Include in Net Worth</Text>
+            <Text style={styles.sheetTitle}>{t('accounts.includeInNetWorth')}</Text>
             <ScrollView>
               {accounts.map(({ account }) => {
                 const included = !excludedAccountIds.has(account.id);
@@ -84,7 +97,7 @@ export function AccountsScreen() {
               })}
             </ScrollView>
             <Pressable style={styles.doneButton} onPress={() => setAccountPickerOpen(false)}>
-              <Text style={styles.doneButtonText}>Done</Text>
+              <Text style={styles.doneButtonText}>{t('common.done')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -93,7 +106,7 @@ export function AccountsScreen() {
       {groups.map((group) => (
         <View key={group.kind} style={styles.group}>
           <View style={styles.groupHeader}>
-            <Text style={styles.groupLabel}>{group.kind}</Text>
+            <Text style={styles.groupLabel}>{t(KIND_LABEL_KEY[group.kind])}</Text>
             <Text style={styles.groupSub}>{formatMoney(group.subtotalCents)}</Text>
           </View>
           {group.accounts.map(({ account, balanceCents }) => (
@@ -109,10 +122,10 @@ export function AccountsScreen() {
         </View>
       ))}
       <Pressable style={styles.addButton} onPress={openAddAccount}>
-        <Text style={styles.addButtonText}>+ Add Account</Text>
+        <Text style={styles.addButtonText}>{t('accounts.addAccount')}</Text>
       </Pressable>
       <Pressable style={styles.closedLink} onPress={() => navigation.navigate('ClosedAccounts')}>
-        <Text style={styles.closedLinkText}>Closed Accounts</Text>
+        <Text style={styles.closedLinkText}>{t('accounts.closedAccounts')}</Text>
       </Pressable>
     </ScreenContainer>
   );

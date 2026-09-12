@@ -12,6 +12,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { HouseValueCard } from './HouseValueCard';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { AccountsStackParamList } from '../../navigation/types';
@@ -20,6 +21,7 @@ type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
 type Route = RouteProp<AccountsStackParamList, 'AccountDetail'>;
 
 export function AccountDetailScreen() {
+  const t = useT();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { accountId } = route.params;
@@ -43,18 +45,18 @@ export function AccountDetailScreen() {
       title: accountWithBalance.account.name,
       headerRight: () => (
         <Pressable onPress={() => openEditAccount(accountId)}>
-          <Text style={{ color: colors.accent, fontWeight: '600' }}>Edit</Text>
+          <Text style={{ color: colors.accent, fontWeight: '600' }}>{t('common.edit')}</Text>
         </Pressable>
       ),
     });
-  }, [navigation, accountWithBalance, accountId, openEditAccount]);
+  }, [navigation, accountWithBalance, accountId, openEditAccount, t]);
 
   const rows = useMemo(() => withRunningBalances(transactions, balanceCents), [transactions, balanceCents]);
 
   return (
     <ScreenContainer>
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Balance</Text>
+        <Text style={styles.summaryLabel}>{t('accountDetail.balance')}</Text>
         <Text style={[styles.summaryValue, balanceCents < 0 && styles.negative]}>{formatMoney(balanceCents)}</Text>
       </View>
       {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
@@ -70,10 +72,10 @@ export function AccountDetailScreen() {
         renderItem={({ item }) => (
           <Pressable style={styles.txnRow} onPress={() => openEditTransaction(item.id)}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.payee}>{item.payeeName ?? '(No payee)'}</Text>
+              <Text style={styles.payee}>{item.payeeName ?? t('common.noPayee')}</Text>
               <Text style={styles.sub}>
                 {item.categoryIcon ? `${item.categoryIcon} ` : ''}
-                {item.categoryName ?? 'Uncategorized'} · {item.date}
+                {item.categoryName ?? t('common.uncategorized')} · {item.date}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
@@ -84,7 +86,7 @@ export function AccountDetailScreen() {
             </View>
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No transactions yet.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t('accountDetail.noTransactionsYet')}</Text>}
       />
     </ScreenContainer>
   );

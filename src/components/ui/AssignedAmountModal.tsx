@@ -5,6 +5,7 @@ import { spacing } from '../../theme/spacing';
 import { formatMoney } from '../../domain/money';
 import { RowMenuButton } from './RowMenuButton';
 import type { MenuItem } from './RowMenuButton';
+import { useT } from '../../i18n';
 
 interface AssignedAmountModalProps {
   visible: boolean;
@@ -38,6 +39,7 @@ export function AssignedAmountModal({
   onHistory,
   onClose,
 }: AssignedAmountModalProps) {
+  const t = useT();
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +64,7 @@ export function AssignedAmountModal({
     const parsed = parseFloat(value);
     const cents = Number.isNaN(parsed) ? 0 : Math.round(parsed * 100);
     if (cents > availableCents) {
-      setError(`Exceeds unassigned cash by ${formatMoney(cents - availableCents)}`);
+      setError(t('assignedAmountModal.exceedsError', { amount: formatMoney(cents - availableCents) }));
       return;
     }
     onSave(cents);
@@ -77,7 +79,7 @@ export function AssignedAmountModal({
             {categoryIcon ? `${categoryIcon} ` : ''}
             {categoryName}
           </Text>
-          <Text style={styles.label}>Assigned this month</Text>
+          <Text style={styles.label}>{t('assignedAmountModal.assignedThisMonth')}</Text>
           <TextInput
             style={styles.amountInput}
             keyboardType="decimal-pad"
@@ -88,7 +90,10 @@ export function AssignedAmountModal({
             onSubmitEditing={done}
           />
           <Text style={styles.unassignedHint}>
-            Unassigned: {formatMoney(unassignedCents)}   ·   Last month: {formatMoney(lastMonthAssignedCents)}
+            {t('assignedAmountModal.unassignedHint', {
+              unassigned: formatMoney(unassignedCents),
+              lastMonth: formatMoney(lastMonthAssignedCents),
+            })}
           </Text>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <View style={styles.actions}>
@@ -97,12 +102,12 @@ export function AssignedAmountModal({
             </View>
             <View style={styles.centerActions}>
               <Pressable style={styles.saveButton} onPress={done}>
-                <Text style={styles.saveButtonText}>Done</Text>
+                <Text style={styles.saveButtonText}>{t('common.done')}</Text>
               </Pressable>
             </View>
             <View style={[styles.sideSlot, styles.sideSlotRight]}>
               <Pressable onPress={onHistory}>
-                <Text style={styles.sideText}>History</Text>
+                <Text style={styles.sideText}>{t('assignedAmountModal.history')}</Text>
               </Pressable>
             </View>
           </View>

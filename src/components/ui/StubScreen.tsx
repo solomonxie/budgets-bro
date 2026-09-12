@@ -2,14 +2,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ScreenContainer } from './ScreenContainer';
+import { useT } from '../../i18n';
 
 // Placeholder for a screen still being designed/built.
 export function StubScreen({ title }: { title: string }) {
+  const t = useT();
   return (
     <ScreenContainer>
       <View style={styles.card}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.hint}>Coming soon — this screen is still being designed.</Text>
+        <Text style={styles.hint}>{t('stubScreen.comingSoon')}</Text>
       </View>
     </ScreenContainer>
   );

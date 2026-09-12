@@ -18,24 +18,29 @@ import { isLoanLikeType } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { computeBalanceCorrectionCents } from '../../domain/register';
+import { useT } from '../../i18n';
+import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { Account, AccountRateChange, AccountType } from '../../domain/types';
 
-const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
-  { value: 'checking', label: 'Checking' },
-  { value: 'savings', label: 'Savings' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'income', label: 'Income Source' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'loan', label: 'Loan' },
-  { value: 'mortgage', label: 'Mortgage' },
-  { value: 'tracking', label: 'Tracking' },
-];
+const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
+  checking: 'accountModal.typeChecking',
+  savings: 'accountModal.typeSavings',
+  cash: 'accountModal.typeCash',
+  income: 'accountModal.typeIncome',
+  credit_card: 'accountModal.typeCreditCard',
+  loan: 'accountModal.typeLoan',
+  mortgage: 'accountModal.typeMortgage',
+  tracking: 'accountModal.typeTracking',
+};
+const TYPE_VALUES: AccountType[] = ['checking', 'savings', 'cash', 'income', 'credit_card', 'loan', 'mortgage', 'tracking'];
 
 // Same "one sheet, create or edit" pattern as the transaction modal —
 // "+ Add Account" used to push a full-screen form; this matches it.
 export function AccountModal() {
+  const t = useT();
+  const TYPE_OPTIONS: { value: AccountType; label: string }[] = TYPE_VALUES.map((value) => ({ value, label: t(TYPE_LABEL_KEY[value]) }));
   const { open: isOpen, editingAccountId } = useAppStore((s) => s.accountModal);
   const close = useAppStore((s) => s.closeAccountModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -144,12 +149,12 @@ export function AccountModal() {
 
   const closeAccount = () => {
     Alert.alert(
-      `Close "${name}"?`,
-      'Hides it from your accounts list. Its transactions are kept, not deleted.',
+      t('accountModal.closeAccountConfirmTitle', { name }),
+      t('accountModal.closeAccountConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Close Account',
+          text: t('accountModal.closeAccount'),
           style: 'destructive',
           onPress: async () => {
             if (editingAccountId == null) return;
@@ -193,19 +198,19 @@ export function AccountModal() {
 
   return (
     <Modal visible={isOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={cancel}>
-      <ScreenContainer>
+      <ScreenContainer modal>
         <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <Pressable onPress={cancel}>
-              <Text style={styles.headerBtn}>Cancel</Text>
+              <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
             </Pressable>
-            <Text style={styles.title}>{isEditing ? 'Edit Account' : 'New Account'}</Text>
+            <Text style={styles.title}>{isEditing ? t('accountModal.editTitle') : t('accountModal.newTitle')}</Text>
             <Pressable onPress={save}>
-              <Text style={[styles.headerBtn, styles.saveBtn]}>Save</Text>
+              <Text style={[styles.headerBtn, styles.saveBtn]}>{t('common.save')}</Text>
             </Pressable>
           </View>
-          <TextField label="Name" value={name} onChangeText={setName} placeholder="e.g. Checking" />
-          <DropdownField label="Type" valueLabel={TYPE_OPTIONS.find((o) => o.value === type)?.label ?? ''}>
+          <TextField label={t('accountModal.nameLabel')} value={name} onChangeText={setName} placeholder={t('accountModal.namePlaceholder')} />
+          <DropdownField compact label={t('accountModal.typeLabel')} valueLabel={TYPE_OPTIONS.find((o) => o.value === type)?.label ?? ''}>
             {(closeDropdown) => (
               <>
                 {TYPE_OPTIONS.map((opt) => (
@@ -223,26 +228,26 @@ export function AccountModal() {
             )}
           </DropdownField>
           <TextField
-            label="Opening Balance"
+            label={t('accountModal.openingBalanceLabel')}
             value={openingBalance}
             onChangeText={setOpeningBalance}
             keyboardType="decimal-pad"
-            placeholder="0.00"
+            placeholder={t('common.amountPlaceholder')}
           />
           {isEditing ? (
             <TextField
-              label="Latest Balance"
+              label={t('accountModal.latestBalanceLabel')}
               value={latestBalance}
               onChangeText={setLatestBalance}
               keyboardType="decimal-pad"
-              placeholder="0.00"
+              placeholder={t('common.amountPlaceholder')}
             />
           ) : null}
-          <Text style={styles.sectionLabel}>Interest Rate</Text>
+          <Text style={styles.sectionLabel}>{t('accountModal.interestRateHeading')}</Text>
           {isEditing ? (
             <View style={styles.field}>
-              <Text style={styles.label}>Interest Rate History</Text>
-              {rateHistory.length === 0 ? <Text style={styles.hint}>No rate recorded yet.</Text> : null}
+              <Text style={styles.label}>{t('accountModal.interestRateHistoryLabel')}</Text>
+              {rateHistory.length === 0 ? <Text style={styles.hint}>{t('accountModal.noRateRecorded')}</Text> : null}
               {rateHistory.map((r) => (
                 <Pressable
                   key={r.id}
@@ -254,65 +259,67 @@ export function AccountModal() {
                   }
                 >
                   <Text style={styles.rateRowText}>{(r.rateBps / 100).toFixed(2)}%</Text>
-                  <Text style={styles.rateRowDate}>effective {r.effectiveDate}</Text>
+                  <Text style={styles.rateRowDate}>{t('common.effectivePrefix', { date: r.effectiveDate })}</Text>
                 </Pressable>
               ))}
               <Pressable style={styles.addRateBtn} onPress={() => setRateModal({ editing: null })}>
-                <Text style={styles.addRateBtnText}>+ Add Rate Change</Text>
+                <Text style={styles.addRateBtnText}>{t('accountModal.addRateChange')}</Text>
               </Pressable>
             </View>
           ) : (
             <TextField
-              label="Interest Rate (annual %)"
+              label={t('accountModal.interestRateAnnualLabel')}
               value={initialInterestRate}
               onChangeText={setInitialInterestRate}
               keyboardType="decimal-pad"
-              placeholder="e.g. 6.25 (optional)"
+              placeholder={t('accountModal.interestRatePlaceholder')}
             />
           )}
           {isLoanLike ? (
             <>
-              <Text style={styles.sectionLabel}>Loan Terms (for the payoff projection on the account page)</Text>
+              <Text style={styles.sectionLabel}>{t('accountModal.loanTermsHeading')}</Text>
               <TextField
-                label="Term (months)"
+                label={t('common.termMonthsLabel')}
                 value={termMonths}
                 onChangeText={setTermMonths}
                 keyboardType="number-pad"
-                placeholder="e.g. 360"
+                placeholder={t('accountModal.termMonthsPlaceholder')}
               />
               <TextField
-                label="Original Principal"
+                label={t('accountModal.originalPrincipalLabel')}
                 value={originalPrincipal}
                 onChangeText={setOriginalPrincipal}
                 keyboardType="decimal-pad"
-                placeholder="0.00"
+                placeholder={t('common.amountPlaceholder')}
               />
               <View style={styles.field}>
                 <TextField
-                  label="Original House Price"
+                  label={t('accountModal.originalHousePriceLabel')}
                   value={originalHousePrice}
                   onChangeText={setOriginalHousePrice}
                   keyboardType="decimal-pad"
-                  placeholder="0.00 (optional)"
+                  placeholder={t('accountModal.originalHousePricePlaceholder')}
                 />
                 {downPaymentCents != null ? (
                   <Text style={styles.hint}>
-                    {downPaymentCents >= 0 ? `Down payment: ${formatMoney(downPaymentCents)}` : 'Original principal exceeds house price'}
+                    {downPaymentCents >= 0
+                      ? t('accountModal.downPaymentHint', { amount: formatMoney(downPaymentCents) })
+                      : t('accountModal.principalExceedsHint')}
                   </Text>
                 ) : null}
               </View>
-              <DateField label="Origination Date" value={originationDate} onChange={setOriginationDate} />
+              <DateField label={t('accountModal.originationDateLabel')} value={originationDate} onChange={setOriginationDate} />
             </>
           ) : null}
           {isEditing ? (
             <View style={styles.dangerZone}>
               {archivedAt ? (
                 <Pressable onPress={reopenAccount}>
-                  <Text style={styles.reopenLink}>Reopen Account</Text>
+                  <Text style={styles.reopenLink}>{t('accountModal.reopenAccount')}</Text>
                 </Pressable>
               ) : (
                 <Pressable onPress={closeAccount}>
-                  <Text style={styles.closeLink}>Close Account</Text>
+                  <Text style={styles.closeLink}>{t('accountModal.closeAccount')}</Text>
                 </Pressable>
               )}
             </View>

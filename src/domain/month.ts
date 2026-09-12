@@ -44,14 +44,14 @@ export function monthsBetween(startMonth: string, endMonth: string): string[] {
   return months;
 }
 
-export function formatMonthLabel(month: string): string {
+export function formatMonthLabel(month: string, locale = 'en-US'): string {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1, 1));
-  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  return d.toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
-export function formatMonthShort(month: string): string {
+export function formatMonthShort(month: string, locale = 'en-US'): string {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1, 1));
-  return d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  return d.toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' });
 }

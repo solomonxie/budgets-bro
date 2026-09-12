@@ -109,12 +109,34 @@ function signingKey(secretAccessKey: string, dateStamp: string, region: string):
   return hmacBytes(kService, 'aws4_request');
 }
 
+function nonce(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
 // Object keys in this app are always ASCII (board ids, a fixed test-object
 // name) — skipping AWS's per-segment URI-encoding rules is safe here.
 // `objectKey: ''` addresses the bucket itself (path "/"), used by the
 // validation checks below. `subresource` signs a bucket sub-resource query
 // (e.g. `publicAccessBlock`) — SigV4 requires it in the canonical query
 // string as `name=` even though the actual request URL omits the `=`.
+//
+// Every request also gets a unique `x-yama-nonce` query param, signed like
+// any other. Without it, iOS's URLSession (which fetch sits on top of)
+// caches responses by URL and can transparently attach a conditional
+// revalidation header (If-Modified-Since/If-None-Match) to a *later*
+// request that happens to reuse the exact same URL — even across different
+// HTTP methods. Observed in practice: a DELETE right after a GET to the
+// same object key came back `501 NotImplemented, Header: If-Modified-
+// Since` (S3 doesn't support conditional headers on DELETE — and wouldn't
+// on PUT either, so a normal upload following a "Restore Latest" GET to
+// the same key could hit the same wall). `fetch`'s own `cache` option
+// can't fix this — React Native's fetch polyfill only special-cases
+// GET/HEAD for it, and does so by *rewriting the URL after this function
+// returns*, which would invalidate the signature. A per-request nonce
+// baked into the signed query string sidesteps the whole problem: no two
+// requests ever share a URL, so there's never a stale cache entry to
+// revalidate against, and it incidentally guarantees GET never serves a
+// stale cached copy on restore either.
 async function signRequest(
   config: S3Config,
   method: 'PUT' | 'GET' | 'DELETE' | 'HEAD',
@@ -127,7 +149,10 @@ async function signRequest(
   const dateStamp = amzDate.slice(0, 8);
   const payloadHash = bytesToHex(sha256(body ?? new Uint8Array(0)));
   const path = objectKey ? `/${objectKey}` : '/';
-  const canonicalQuery = subresource ? `${subresource}=` : '';
+  const queryParams = [subresource ? `${subresource}=` : null, `x-yama-nonce=${nonce()}`]
+    .filter((p): p is string => p != null)
+    .sort();
+  const canonicalQuery = queryParams.join('&');
 
   const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
   const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
@@ -145,7 +170,7 @@ async function signRequest(
   const authorization = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
   return {
-    url: `https://${host}${path}${subresource ? `?${subresource}` : ''}`,
+    url: `https://${host}${path}?${canonicalQuery}`,
     // `host` isn't set here — fetch derives it from the URL itself, and it's
     // already accounted for in the signature via canonicalHeaders above.
     headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, Authorization: authorization },
@@ -217,7 +242,7 @@ async function checkNotPublic(config: S3Config): Promise<void> {
 // this app's own key can do.
 async function checkNoAnonymousAccess(config: S3Config): Promise<void> {
   const host = `${config.bucket}.s3.${config.region}.amazonaws.com`;
-  const res = await fetch(`https://${host}/`, { method: 'HEAD' });
+  const res = await fetch(`https://${host}/`, { method: 'HEAD', cache: 'no-store' });
   if (res.ok) throw new Error('Bucket allows anonymous (unsigned) access — restrict its bucket policy/ACLs');
 }
 
@@ -228,7 +253,7 @@ async function checkNoAnonymousAccess(config: S3Config): Promise<void> {
 async function detectBucketRegion(bucket: string): Promise<string> {
   let res: Response;
   try {
-    res = await fetch(`https://${bucket}.s3.amazonaws.com/`, { method: 'HEAD' });
+    res = await fetch(`https://${bucket}.s3.amazonaws.com/`, { method: 'HEAD', cache: 'no-store' });
   } catch (e) {
     throw new Error(`Bucket unreachable — ${e instanceof Error ? e.message : String(e)}`);
   }

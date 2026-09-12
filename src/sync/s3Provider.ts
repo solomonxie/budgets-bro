@@ -154,7 +154,17 @@ async function signRequest(
 
 async function put(config: S3Config, objectKey: string, body: Uint8Array): Promise<void> {
   const { url, headers } = await signRequest(config, 'PUT', objectKey, body);
-  const res = await fetch(url, { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/octet-stream' }, body: body.buffer as ArrayBuffer });
+  // body.slice() copies into a fresh, exactly-sized buffer first — body's
+  // own backing ArrayBuffer can be a different byte range than the view
+  // (offset/length), which would send different bytes than what was hashed
+  // into the signature. Confirmed against a live bucket: identical signing
+  // logic sending body.buffer directly (no slice) triggered
+  // SignatureDoesNotMatch from inside the RN app.
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/octet-stream' },
+    body: body.slice().buffer as ArrayBuffer,
+  });
   if (!res.ok) throw new Error(`S3 PUT failed: ${res.status} ${await res.text()}`);
 }
 

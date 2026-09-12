@@ -142,6 +142,8 @@ export const zh: Record<keyof typeof en, string> = {
 
   'accountDetail.balance': '余额',
   'accountDetail.noTransactionsYet': '暂无交易记录。',
+  'accountDetail.scheduledHeading': '计划中（{count}）',
+  'accountDetail.scheduledHint': '日期在未来——在到期前不影响余额或预算。',
 
   'accountModal.editTitle': '编辑账户',
   'accountModal.newTitle': '新建账户',

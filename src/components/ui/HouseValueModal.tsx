@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
 import { DateField } from './DateField';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -28,6 +29,7 @@ function splitSign(value: string): { negative: boolean; magnitude: string } {
 // toggle exists because decimal-pad has no minus key on iOS, and a home
 // value can go negative (underwater on the loan).
 export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete }: HouseValueModalProps) {
+  const t = useT();
   const [negative, setNegative] = useState(false);
   const [magnitude, setMagnitude] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(initial.effectiveDate);
@@ -51,30 +53,37 @@ export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Home Value</Text>
+          <Text style={styles.title}>{t('houseValueModal.title')}</Text>
           <View style={styles.valueRow}>
             <Pressable style={styles.signToggle} onPress={() => setNegative((v) => !v)}>
               <Text style={styles.signToggleText}>{negative ? '−' : '+'}</Text>
             </Pressable>
             <View style={styles.valueInput}>
-              <TextField label="Value" value={magnitude} onChangeText={setMagnitude} keyboardType="decimal-pad" placeholder="0.00" autoFocus />
+              <TextField
+                label={t('houseValueModal.valueLabel')}
+                value={magnitude}
+                onChangeText={setMagnitude}
+                keyboardType="decimal-pad"
+                placeholder={t('common.amountPlaceholder')}
+                autoFocus
+              />
             </View>
           </View>
-          <DateField label="Effective Date" value={effectiveDate} onChange={setEffectiveDate} />
+          <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
           <View style={styles.actions}>
             {onDelete ? (
               <Pressable onPress={onDelete}>
-                <Text style={styles.deleteText}>Delete</Text>
+                <Text style={styles.deleteText}>{t('common.delete')}</Text>
               </Pressable>
             ) : (
               <View />
             )}
             <View style={styles.rightActions}>
               <Pressable onPress={onCancel}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable style={styles.saveButton} onPress={submit}>
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
               </Pressable>
             </View>
           </View>

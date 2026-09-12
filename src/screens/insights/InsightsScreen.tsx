@@ -9,19 +9,13 @@ import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { useInsights } from '../../hooks/useInsights';
 import { currentMonth, nextMonth, previousMonth, formatMonthLabel, formatMonthShort } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { InsightsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
 type ToolScreen = 'BabySteps' | 'TaxInsights' | 'Calculators' | 'AiAnalysis';
-
-const TOOL_ROWS: { label: string; screen: ToolScreen }[] = [
-  { label: 'Baby Steps', screen: 'BabySteps' },
-  { label: 'Tax Insights', screen: 'TaxInsights' },
-  { label: 'Calculators', screen: 'Calculators' },
-  { label: 'AI Analysis', screen: 'AiAnalysis' },
-];
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
 // order, never cycled.
@@ -40,6 +34,13 @@ function formatAxisValue(cents: number): string {
 }
 
 export function InsightsScreen() {
+  const { t, language } = useI18n();
+  const TOOL_ROWS: { label: string; screen: ToolScreen }[] = [
+    { label: t('insights.babySteps'), screen: 'BabySteps' },
+    { label: t('insights.taxInsights'), screen: 'TaxInsights' },
+    { label: t('insights.calculators'), screen: 'Calculators' },
+    { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
+  ];
   const navigation = useNavigation<Nav>();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
@@ -61,7 +62,7 @@ export function InsightsScreen() {
   const top = spending.slice(0, TOP_N);
   const other = spending.slice(TOP_N);
   const otherCents = other.reduce((s, c) => s + c.spentCents, 0);
-  const segments = otherCents > 0 ? [...top, { categoryId: -1, name: 'All Others', icon: null, spentCents: otherCents }] : top;
+  const segments = otherCents > 0 ? [...top, { categoryId: -1, name: t('transactions.allOthers'), icon: null, spentCents: otherCents }] : top;
 
   // "All Others" (categoryId -1) is a synthetic bucket, not a real
   // category — Transactions matches it against the actual set of
@@ -105,15 +106,14 @@ export function InsightsScreen() {
   // Each series' band sits between the running total *before* it and
   // *after* it — stacked area, so a month's total spend is one glance
   // (the top edge) instead of mentally summing crossing lines.
-  const stackedBands = (() => {
-    let runningTotals = trendMonths.map(() => 0);
-    return visibleSeries.map((s) => {
-      const bottoms = runningTotals;
-      const tops = trendMonths.map((_, i) => runningTotals[i] + s.values[i]);
-      runningTotals = tops;
-      return { categoryId: s.categoryId, color: s.color, bottoms, tops };
-    });
-  })();
+  const stackedBands = visibleSeries.reduce<{ categoryId: number; color: string; bottoms: number[]; tops: number[] }[]>(
+    (bands, s) => {
+      const bottoms = bands.length > 0 ? bands[bands.length - 1].tops : trendMonths.map(() => 0);
+      const tops = trendMonths.map((_, i) => bottoms[i] + s.values[i]);
+      return [...bands, { categoryId: s.categoryId, color: s.color, bottoms, tops }];
+    },
+    [],
+  );
 
   // Same "trailing 12 months, excluding the month being looked at" rule as
   // Budget's top-card compare — averaged over this chart's own monthTotals
@@ -134,7 +134,7 @@ export function InsightsScreen() {
   return (
     <ScreenContainer scroll>
       <MonthNav
-        label={formatMonthLabel(month)}
+        label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}
         onNext={() => setMonth(nextMonth(month))}
         onPressLabel={() => setMonthPickerOpen(true)}
@@ -142,7 +142,7 @@ export function InsightsScreen() {
       <MonthPickerModal visible={monthPickerOpen} month={month} onSelect={setMonth} onClose={() => setMonthPickerOpen(false)} />
 
       <View style={styles.card}>
-        <Text style={styles.label}>Spending Breakdown</Text>
+        <Text style={styles.label}>{t('insights.spendingBreakdown')}</Text>
         <Text style={styles.value}>{formatMoney(totalSpentCents)}</Text>
         <View style={styles.stackBar}>
           {segments.map((seg, i) => (
@@ -158,7 +158,7 @@ export function InsightsScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Top Categories</Text>
+        <Text style={styles.label}>{t('insights.topCategories')}</Text>
         {segments.map((seg, i) => (
           <Pressable key={seg.categoryId} style={styles.legendRow} onPress={() => openCategoryTransactions(seg.categoryId)}>
             <View style={styles.legendLeft}>
@@ -171,16 +171,14 @@ export function InsightsScreen() {
             <Text style={styles.legendValue}>{formatMoney(seg.spentCents)}</Text>
           </Pressable>
         ))}
-        {segments.length === 0 ? <Text style={styles.empty}>No spending recorded this month.</Text> : null}
+        {segments.length === 0 ? <Text style={styles.empty}>{t('insights.noSpending')}</Text> : null}
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Category Trends</Text>
-        <Text style={styles.sectionHint}>
-          All time — drag to scroll, tap an icon to hide/show that category. Dashed line is your 12-month average.
-        </Text>
+        <Text style={styles.label}>{t('insights.categoryTrends')}</Text>
+        <Text style={styles.sectionHint}>{t('insights.trendHint')}</Text>
         {trend.series.length === 0 ? (
-          <Text style={styles.empty}>Not enough history yet.</Text>
+          <Text style={styles.empty}>{t('insights.notEnoughHistory')}</Text>
         ) : (
           <>
             <View style={styles.trendChartRow}>
@@ -192,7 +190,7 @@ export function InsightsScreen() {
                 ))}
                 {benchmarkCents != null ? (
                   <Text style={[styles.yAxisLabel, styles.yAxisBenchmarkLabel, { top: pointY(benchmarkCents) - 7 }]}>
-                    avg
+                    {t('insights.avgAxisLabel')}
                   </Text>
                 ) : null}
               </View>
@@ -248,9 +246,10 @@ export function InsightsScreen() {
                       // multi-year "all time" range reads as one ambiguous
                       // loop of Jan..Dec.
                       const isYearMarker = i === 0 || m.endsWith('-01');
+                      const locale = localeTag(language);
                       return (
                         <Text key={m} style={[styles.trendLabel, isYearMarker && styles.trendLabelYear]}>
-                          {isYearMarker ? `${formatMonthShort(m)} ’${m.slice(2, 4)}` : formatMonthShort(m)}
+                          {isYearMarker ? `${formatMonthShort(m, locale)} ’${m.slice(2, 4)}` : formatMonthShort(m, locale)}
                         </Text>
                       );
                     })}

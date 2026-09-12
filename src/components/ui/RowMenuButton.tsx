@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -17,6 +18,7 @@ interface RowMenuButtonProps {
 // screen). Renders as a bottom action sheet rather than an anchored
 // dropdown — no coordinate math needed, and it reads fine at row scale.
 export function RowMenuButton({ items }: RowMenuButtonProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -40,7 +42,7 @@ export function RowMenuButton({ items }: RowMenuButtonProps) {
               </Pressable>
             ))}
             <Pressable style={styles.cancel} onPress={() => setOpen(false)}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </Pressable>

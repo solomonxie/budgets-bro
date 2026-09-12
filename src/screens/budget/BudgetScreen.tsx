@@ -18,6 +18,7 @@ import * as categoriesRepo from '../../db/repositories/categoriesRepo';
 import * as budgetsRepo from '../../db/repositories/budgetsRepo';
 import { nextMonth, previousMonth, lastNMonths, formatMonthLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { CategoryStatus } from '../../domain/budgetMath';
@@ -42,6 +43,7 @@ type PromptState =
   | null;
 
 export function BudgetScreen() {
+  const { t, language } = useI18n();
   const navigation = useNavigation<Nav>();
   const month = useAppStore((s) => s.currentMonth);
   const setMonth = useAppStore((s) => s.setCurrentMonth);
@@ -109,10 +111,10 @@ export function BudgetScreen() {
   };
 
   const deleteGroup = (group: CategoryGroup) => {
-    Alert.alert(`Delete "${group.name}"?`, 'Its categories move to "Ungrouped" — they aren’t deleted.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('budget.deleteGroupConfirmTitle', { name: group.name }), t('budget.deleteGroupConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           const db = await getDb();
@@ -124,10 +126,10 @@ export function BudgetScreen() {
   };
 
   const deleteCategory = (category: Category) => {
-    Alert.alert(`Delete "${category.name}"?`, 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('budget.deleteCategoryConfirmTitle', { name: category.name }), t('common.cannotBeUndone'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           const db = await getDb();
@@ -153,7 +155,7 @@ export function BudgetScreen() {
   return (
     <ScreenContainer scroll>
       <MonthNav
-        label={formatMonthLabel(month)}
+        label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}
         onNext={() => setMonth(nextMonth(month))}
         onPressLabel={() => setMonthPickerOpen(true)}
@@ -167,7 +169,7 @@ export function BudgetScreen() {
 
       <View style={styles.summaryCard}>
         <View>
-          <Text style={styles.summaryLabel}>Spent This Month</Text>
+          <Text style={styles.summaryLabel}>{t('budget.spentThisMonth')}</Text>
           <Text style={styles.summaryValue}>{formatMoney(totalSpentCents)}</Text>
           <Text
             style={[
@@ -175,15 +177,17 @@ export function BudgetScreen() {
               { color: unassignedCents < 0 ? colors.negative : unassignedCents > 0 ? colors.positive : colors.textMuted },
             ]}
           >
-            Unassigned: {formatMoney(unassignedCents)}
+            {t('budget.unassigned', { amount: formatMoney(unassignedCents) })}
           </Text>
         </View>
         {avgMonthlySpentCents != null ? (
           <View style={styles.compareBlock}>
-            <Text style={styles.compareLabel}>12 Months Avg</Text>
+            <Text style={styles.compareLabel}>{t('budget.avgLabel')}</Text>
             <Text style={styles.compareValue}>{formatMoney(avgMonthlySpentCents)}</Text>
             {avgMonthlySpentCents > 0 ? (
-              <Text style={styles.compareDelta}>{Math.round((totalSpentCents / avgMonthlySpentCents) * 100)}% reached</Text>
+              <Text style={styles.compareDelta}>
+                {t('budget.reached', { percent: Math.round((totalSpentCents / avgMonthlySpentCents) * 100) })}
+              </Text>
             ) : null}
           </View>
         ) : null}
@@ -204,18 +208,18 @@ export function BudgetScreen() {
               <Text style={styles.groupSub}>{formatMoney(subtotal)}</Text>
               <RowMenuButton
                 items={[
-                  { label: 'Add Category', onPress: () => setPrompt({ type: 'newCategory', groupId: group.id }) },
-                  { label: 'Rename Group', onPress: () => setPrompt({ type: 'renameGroup', groupId: group.id, initial: group.name }) },
-                  { label: 'Move Up', onPress: () => moveGroup(group.id, 'up') },
-                  { label: 'Move Down', onPress: () => moveGroup(group.id, 'down') },
-                  { label: 'Delete Group', destructive: true, onPress: () => deleteGroup(group) },
+                  { label: t('budget.addCategory'), onPress: () => setPrompt({ type: 'newCategory', groupId: group.id }) },
+                  { label: t('budget.renameGroup'), onPress: () => setPrompt({ type: 'renameGroup', groupId: group.id, initial: group.name }) },
+                  { label: t('budget.moveUp'), onPress: () => moveGroup(group.id, 'up') },
+                  { label: t('budget.moveDown'), onPress: () => moveGroup(group.id, 'down') },
+                  { label: t('budget.deleteGroup'), destructive: true, onPress: () => deleteGroup(group) },
                 ]}
               />
             </View>
             {collapsed
               ? null
               : items.length === 0
-                ? <Text style={styles.emptyGroup}>No categories yet.</Text>
+                ? <Text style={styles.emptyGroup}>{t('budget.noCategoriesYet')}</Text>
                 : items.map((item) => {
                   const statusColors = STATUS_COLORS[item.status];
                   const spentThisMonth = Math.max(0, -item.activityThisMonthCents);
@@ -244,7 +248,7 @@ export function BudgetScreen() {
         );
       })}
       <Pressable style={styles.addGroupButton} onPress={() => setPrompt({ type: 'newGroup' })}>
-        <Text style={styles.addGroupButtonText}>+ New Group</Text>
+        <Text style={styles.addGroupButtonText}>{t('budget.newGroupButton')}</Text>
       </Pressable>
       <View style={{ height: 80 }} />
 
@@ -252,14 +256,14 @@ export function BudgetScreen() {
         visible={prompt != null}
         title={
           prompt?.type === 'newGroup'
-            ? 'New Group'
+            ? t('budget.newGroupTitle')
             : prompt?.type === 'newCategory'
-              ? 'New Category'
+              ? t('budget.newCategoryTitle')
               : prompt?.type === 'renameGroup'
-                ? 'Rename Group'
-                : 'Rename Category'
+                ? t('budget.renameGroup')
+                : t('budget.renameCategory')
         }
-        placeholder={prompt?.type === 'newGroup' || prompt?.type === 'renameGroup' ? 'e.g. Bills' : 'e.g. 🛒 Groceries'}
+        placeholder={prompt?.type === 'newGroup' || prompt?.type === 'renameGroup' ? t('budget.groupNamePlaceholder') : t('budget.categoryNamePlaceholder')}
         initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
         onCancel={() => setPrompt(null)}
         onSubmit={submitPrompt}
@@ -276,16 +280,16 @@ export function BudgetScreen() {
           editingItem
             ? [
                 {
-                  label: 'Rename',
+                  label: t('common.rename'),
                   onPress: () => {
                     setEditingItem(null);
                     setPrompt({ type: 'renameCategory', categoryId: editingItem.category.id, initial: editingItem.category.name });
                   },
                 },
-                { label: 'Move Up', onPress: () => moveCategory(editingItem.category.id, 'up') },
-                { label: 'Move Down', onPress: () => moveCategory(editingItem.category.id, 'down') },
+                { label: t('budget.moveUp'), onPress: () => moveCategory(editingItem.category.id, 'up') },
+                { label: t('budget.moveDown'), onPress: () => moveCategory(editingItem.category.id, 'down') },
                 {
-                  label: 'Delete',
+                  label: t('common.delete'),
                   destructive: true,
                   onPress: () => {
                     setEditingItem(null);

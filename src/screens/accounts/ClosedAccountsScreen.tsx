@@ -6,10 +6,12 @@ import * as accountsRepo from '../../db/repositories/accountsRepo';
 import type { AccountWithBalance } from '../../db/repositories/accountsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { formatMoney } from '../../domain/money';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 export function ClosedAccountsScreen() {
+  const t = useT();
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const dataVersion = useAppStore((s) => s.dataVersion);
@@ -27,13 +29,13 @@ export function ClosedAccountsScreen() {
   return (
     <ScreenContainer scroll>
       {accounts.length === 0 ? (
-        <Text style={styles.empty}>No closed accounts.</Text>
+        <Text style={styles.empty}>{t('closedAccounts.empty')}</Text>
       ) : (
         accounts.map(({ account, balanceCents }) => (
           <Pressable key={account.id} style={styles.row} onPress={() => openEditAccount(account.id)}>
             <View>
               <Text style={styles.rowTitle}>{account.name}</Text>
-              <Text style={styles.rowSub}>Tap to reopen</Text>
+              <Text style={styles.rowSub}>{t('closedAccounts.tapToReopen')}</Text>
             </View>
             <Text style={styles.rowValue}>{formatMoney(balanceCents)}</Text>
           </Pressable>

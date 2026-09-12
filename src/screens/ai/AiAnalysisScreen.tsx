@@ -1,5 +1,7 @@
 import { StubScreen } from '../../components/ui/StubScreen';
+import { useT } from '../../i18n';
 
 export function AiAnalysisScreen() {
-  return <StubScreen title="AI Analysis" />;
+  const t = useT();
+  return <StubScreen title={t('aiAnalysis.title')} />;
 }

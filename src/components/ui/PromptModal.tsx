@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -16,6 +17,7 @@ interface PromptModalProps {
 // group", and "rename category" — no icon field, the user types an emoji
 // straight into the name if they want one.
 export function PromptModal({ visible, title, placeholder, initialValue = '', onCancel, onSubmit }: PromptModalProps) {
+  const t = useT();
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -44,10 +46,10 @@ export function PromptModal({ visible, title, placeholder, initialValue = '', on
           />
           <View style={styles.actions}>
             <Pressable onPress={onCancel}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable style={styles.saveButton} onPress={submit}>
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
             </Pressable>
           </View>
         </Pressable>

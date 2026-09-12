@@ -11,6 +11,7 @@ import { accountKind } from '../../domain/accountKind';
 import { currentMonth, previousMonth } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -29,6 +30,7 @@ interface ManualSteps {
 // where possible (emergency fund, debt, mortgage) and manual checkboxes for
 // the steps this app has no data for (retirement %, college fund, giving).
 export function BabyStepsScreen() {
+  const t = useT();
   const { accounts } = useAccounts();
   const boardId = useAppStore((s) => s.currentBoardId);
   const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<number | null>(null);
@@ -80,8 +82,8 @@ export function BabyStepsScreen() {
   return (
     <ScreenContainer scroll>
       <View style={styles.card}>
-        <Text style={styles.title}>Emergency fund account</Text>
-        <Text style={styles.hint}>Pick the account that holds your emergency savings, for Steps 1 and 3.</Text>
+        <Text style={styles.title}>{t('babySteps.emergencyFundHeading')}</Text>
+        <Text style={styles.hint}>{t('babySteps.emergencyFundHint')}</Text>
         <View style={styles.chipRow}>
           {cashLikeAccounts.map(({ account }) => (
             <Chip
@@ -96,46 +98,50 @@ export function BabyStepsScreen() {
 
       <Step
         number={1}
-        title="$1,000 starter emergency fund"
+        title={t('babySteps.step1Title')}
         auto
         current={emergencyFundCents}
         target={STARTER_FUND_CENTS}
       />
       <Step
         number={2}
-        title="Pay off all debt (except the mortgage)"
+        title={t('babySteps.step2Title')}
         auto
         current={nonMortgageDebtCents === 0 ? 1 : 0}
         target={1}
-        captionOverride={nonMortgageDebtCents === 0 ? 'Done' : `${formatMoney(nonMortgageDebtCents)} remaining`}
+        captionOverride={nonMortgageDebtCents === 0 ? t('common.done') : t('babySteps.remaining', { amount: formatMoney(nonMortgageDebtCents) })}
       />
       <Step
         number={3}
-        title="3–6 months of expenses saved"
+        title={t('babySteps.step3Title')}
         auto
         current={emergencyFundCents}
         target={fullEmergencyFundTargetCents}
         captionOverride={
           avgMonthlySpendingCents > 0
-            ? `${formatMoney(emergencyFundCents)} of ~${formatMoney(fullEmergencyFundTargetCents)} (avg ${formatMoney(avgMonthlySpendingCents)}/mo × 4)`
-            : 'Not enough spending history yet'
+            ? t('babySteps.step3Caption', {
+                current: formatMoney(emergencyFundCents),
+                target: formatMoney(fullEmergencyFundTargetCents),
+                avg: formatMoney(avgMonthlySpendingCents),
+              })
+            : t('babySteps.notEnoughHistory')
         }
       />
       <ManualStep
-        title="Invest 15% of income for retirement"
+        title={t('babySteps.step4Title')}
         checked={manual.step4}
         onToggle={() => toggleManual('step4')}
       />
-      <ManualStep title="Save for kids' college fund" checked={manual.step5} onToggle={() => toggleManual('step5')} />
+      <ManualStep title={t('babySteps.step5Title')} checked={manual.step5} onToggle={() => toggleManual('step5')} />
       <Step
         number={6}
-        title="Pay off the mortgage early"
+        title={t('babySteps.step6Title')}
         auto
         current={mortgageDebtCents === 0 ? 1 : 0}
         target={1}
-        captionOverride={mortgageDebtCents === 0 ? 'Done (or no mortgage)' : `${formatMoney(mortgageDebtCents)} remaining`}
+        captionOverride={mortgageDebtCents === 0 ? t('babySteps.step6Done') : t('babySteps.remaining', { amount: formatMoney(mortgageDebtCents) })}
       />
-      <ManualStep title="Build wealth and give" checked={manual.step7} onToggle={() => toggleManual('step7')} />
+      <ManualStep title={t('babySteps.step7Title')} checked={manual.step7} onToggle={() => toggleManual('step7')} />
     </ScreenContainer>
   );
 }
@@ -154,14 +160,15 @@ function Step({
   target: number;
   captionOverride?: string;
 }) {
+  const t = useT();
   const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
   return (
     <View style={styles.card}>
-      <Text style={styles.stepTitle}>
-        Step {number}: {title}
-      </Text>
+      <Text style={styles.stepTitle}>{t('babySteps.stepPrefix', { number, title })}</Text>
       <ProgressBar percent={percent} color={percent >= 100 ? colors.positive : colors.accent} />
-      <Text style={styles.hint}>{captionOverride ?? `${formatMoney(current)} of ${formatMoney(target)}`}</Text>
+      <Text style={styles.hint}>
+        {captionOverride ?? t('babySteps.progressCaption', { current: formatMoney(current), target: formatMoney(target) })}
+      </Text>
     </View>
   );
 }

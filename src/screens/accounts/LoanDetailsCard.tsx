@@ -10,6 +10,7 @@ import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { Account } from '../../domain/types';
@@ -21,6 +22,7 @@ import type { Account } from '../../domain/types';
 // — see accountRateHistoryRepo. Collapsed to one summary line by default —
 // tap to expand, so it doesn't push the transaction list off screen.
 export function LoanDetailsCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const { currentRateBps } = useAccountRateHistory(account.id);
@@ -28,10 +30,10 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
   if (currentRateBps == null || account.termMonths == null || account.originalPrincipalCents == null) {
     return (
       <View style={styles.card}>
-        <Text style={styles.label}>Loan Details</Text>
-        <Text style={styles.hint}>Add the interest rate, term, and original principal to see a payoff projection.</Text>
+        <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
+        <Text style={styles.hint}>{t('loanDetailsCard.addHint')}</Text>
         <Pressable onPress={() => openEditAccount(account.id)}>
-          <Text style={styles.link}>Add Loan Terms</Text>
+          <Text style={styles.link}>{t('loanDetailsCard.addTerms')}</Text>
         </Pressable>
       </View>
     );
@@ -46,25 +48,28 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
   return (
     <View style={styles.card}>
       <Pressable style={styles.summaryRow} onPress={() => setExpanded((v) => !v)}>
-        <Text style={styles.label}>Loan Details</Text>
+        <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
-            {(currentRateBps / 100).toFixed(2)}% · {formatMoney(scheduledPaymentCents)}/mo
+            {t('loanDetailsCard.summary', { rate: (currentRateBps / 100).toFixed(2), payment: formatMoney(scheduledPaymentCents) })}
           </Text>
           <Text style={styles.chevron}>{expanded ? '▾' : '›'}</Text>
         </View>
       </Pressable>
       {expanded ? (
         <>
-          <Row label="Rate" value={`${(currentRateBps / 100).toFixed(2)}%`} />
-          <Row label="Scheduled payment" value={`${formatMoney(scheduledPaymentCents)}/mo`} />
+          <Row label={t('loanDetailsCard.rateLabel')} value={`${(currentRateBps / 100).toFixed(2)}%`} />
+          <Row label={t('loanDetailsCard.scheduledPaymentLabel')} value={t('common.perMonth', { amount: formatMoney(scheduledPaymentCents) })} />
           <Row
-            label="Projected payoff"
-            value={payoffDate ? `${payoffDate} (${remainingMonths} mo)` : 'Payment too low to pay off'}
+            label={t('loanDetailsCard.projectedPayoffLabel')}
+            value={payoffDate ? t('loanDetailsCard.payoffValue', { date: payoffDate, months: remainingMonths }) : t('loanDetailsCard.paymentTooLow')}
           />
-          <Row label="Est. remaining interest" value={Number.isFinite(remainingInterestCents) ? formatMoney(remainingInterestCents) : '—'} />
+          <Row
+            label={t('loanDetailsCard.remainingInterestLabel')}
+            value={Number.isFinite(remainingInterestCents) ? formatMoney(remainingInterestCents) : '—'}
+          />
           <Pressable onPress={() => openEditAccount(account.id)}>
-            <Text style={styles.link}>Edit Loan Terms</Text>
+            <Text style={styles.link}>{t('loanDetailsCard.editTerms')}</Text>
           </Pressable>
         </>
       ) : null}

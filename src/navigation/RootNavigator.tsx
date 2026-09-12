@@ -9,8 +9,11 @@ import { AccountModal } from '../screens/accounts/AccountModal';
 import { SettingsModal } from '../screens/settings/SettingsModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import type { TabIconName } from '../components/ui/TabBarIcon';
-import { useBootstrapActiveBoard } from '../hooks/useBoards';
+import { useBootstrapActiveBoard, useEnsureDemoBoard } from '../hooks/useBoards';
+import { useBootstrapLanguage } from '../hooks/useLanguage';
+import { useAutoCloudSync } from '../hooks/useCloudSync';
 import { useAppStore } from '../state/useAppStore';
+import { useT } from '../i18n';
 import { colors } from '../theme/colors';
 import type { RootTabParamList } from './types';
 
@@ -44,6 +47,10 @@ function NoopScreen() {
 
 export function RootNavigator() {
   useBootstrapActiveBoard();
+  useEnsureDemoBoard();
+  useBootstrapLanguage();
+  useAutoCloudSync();
+  const t = useT();
   return (
     <NavigationContainer theme={navigationTheme}>
       <Tab.Navigator
@@ -60,11 +67,11 @@ export function RootNavigator() {
           tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
         })}
       >
-        <Tab.Screen name="Budget" component={BudgetStackNavigator} />
+        <Tab.Screen name="Budget" component={BudgetStackNavigator} options={{ tabBarLabel: t('nav.budget') }} />
         <Tab.Screen
           name="AddTransaction"
           component={NoopScreen}
-          options={{ tabBarLabel: 'Spend' }}
+          options={{ tabBarLabel: t('nav.spend') }}
           listeners={{
             tabPress: (e) => {
               e.preventDefault();
@@ -72,8 +79,8 @@ export function RootNavigator() {
             },
           }}
         />
-        <Tab.Screen name="Accounts" component={AccountsStackNavigator} />
-        <Tab.Screen name="Insights" component={InsightsStackNavigator} />
+        <Tab.Screen name="Accounts" component={AccountsStackNavigator} options={{ tabBarLabel: t('nav.accounts') }} />
+        <Tab.Screen name="Insights" component={InsightsStackNavigator} options={{ tabBarLabel: t('nav.insights') }} />
       </Tab.Navigator>
       <AddTransactionModal />
       <AccountModal />

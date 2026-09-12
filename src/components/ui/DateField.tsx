@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -19,8 +20,8 @@ function formatDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function formatDisplay(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+function formatDisplay(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 // A hand-rolled scroll-wheel picker kept losing the drag gesture inside the
@@ -28,6 +29,7 @@ function formatDisplay(date: Date): string {
 // picker (spinner wheels on iOS, same widget on Android via this library),
 // so it just scrolls.
 export function DateField({ label, value, onChange }: DateFieldProps) {
+  const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseDate(value));
 
@@ -45,7 +47,7 @@ export function DateField({ label, value, onChange }: DateFieldProps) {
     <View>
       <Text style={styles.label}>{label}</Text>
       <Pressable style={styles.field} onPress={openPicker}>
-        <Text style={styles.valueText}>{formatDisplay(parseDate(value))}</Text>
+        <Text style={styles.valueText}>{formatDisplay(parseDate(value), localeTag(language))}</Text>
         <Text style={styles.chevron}>▾</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -61,7 +63,7 @@ export function DateField({ label, value, onChange }: DateFieldProps) {
               style={styles.picker}
             />
             <Pressable style={styles.confirmBtn} onPress={confirm}>
-              <Text style={styles.confirmBtnText}>Done</Text>
+              <Text style={styles.confirmBtnText}>{t('common.done')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>

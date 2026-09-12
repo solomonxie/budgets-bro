@@ -1,9 +1,16 @@
 import { create } from 'zustand';
 import { currentMonth } from '../domain/month';
+import type { Language } from '../i18n';
 
 interface AppState {
   currentMonth: string; // 'YYYY-MM'
   setCurrentMonth: (month: string) => void;
+
+  // Restored from settingsRepo by useBootstrapLanguage (see hooks/useLanguage)
+  // — read by useT()/useI18n() everywhere else, same "DB-free store, hook
+  // does the persisting" split as currentBoardId/useBootstrapActiveBoard.
+  language: Language;
+  setLanguage: (language: Language) => void;
 
   // Which board (tenant/namespace) every screen reads and writes —
   // persisted separately via useBoards' bootstrap effect, not here (this
@@ -44,6 +51,9 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   currentMonth: currentMonth(),
   setCurrentMonth: (month) => set({ currentMonth: month }),
+
+  language: 'en',
+  setLanguage: (language) => set({ language }),
 
   currentBoardId: 1,
   setCurrentBoardId: (id) => set({ currentBoardId: id }),

@@ -6,6 +6,7 @@ import { getDb } from '../../db/client';
 import * as reportsRepo from '../../db/repositories/reportsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { formatMoney } from '../../domain/money';
+import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -17,6 +18,7 @@ function toCents(text: string): number {
 // Rough, local-only estimate from this year's ledger plus two manual
 // inputs — not tax advice, and no filing-status/bracket logic yet.
 export function TaxInsightsScreen() {
+  const t = useT();
   const month = useAppStore((s) => s.currentMonth);
   const boardId = useAppStore((s) => s.currentBoardId);
   const year = month.slice(0, 4);
@@ -37,30 +39,27 @@ export function TaxInsightsScreen() {
   return (
     <ScreenContainer scroll>
       <View style={styles.card}>
-        <Text style={styles.title}>Tax Insights — {year}</Text>
-        <Text style={styles.disclaimer}>
-          Preliminary numbers from your ledger, for planning only. Not tax advice — no filing-status, bracket, or
-          jurisdiction logic yet.
-        </Text>
+        <Text style={styles.title}>{t('taxInsights.title', { year })}</Text>
+        <Text style={styles.disclaimer}>{t('taxInsights.disclaimer')}</Text>
       </View>
 
       <View style={styles.card}>
-        <Row label={`Ledger income (${year})`} value={formatMoney(ledgerTotals.incomeCents)} />
-        <Row label={`Ledger spending (${year})`} value={formatMoney(ledgerTotals.spendingCents)} />
+        <Row label={t('taxInsights.ledgerIncomeLabel', { year })} value={formatMoney(ledgerTotals.incomeCents)} />
+        <Row label={t('taxInsights.ledgerSpendingLabel', { year })} value={formatMoney(ledgerTotals.spendingCents)} />
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Additional info</Text>
+        <Text style={styles.label}>{t('taxInsights.additionalInfoLabel')}</Text>
         <TextField
-          label="Additional taxable income"
-          placeholder="0.00"
+          label={t('taxInsights.additionalIncomeLabel')}
+          placeholder={t('common.amountPlaceholder')}
           keyboardType="decimal-pad"
           value={additionalIncome}
           onChangeText={setAdditionalIncome}
         />
         <TextField
-          label="Estimated deductions"
-          placeholder="0.00"
+          label={t('taxInsights.deductionsLabel')}
+          placeholder={t('common.amountPlaceholder')}
           keyboardType="decimal-pad"
           value={deductions}
           onChangeText={setDeductions}
@@ -68,17 +67,15 @@ export function TaxInsightsScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Estimated taxable income</Text>
+        <Text style={styles.label}>{t('taxInsights.estimatedTaxableIncomeLabel')}</Text>
         <Text style={styles.value}>{formatMoney(estimatedTaxableIncomeCents)}</Text>
       </View>
 
       <Pressable
         style={styles.aiButton}
-        onPress={() =>
-          Alert.alert('AI summary', 'AI analysis needs an API key and provider setup — coming in a future update.')
-        }
+        onPress={() => Alert.alert(t('taxInsights.aiSummaryTitle'), t('taxInsights.aiSummaryMessage'))}
       >
-        <Text style={styles.aiButtonText}>Ask AI to summarize →</Text>
+        <Text style={styles.aiButtonText}>{t('taxInsights.askAi')}</Text>
       </Pressable>
     </ScreenContainer>
   );

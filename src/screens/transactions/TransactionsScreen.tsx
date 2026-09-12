@@ -11,6 +11,7 @@ import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { formatMoney } from '../../domain/money';
 import { lastNMonths, formatMonthLabel, currentMonth } from '../../domain/month';
+import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { TransactionWithLabels } from '../../domain/types';
@@ -26,6 +27,7 @@ interface DateGroup {
 const MONTH_FILTER_OPTIONS = lastNMonths(currentMonth(), 12).reverse();
 
 export function TransactionsScreen() {
+  const { t, language } = useI18n();
   const route = useRoute<Route>();
   const { transactions, refresh } = useTransactions();
   const { groups, categories } = useCategories();
@@ -86,21 +88,21 @@ export function TransactionsScreen() {
   };
 
   const categoryFilterLabel = otherCategoryIds != null
-    ? 'All Others'
+    ? t('transactions.allOthers')
     : categoryFilter == null
       ? ''
       : (() => {
           const c = categories.find((cat) => cat.id === categoryFilter);
           return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
         })();
-  const monthFilterLabel = monthFilter == null ? '' : formatMonthLabel(monthFilter);
+  const monthFilterLabel = monthFilter == null ? '' : formatMonthLabel(monthFilter, localeTag(language));
 
   return (
     <ScreenContainer>
       <View style={styles.toolbar}>
         <TextInput
           style={styles.search}
-          placeholder="Search payee or memo"
+          placeholder={t('transactions.searchPlaceholder')}
           value={query}
           onChangeText={setQuery}
           placeholderTextColor={colors.textMuted}
@@ -111,16 +113,16 @@ export function TransactionsScreen() {
             setSelectedIds([]);
           }}
         >
-          <Text style={styles.selectLink}>{selectMode ? 'Done' : 'Select'}</Text>
+          <Text style={styles.selectLink}>{selectMode ? t('common.done') : t('transactions.select')}</Text>
         </Pressable>
       </View>
       <View style={styles.filterRow}>
         <View style={styles.filterField}>
-          <DropdownField label="Category" valueLabel={categoryFilterLabel} placeholder="All Categories">
+          <DropdownField label={t('common.category')} valueLabel={categoryFilterLabel} placeholder={t('transactions.allCategories')}>
             {(close) => (
               <>
                 <DropdownOption
-                  label="All Categories"
+                  label={t('transactions.allCategories')}
                   selected={categoryFilter == null && otherCategoryIds == null}
                   onPress={() => {
                     setCategoryFilter(null);
@@ -154,11 +156,11 @@ export function TransactionsScreen() {
           </DropdownField>
         </View>
         <View style={styles.filterField}>
-          <DropdownField label="Month" valueLabel={monthFilterLabel} placeholder="All Months">
+          <DropdownField compact label={t('common.month')} valueLabel={monthFilterLabel} placeholder={t('transactions.allMonths')}>
             {(close) => (
               <>
                 <DropdownOption
-                  label="All Months"
+                  label={t('transactions.allMonths')}
                   selected={monthFilter == null}
                   onPress={() => {
                     setMonthFilter(null);
@@ -168,7 +170,7 @@ export function TransactionsScreen() {
                 {MONTH_FILTER_OPTIONS.map((m) => (
                   <DropdownOption
                     key={m}
-                    label={formatMonthLabel(m)}
+                    label={formatMonthLabel(m, localeTag(language))}
                     selected={monthFilter === m}
                     onPress={() => {
                       setMonthFilter(m);
@@ -188,33 +190,33 @@ export function TransactionsScreen() {
         renderItem={({ item: group }) => (
           <View style={styles.dateGroup}>
             <Text style={styles.dateHeader}>{group.date}</Text>
-            {group.items.map((t) => (
+            {group.items.map((txn) => (
               <Pressable
-                key={t.id}
+                key={txn.id}
                 style={styles.row}
-                onPress={() => (selectMode ? toggleSelected(t.id) : openEditTransaction(t.id))}
+                onPress={() => (selectMode ? toggleSelected(txn.id) : openEditTransaction(txn.id))}
               >
                 {selectMode ? (
-                  <View style={[styles.checkbox, selectedIds.includes(t.id) && styles.checkboxChecked]} />
+                  <View style={[styles.checkbox, selectedIds.includes(txn.id) && styles.checkboxChecked]} />
                 ) : null}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.payee}>{t.payeeName ?? '(No payee)'}</Text>
+                  <Text style={styles.payee}>{txn.payeeName ?? t('common.noPayee')}</Text>
                   <Text style={styles.sub}>
-                    {t.categoryIcon ? `${t.categoryIcon} ` : ''}
-                    {t.categoryName ?? 'Uncategorized'}
+                    {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
+                    {txn.categoryName ?? t('common.uncategorized')}
                   </Text>
                 </View>
-                <View style={[styles.signDot, { backgroundColor: t.amountCents < 0 ? colors.negative : colors.positive }]} />
-                <Text style={styles.amount}>{formatMoney(t.amountCents)}</Text>
+                <View style={[styles.signDot, { backgroundColor: txn.amountCents < 0 ? colors.negative : colors.positive }]} />
+                <Text style={styles.amount}>{formatMoney(txn.amountCents)}</Text>
               </Pressable>
             ))}
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No transactions match.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t('transactions.noMatch')}</Text>}
       />
       {selectMode && selectedIds.length > 0 ? (
         <Pressable style={styles.deleteBar} onPress={deleteSelected}>
-          <Text style={styles.deleteBarText}>Delete {selectedIds.length} selected</Text>
+          <Text style={styles.deleteBarText}>{t('transactions.deleteSelected', { count: selectedIds.length })}</Text>
         </Pressable>
       ) : null}
     </ScreenContainer>
@@ -243,12 +245,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    padding: spacing.sm,
-    marginBottom: 6,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: colors.border },
   checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },

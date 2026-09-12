@@ -1,8 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
 const AI_API_KEY = 'ai_api_key';
-const S3_ACCESS_KEY_ID = 's3_access_key_id';
-const S3_SECRET_ACCESS_KEY = 's3_secret_access_key';
 
 // Device-only, never in a backup: default Keychain accessibility
 // (WHEN_UNLOCKED) rides along in iCloud/iTunes device backups and migrates
@@ -17,21 +15,23 @@ export const secureStore = {
   setAiApiKey: (value: string) => SecureStore.setItemAsync(AI_API_KEY, value, OPTIONS),
   clearAiApiKey: () => SecureStore.deleteItemAsync(AI_API_KEY),
 
-  getS3Credentials: async () => {
+  // Keyed by configId — one app install can hold several S3 buckets'
+  // worth of credentials side by side (see sync/s3Provider.ts).
+  getS3Credentials: async (configId: string) => {
     const [accessKeyId, secretAccessKey] = await Promise.all([
-      SecureStore.getItemAsync(S3_ACCESS_KEY_ID),
-      SecureStore.getItemAsync(S3_SECRET_ACCESS_KEY),
+      SecureStore.getItemAsync(`s3_access_key_id_${configId}`),
+      SecureStore.getItemAsync(`s3_secret_access_key_${configId}`),
     ]);
     return accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : null;
   },
-  setS3Credentials: (accessKeyId: string, secretAccessKey: string) =>
+  setS3Credentials: (configId: string, accessKeyId: string, secretAccessKey: string) =>
     Promise.all([
-      SecureStore.setItemAsync(S3_ACCESS_KEY_ID, accessKeyId, OPTIONS),
-      SecureStore.setItemAsync(S3_SECRET_ACCESS_KEY, secretAccessKey, OPTIONS),
+      SecureStore.setItemAsync(`s3_access_key_id_${configId}`, accessKeyId, OPTIONS),
+      SecureStore.setItemAsync(`s3_secret_access_key_${configId}`, secretAccessKey, OPTIONS),
     ]),
-  clearS3Credentials: () =>
+  clearS3Credentials: (configId: string) =>
     Promise.all([
-      SecureStore.deleteItemAsync(S3_ACCESS_KEY_ID),
-      SecureStore.deleteItemAsync(S3_SECRET_ACCESS_KEY),
+      SecureStore.deleteItemAsync(`s3_access_key_id_${configId}`),
+      SecureStore.deleteItemAsync(`s3_secret_access_key_${configId}`),
     ]),
 };

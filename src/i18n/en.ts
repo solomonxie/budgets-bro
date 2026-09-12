@@ -82,6 +82,8 @@ export const en = {
   's3ConfigModal.missingFields': 'Fill in the bucket and both keys.',
   's3ConfigModal.testing': 'Detecting region & testing connection…',
   's3ConfigModal.testFailed': 'Could not connect: {error}',
+  's3ConfigModal.draftsHeading': 'Drafts',
+  's3ConfigModal.draftsHint': 'From past attempts — tap to refill, ✕ to remove.',
   'settings.syncHeading': 'Cloud Sync',
   'settings.syncHint':
     'One-way backup to the cloud, not multi-device sync — it uploads automatically after changes and when you reopen the app, but never merges changes made elsewhere. Restoring on another device always creates a new board.',

@@ -82,6 +82,8 @@ export const zh: Record<keyof typeof en, string> = {
   's3ConfigModal.missingFields': '请填写存储桶以及两个密钥。',
   's3ConfigModal.testing': '正在检测区域并测试连接…',
   's3ConfigModal.testFailed': '无法连接：{error}',
+  's3ConfigModal.draftsHeading': '草稿',
+  's3ConfigModal.draftsHint': '来自之前的尝试 —— 点击可填入，✕ 可删除。',
   'settings.syncHeading': '云同步',
   'settings.syncHint': '单向备份到云端，不是多设备同步——数据变更后及重新打开应用时会自动上传，但不会合并其他设备上的更改。在其他设备上还原时始终会创建一个新账本。',
   'settings.autoSyncToggle': '自动同步',

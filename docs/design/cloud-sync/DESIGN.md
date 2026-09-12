@@ -23,9 +23,13 @@ without remembering to export by hand.
   don't run in Expo Go (confirmed against the v57 docs) and this app has no
   custom dev client. "Auto" here means triggered while the app is open
   (foreground + on-save), not while closed or killed.
-- iCloud: no first-party Expo module; needs a native module, a dev-client
-  build, and a paid Apple Developer account for the iCloud capability. Out
-  of scope until the user decides to take on that infra.
+- Real iCloud Drive integration (a visible iCloud folder, native ubiquity-
+  container APIs): no first-party Expo module; needs a native module, a
+  dev-client build, and a paid Apple Developer account. Out of scope until
+  the user decides to take on that infra. What's shipped instead
+  (`sync/localProvider.ts`) piggybacks on the OS's own device backup — see
+  Providers → Local below — which covers "back this up somewhere iCloud-ish"
+  without any of that native infra.
 - Encrypting the backup blob itself (S3/Drive both support transport TLS;
   provider credentials already never leave the device — see secureStore.ts).
 
@@ -35,6 +39,7 @@ src/sync/
   types.ts             CloudProvider interface + SyncSettings shape
   buildBackup.ts        zip-bytes builder, extracted from export/exportBoard.ts
   s3Provider.ts          SigV4-signed fetch, no AWS SDK
+  localProvider.ts       writes to Paths.document — rides the OS device backup, no infra
   googleDriveProvider.ts expo-auth-session (PKCE) + Drive REST v3, appDataFolder scope
   cloudSync.ts            orchestrator: debounce + AppState trigger, calls each enabled provider
 ```
@@ -68,6 +73,16 @@ Needs two new fields the current UI is missing: **bucket** and **region**
 stay in `secureStore`). Object key: `<boardId>/latest.zip` (single rolling
 object, not a history — simplest correct thing; versioning can be a bucket
 setting on the user's side if they want history).
+
+**Local** — no credentials, no network: writes the same zip to
+`Paths.document/backups/<boardId>/latest.zip`. Documents (not cache) isn't
+excluded from backup, so it rides along in the user's normal encrypted
+iPhone backup (iCloud or Finder/computer) automatically. The
+`expo-file-system` config plugin (`app.json`) sets `UIFileSharingEnabled` +
+`LSSupportsOpeningDocumentsInPlace` so a real device build also exposes it
+in the Files app under "On My iPhone" — that flag only takes effect in a
+built app/dev-client, not Expo Go. One toggle in Settings (no bucket/account
+concept to manage, unlike S3/Drive).
 
 **Google Drive** — OAuth via `expo-auth-session`'s PKCE flow (Expo Go
 compatible, no native module) against scope **`drive.appdata`** specifically

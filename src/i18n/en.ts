@@ -70,6 +70,10 @@ export const en = {
   'settings.s3BucketLabel': 'Bucket',
   'settings.s3RegionLabel': 'Region',
   'settings.addS3BackupLink': '+ Add S3 Backup',
+  'settings.localBackupHeading': 'Local Backup',
+  'settings.localBackupHint':
+    'Saves a backup copy on this device’s storage, alongside the app’s other files — no account or credentials needed. Since it’s not excluded from backups, it’s included automatically in your normal iPhone backup (iCloud or Finder/computer). On a real device build (not this dev environment) it’s also visible in the Files app, under "On My iPhone".',
+  'settings.localBackupToggle': 'Save a backup on this device',
   'settings.deleteS3ConfigConfirmTitle': 'Delete "{name}"?',
   'settings.deleteS3ConfigConfirmMessage': 'Backups already in this bucket are left alone — only the saved connection is removed.',
   's3ConfigModal.title': 'Add S3 Backup',
@@ -86,6 +90,7 @@ export const en = {
   'settings.lastSyncedNever': 'Last synced: never',
   'settings.syncNow': 'Sync Now',
   'settings.syncFailed': 'Sync failed.',
+  'settings.noProviderConfigured': 'No backup destination configured yet — add an S3 backup or a local backup below.',
   'settings.restoreFromCloud': 'Restore Latest from Cloud',
   'settings.noCloudBackupFound': 'No backup found in the cloud yet.',
   'settings.dataHeading': 'Data',

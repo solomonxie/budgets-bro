@@ -15,7 +15,15 @@ import { secureStore } from '../../secure/secureStore';
 import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
 import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
-import { syncNow, isAutoSyncEnabled, setAutoSyncEnabled, getLastSyncedSummary, downloadLatestBackup } from '../../sync/cloudSync';
+import { isLocalBackupEnabled, setLocalBackupEnabled, localBackupDirUri } from '../../sync/localProvider';
+import {
+  syncNow,
+  isAutoSyncEnabled,
+  setAutoSyncEnabled,
+  getLastSyncedSummary,
+  downloadLatestBackup,
+  hasAnyProviderConfigured,
+} from '../../sync/cloudSync';
 import { parseBackupZip } from '../../sync/parseBackupZip';
 import { exportBoardZip } from '../../export/exportBoard';
 import { pickYnabExport } from '../../import/pickYnabExport';
@@ -54,6 +62,7 @@ export function SettingsScreen() {
   const [aiApiKey, setAiApiKey] = useState('');
   const [s3Configs, setS3Configs] = useState<S3ConfigMeta[]>([]);
   const [s3ModalOpen, setS3ModalOpen] = useState(false);
+  const [localBackupOn, setLocalBackupOn] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
   const [lastSyncedAt, setLastSyncedAtState] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -74,6 +83,7 @@ export function SettingsScreen() {
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
       setAiApiKey((await secureStore.getAiApiKey()) ?? '');
       setS3Configs(await listS3Configs(db));
+      setLocalBackupOn(await isLocalBackupEnabled(db));
       setAutoSync(await isAutoSyncEnabled(db));
       setLastSyncedAtState(await getLastSyncedSummary(db));
     })();
@@ -112,6 +122,12 @@ export function SettingsScreen() {
     ]);
   };
 
+  const toggleLocalBackup = async (value: boolean) => {
+    setLocalBackupOn(value);
+    const db = await getDb();
+    await setLocalBackupEnabled(db, value);
+  };
+
   const toggleAutoSync = async (value: boolean) => {
     setAutoSync(value);
     const db = await getDb();
@@ -125,6 +141,14 @@ export function SettingsScreen() {
       const db = await getDb();
       const board = boards.find((b) => b.id === boardId);
       if (!board) return;
+      // syncNow() itself skips silently when nothing is configured (correct
+      // for the debounced auto-sync path) — but a manual button press with
+      // no feedback at all looks indistinguishable from a hung sync, so
+      // check here instead of leaving the user guessing.
+      if (!(await hasAnyProviderConfigured(db))) {
+        setSyncError(t('settings.noProviderConfigured'));
+        return;
+      }
       await syncNow(db, boardId, board.name);
       setLastSyncedAtState(await getLastSyncedSummary(db));
     } catch (e) {
@@ -403,6 +427,16 @@ export function SettingsScreen() {
           <Text style={styles.addLinkText}>{t('settings.addS3BackupLink')}</Text>
         </Pressable>
         <S3ConfigModal visible={s3ModalOpen} onCancel={() => setS3ModalOpen(false)} onSaved={addS3Backup} />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>{t('settings.localBackupHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.localBackupHint')}</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>{t('settings.localBackupToggle')}</Text>
+          <Switch value={localBackupOn} onValueChange={toggleLocalBackup} trackColor={{ true: colors.accent, false: colors.border }} />
+        </View>
+        {localBackupOn ? <Text style={styles.rowValue}>{localBackupDirUri()}</Text> : null}
       </View>
 
       <View style={styles.section}>

@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
+import { createLocalProviders } from './localProvider';
 import type { CloudProvider } from './types';
 
 const AUTO_SYNC_KEY = 'sync_auto_enabled';
@@ -26,7 +27,8 @@ async function setLastSyncedAt(db: SQLiteDatabase, providerId: string, iso: stri
 // New providers (Google Drive, etc.) just add another `create*Providers(db)`
 // call here — see docs/design/cloud-sync/DESIGN.md.
 async function collectProviders(db: SQLiteDatabase): Promise<CloudProvider[]> {
-  return createS3Providers(db);
+  const [s3, local] = await Promise.all([createS3Providers(db), createLocalProviders(db)]);
+  return [...s3, ...local];
 }
 
 export async function hasAnyProviderConfigured(db: SQLiteDatabase): Promise<boolean> {

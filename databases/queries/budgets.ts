@@ -4,14 +4,19 @@ export const CUMULATIVE_ASSIGNED = `
   SELECT category_id, SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ? GROUP BY category_id
 `;
 
+// Every activity query below also excludes scheduled/future transactions
+// (date <= today, on top of whatever month-range bound it already has) —
+// a future-dated transaction inside the target month/range hasn't
+// happened yet and shouldn't count as spent. See
+// databases/queries/transactions.ts.
 export const CUMULATIVE_ACTIVITY = `
   SELECT category_id, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date < ? AND board_id = ? GROUP BY category_id
+  WHERE category_id IS NOT NULL AND date < ? AND date <= ? AND board_id = ? GROUP BY category_id
 `;
 
 export const ACTIVITY_THIS_MONTH = `
   SELECT category_id, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND board_id = ? GROUP BY category_id
+  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND date <= ? AND board_id = ? GROUP BY category_id
 `;
 
 // Ungrouped version of ACTIVITY_THIS_MONTH across a month range — one row
@@ -19,7 +24,7 @@ export const ACTIVITY_THIS_MONTH = `
 // average/median (see budgetsRepo.totalActivityByMonth).
 export const TOTAL_ACTIVITY_BY_MONTH = `
   SELECT substr(date, 1, 7) as month, SUM(amount_cents) as total FROM transactions
-  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND board_id = ? GROUP BY month
+  WHERE category_id IS NOT NULL AND date >= ? AND date < ? AND date <= ? AND board_id = ? GROUP BY month
 `;
 
 export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ?';
@@ -28,7 +33,7 @@ export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total
 // across every category, used with TOTAL_ASSIGNED_THROUGH_MONTH to get one
 // combined "Available" balance for all categories at once.
 export const TOTAL_ACTIVITY_THROUGH_MONTH = `
-  SELECT SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ? AND board_id = ?
+  SELECT SUM(amount_cents) as total FROM transactions WHERE category_id IS NOT NULL AND date < ? AND date <= ? AND board_id = ?
 `;
 
 // Unassigned Cash = (money sitting in cash accounts) − (money already
@@ -47,7 +52,7 @@ export const CASH_ACCOUNTS_BALANCE_THROUGH_MONTH = `
     +
     (SELECT COALESCE(SUM(t.amount_cents), 0) FROM transactions t
      JOIN accounts a ON a.id = t.account_id
-     WHERE a.type IN ${CASH_ACCOUNT_TYPES} AND a.archived_at IS NULL AND a.board_id = ? AND t.date < ?)
+     WHERE a.type IN ${CASH_ACCOUNT_TYPES} AND a.archived_at IS NULL AND a.board_id = ? AND t.date < ? AND t.date <= ?)
     AS total
 `;
 

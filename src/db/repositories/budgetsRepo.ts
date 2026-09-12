@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { nextMonth } from '../../domain/month';
+import { nextMonth, currentDateISO } from '../../domain/month';
 import {
   ASSIGNED_THIS_MONTH,
   CUMULATIVE_ASSIGNED,
@@ -49,7 +49,12 @@ export async function cumulativeActivityByCategory(
   throughMonth: string,
 ): Promise<Record<number, number>> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(CUMULATIVE_ACTIVITY, endExclusive, boardId);
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
+    CUMULATIVE_ACTIVITY,
+    endExclusive,
+    currentDateISO(),
+    boardId,
+  );
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
@@ -58,7 +63,13 @@ export async function cumulativeActivityByCategory(
 export async function activityThisMonthByCategory(db: SQLiteDatabase, boardId: number, month: string): Promise<Record<number, number>> {
   const start = `${month}-01`;
   const endExclusive = `${nextMonth(month)}-01`;
-  const rows = await db.getAllAsync<{ category_id: number; total: number }>(ACTIVITY_THIS_MONTH, start, endExclusive, boardId);
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
+    ACTIVITY_THIS_MONTH,
+    start,
+    endExclusive,
+    currentDateISO(),
+    boardId,
+  );
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
   return map;
@@ -71,7 +82,13 @@ export async function totalActivityByMonth(db: SQLiteDatabase, boardId: number, 
   if (months.length === 0) return {};
   const start = `${months[0]}-01`;
   const endExclusive = `${nextMonth(months[months.length - 1])}-01`;
-  const rows = await db.getAllAsync<{ month: string; total: number }>(TOTAL_ACTIVITY_BY_MONTH, start, endExclusive, boardId);
+  const rows = await db.getAllAsync<{ month: string; total: number }>(
+    TOTAL_ACTIVITY_BY_MONTH,
+    start,
+    endExclusive,
+    currentDateISO(),
+    boardId,
+  );
   const map: Record<string, number> = {};
   for (const r of rows) map[r.month] = r.total;
   return map;
@@ -83,12 +100,12 @@ export async function totalAssignedThroughMonth(db: SQLiteDatabase, boardId: num
 
 export async function totalActivityThroughMonth(db: SQLiteDatabase, boardId: number, throughMonth: string): Promise<number> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  return sumOrZero(db, TOTAL_ACTIVITY_THROUGH_MONTH, endExclusive, boardId);
+  return sumOrZero(db, TOTAL_ACTIVITY_THROUGH_MONTH, endExclusive, currentDateISO(), boardId);
 }
 
 export async function cashAccountsBalanceThroughMonth(db: SQLiteDatabase, boardId: number, throughMonth: string): Promise<number> {
   const endExclusive = `${nextMonth(throughMonth)}-01`;
-  return sumOrZero(db, CASH_ACCOUNTS_BALANCE_THROUGH_MONTH, boardId, boardId, endExclusive);
+  return sumOrZero(db, CASH_ACCOUNTS_BALANCE_THROUGH_MONTH, boardId, boardId, endExclusive, currentDateISO());
 }
 
 export async function setAssignedCents(

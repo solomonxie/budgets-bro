@@ -143,6 +143,8 @@ export const en = {
 
   'accountDetail.balance': 'Balance',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
+  'accountDetail.scheduledHeading': 'Scheduled ({count})',
+  'accountDetail.scheduledHint': "Dated in the future — doesn't affect balance or budget until its date arrives.",
 
   'accountModal.editTitle': 'Edit Account',
   'accountModal.newTitle': 'New Account',

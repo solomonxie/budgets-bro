@@ -11,6 +11,30 @@ interface Option {
   label: string;
 }
 
+// ~5 option rows tall — fixed regardless of how many results a search
+// narrows the list down to.
+const COMPACT_LIST_HEIGHT = 240;
+
+// Substring match ranks highest (by position); otherwise falls back to an
+// in-order fuzzy subsequence match (typo/skip-tolerant), scored by how
+// contiguous the matched characters are. Null means no match at all.
+function fuzzyScore(label: string, query: string): number | null {
+  const idx = label.indexOf(query);
+  if (idx !== -1) return 10000 - idx;
+
+  let li = 0;
+  let run = 0;
+  let score = 0;
+  for (const ch of query) {
+    const found = label.indexOf(ch, li);
+    if (found === -1) return null;
+    run = found === li ? run + 1 : 0;
+    score += run;
+    li = found + 1;
+  }
+  return score;
+}
+
 interface SearchableDropdownFieldProps {
   label: string;
   valueLabel: string;
@@ -56,7 +80,13 @@ export function SearchableDropdownField({
   };
 
   const q = query.trim().toLowerCase();
-  const filtered = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  const filtered = q
+    ? options
+        .map((o) => ({ o, score: fuzzyScore(o.label.toLowerCase(), q) }))
+        .filter((m): m is { o: Option; score: number } => m.score != null)
+        .sort((a, b) => b.score - a.score)
+        .map((m) => m.o)
+    : options;
   const hasExactMatch = options.some((o) => o.label.toLowerCase() === q);
 
   const searchBox = (
@@ -114,7 +144,10 @@ export function SearchableDropdownField({
       </Pressable>
       {compact ? (
         <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
-          <BottomSheet title={label} onClose={close} stickyContent={searchBox}>
+          {/* Keeps the sheet from shrink-wrapping to a sliver — and sliding
+              down behind the keyboard — once typing narrows the results to
+              just one or two rows. */}
+          <BottomSheet title={label} onClose={close} stickyContent={searchBox} listHeight={COMPACT_LIST_HEIGHT}>
             {optionRows}
           </BottomSheet>
         </Modal>

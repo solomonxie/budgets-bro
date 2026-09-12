@@ -106,6 +106,7 @@ export function TransactionsScreen() {
           value={query}
           onChangeText={setQuery}
           placeholderTextColor={colors.textMuted}
+          keyboardAppearance="dark"
         />
         <Pressable
           onPress={() => {

@@ -83,6 +83,7 @@ export function AssignedAmountModal({
           <TextInput
             style={styles.amountInput}
             keyboardType="decimal-pad"
+            keyboardAppearance="dark"
             value={value}
             onChangeText={changeValue}
             autoFocus

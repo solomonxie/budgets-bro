@@ -41,6 +41,7 @@ export function PromptModal({ visible, title, placeholder, initialValue = '', on
             onChangeText={setValue}
             placeholder={placeholder}
             placeholderTextColor={colors.textMuted}
+            keyboardAppearance="dark"
             autoFocus
             onSubmitEditing={submit}
           />

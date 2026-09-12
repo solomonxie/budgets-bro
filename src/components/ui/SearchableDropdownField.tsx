@@ -94,6 +94,7 @@ export function SearchableDropdownField({
       style={styles.search}
       placeholder={searchPlaceholder}
       placeholderTextColor={colors.textMuted}
+      keyboardAppearance="dark"
       value={query}
       onChangeText={setQuery}
       autoFocus

@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { hmac } from '@noble/hashes/hmac.js';
+import { SignatureV4 } from '@smithy/signature-v4';
+import { HttpRequest } from '@smithy/protocol-http';
+import { Sha256 } from '@aws-crypto/sha256-js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { secureStore } from '../secure/secureStore';
 import * as settingsRepo from '../db/repositories/settingsRepo';
@@ -149,26 +150,25 @@ async function resolveConfig(meta: S3ConfigMeta): Promise<S3Config | null> {
   return creds ? { ...meta, ...creds } : null;
 }
 
-// AWS Signature Version 4 — hand-rolled because the AWS SDK assumes Node
-// APIs React Native doesn't have. `expo-crypto` has no HMAC primitive (only
-// plain digests), hence @noble/hashes for the HMAC-SHA256 chain.
-function hmacBytes(key: Uint8Array, msg: string): Uint8Array {
-  return hmac(sha256, key, utf8ToBytes(msg));
-}
-
-function signingKey(secretAccessKey: string, dateStamp: string, region: string): Uint8Array {
-  const kDate = hmacBytes(utf8ToBytes(`AWS4${secretAccessKey}`), dateStamp);
-  const kRegion = hmacBytes(kDate, region);
-  const kService = hmacBytes(kRegion, 's3');
-  return hmacBytes(kService, 'aws4_request');
+// AWS Signature Version 4 — signed via AWS's own @smithy/signature-v4 (the
+// same signer every AWS SDK uses internally) instead of a hand-rolled HMAC
+// chain, using @aws-crypto/sha256-js (pure JS, no Node/Web Crypto) so it
+// still runs inside Expo Go. `uriEscapePath: false` matches what the real
+// S3 client does — S3's virtual-hosted-style paths aren't re-escaped.
+function signerFor(config: S3Config): SignatureV4 {
+  return new SignatureV4({
+    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
+    region: config.region,
+    service: 's3',
+    sha256: Sha256,
+    uriEscapePath: false,
+  });
 }
 
 function nonce(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// Object keys in this app are always ASCII (board ids, a fixed test-object
-// name) — skipping AWS's per-segment URI-encoding rules is safe here.
 // `objectKey: ''` addresses the bucket itself (path "/"), used by the
 // validation checks below. `subresource` signs a bucket sub-resource query
 // (e.g. `publicAccessBlock`) — SigV4 requires it in the canonical query
@@ -197,54 +197,37 @@ async function signRequest(
   objectKey: string,
   body: Uint8Array | null,
   subresource?: string,
-): Promise<{ url: string; headers: Record<string, string>; canonicalRequest: string; stringToSign: string }> {
-  const host = `${config.bucket}.s3.${config.region}.amazonaws.com`;
-  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-  const dateStamp = amzDate.slice(0, 8);
-  const payloadHash = bytesToHex(sha256(body ?? new Uint8Array(0)));
+): Promise<{ url: string; headers: Record<string, string> }> {
+  const hostname = `${config.bucket}.s3.${config.region}.amazonaws.com`;
   const path = objectKey ? `/${objectKey}` : '/';
-  const queryParams = [subresource ? `${subresource}=` : null, `x-yama-nonce=${nonce()}`]
-    .filter((p): p is string => p != null)
-    .sort();
-  const canonicalQuery = queryParams.join('&');
+  const query: Record<string, string> = { 'x-yama-nonce': nonce() };
+  if (subresource) query[subresource] = '';
 
-  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
-  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
-  const canonicalRequest = [method, path, canonicalQuery, canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  const request = new HttpRequest({
+    method,
+    protocol: 'https:',
+    hostname,
+    path,
+    query,
+    headers: { host: hostname },
+    body: body ?? undefined,
+  });
 
-  const credentialScope = `${dateStamp}/${config.region}/s3/aws4_request`;
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    bytesToHex(sha256(utf8ToBytes(canonicalRequest))),
-  ].join('\n');
+  const signed = await signerFor(config).sign(request);
+  const queryString = Object.entries(signed.query as Record<string, string>)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
+  // `host` is excluded here — fetch derives it from the URL itself (it's a
+  // forbidden header name to set manually), and it's already accounted for
+  // in the signature since it was part of the signed request above.
+  const { host: _host, ...headers } = signed.headers as Record<string, string>;
 
-  const signature = bytesToHex(hmacBytes(signingKey(config.secretAccessKey, dateStamp, config.region), stringToSign));
-  const authorization = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-
-  return {
-    url: `https://${host}${path}?${canonicalQuery}`,
-    // `host` isn't set here — fetch derives it from the URL itself, and it's
-    // already accounted for in the signature via canonicalHeaders above.
-    headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, Authorization: authorization },
-    // Surfaced in error messages below so a live SignatureDoesNotMatch can be
-    // diffed directly against the CanonicalRequest/StringToSign AWS's own
-    // error XML echoes back, instead of guessing blind at which field diverged.
-    canonicalRequest,
-    stringToSign,
-  };
-}
-
-// Appended to a failed request's error so a live SignatureDoesNotMatch can be
-// diffed directly against the CanonicalRequest/StringToSign fields AWS's own
-// error XML echoes back — the fastest way to find which signed field diverged.
-function debugSuffix(canonicalRequest: string, stringToSign: string): string {
-  return `\n\n--- signed locally ---\nCanonicalRequest:\n${canonicalRequest}\n\nStringToSign:\n${stringToSign}`;
+  return { url: `https://${hostname}${path}?${queryString}`, headers };
 }
 
 async function put(config: S3Config, objectKey: string, body: Uint8Array): Promise<void> {
-  const { url, headers, canonicalRequest, stringToSign } = await signRequest(config, 'PUT', objectKey, body);
+  const { url, headers } = await signRequest(config, 'PUT', objectKey, body);
   // body.slice() copies into a fresh, exactly-sized buffer first — body's
   // own backing ArrayBuffer can be a different byte range than the view
   // (offset/length), which would send different bytes than what was hashed
@@ -256,22 +239,20 @@ async function put(config: S3Config, objectKey: string, body: Uint8Array): Promi
     headers: { ...headers, 'Content-Type': 'application/octet-stream' },
     body: body.slice().buffer as ArrayBuffer,
   });
-  if (!res.ok) throw new Error(`S3 PUT failed: ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
+  if (!res.ok) throw new Error(`S3 PUT failed: ${res.status} ${await res.text()}`);
 }
 
 async function del(config: S3Config, objectKey: string): Promise<void> {
-  const { url, headers, canonicalRequest, stringToSign } = await signRequest(config, 'DELETE', objectKey, null);
+  const { url, headers } = await signRequest(config, 'DELETE', objectKey, null);
   const res = await fetch(url, { method: 'DELETE', headers });
-  if (!res.ok && res.status !== 404) {
-    throw new Error(`S3 DELETE failed: ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
-  }
+  if (!res.ok && res.status !== 404) throw new Error(`S3 DELETE failed: ${res.status} ${await res.text()}`);
 }
 
 async function get(config: S3Config, objectKey: string): Promise<Uint8Array | null> {
-  const { url, headers, canonicalRequest, stringToSign } = await signRequest(config, 'GET', objectKey, null);
+  const { url, headers } = await signRequest(config, 'GET', objectKey, null);
   const res = await fetch(url, { method: 'GET', headers });
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`S3 GET failed: ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
+  if (!res.ok) throw new Error(`S3 GET failed: ${res.status} ${await res.text()}`);
   return new Uint8Array(await res.arrayBuffer());
 }
 
@@ -281,18 +262,14 @@ async function get(config: S3Config, objectKey: string): Promise<Uint8Array | nu
 
 async function checkReachable(config: S3Config): Promise<void> {
   let res: Response;
-  let canonicalRequest = '';
-  let stringToSign = '';
   try {
-    const signed = await signRequest(config, 'HEAD', '', null);
-    canonicalRequest = signed.canonicalRequest;
-    stringToSign = signed.stringToSign;
-    res = await fetch(signed.url, { method: 'HEAD', headers: signed.headers });
+    const { url, headers } = await signRequest(config, 'HEAD', '', null);
+    res = await fetch(url, { method: 'HEAD', headers });
   } catch (e) {
     throw new Error(`Bucket unreachable — ${e instanceof Error ? e.message : String(e)}`);
   }
   if (res.status === 404) throw new Error('Bucket unreachable — bucket not found');
-  if (!res.ok) throw new Error(`Bucket unreachable — ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
+  if (!res.ok) throw new Error(`Bucket unreachable — ${res.status} ${await res.text()}`);
 }
 
 // Repeats the reachability check unsigned (no credentials at all) — this

@@ -84,13 +84,17 @@ object, not a history — simplest correct thing; versioning can be a bucket
 setting on the user's side if they want history).
 
 **Local** — no credentials, no network: writes the same zip to
-`Paths.document/backups/<boardId>/latest.zip`. Documents (not cache) isn't
-excluded from backup, so it rides along in the user's normal encrypted
-iPhone backup (iCloud or Finder/computer) automatically. The
-`expo-file-system` config plugin (`app.json`) sets `UIFileSharingEnabled` +
-`LSSupportsOpeningDocumentsInPlace` so a real device build also exposes it
-in the Files app under "On My iPhone" — that flag only takes effect in a
-built app/dev-client, not Expo Go. One toggle in Settings (no bucket/account
+`Paths.document/backups/<boardId>/latest.zip`. Not off-device protection —
+expo-sqlite's own database already lives at `Documents/SQLite/`, the same
+sandbox this zip sits in, so both disappear together on app deletion and
+both get restored together by a full device restore either way. Its real
+job is a rollback snapshot (undo a bad import, recover from DB corruption)
+independent of whatever happened to the live file, plus a manually-
+retrievable copy: the `expo-file-system` config plugin (`app.json`) sets
+`UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace` so a real
+device build exposes it in the Files app under "On My iPhone" for the user
+to copy elsewhere by hand — that flag only takes effect in a built
+app/dev-client, not Expo Go. One toggle in Settings (no bucket/account
 concept to manage, unlike S3/Drive).
 
 **Google Drive** — OAuth via `expo-auth-session`'s PKCE flow (Expo Go

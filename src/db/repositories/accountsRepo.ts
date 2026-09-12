@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
 import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
+import { currentDateISO } from '../../domain/month';
 import * as payeesRepo from './payeesRepo';
 
 function mapRow(row: AccountRow): Account {
@@ -36,7 +37,11 @@ export interface AccountWithBalance {
 }
 
 export async function listAccountsWithBalances(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES, boardId);
+  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(
+    LIST_ACCOUNTS_WITH_BALANCES,
+    currentDateISO(),
+    boardId,
+  );
   return rows.map((row) => ({
     account: mapRow(row),
     balanceCents: row.opening_balance_cents + row.activity_cents,
@@ -121,7 +126,11 @@ export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<vo
 }
 
 export async function listClosedAccounts(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_CLOSED_ACCOUNTS_WITH_BALANCES, boardId);
+  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(
+    LIST_CLOSED_ACCOUNTS_WITH_BALANCES,
+    currentDateISO(),
+    boardId,
+  );
   return rows.map((row) => ({
     account: mapRow(row),
     balanceCents: row.opening_balance_cents + row.activity_cents,

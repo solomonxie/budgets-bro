@@ -222,28 +222,36 @@ async function checkReachable(config: S3Config): Promise<void> {
   if (res.status === 404) throw new Error('Bucket unreachable — bucket not found');
 }
 
-async function checkNotPublic(config: S3Config): Promise<void> {
-  const { url, headers } = await signRequest(config, 'GET', '', null, 'publicAccessBlock');
-  const res = await fetch(url, { method: 'GET', headers });
-  if (!res.ok) {
-    throw new Error(
-      'Could not confirm the bucket blocks public access — enable "Block all public access" on it, and grant this key s3:GetBucketPublicAccessBlock',
-    );
-  }
-  const xml = await res.text();
-  const allBlocked = ['BlockPublicAcls', 'IgnorePublicAcls', 'BlockPublicPolicy', 'RestrictPublicBuckets'].every((tag) =>
-    new RegExp(`<${tag}>true</${tag}>`).test(xml),
-  );
-  if (!allBlocked) throw new Error('Bucket does not have "Block all public access" fully enabled');
-}
-
 // Repeats the reachability check unsigned (no credentials at all) — this
-// one must fail, proving the bucket isn't world-readable regardless of what
-// this app's own key can do.
+// one must fail, proving the bucket root isn't world-listable regardless of
+// what this app's own key can do.
 async function checkNoAnonymousAccess(config: S3Config): Promise<void> {
   const host = `${config.bucket}.s3.${config.region}.amazonaws.com`;
   const res = await fetch(`https://${host}/`, { method: 'HEAD', cache: 'no-store' });
   if (res.ok) throw new Error('Bucket allows anonymous (unsigned) access — restrict its bucket policy/ACLs');
+}
+
+// Tries to read back the actual test object with no credentials at all —
+// must fail. Deliberately not GetBucketPublicAccessBlock: that reads an
+// abstract config flag and needs a permission (s3:GetBucketPublicAccessBlock)
+// that a reasonably locked-down IAM policy (just List/Get/Put/DeleteObject)
+// won't have, which would force every user to widen their bucket's IAM
+// policy just to pass this app's own test. Testing the real object
+// unauthenticated needs no permission at all (it's anonymous) and is more
+// directly relevant anyway: it answers "can a stranger actually read this
+// backup", covering both Block Public Access being off *and* a public-read
+// bucket policy/ACL on individual objects that checkNoAnonymousAccess's
+// bucket-root probe wouldn't catch (ListBucket and GetObject are separate
+// grants — a bucket can reject anonymous listing while still serving
+// individual public objects).
+async function checkObjectNotPublic(config: S3Config, objectKey: string): Promise<void> {
+  const host = `${config.bucket}.s3.${config.region}.amazonaws.com`;
+  const res = await fetch(`https://${host}/${objectKey}`, { method: 'GET', cache: 'no-store' });
+  if (res.ok) {
+    throw new Error(
+      'This bucket allows anonymous (unsigned) reads of objects — enable "Block all public access", or remove any public-read bucket policy/ACL',
+    );
+  }
 }
 
 // S3 stamps the bucket's real region on the `x-amz-bucket-region` response
@@ -265,8 +273,11 @@ async function detectBucketRegion(bucket: string): Promise<string> {
 
 // Proves the credentials can actually write, read, and clean up after
 // themselves in this bucket (not just reach it), and that the bucket isn't
-// publicly exposed. Thrown message is shown as-is in the config form.
-// Returns the auto-detected region so the caller can persist it — see
+// publicly exposed — the latter two checks (checkObjectNotPublic,
+// checkNoAnonymousAccess) are both unauthenticated, so this whole test only
+// ever needs List/Get/Put/DeleteObject on the bucket, nothing broader.
+// Thrown message is shown as-is in the config form. Returns the
+// auto-detected region so the caller can persist it — see
 // detectBucketRegion.
 export async function testS3Connection(input: S3ConnectionInput): Promise<string> {
   const bucket = input.bucket.trim();
@@ -283,11 +294,12 @@ export async function testS3Connection(input: S3ConnectionInput): Promise<string
     if (!readBack || bytesToHex(readBack) !== bytesToHex(marker)) {
       throw new Error('Wrote a test object but could not read the same bytes back');
     }
+    // Must run before cleanup below — it needs the object to still exist.
+    await checkObjectNotPublic(config, key);
   } finally {
     await del(config, key);
   }
 
-  await checkNotPublic(config);
   await checkNoAnonymousAccess(config);
   return region;
 }

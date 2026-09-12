@@ -143,7 +143,7 @@ async function signRequest(
   objectKey: string,
   body: Uint8Array | null,
   subresource?: string,
-): Promise<{ url: string; headers: Record<string, string> }> {
+): Promise<{ url: string; headers: Record<string, string>; canonicalRequest: string; stringToSign: string }> {
   const host = `${config.bucket}.s3.${config.region}.amazonaws.com`;
   const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
   const dateStamp = amzDate.slice(0, 8);
@@ -174,11 +174,23 @@ async function signRequest(
     // `host` isn't set here — fetch derives it from the URL itself, and it's
     // already accounted for in the signature via canonicalHeaders above.
     headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, Authorization: authorization },
+    // Surfaced in error messages below so a live SignatureDoesNotMatch can be
+    // diffed directly against the CanonicalRequest/StringToSign AWS's own
+    // error XML echoes back, instead of guessing blind at which field diverged.
+    canonicalRequest,
+    stringToSign,
   };
 }
 
+// Appended to a failed request's error so a live SignatureDoesNotMatch can be
+// diffed directly against the CanonicalRequest/StringToSign fields AWS's own
+// error XML echoes back — the fastest way to find which signed field diverged.
+function debugSuffix(canonicalRequest: string, stringToSign: string): string {
+  return `\n\n--- signed locally ---\nCanonicalRequest:\n${canonicalRequest}\n\nStringToSign:\n${stringToSign}`;
+}
+
 async function put(config: S3Config, objectKey: string, body: Uint8Array): Promise<void> {
-  const { url, headers } = await signRequest(config, 'PUT', objectKey, body);
+  const { url, headers, canonicalRequest, stringToSign } = await signRequest(config, 'PUT', objectKey, body);
   // body.slice() copies into a fresh, exactly-sized buffer first — body's
   // own backing ArrayBuffer can be a different byte range than the view
   // (offset/length), which would send different bytes than what was hashed
@@ -190,20 +202,22 @@ async function put(config: S3Config, objectKey: string, body: Uint8Array): Promi
     headers: { ...headers, 'Content-Type': 'application/octet-stream' },
     body: body.slice().buffer as ArrayBuffer,
   });
-  if (!res.ok) throw new Error(`S3 PUT failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`S3 PUT failed: ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
 }
 
 async function del(config: S3Config, objectKey: string): Promise<void> {
-  const { url, headers } = await signRequest(config, 'DELETE', objectKey, null);
+  const { url, headers, canonicalRequest, stringToSign } = await signRequest(config, 'DELETE', objectKey, null);
   const res = await fetch(url, { method: 'DELETE', headers });
-  if (!res.ok && res.status !== 404) throw new Error(`S3 DELETE failed: ${res.status} ${await res.text()}`);
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`S3 DELETE failed: ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
+  }
 }
 
 async function get(config: S3Config, objectKey: string): Promise<Uint8Array | null> {
-  const { url, headers } = await signRequest(config, 'GET', objectKey, null);
+  const { url, headers, canonicalRequest, stringToSign } = await signRequest(config, 'GET', objectKey, null);
   const res = await fetch(url, { method: 'GET', headers });
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`S3 GET failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`S3 GET failed: ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
   return new Uint8Array(await res.arrayBuffer());
 }
 
@@ -213,13 +227,18 @@ async function get(config: S3Config, objectKey: string): Promise<Uint8Array | nu
 
 async function checkReachable(config: S3Config): Promise<void> {
   let res: Response;
+  let canonicalRequest = '';
+  let stringToSign = '';
   try {
-    const { url, headers } = await signRequest(config, 'HEAD', '', null);
-    res = await fetch(url, { method: 'HEAD', headers });
+    const signed = await signRequest(config, 'HEAD', '', null);
+    canonicalRequest = signed.canonicalRequest;
+    stringToSign = signed.stringToSign;
+    res = await fetch(signed.url, { method: 'HEAD', headers: signed.headers });
   } catch (e) {
     throw new Error(`Bucket unreachable — ${e instanceof Error ? e.message : String(e)}`);
   }
   if (res.status === 404) throw new Error('Bucket unreachable — bucket not found');
+  if (!res.ok) throw new Error(`Bucket unreachable — ${res.status} ${await res.text()}${debugSuffix(canonicalRequest, stringToSign)}`);
 }
 
 // Repeats the reachability check unsigned (no credentials at all) — this

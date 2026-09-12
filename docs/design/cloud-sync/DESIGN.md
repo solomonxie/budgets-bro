@@ -23,13 +23,22 @@ without remembering to export by hand.
   don't run in Expo Go (confirmed against the v57 docs) and this app has no
   custom dev client. "Auto" here means triggered while the app is open
   (foreground + on-save), not while closed or killed.
-- Real iCloud Drive integration (a visible iCloud folder, native ubiquity-
-  container APIs): no first-party Expo module; needs a native module, a
-  dev-client build, and a paid Apple Developer account. Out of scope until
-  the user decides to take on that infra. What's shipped instead
-  (`sync/localProvider.ts`) piggybacks on the OS's own device backup — see
-  Providers → Local below — which covers "back this up somewhere iCloud-ish"
-  without any of that native infra.
+- Real iCloud Drive integration, either flavor:
+  - A visible iCloud folder via native ubiquity-container APIs: no
+    first-party Expo module; needs a native module, a dev-client build, and
+    a paid Apple Developer account. Out of scope until the user decides to
+    take on that infra.
+  - A user-picked iCloud Drive folder via `Directory.pickDirectoryAsync()`
+    (no native module needed for this one — Expo Go compatible): rejected
+    anyway, because iOS only grants that folder access for the current app
+    session (no persisted security-scoped bookmark in Expo's JS API), so it
+    could only ever be a manual "pick folder, sync now" action re-prompted
+    every cold start — not real auto-sync, and not worth the UI over just
+    dragging the Local Backup file into iCloud Drive by hand. See Backlog
+    in `docs/yama-mvp-plan.md`.
+  - What's shipped instead (`sync/localProvider.ts`) piggybacks on the OS's
+    own device backup — see Providers → Local below — which covers "back
+    this up somewhere iCloud-ish" without any of that native infra.
 - Encrypting the backup blob itself (S3/Drive both support transport TLS;
   provider credentials already never leave the device — see secureStore.ts).
 

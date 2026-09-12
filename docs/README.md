@@ -1,3 +1,6 @@
 # Documentation
 
-Design and planning docs for YAMA. Start with `yama-mvp.md` (what/why) and `yama-mvp-plan.md` (phased task breakdown); `design/` holds per-feature design docs, `screenshots/` feeds the root README.
+- `yama-mvp.md` — design doc: what YAMA is and why
+- `yama-mvp-plan.md` — phased implementation task breakdown
+- `design/` — per-feature design docs (e.g. cloud sync)
+- `screenshots/` — images embedded in the root README

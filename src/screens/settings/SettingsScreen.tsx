@@ -314,6 +314,7 @@ export function SettingsScreen() {
         <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
         <Text style={styles.sectionHint}>{t('settings.payeesHint')}</Text>
         <SearchableDropdownField
+          compact
           label={t('common.payee')}
           valueLabel={payeeNameInput}
           placeholder={t('settings.payeeSelectPlaceholder')}

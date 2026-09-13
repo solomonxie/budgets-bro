@@ -1,35 +1,47 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Polyline } from 'react-native-svg';
 import { getDb } from '../../db/client';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { TrackingValueModal } from '../../components/ui/TrackingValueModal';
 import type { TrackingValueSubmit } from '../../components/ui/TrackingValueModal';
+import { ValueHistoryChart } from './ValueHistoryChart';
+import type { ValueHistoryChartMode } from './ValueHistoryChart';
+import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountValueChange } from '../../domain/types';
+import type { Account, AccountValueChange, TransactionWithLabels } from '../../domain/types';
 
-const CHART_WIDTH = 280;
-const CHART_HEIGHT = 56;
-
-// Expanded panel under a tracking account's balance box (AccountDetailScreen):
-// history/chart/edit for its manually-logged value entries — same shell as
-// HouseValueDetails, minus the equity line (a tracking account's balance
-// already *is* its latest logged value, see accountsRepo.resolveBalanceCents;
-// there's no separate debt to net against).
+// Expanded panel under a tracking/savings/cash/asset account's balance box
+// (AccountDetailScreen): value-history chart (ValueHistoryChart), history
+// list/edit for its manually-logged value entries — same shell as
+// HouseValueDetails, minus the equity line (a tracking/asset account's
+// balance already *is* its latest logged value, see
+// accountsRepo.resolveBalanceCents; savings/cash keep their normal ledger
+// balance and only get this as an optional chart — there's no separate
+// debt to net against either way). `mode` picks the chart's shape: 'stacked'
+// splits deposited-vs-gain from this account's own transactions (see
+// domain/investmentGrowth.ts) for tracking/savings/cash; 'single' is a
+// plain value line for Asset accounts (cars, watches… — no "deposits"
+// concept). One component for all these kinds — only the account type
+// governs whether the balance itself is overridden and which chart mode
+// applies.
 export function TrackingValueDetails({
   account,
   history,
   currentValueCents,
+  transactions,
+  mode,
   refresh,
 }: {
   account: Account;
   history: AccountValueChange[];
   currentValueCents: number | null;
+  transactions: TransactionWithLabels[];
+  mode: ValueHistoryChartMode;
   refresh: () => void;
 }) {
   const t = useT();
@@ -54,22 +66,18 @@ export function TrackingValueDetails({
     setModal(null);
   };
 
-  const chronological = [...history].reverse(); // history is latest-first; the trend reads oldest→newest
-  const values = chronological.map((h) => h.valueCents);
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  const points = chronological.map((h, i) => {
-    const x = (i / (chronological.length - 1)) * CHART_WIDTH;
-    const y = maxValue === minValue ? CHART_HEIGHT / 2 : CHART_HEIGHT - ((h.valueCents - minValue) / (maxValue - minValue)) * (CHART_HEIGHT - 8) - 4;
-    return `${x},${y}`;
-  });
+  // Before any real log entry exists, "previous" falls back to the
+  // deposits-implied current value (see domain/investmentGrowth.ts) rather
+  // than null — so logging "+$10 interest" on a $500-deposited account
+  // with no prior log produces $510, not $10.
+  const impliedCurrentValueCents = buildGrowthSeries(history, transactions).at(-1)?.totalCents ?? null;
 
   // Editing an existing entry re-derives its "previous" value from the row
   // right before it in history, not the account's current latest value —
   // otherwise gain-mode math would be wrong when editing anything but the
   // most recent entry.
   const previousValueCents = (() => {
-    if (!modal?.editing) return currentValueCents;
+    if (!modal?.editing) return currentValueCents ?? impliedCurrentValueCents;
     const idx = history.findIndex((h) => h.id === modal.editing!.id);
     return idx >= 0 && idx + 1 < history.length ? history[idx + 1].valueCents : null;
   })();
@@ -77,11 +85,7 @@ export function TrackingValueDetails({
   return (
     <View style={styles.card}>
       {currentValueCents == null ? <Text style={styles.hint}>{t('trackingValueCard.noValueYet')}</Text> : null}
-      {chronological.length > 1 ? (
-        <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-          <Polyline points={points.join(' ')} fill="none" stroke={colors.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      ) : null}
+      <ValueHistoryChart history={history} transactions={transactions} mode={mode} />
       {history.map((h) => (
         <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
           <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>

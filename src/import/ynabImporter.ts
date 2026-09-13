@@ -28,9 +28,15 @@ function inferAccountType(name: string): AccountType {
   if (n.includes('mortgage')) return 'mortgage';
   if (n.includes('debt') || n.includes('loan')) return 'loan';
   if (n.includes('credit')) return 'credit_card';
-  if (n.includes('rrsp') || n.includes('tfsa') || n.includes('fhsa') || n.includes('saving')) return 'savings';
-  if (n.includes('value') || n.includes('asset') || n.includes('depreciat')) return 'tracking';
-  return 'checking';
+  // RRSP/TFSA/FHSA are registered investment accounts, not plain cash
+  // savings — the design doc calls these out as the canonical `tracking`
+  // case (value-log + deposited/gain split), so they must not fall into
+  // the generic 'saving' match below.
+  if (n.includes('rrsp') || n.includes('tfsa') || n.includes('fhsa')) return 'tracking';
+  if (n.includes('saving')) return 'savings';
+  if (n.includes('asset') || n.includes('depreciat')) return 'asset';
+  if (n.includes('value')) return 'tracking';
+  return 'cash';
 }
 
 // YNAB never puts a category on a transfer between two on-budget accounts —
@@ -107,7 +113,7 @@ async function ensureCategoryId(
   return id;
 }
 
-const CASH_TYPES = new Set<AccountType>(['checking', 'cash', 'savings', 'income']);
+const CASH_TYPES = new Set<AccountType>(['cash', 'savings']);
 const TRANSFER_PREFIX = 'Transfer : ';
 
 // YNAB's reserved category for uncategorized inflow — importing it as a real

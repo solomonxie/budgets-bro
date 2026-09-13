@@ -48,7 +48,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
 
   const checkingId = await accountsRepo.createAccount(db, boardId, {
     name: 'Everyday Chequing',
-    type: 'checking',
+    type: 'cash',
     openingBalanceCents: cents(14000),
   });
   const savingsId = await accountsRepo.createAccount(db, boardId, {

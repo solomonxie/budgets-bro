@@ -1,5 +1,6 @@
 import {
   addMonths,
+  buildAmortizationSchedule,
   monthlyPaymentCents,
   remainingMonthsToPayoff,
   totalInterestRemainingCents,
@@ -52,6 +53,43 @@ describe('totalInterestRemainingCents', () => {
 
   it('propagates Infinity', () => {
     expect(totalInterestRemainingCents(100_000, 10_000, Infinity)).toBe(Infinity);
+  });
+});
+
+describe('buildAmortizationSchedule', () => {
+  it('splits an even, zero-interest loan into equal principal rows down to zero', () => {
+    const rows = buildAmortizationSchedule(120_000, 0, 10_000, '2026-01-01');
+    expect(rows).toHaveLength(12);
+    expect(rows.every((row) => row.interestCents === 0 && row.principalCents === 10_000)).toBe(true);
+    expect(rows[11].balanceCents).toBe(0);
+    expect(rows[0].date).toBe('2026-02-01');
+  });
+
+  it('matches the term length (±1) for a standard fixed-rate payment', () => {
+    const principal = 30_000_000;
+    const rate = 600;
+    const term = 360;
+    const payment = monthlyPaymentCents(principal, rate, term);
+    const rows = buildAmortizationSchedule(principal, rate, payment, '2026-01-01');
+    expect(rows.length).toBeLessThanOrEqual(term + 1);
+    expect(rows.length).toBeGreaterThan(term - 2);
+    expect(rows.at(-1)?.balanceCents).toBe(0);
+    // principal + interest should sum back to (about) the original balance + total interest
+    const totalPrincipal = rows.reduce((sum, row) => sum + row.principalCents, 0);
+    expect(totalPrincipal).toBe(principal);
+  });
+
+  it('an extra payment shortens the schedule', () => {
+    const principal = 30_000_000;
+    const rate = 600;
+    const payment = monthlyPaymentCents(principal, rate, 360);
+    const withExtra = buildAmortizationSchedule(principal, rate, payment + 20_000, '2026-01-01');
+    const withoutExtra = buildAmortizationSchedule(principal, rate, payment, '2026-01-01');
+    expect(withExtra.length).toBeLessThan(withoutExtra.length);
+  });
+
+  it('stops instead of looping forever when the payment does not cover interest', () => {
+    expect(buildAmortizationSchedule(1_000_000, 2000, 100, '2026-01-01')).toEqual([]);
   });
 });
 

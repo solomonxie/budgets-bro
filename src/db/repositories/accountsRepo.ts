@@ -3,6 +3,7 @@ import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
 import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
 import { currentDateISO } from '../../domain/month';
+import { usesLoggedValue } from '../../domain/accountKind';
 import * as payeesRepo from './payeesRepo';
 import * as accountValueHistoryRepo from './accountValueHistoryRepo';
 
@@ -37,18 +38,18 @@ export interface AccountWithBalance {
   balanceCents: number;
 }
 
-// A tracking account's "balance" is its latest logged value (see
+// A tracking/asset account's "balance" is its latest logged value (see
 // accountValueHistoryRepo/T8.6), not opening_balance + transactions — its
 // transactions track real cash movement, but growth/decline is tracked
 // separately via manual value-log entries. Falls back to the usual
-// computed balance for a tracking account with no value entries logged
-// yet (freshly created, only an opening balance).
+// computed balance for one with no value entries logged yet (freshly
+// created, only an opening balance).
 function resolveBalanceCents(
   account: Account,
   computedBalanceCents: number,
   valuesByAccountId: Map<number, number>,
 ): number {
-  if (account.type !== 'tracking') return computedBalanceCents;
+  if (!usesLoggedValue(account.type)) return computedBalanceCents;
   return valuesByAccountId.get(account.id) ?? computedBalanceCents;
 }
 
@@ -96,7 +97,7 @@ export interface AccountInput {
 }
 
 export async function createAccount(db: SQLiteDatabase, boardId: number, input: AccountInput): Promise<number> {
-  const onBudget = input.type !== 'tracking' ? 1 : 0;
+  const onBudget = usesLoggedValue(input.type) ? 0 : 1;
   const result = await db.runAsync(
     `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -117,7 +118,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
 }
 
 export async function updateAccount(db: SQLiteDatabase, boardId: number, id: number, input: AccountInput): Promise<void> {
-  const onBudget = input.type !== 'tracking' ? 1 : 0;
+  const onBudget = usesLoggedValue(input.type) ? 0 : 1;
   await db.runAsync(
     `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
        term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?

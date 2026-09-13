@@ -54,7 +54,7 @@ export function ScheduledTransactionModal() {
   const [endDate, setEndDate] = useState(currentDateISO());
   const [autoPost, setAutoPost] = useState(false);
 
-  const isTrackingAccount = accounts.find((a) => a.account.id === accountId)?.account.type === 'tracking';
+  const isTrackingAccount = accounts.find((a) => a.account.id === accountId)?.account.onBudget === false;
 
   const reset = () => {
     setAmount('');
@@ -251,7 +251,7 @@ export function ScheduledTransactionModal() {
                     selected={accountId === account.id}
                     onPress={() => {
                       setAccountId(account.id);
-                      if (account.type === 'tracking') setCategoryId(null);
+                      if (!account.onBudget) setCategoryId(null);
                       closeDropdown();
                     }}
                   />

@@ -49,13 +49,14 @@ export const TOTAL_ACTIVITY_THROUGH_MONTH = `
 
 // Unassigned Cash = (money sitting in cash accounts) − (money already
 // assigned to categories, spent or not). Restricted to actual cash
-// (checking/cash/savings/income) accounts — credit cards, loans/mortgages,
-// and tracking accounts don't hold assignable cash and would otherwise blow
-// up this total with e.g. a mortgage's opening principal. A transfer into a
-// cash account counts like any other transaction here (it's just another
-// account's own outflow, so it nets out); the corresponding "money assigned"
-// side already accounts for anything categorized, transfers included.
-const CASH_ACCOUNT_TYPES = `('checking', 'cash', 'savings', 'income')`;
+// (cash/savings) accounts — credit cards, loans/mortgages, and
+// tracking/asset accounts don't hold assignable cash and would otherwise
+// blow up this total with e.g. a mortgage's opening principal. A transfer
+// into a cash account counts like any other transaction here (it's just
+// another account's own outflow, so it nets out); the corresponding "money
+// assigned" side already accounts for anything categorized, transfers
+// included.
+const CASH_ACCOUNT_TYPES = `('cash', 'savings')`;
 
 export const CASH_ACCOUNTS_BALANCE_THROUGH_MONTH = `
   SELECT

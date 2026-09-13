@@ -8,6 +8,8 @@ import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useFutureTransactions } from '../../hooks/useFutureTransactions';
 import { withRunningBalances } from '../../domain/register';
+import { buildGrowthSeries } from '../../domain/investmentGrowth';
+import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
@@ -40,11 +42,36 @@ export function AccountDetailScreen() {
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
   const isMortgage = accountWithBalance?.account.type === 'mortgage';
   const isTracking = accountWithBalance?.account.type === 'tracking';
+  const isAsset = accountWithBalance?.account.type === 'asset';
+  // Savings/cash accounts keep their normal ledger balance (opening +
+  // transactions) — they just get the same optional value-history
+  // log/chart a tracking account has, purely to visualize deposits vs.
+  // interest/gain over time. It never overrides the real balance the way
+  // a tracking/asset account's does (see accountsRepo.resolveBalanceCents).
+  const hasValueHistory =
+    isTracking || isAsset || accountWithBalance?.account.type === 'savings' || accountWithBalance?.account.type === 'cash';
   const {
     history: valueHistory,
     currentValueCents,
     refresh: refreshValueHistory,
-  } = useAccountValueHistory(isMortgage || isTracking ? accountId : null);
+  } = useAccountValueHistory(isMortgage || hasValueHistory ? accountId : null);
+  // Surfaced directly in the balance box (not just inside the expandable
+  // Value History section) so a tracking account's deposited/gain split is
+  // visible at a glance — always, even before any transaction or logged
+  // value exists, rather than hiding the row until there's something to
+  // show ($0 deposited / +$0 gain is itself a meaningful, correct state).
+  const latestGrowth = useMemo(
+    () =>
+      isTracking
+        ? buildGrowthSeries(valueHistory, transactions).at(-1) ?? {
+            date: currentDateISO(),
+            totalCents: 0,
+            depositedCents: 0,
+            gainCents: 0,
+          }
+        : null,
+    [isTracking, valueHistory, transactions],
+  );
 
   // Closing the account (from Edit) removes it from `accounts` — bounce
   // back to the list instead of showing a blank detail page.
@@ -82,6 +109,17 @@ export function AccountDetailScreen() {
             >
               {formatMoney(balanceCents)}
             </Text>
+            {latestGrowth ? (
+              <View style={styles.depositGainRow}>
+                <Text style={styles.depositedText}>
+                  {t('investmentGrowth.depositedLabel')} {formatMoney(latestGrowth.depositedCents)}
+                </Text>
+                <Text style={[styles.gainText, latestGrowth.gainCents < 0 && styles.negative]}>
+                  {latestGrowth.gainCents >= 0 ? '+' : ''}
+                  {formatMoney(latestGrowth.gainCents)}
+                </Text>
+              </View>
+            ) : null}
           </View>
           {isMortgage ? (
             <Pressable
@@ -109,7 +147,7 @@ export function AccountDetailScreen() {
             refresh={refreshValueHistory}
           />
         ) : null}
-        {isTracking && accountWithBalance ? (
+        {hasValueHistory && accountWithBalance ? (
           <Pressable
             style={styles.trackingValueHeader}
             onPress={() => setValueExpanded((v) => !v)}
@@ -120,11 +158,13 @@ export function AccountDetailScreen() {
             <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
           </Pressable>
         ) : null}
-        {isTracking && valueExpanded && accountWithBalance ? (
+        {hasValueHistory && valueExpanded && accountWithBalance ? (
           <TrackingValueDetails
             account={accountWithBalance.account}
             history={valueHistory}
             currentValueCents={currentValueCents}
+            transactions={transactions}
+            mode={isAsset ? 'single' : 'stacked'}
             refresh={refreshValueHistory}
           />
         ) : null}
@@ -247,6 +287,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   summaryValue: { fontSize: 30, fontWeight: '700', color: colors.text },
+  depositGainRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  depositedText: { fontSize: 12, color: colors.textMuted },
+  gainText: { fontSize: 12, fontWeight: '700', color: colors.positive },
   houseValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   houseValueText: { fontSize: 15, fontWeight: '700', color: colors.text },
   trackingValueHeader: {

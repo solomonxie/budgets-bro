@@ -20,10 +20,10 @@ type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountsList'>;
 const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
   Cash: 'accounts.kindCash',
   Savings: 'accounts.kindSavings',
-  Income: 'accounts.kindIncome',
   Credit: 'accounts.kindCredit',
   Loan: 'accounts.kindLoan',
   Tracking: 'accounts.kindTracking',
+  Asset: 'accounts.kindAsset',
 };
 
 export function AccountsScreen() {

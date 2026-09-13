@@ -13,6 +13,7 @@ import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as payeesRepo from '../../db/repositories/payeesRepo';
 import { secureStore } from '../../secure/secureStore';
+import { runChatCompletion } from '../../ai/openaiClient';
 import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
 import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
@@ -62,6 +63,8 @@ export function SettingsScreen() {
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
   const [aiApiKey, setAiApiKey] = useState('');
+  const [testingAiKey, setTestingAiKey] = useState(false);
+  const [aiKeyTestPassed, setAiKeyTestPassed] = useState<boolean | null>(null);
   const [s3Configs, setS3Configs] = useState<S3ConfigMeta[]>([]);
   const [s3ModalOpen, setS3ModalOpen] = useState(false);
   const [browsingS3Config, setBrowsingS3Config] = useState<S3ConfigMeta | null>(null);
@@ -99,8 +102,27 @@ export function SettingsScreen() {
   };
 
   const saveAiApiKey = async () => {
+    setAiKeyTestPassed(null);
     if (aiApiKey.trim()) await secureStore.setAiApiKey(aiApiKey.trim());
     else await secureStore.clearAiApiKey();
+  };
+
+  // A trivial, cheap request — this only confirms the key authenticates,
+  // not that AI Analysis's actual prompts will succeed (rate limits/model
+  // access could still differ), but that's the same gap every "test
+  // connection" button in this screen has (S3's own test is the deeper
+  // exception, since a bucket needs a real permission checklist).
+  const testAiApiKey = async () => {
+    setTestingAiKey(true);
+    setAiKeyTestPassed(null);
+    try {
+      await runChatCompletion(aiApiKey.trim(), [{ role: 'user', content: 'Reply with "ok".' }]);
+      setAiKeyTestPassed(true);
+    } catch {
+      setAiKeyTestPassed(false);
+    } finally {
+      setTestingAiKey(false);
+    }
   };
 
   const addS3Backup = async (input: S3ConfigInput) => {
@@ -442,6 +464,11 @@ export function SettingsScreen() {
           autoCorrect={false}
           secureTextEntry
         />
+        <Pressable style={styles.importButton} onPress={testAiApiKey} disabled={testingAiKey || !aiApiKey.trim()}>
+          {testingAiKey ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.testAiKey')}</Text>}
+        </Pressable>
+        {aiKeyTestPassed === true ? <Text style={styles.rowValue}>{t('settings.aiKeyTestPassed')}</Text> : null}
+        {aiKeyTestPassed === false ? <Text style={styles.errorText}>{t('settings.aiKeyTestFailed')}</Text> : null}
       </View>
 
       <View style={styles.section}>

@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { InsightsScreen } from '../screens/insights/InsightsScreen';
+import { UpcomingScreen } from '../screens/insights/UpcomingScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
 import { StubScreen } from '../components/ui/StubScreen';
@@ -38,6 +39,7 @@ export function InsightsStackNavigator() {
         {() => <StubScreen title={t('insights.calculators')} />}
       </Stack.Screen>
       <Stack.Screen name="AiAnalysis" component={AiAnalysisScreen} options={{ title: t('aiAnalysis.title') }} />
+      <Stack.Screen name="Upcoming" component={UpcomingScreen} options={{ title: t('upcoming.title') }} />
     </Stack.Navigator>
   );
 }

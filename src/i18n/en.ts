@@ -301,6 +301,12 @@ export const en = {
   'insights.babySteps': 'Baby Steps',
   'insights.taxInsights': 'Tax Insights',
   'insights.calculators': 'Calculators',
+  'upcoming.title': 'Upcoming',
+  'upcoming.empty': 'No scheduled transactions yet.',
+  'upcoming.newSchedule': '+ New Schedule',
+  'upcoming.postNow': 'Post Now',
+  'upcoming.autoBadge': 'AUTO',
+  'upcoming.deleteConfirmTitle': 'Delete schedule for "{name}"?',
 
   'spend.amountPlaceholder': '$0.00',
   'spend.spending': 'Spending',

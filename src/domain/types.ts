@@ -1,3 +1,5 @@
+import type { ScheduleFrequency } from './recurrence';
+
 export interface Board {
   id: number;
   name: string;
@@ -101,4 +103,26 @@ export interface TransactionWithLabels extends Transaction {
   payeeName: string | null;
   categoryName: string | null;
   categoryIcon: string | null;
+}
+
+export interface ScheduledTransaction {
+  id: number;
+  accountId: number;
+  categoryId: number | null;
+  payeeId: number | null;
+  memo: string | null;
+  amountCents: number; // signed
+  frequency: ScheduleFrequency;
+  intervalN: number;
+  nextDate: string; // 'YYYY-MM-DD'
+  endDate: string | null;
+  autoPost: boolean;
+  createdAt: string;
+}
+
+export interface ScheduledTransactionWithLabels extends ScheduledTransaction {
+  payeeName: string | null;
+  categoryName: string | null;
+  categoryIcon: string | null;
+  accountName: string;
 }

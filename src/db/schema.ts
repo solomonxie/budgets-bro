@@ -94,3 +94,26 @@ export interface TransactionJoinRow extends TransactionRow {
   category_name: string | null;
   category_icon: string | null;
 }
+
+export interface ScheduledTransactionRow {
+  id: number;
+  board_id: number;
+  account_id: number;
+  category_id: number | null;
+  payee_id: number | null;
+  memo: string | null;
+  amount_cents: number;
+  frequency: string;
+  interval_n: number;
+  next_date: string;
+  end_date: string | null;
+  auto_post: number;
+  created_at: string;
+}
+
+export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {
+  payee_name: string | null;
+  category_name: string | null;
+  category_icon: string | null;
+  account_name: string;
+}

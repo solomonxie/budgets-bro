@@ -9,7 +9,7 @@ import * as budgetsRepo from '../repositories/budgetsRepo';
 import { currentMonth, lastNMonths } from '../../domain/month';
 import { addMonths } from '../../finance-tools/amortization';
 
-export const DEMO_BOARD_NAME = 'Show Others';
+export const DEMO_BOARD_NAME = 'Demo';
 
 const cents = (dollars: number) => Math.round(dollars * 100);
 const day = (month: string, d: number) => `${month}-${String(d).padStart(2, '0')}`;
@@ -39,10 +39,12 @@ function amortize(principalCents: number, annualRateBps: number, termMonths: num
   return steps;
 }
 
-// Invented, higher-end household finances shaped like a real board (two
-// mortgages, cash, credit card, RRSP/TFSA/investments) — for showing
-// someone the app without exposing any real money. Every number here is
-// fictional; nothing is derived from the caller's actual data.
+// Invented, middle-class household finances shaped like a real board —
+// dual income (~$120k/yr combined), one mortgaged primary residence, one
+// fully paid-off cabin, a couple of credit cards, car loan/lease, a
+// student loan, a line of credit, and modest RRSP/TFSA/investing — for
+// showing someone the app without exposing any real money. Every number
+// here is fictional; nothing is derived from the caller's actual data.
 export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const boardId = await boardsRepo.createBoard(db, DEMO_BOARD_NAME);
   const months = lastNMonths(currentMonth(), 24); // oldest → newest, 24 entries
@@ -50,77 +52,76 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const checkingId = await accountsRepo.createAccount(db, boardId, {
     name: 'Everyday Chequing',
     type: 'cash',
-    openingBalanceCents: cents(14000),
+    openingBalanceCents: cents(4000),
   });
   const savingsId = await accountsRepo.createAccount(db, boardId, {
     name: 'High-Interest Savings',
     type: 'savings',
-    openingBalanceCents: cents(40000),
+    openingBalanceCents: cents(12000),
   });
   const ccId = await accountsRepo.createAccount(db, boardId, {
     name: 'Rewards Visa',
     type: 'credit_card',
     openingBalanceCents: 0,
   });
-
-  // Lakeview: already a year into its term when the window starts — the
-  // opening balance is wherever a 36-month schedule lands after 12 payments.
-  const lakeviewSchedule = amortize(cents(950000), 479, 300, 36);
-  const lakeviewOpeningCents = -lakeviewSchedule[11].balanceCents;
-  const lakeviewPayments = lakeviewSchedule.slice(12);
-  const lakeviewId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Lakeview House Mortgage',
-    type: 'mortgage',
-    openingBalanceCents: lakeviewOpeningCents,
-    interestRateBps: 479,
-    termMonths: 300,
-    originalPrincipalCents: cents(950000),
-    originationDate: day(months[0], 1),
-    originalHousePriceCents: cents(1190000),
+  const cc2Id = await accountsRepo.createAccount(db, boardId, {
+    name: 'Cashback Mastercard',
+    type: 'credit_card',
+    openingBalanceCents: 0,
   });
-  await accountRateHistoryRepo.addRateChange(db, lakeviewId, 479, day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, lakeviewId, cents(1190000), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, lakeviewId, cents(1360000), day(months[11], 1));
-  await accountValueHistoryRepo.addValueChange(db, lakeviewId, cents(1460000), day(months[23], 15));
 
-  // Whistler: bought right at the start of the window — full original
-  // principal, no seasoning.
-  const whistlerSchedule = amortize(cents(520000), 510, 300, 24);
-  const whistlerId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Whistler Cabin Mortgage',
+  // Primary residence — already a year into its term when the window
+  // starts; a modest ~8% down payment, not a wealthy one.
+  const houseSchedule = amortize(cents(900000), 575, 300, 36);
+  const houseOpeningCents = -houseSchedule[11].balanceCents;
+  const housePayments = houseSchedule.slice(12);
+  const houseId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Maple Street House Mortgage',
     type: 'mortgage',
-    openingBalanceCents: -cents(520000),
-    interestRateBps: 510,
+    openingBalanceCents: houseOpeningCents,
+    interestRateBps: 575,
     termMonths: 300,
-    originalPrincipalCents: cents(520000),
+    originalPrincipalCents: cents(900000),
     originationDate: day(months[0], 1),
-    originalHousePriceCents: cents(650000),
+    originalHousePriceCents: cents(980000),
   });
-  await accountRateHistoryRepo.addRateChange(db, whistlerId, 510, day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(650000), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(685000), day(months[11], 1));
-  await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(715000), day(months[23], 15));
+  await accountRateHistoryRepo.addRateChange(db, houseId, 575, day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, houseId, cents(980000), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, houseId, cents(1010000), day(months[11], 1));
+  await accountValueHistoryRepo.addValueChange(db, houseId, cents(1040000), day(months[23], 15));
 
-  // Loans — three different repayment shapes beyond the mortgages above:
+  // A small cabin, paid off years ago — tracked as a plain Asset (no
+  // loan), just a logged value that drifts up slowly. One paid-off
+  // property alongside one still-mortgaged one is the point of this pair.
+  const cabinId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Whistler Cabin',
+    type: 'asset',
+    openingBalanceCents: cents(350000),
+  });
+  await accountValueHistoryRepo.addValueChange(db, cabinId, cents(350000), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, cabinId, cents(365000), day(months[11], 1));
+  await accountValueHistoryRepo.addValueChange(db, cabinId, cents(380000), day(months[23], 15));
+
+  // Loans — three different repayment shapes beyond the mortgage above:
   // a standard interest-bearing installment loan (car), a fixed-payment
   // loan with no interest to break out (lease — the money factor is baked
   // into the manufacturer's residual pricing, not itemized like a real
   // loan's rate), and a long-term loan already partway through repayment
-  // (student, seasoned like Lakeview above, just further along).
-  const carLoanSchedule = amortize(cents(32000), 649, 60, 14 + months.length);
+  // (student, seasoned like the house above, just further along).
+  const carLoanSchedule = amortize(cents(28000), 649, 60, 14 + months.length);
   const carLoanId = await accountsRepo.createAccount(db, boardId, {
     name: 'Highlander Auto Loan',
     type: 'loan',
     openingBalanceCents: -carLoanSchedule[13].balanceCents,
     interestRateBps: 649,
     termMonths: 60,
-    originalPrincipalCents: cents(32000),
+    originalPrincipalCents: cents(28000),
     originationDate: addMonths(day(months[0], 1), -14),
   });
   await accountRateHistoryRepo.addRateChange(db, carLoanId, 649, addMonths(day(months[0], 1), -14));
   const carLoanPayments = carLoanSchedule.slice(14);
 
-  const carLeasePrincipalCents = cents(520 * 36);
+  const carLeasePrincipalCents = cents(420 * 36);
   const carLeaseSchedule = amortize(carLeasePrincipalCents, 0, 36, months.length);
   const carLeaseId = await accountsRepo.createAccount(db, boardId, {
     name: 'CR-V Lease',
@@ -133,20 +134,20 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   });
   await accountRateHistoryRepo.addRateChange(db, carLeaseId, 0, day(months[0], 1));
 
-  const studentLoanSchedule = amortize(cents(24000), 549, 120, 30 + months.length);
+  const studentLoanSchedule = amortize(cents(22000), 549, 120, 30 + months.length);
   const studentLoanId = await accountsRepo.createAccount(db, boardId, {
     name: 'Student Loan',
     type: 'loan',
     openingBalanceCents: -studentLoanSchedule[29].balanceCents,
     interestRateBps: 549,
     termMonths: 120,
-    originalPrincipalCents: cents(24000),
+    originalPrincipalCents: cents(22000),
     originationDate: addMonths(day(months[0], 1), -30),
   });
   await accountRateHistoryRepo.addRateChange(db, studentLoanId, 549, addMonths(day(months[0], 1), -30));
   const studentLoanPayments = studentLoanSchedule.slice(30);
 
-  // Revolving, not installment — modeled like the credit card below rather
+  // Revolving, not installment — modeled like the credit cards below rather
   // than a LoanDetailsCard-style amortization: a draw against it spends
   // directly from the account (no linked-payee mirror needed), interest
   // accrues monthly on whatever's outstanding, and only part of it gets
@@ -158,18 +159,17 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   });
   let locBalance = cents(3500);
 
-  const rrspId = await accountsRepo.createAccount(db, boardId, { name: 'RRSP', type: 'tracking', openingBalanceCents: cents(150000) });
-  const tfsaId = await accountsRepo.createAccount(db, boardId, { name: 'TFSA', type: 'tracking', openingBalanceCents: cents(70000) });
+  const rrspId = await accountsRepo.createAccount(db, boardId, { name: 'RRSP', type: 'tracking', openingBalanceCents: cents(45000) });
+  const tfsaId = await accountsRepo.createAccount(db, boardId, { name: 'TFSA', type: 'tracking', openingBalanceCents: cents(22000) });
   const investId = await accountsRepo.createAccount(db, boardId, {
     name: 'Non-Registered Investments',
     type: 'tracking',
-    openingBalanceCents: cents(90000),
+    openingBalanceCents: cents(12000),
   });
 
   // --- categories ---
   const housingGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Mortgages & Housing');
-  const catLakeview = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🏡 Lakeview Mortgage Payment', icon: null });
-  const catWhistler = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🏔️ Whistler Mortgage Payment', icon: null });
+  const catHouse = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🏡 Mortgage Payment', icon: null });
   const catPropertyTax = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🧾 Property Tax', icon: null });
   const catHomeInsurance = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🛡️ Home Insurance', icon: null });
   const catUtilities = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '💡 Utilities', icon: null });
@@ -178,6 +178,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const everydayGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Everyday Expenses');
   const catGroceries = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '🛒 Groceries', icon: null });
   const catDining = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '🍽️ Dining Out', icon: null });
+  const catCoffee = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '☕ Coffee & Quick Stops', icon: null });
   const catTransport = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '⛽ Transportation & Gas', icon: null });
   const catShopping = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '🛍️ Shopping', icon: null });
   const catSubscriptions = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '📱 Subscriptions', icon: null });
@@ -204,26 +205,28 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   // --- 24 months of transactions + budget ---
   const groceryPayees = ['Save-On-Foods', 'Whole Foods', 'Costco'];
   const diningPayees = ['The Keg Steakhouse', 'Uber Eats', 'Local Bistro'];
+  const coffeePayees = ['Tim Hortons', 'Starbucks', 'Circle K'];
   const shoppingPayees = ['Amazon', 'Best Buy', 'Apple Store'];
   const travelPayees = ['Air Canada', 'WestJet'];
 
-  let rrspBalance = cents(150000);
-  let tfsaBalance = cents(70000);
-  let investBalance = cents(90000);
-  let savingsBalance = cents(40000);
+  let rrspBalance = cents(45000);
+  let tfsaBalance = cents(22000);
+  let investBalance = cents(12000);
+  let savingsBalance = cents(12000);
   let ccBalance = 0;
+  let cc2Balance = 0;
 
   for (let i = 0; i < months.length; i++) {
     const month = months[i];
     const inflation = 1 + (i / months.length) * 0.05; // slow drift up over the 2 years
 
-    // Household income — two earners, twice a month.
+    // Household income — two earners, twice a month, ~$120k/yr combined.
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: null,
       payeeName: 'Meridian Robotics Inc',
       memo: null,
-      amountCents: cents(rand(5600, 6000) * inflation),
+      amountCents: cents(rand(2900, 3100) * inflation),
       date: day(month, 1),
     });
     await transactionsRepo.createTransaction(db, boardId, {
@@ -231,7 +234,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       categoryId: null,
       payeeName: 'Meridian Robotics Inc',
       memo: null,
-      amountCents: cents(rand(5600, 6000) * inflation),
+      amountCents: cents(rand(2900, 3100) * inflation),
       date: day(month, 15),
     });
     await transactionsRepo.createTransaction(db, boardId, {
@@ -239,7 +242,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       categoryId: null,
       payeeName: 'Alderbrook Consulting Group',
       memo: null,
-      amountCents: cents(rand(4000, 4400) * inflation),
+      amountCents: cents(rand(1900, 2100) * inflation),
       date: day(month, 1),
     });
     await transactionsRepo.createTransaction(db, boardId, {
@@ -247,49 +250,33 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       categoryId: null,
       payeeName: 'Alderbrook Consulting Group',
       memo: null,
-      amountCents: cents(rand(4000, 4400) * inflation),
+      amountCents: cents(rand(1900, 2100) * inflation),
       date: day(month, 15),
     });
 
-    // Mortgages — principal (transfer, moves the loan balance) + interest
-    // (plain expense) on the same category, same day.
-    const lakeview = lakeviewPayments[i];
+    // Mortgage — principal (transfer, moves the loan balance) + interest
+    // (plain expense) on the same category, same day. The cabin has no
+    // payment of its own — it's paid off, just a logged value.
+    const house = housePayments[i];
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
-      categoryId: catLakeview,
-      payeeName: 'Lakeview House Mortgage',
+      categoryId: catHouse,
+      payeeName: 'Maple Street House Mortgage',
       memo: null,
-      amountCents: -lakeview.principalCents,
+      amountCents: -house.principalCents,
       date: day(month, 1),
     });
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
-      categoryId: catLakeview,
+      categoryId: catHouse,
       payeeName: '',
       memo: 'Mortgage interest',
-      amountCents: -lakeview.interestCents,
-      date: day(month, 1),
-    });
-    const whistler = whistlerSchedule[i];
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catWhistler,
-      payeeName: 'Whistler Cabin Mortgage',
-      memo: null,
-      amountCents: -whistler.principalCents,
-      date: day(month, 1),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catWhistler,
-      payeeName: '',
-      memo: 'Mortgage interest',
-      amountCents: -whistler.interestCents,
+      amountCents: -house.interestCents,
       date: day(month, 1),
     });
 
     // Car loan, lease, student loan — same principal/interest split as the
-    // mortgages above (the payeeName match on each principal leg is what
+    // mortgage above (the payeeName match on each principal leg is what
     // mirrors it onto that loan account and pays it down, see
     // transactionsRepo.postLinkedAccountLeg). The lease has no interest
     // leg — nothing to break out at 0%.
@@ -341,9 +328,9 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     // spends directly from the account (like a card purchase, no transfer
     // leg), interest accrues on whatever's outstanding, and only part of
     // it gets paid down each month (same "don't always pay in full" shape
-    // as the credit card below).
+    // as the credit cards below).
     if (i % 7 === 3) {
-      const drawCents = cents(rand(800, 2200));
+      const drawCents = cents(rand(500, 1400));
       locBalance += drawCents;
       await transactionsRepo.createTransaction(db, boardId, {
         accountId: locId,
@@ -382,7 +369,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         categoryId: catPropertyTax,
         payeeName: 'City Property Tax',
         memo: null,
-        amountCents: -cents(rand(1300, 1600) * 3),
+        amountCents: -cents(rand(1000, 1200) * 3),
         date: day(month, 2),
       });
     }
@@ -391,7 +378,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       categoryId: catHomeInsurance,
       payeeName: 'Coastal Insurance Co.',
       memo: null,
-      amountCents: -cents(rand(170, 200)),
+      amountCents: -cents(rand(130, 160)),
       date: day(month, 3),
     });
     await transactionsRepo.createTransaction(db, boardId, {
@@ -408,30 +395,31 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         categoryId: catHomeMaintenance,
         payeeName: 'Home Depot',
         memo: null,
-        amountCents: -cents(rand(150, 650)),
+        amountCents: -cents(rand(120, 500)),
         date: day(month, 12),
       });
     }
 
-    // Everyday spend — groceries/dining on Chequing, discretionary on the card.
+    // Everyday spend — groceries/dining on Chequing, discretionary split
+    // across the two cards.
     for (let g = 0; g < 4; g++) {
       await transactionsRepo.createTransaction(db, boardId, {
         accountId: checkingId,
         categoryId: catGroceries,
         payeeName: pick(groceryPayees),
         memo: null,
-        amountCents: -cents(rand(120, 220)),
+        amountCents: -cents(rand(130, 230)),
         date: day(month, 3 + g * 6),
       });
     }
-    for (let d = 0; d < 5; d++) {
+    for (let d = 0; d < 4; d++) {
       await transactionsRepo.createTransaction(db, boardId, {
         accountId: checkingId,
         categoryId: catDining,
         payeeName: pick(diningPayees),
         memo: null,
-        amountCents: -cents(rand(45, 130)),
-        date: day(month, 4 + d * 5),
+        amountCents: -cents(rand(40, 110)),
+        date: day(month, 4 + d * 6),
       });
     }
     for (let g = 0; g < 3; g++) {
@@ -447,7 +435,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
 
     let ccCharges = 0;
     for (let s = 0; s < 3; s++) {
-      const amt = cents(rand(80, 220));
+      const amt = cents(rand(70, 180));
       ccCharges += amt;
       await transactionsRepo.createTransaction(db, boardId, {
         accountId: ccId,
@@ -458,7 +446,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         date: day(month, 9 + s * 7),
       });
     }
-    const subAmt = cents(rand(60, 75));
+    const subAmt = cents(rand(55, 70));
     ccCharges += subAmt;
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: ccId,
@@ -469,7 +457,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       date: day(month, 5),
     });
     if (i % 6 === 2) {
-      const travelAmt = cents(rand(3500, 6500));
+      const travelAmt = cents(rand(1500, 3000));
       ccCharges += travelAmt;
       await transactionsRepo.createTransaction(db, boardId, {
         accountId: ccId,
@@ -480,13 +468,30 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
         date: day(month, 18),
       });
     }
+
+    // Second card — a small, everyday-carry balance (coffee/quick stops),
+    // paid off almost in full most months.
+    let cc2Charges = 0;
+    for (let c = 0; c < 6; c++) {
+      const amt = cents(rand(4, 9));
+      cc2Charges += amt;
+      await transactionsRepo.createTransaction(db, boardId, {
+        accountId: cc2Id,
+        categoryId: catCoffee,
+        payeeName: pick(coffeePayees),
+        memo: null,
+        amountCents: -amt,
+        date: day(month, 2 + c * 4),
+      });
+    }
+
     for (let h = 0; h < 2; h++) {
       await transactionsRepo.createTransaction(db, boardId, {
         accountId: checkingId,
         categoryId: catHobbies,
         payeeName: 'Local Rec Centre',
         memo: null,
-        amountCents: -cents(rand(40, 90)),
+        amountCents: -cents(rand(30, 70)),
         date: day(month, 14 + h * 10),
       });
     }
@@ -495,7 +500,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       categoryId: catGym,
       payeeName: 'GoodLife Fitness',
       memo: null,
-      amountCents: -cents(135),
+      amountCents: -cents(60),
       date: day(month, 4),
     });
     await transactionsRepo.createTransaction(db, boardId, {
@@ -503,11 +508,11 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       categoryId: catCharity,
       payeeName: 'Local Food Bank',
       memo: null,
-      amountCents: -cents(250),
+      amountCents: -cents(80),
       date: day(month, 20),
     });
 
-    // Pay most (not all) of the card's balance each month — a small
+    // Pay most (not all) of each card's balance each month — a small
     // revolving balance reads more real than always paying in full.
     const owed = ccBalance + ccCharges;
     const ccPayment = Math.round(owed * rand(0.75, 0.95));
@@ -520,9 +525,21 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       amountCents: -ccPayment,
       date: day(month, 26),
     });
+    const owed2 = cc2Balance + cc2Charges;
+    const cc2Payment = Math.round(owed2 * rand(0.9, 1));
+    cc2Balance = owed2 - cc2Payment;
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: null,
+      payeeName: 'Cashback Mastercard',
+      memo: null,
+      amountCents: -cc2Payment,
+      date: day(month, 26),
+    });
 
-    // Retirement/investment contributions + simulated growth.
-    const rrspContribution = cents(1500);
+    // Retirement/investment contributions + simulated growth — modest,
+    // not maxed out, given how much of the paycheque the mortgage takes.
+    const rrspContribution = cents(400);
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: catRrsp,
@@ -542,7 +559,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       date: day(month, 28),
     });
 
-    const tfsaContribution = cents(650);
+    const tfsaContribution = cents(300);
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: catTfsa,
@@ -562,7 +579,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       date: day(month, 28),
     });
 
-    const investContribution = cents(1200);
+    const investContribution = cents(200);
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: catInvest,
@@ -584,7 +601,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
 
     // Sweep whatever's left in Chequing past a comfortable cushion into
     // Savings, which also earns a bit of interest on its own.
-    const savingsTransfer = cents(rand(600, 1000));
+    const savingsTransfer = cents(rand(150, 350));
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: null,
@@ -606,25 +623,25 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
 
     // Budget — assign roughly what the month spent, plus a small buffer.
     const assignments: [number, number][] = [
-      [catLakeview, lakeview.principalCents + lakeview.interestCents],
-      [catWhistler, whistler.principalCents + whistler.interestCents],
+      [catHouse, house.principalCents + house.interestCents],
       [catCarLoan, carLoan.principalCents + carLoan.interestCents],
       [catCarLease, carLease.principalCents],
       [catStudentLoan, studentLoan.principalCents + studentLoan.interestCents],
-      [catLocDraw, cents(150)],
-      [catPropertyTax, cents(470)],
-      [catHomeInsurance, cents(190)],
+      [catLocDraw, cents(100)],
+      [catPropertyTax, cents(370)],
+      [catHomeInsurance, cents(145)],
       [catUtilities, cents(230)],
-      [catHomeMaintenance, cents(250)],
-      [catGroceries, cents(750)],
-      [catDining, cents(500)],
+      [catHomeMaintenance, cents(200)],
+      [catGroceries, cents(800)],
+      [catDining, cents(400)],
+      [catCoffee, cents(50)],
       [catTransport, cents(240)],
-      [catShopping, cents(500)],
-      [catSubscriptions, cents(70)],
-      [catTravel, cents(700)],
-      [catHobbies, cents(150)],
-      [catGym, cents(135)],
-      [catCharity, cents(250)],
+      [catShopping, cents(400)],
+      [catSubscriptions, cents(60)],
+      [catTravel, cents(350)],
+      [catHobbies, cents(120)],
+      [catGym, cents(60)],
+      [catCharity, cents(80)],
       [catRrsp, rrspContribution],
       [catTfsa, tfsaContribution],
       [catInvest, investContribution],

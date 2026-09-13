@@ -41,16 +41,10 @@ Jan/Feb.. + year labels). Two callers:
   deposit split — a house has no "deposits").
 
 AmortizationScheduleScreen.tsx  (pushed from LoanDetailsCard's "View full calculator…" link)
-┌───────────────────────────────┐
-│ Loan inputs (amount/rate/term/  │──→ inline; prefilled from the account's
-│  extra payment)                 │    current outstanding balance + rate,
-├───────────────────────────────┤    still editable (doubles as ad-hoc calc)
-│ Result summary (payment,        │──→ inline
-│  projected payoff, interest)    │
-├───────────────────────────────┤
-│ Per-payment schedule table      │──→ inline; ../../finance-tools/amortization.ts
-│ (date/principal/interest/bal)   │    buildAmortizationSchedule()
-└───────────────────────────────┘
+— thin wrapper: prefills ../../components/ui/AmortizationCalculator.tsx from the
+account's current outstanding balance/rate (payment itself pinned to the loan's
+real contractual amount via `fixedPaymentCents`), same shared component
+screens/calculators/CalculatorsHomeScreen.tsx uses for its ad-hoc "what if" case.
 
 ClosedAccountsScreen.tsx
 ┌───────────────────────────────┐

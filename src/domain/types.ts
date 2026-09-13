@@ -42,7 +42,7 @@ export interface AccountRateChange {
   effectiveDate: string; // 'YYYY-MM-DD'
 }
 
-export interface AccountHouseValueChange {
+export interface AccountValueChange {
   id: number;
   accountId: number;
   valueCents: number;

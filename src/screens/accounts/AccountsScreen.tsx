@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useAccounts } from '../../hooks/useAccounts';
-import { useAccountHouseValues } from '../../hooks/useAccountHouseValues';
+import { useAccountValues } from '../../hooks/useAccountValues';
 import { useAppStore } from '../../state/useAppStore';
 import { ACCOUNT_KIND_ORDER, accountKind, netWorth as computeNetWorth } from '../../domain/accountKind';
 import type { AccountKind } from '../../domain/types';
@@ -31,7 +31,7 @@ export function AccountsScreen() {
   const navigation = useNavigation<Nav>();
   const openAddAccount = useAppStore((s) => s.openAddAccount);
   const { accounts } = useAccounts();
-  const { valuesByAccountId: houseValues } = useAccountHouseValues();
+  const { valuesByAccountId: houseValues } = useAccountValues();
   const [excludedAccountIds, setExcludedAccountIds] = useState<Set<number>>(new Set());
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
 

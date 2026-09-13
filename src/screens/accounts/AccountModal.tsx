@@ -10,7 +10,7 @@ import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import * as accountRateHistoryRepo from '../../db/repositories/accountRateHistoryRepo';
-import * as accountHouseValueHistoryRepo from '../../db/repositories/accountHouseValueHistoryRepo';
+import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAppStore } from '../../state/useAppStore';
@@ -139,7 +139,7 @@ export function AccountModal() {
         await accountRateHistoryRepo.addRateChange(db, id, Math.round(parseFloat(initialInterestRate) * 100), originationDate);
       }
       if (type === 'mortgage' && originalHousePrice) {
-        await accountHouseValueHistoryRepo.addValueChange(db, id, Math.round(parseFloat(originalHousePrice) * 100), originationDate);
+        await accountValueHistoryRepo.addValueChange(db, id, Math.round(parseFloat(originalHousePrice) * 100), originationDate);
       }
     }
     bumpDataVersion();

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getDb } from '../db/client';
-import * as accountHouseValueHistoryRepo from '../db/repositories/accountHouseValueHistoryRepo';
-import type { AccountHouseValueChange } from '../domain/types';
+import * as accountValueHistoryRepo from '../db/repositories/accountValueHistoryRepo';
+import type { AccountValueChange } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
 
-export function useAccountHouseValueHistory(accountId: number | null) {
-  const [history, setHistory] = useState<AccountHouseValueChange[]>([]);
+export function useAccountValueHistory(accountId: number | null) {
+  const [history, setHistory] = useState<AccountValueChange[]>([]);
   const dataVersion = useAppStore((s) => s.dataVersion);
 
   const refresh = useCallback(async () => {
@@ -14,7 +14,7 @@ export function useAccountHouseValueHistory(accountId: number | null) {
       return;
     }
     const db = await getDb();
-    setHistory(await accountHouseValueHistoryRepo.listHouseValueHistory(db, accountId));
+    setHistory(await accountValueHistoryRepo.listValueHistory(db, accountId));
   }, [accountId]);
 
   useEffect(() => {

@@ -32,7 +32,7 @@ export interface AccountRateHistoryRow {
   created_at: string;
 }
 
-export interface AccountHouseValueHistoryRow {
+export interface AccountValueHistoryRow {
   id: number;
   account_id: number;
   value_cents: number;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
 import { getDb } from '../../db/client';
-import * as accountHouseValueHistoryRepo from '../../db/repositories/accountHouseValueHistoryRepo';
+import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { HouseValueModal } from '../../components/ui/HouseValueModal';
 import type { HouseValueChangeValue } from '../../components/ui/HouseValueModal';
@@ -11,7 +11,7 @@ import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountHouseValueChange } from '../../domain/types';
+import type { Account, AccountValueChange } from '../../domain/types';
 
 const CHART_WIDTH = 280;
 const CHART_HEIGHT = 56;
@@ -19,7 +19,7 @@ const CHART_HEIGHT = 56;
 // Expanded panel under the balance box's home-value corner
 // (AccountDetailScreen): history/chart/edit for a mortgage's manual
 // home-value entries. Also feeds the offsetting asset in Net Worth (see
-// accountHouseValueHistoryRepo's latest-per-account query,
+// accountValueHistoryRepo's latest-per-account query,
 // domain/accountKind.netWorth).
 export function HouseValueDetails({
   account,
@@ -30,19 +30,19 @@ export function HouseValueDetails({
 }: {
   account: Account;
   balanceCents: number;
-  history: AccountHouseValueChange[];
+  history: AccountValueChange[];
   currentValueCents: number | null;
   refresh: () => void;
 }) {
   const t = useT();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const [modal, setModal] = useState<{ editing: AccountHouseValueChange | null } | null>(null);
+  const [modal, setModal] = useState<{ editing: AccountValueChange | null } | null>(null);
 
   const submit = async (value: HouseValueChangeValue) => {
     const valueCents = Math.round(parseFloat(value.value) * 100);
     const db = await getDb();
-    if (modal?.editing) await accountHouseValueHistoryRepo.updateValueChange(db, modal.editing.id, valueCents, value.effectiveDate);
-    else await accountHouseValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate);
+    if (modal?.editing) await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, valueCents, value.effectiveDate);
+    else await accountValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate);
     bumpDataVersion();
     refresh();
     setModal(null);
@@ -51,7 +51,7 @@ export function HouseValueDetails({
   const deleteEntry = async () => {
     if (!modal?.editing) return;
     const db = await getDb();
-    await accountHouseValueHistoryRepo.deleteValueChange(db, modal.editing.id);
+    await accountValueHistoryRepo.deleteValueChange(db, modal.editing.id);
     bumpDataVersion();
     refresh();
     setModal(null);

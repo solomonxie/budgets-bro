@@ -372,7 +372,6 @@ export function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.payeesHint')}</Text>
         <SearchableDropdownField
           compact
           label={t('common.payee')}
@@ -446,27 +445,6 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.s3Heading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.s3Hint')}</Text>
-        <View style={styles.group}>
-          {s3Configs.map((config) => (
-            <Pressable key={config.id} style={styles.row} onPress={() => setBrowsingS3Config(config)}>
-              <View style={styles.s3ConfigMain}>
-                <Text style={styles.rowTitle}>{config.bucket}</Text>
-                <Text style={styles.rowValue}>{config.keyPrefix ? `${config.region} · ${config.keyPrefix}` : config.region}</Text>
-              </View>
-              <RowMenuButton items={[{ label: t('common.delete'), destructive: true, onPress: () => confirmRemoveS3Config(config) }]} />
-            </Pressable>
-          ))}
-        </View>
-        <Pressable style={styles.addLink} onPress={() => setS3ModalOpen(true)}>
-          <Text style={styles.addLinkText}>{t('settings.addS3BackupLink')}</Text>
-        </Pressable>
-        <S3ConfigModal visible={s3ModalOpen} onCancel={() => setS3ModalOpen(false)} onSaved={addS3Backup} />
-        <S3BrowserModal config={browsingS3Config} onClose={() => setBrowsingS3Config(null)} />
-      </View>
-
-      <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.localBackupHeading')}</Text>
         <Text style={styles.sectionHint}>{t('settings.localBackupHint')}</Text>
         <View style={styles.switchRow}>
@@ -493,6 +471,27 @@ export function SettingsScreen() {
         <Pressable style={styles.importButton} onPress={runRestoreFromCloud} disabled={restoringFromCloud}>
           {restoringFromCloud ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.restoreFromCloud')}</Text>}
         </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>{t('settings.s3Heading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.s3Hint')}</Text>
+        <View style={styles.group}>
+          {s3Configs.map((config) => (
+            <Pressable key={config.id} style={styles.row} onPress={() => setBrowsingS3Config(config)}>
+              <View style={styles.s3ConfigMain}>
+                <Text style={styles.rowTitle}>{config.bucket}</Text>
+                <Text style={styles.rowValue}>{config.keyPrefix ? `${config.region} · ${config.keyPrefix}` : config.region}</Text>
+              </View>
+              <RowMenuButton items={[{ label: t('common.delete'), destructive: true, onPress: () => confirmRemoveS3Config(config) }]} />
+            </Pressable>
+          ))}
+        </View>
+        <Pressable style={styles.addLink} onPress={() => setS3ModalOpen(true)}>
+          <Text style={styles.addLinkText}>{t('settings.addS3BackupLink')}</Text>
+        </Pressable>
+        <S3ConfigModal visible={s3ModalOpen} onCancel={() => setS3ModalOpen(false)} onSaved={addS3Backup} />
+        <S3BrowserModal config={browsingS3Config} onClose={() => setBrowsingS3Config(null)} />
       </View>
 
       <View style={styles.section}>

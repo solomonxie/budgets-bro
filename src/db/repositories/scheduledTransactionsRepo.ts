@@ -8,6 +8,7 @@ import { findOrCreatePayee } from './payeesRepo';
 import * as transactionsRepo from './transactionsRepo';
 import {
   LIST_FOR_BOARD,
+  LIST_FOR_ACCOUNT,
   LIST_DUE,
   GET_BY_ID,
   INSERT_SCHEDULED_TRANSACTION,
@@ -39,6 +40,13 @@ function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabel
 
 export async function listForBoard(db: SQLiteDatabase, boardId: number): Promise<ScheduledTransactionWithLabels[]> {
   const rows = await db.getAllAsync<ScheduledTransactionJoinRow>(LIST_FOR_BOARD, boardId);
+  return rows.map(mapRow);
+}
+
+// Powers the account page's "Scheduled" box (view next date, approve,
+// cancel) — the account-scoped counterpart to listForBoard.
+export async function listForAccount(db: SQLiteDatabase, accountId: number): Promise<ScheduledTransactionWithLabels[]> {
+  const rows = await db.getAllAsync<ScheduledTransactionJoinRow>(LIST_FOR_ACCOUNT, accountId);
   return rows.map(mapRow);
 }
 

@@ -352,6 +352,9 @@ export const en = {
 
   'addTransactionModal.scheduledToggleLabel': 'Scheduled',
   'addTransactionModal.startDateLabel': 'Starts',
+  'addTransactionModal.repeatLabel': 'Repeat',
+  'addTransactionModal.hasEndDateLabel': 'Ends on a date',
+  'addTransactionModal.endDateLabel': 'End Date',
 
   'spend.amountPlaceholder': '$0.00',
   'spend.spending': 'Spending',
@@ -365,9 +368,6 @@ export const en = {
   'nav.budget': 'Budget',
   'nav.spend': 'Spend',
   'nav.accounts': 'Accounts',
-  'addTransactionModal.repeatLabel': 'Repeat',
-  'addTransactionModal.hasEndDateLabel': 'Ends on a date',
-  'addTransactionModal.endDateLabel': 'End Date',
   'nav.insights': 'Insights',
   'nav.transactions': 'Transactions',
   'nav.history': 'History',

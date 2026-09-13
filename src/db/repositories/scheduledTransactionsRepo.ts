@@ -23,6 +23,7 @@ function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabel
     amountCents: row.amount_cents,
     frequency: row.frequency as ScheduleFrequency,
     intervalN: row.interval_n,
+    daysOfWeekMask: row.days_of_week_mask,
     nextDate: row.next_date,
     endDate: row.end_date,
     autoPost: row.auto_post === 1,
@@ -57,6 +58,7 @@ export interface ScheduledTransactionInput {
   amountCents: number;
   frequency: ScheduleFrequency;
   intervalN: number;
+  daysOfWeekMask: number | null;
   nextDate: string;
   endDate: string | null;
   autoPost: boolean;
@@ -77,6 +79,7 @@ export async function createScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.nextDate,
     input.endDate,
     input.autoPost ? 1 : 0,
+    input.daysOfWeekMask,
   );
   return result.lastInsertRowId;
 }
@@ -99,6 +102,7 @@ export async function updateScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.nextDate,
     input.endDate,
     input.autoPost ? 1 : 0,
+    input.daysOfWeekMask,
     input.id,
   );
 }

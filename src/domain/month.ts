@@ -55,3 +55,13 @@ export function formatMonthShort(month: string, locale = 'en-US'): string {
   const d = new Date(Date.UTC(y, m - 1, 1));
   return d.toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' });
 }
+
+// Short weekday label ("Sun", "Mon"…) for weekday index 0 (Sunday) .. 6
+// (Saturday) — matches Date.getUTCDay()'s order, used by the recurrence
+// weekday picker (see components/ui/RepeatField). 2023-01-01 is a known
+// Sunday, so `weekdayIndex` days past it lands on the matching weekday
+// regardless of what "today" is.
+export function formatWeekdayShort(weekdayIndex: number, locale = 'en-US'): string {
+  const d = new Date(Date.UTC(2023, 0, 1 + weekdayIndex));
+  return d.toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' });
+}

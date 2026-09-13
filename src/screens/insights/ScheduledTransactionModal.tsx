@@ -5,6 +5,7 @@ import { TextField } from '../../components/ui/TextField';
 import { DateField } from '../../components/ui/DateField';
 import { DropdownField, DropdownGroupLabel, DropdownOption } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
+import { RepeatField } from '../../components/ui/RepeatField';
 import { getDb } from '../../db/client';
 import * as scheduledTransactionsRepo from '../../db/repositories/scheduledTransactionsRepo';
 import { useAccounts } from '../../hooks/useAccounts';
@@ -13,17 +14,10 @@ import { usePayees } from '../../hooks/usePayees';
 import { useAppStore } from '../../state/useAppStore';
 import { currentDateISO } from '../../domain/month';
 import { useT } from '../../i18n';
-import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { ScheduleFrequency } from '../../domain/recurrence';
-
-const FREQUENCY_LABEL_KEY: Record<ScheduleFrequency, TranslationKey> = {
-  weekly: 'scheduledTransactionModal.frequencyWeekly',
-  monthly: 'scheduledTransactionModal.frequencyMonthly',
-  yearly: 'scheduledTransactionModal.frequencyYearly',
-};
-const FREQUENCIES: ScheduleFrequency[] = ['weekly', 'monthly', 'yearly'];
+import { ruleForPreset } from '../../domain/recurrence';
+import type { RecurrenceRule } from '../../domain/recurrence';
 
 // Create/edit a recurring-transaction schedule (T8.9) — same "one sheet,
 // create or edit" pattern as AccountModal, with the transaction-entry
@@ -31,7 +25,6 @@ const FREQUENCIES: ScheduleFrequency[] = ['weekly', 'monthly', 'yearly'];
 // interval, next/end date, auto-post).
 export function ScheduledTransactionModal() {
   const t = useT();
-  const FREQUENCY_OPTIONS = FREQUENCIES.map((value) => ({ value, label: t(FREQUENCY_LABEL_KEY[value]) }));
   const { open: isOpen, editingId } = useAppStore((s) => s.scheduledTransactionModal);
   const close = useAppStore((s) => s.closeScheduledTransactionModal);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -47,8 +40,7 @@ export function ScheduledTransactionModal() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
-  const [frequency, setFrequency] = useState<ScheduleFrequency>('monthly');
-  const [intervalN, setIntervalN] = useState('1');
+  const [rule, setRule] = useState<RecurrenceRule>(ruleForPreset('monthly'));
   const [nextDate, setNextDate] = useState(currentDateISO());
   const [hasEndDate, setHasEndDate] = useState(false);
   const [endDate, setEndDate] = useState(currentDateISO());
@@ -62,8 +54,7 @@ export function ScheduledTransactionModal() {
     setPayee('');
     setCategoryId(null);
     setMemo('');
-    setFrequency('monthly');
-    setIntervalN('1');
+    setRule(ruleForPreset('monthly'));
     setNextDate(currentDateISO());
     setHasEndDate(false);
     setEndDate(currentDateISO());
@@ -86,8 +77,7 @@ export function ScheduledTransactionModal() {
       setCategoryId(s.categoryId);
       setAccountId(s.accountId);
       setMemo(s.memo ?? '');
-      setFrequency(s.frequency);
-      setIntervalN(String(s.intervalN));
+      setRule({ frequency: s.frequency, intervalN: s.intervalN, daysOfWeekMask: s.daysOfWeekMask });
       setNextDate(s.nextDate);
       setHasEndDate(s.endDate != null);
       setEndDate(s.endDate ?? currentDateISO());
@@ -114,8 +104,9 @@ export function ScheduledTransactionModal() {
       payeeName: payee,
       memo: memo || null,
       amountCents: enteredCents * (direction === 'out' ? -1 : 1),
-      frequency,
-      intervalN: Math.max(1, Math.round(parseFloat(intervalN) || 1)),
+      frequency: rule.frequency,
+      intervalN: rule.intervalN,
+      daysOfWeekMask: rule.daysOfWeekMask,
       nextDate,
       endDate: hasEndDate ? endDate : null,
       autoPost,
@@ -263,34 +254,8 @@ export function ScheduledTransactionModal() {
           <TextField label={t('scheduledTransactionModal.memoLabel')} value={memo} onChangeText={setMemo} placeholder={t('spend.memoPlaceholder')} />
 
           <Text style={styles.sectionLabel}>{t('scheduledTransactionModal.scheduleHeading')}</Text>
-          <DropdownField
-            compact
-            label={t('scheduledTransactionModal.frequencyLabel')}
-            valueLabel={FREQUENCY_OPTIONS.find((o) => o.value === frequency)?.label ?? ''}
-          >
-            {(closeDropdown) => (
-              <>
-                {FREQUENCY_OPTIONS.map((opt) => (
-                  <DropdownOption
-                    key={opt.value}
-                    label={opt.label}
-                    selected={frequency === opt.value}
-                    onPress={() => {
-                      setFrequency(opt.value);
-                      closeDropdown();
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </DropdownField>
-          <TextField
-            label={t('scheduledTransactionModal.intervalLabel')}
-            value={intervalN}
-            onChangeText={setIntervalN}
-            keyboardType="number-pad"
-          />
           <DateField label={t('scheduledTransactionModal.nextDateLabel')} value={nextDate} onChange={setNextDate} />
+          <RepeatField label={t('scheduledTransactionModal.repeatLabel')} rule={rule} onChange={setRule} startDate={nextDate} />
           <Pressable style={styles.checkboxRow} onPress={() => setHasEndDate((v) => !v)}>
             <View style={[styles.checkbox, hasEndDate && styles.checkboxChecked]}>
               {hasEndDate ? <Text style={styles.checkboxMark}>✓</Text> : null}

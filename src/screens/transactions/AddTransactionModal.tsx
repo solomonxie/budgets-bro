@@ -18,6 +18,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
+import * as scheduledTransactionsRepo from '../../db/repositories/scheduledTransactionsRepo';
 import {
   DropdownField,
   DropdownGroupLabel,
@@ -25,10 +26,13 @@ import {
 } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { DateField } from '../../components/ui/DateField';
+import { RepeatField } from '../../components/ui/RepeatField';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
+import { ruleForPreset } from '../../domain/recurrence';
+import type { RecurrenceRule } from '../../domain/recurrence';
 
 // YNAB-style amount entry: `amount` holds raw digits, always read right-to-
 // left as cents — typing "4444" reads as $44.44, no decimal point needed.
@@ -79,6 +83,15 @@ export function AddTransactionModal() {
     accounts.find((a) => a.account.id === accountId)?.account.onBudget ===
     false;
   const [date, setDate] = useState(currentDateISO());
+  // Recurring-schedule fields — only offered for a brand-new transaction
+  // (see the toggle below); editing an already-posted one has no
+  // "make this recurring" path, same as ScheduledTransactionModal has no
+  // "post this once" path the other way.
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [rule, setRule] = useState<RecurrenceRule>(ruleForPreset('monthly'));
+  const [hasEndDate, setHasEndDate] = useState(false);
+  const [endDate, setEndDate] = useState(currentDateISO());
+  const [autoPost, setAutoPost] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -127,6 +140,11 @@ export function AddTransactionModal() {
     setCategoryId(null);
     setMemo('');
     setDate(currentDateISO());
+    setIsScheduled(false);
+    setRule(ruleForPreset('monthly'));
+    setHasEndDate(false);
+    setEndDate(currentDateISO());
+    setAutoPost(false);
   };
 
   const cancel = () => {
@@ -152,12 +170,32 @@ export function AddTransactionModal() {
     }
     const amountCents = enteredCents * (direction === 'out' ? -1 : 1);
     const db = await getDb();
+    // Defense in depth — the field's hidden and cleared on account switch
+    // for a tracking account already, but never let a stale categoryId
+    // slip through regardless.
+    const categoryIdToSave = isTrackingAccount ? null : categoryId;
+    if (isScheduled && editingTransactionId == null) {
+      await scheduledTransactionsRepo.createScheduledTransaction(db, boardId, {
+        accountId,
+        categoryId: categoryIdToSave,
+        payeeName: payee,
+        memo: memo || null,
+        amountCents,
+        frequency: rule.frequency,
+        intervalN: rule.intervalN,
+        daysOfWeekMask: rule.daysOfWeekMask,
+        nextDate: date,
+        endDate: hasEndDate ? endDate : null,
+        autoPost,
+      });
+      bumpDataVersion();
+      close();
+      reset();
+      return;
+    }
     const input = {
       accountId,
-      // Defense in depth — the field's hidden and cleared on account switch
-      // for a tracking account already, but never let a stale categoryId
-      // slip through regardless.
-      categoryId: isTrackingAccount ? null : categoryId,
+      categoryId: categoryIdToSave,
       payeeName: payee,
       memo: memo || null,
       amountCents,
@@ -345,7 +383,7 @@ export function AddTransactionModal() {
               <DateField
                 hideLabel
                 shortFormat
-                label={t('common.date')}
+                label={t(isScheduled ? 'addTransactionModal.startDateLabel' : 'common.date')}
                 value={date}
                 onChange={setDate}
               />
@@ -380,6 +418,70 @@ export function AddTransactionModal() {
               </DropdownField>
             </View>
           </View>
+          {isEditing ? null : (
+            <Pressable
+              style={styles.checkboxRow}
+              onPress={() => setIsScheduled((v) => !v)}
+            >
+              <View style={[styles.checkbox, isScheduled && styles.checkboxChecked]}>
+                {isScheduled ? <Text style={styles.checkboxMark}>✓</Text> : null}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                {t('addTransactionModal.scheduledToggleLabel')}
+              </Text>
+            </Pressable>
+          )}
+          {isScheduled ? (
+            <>
+              <RepeatField
+                label={t('scheduledTransactionModal.repeatLabel')}
+                rule={rule}
+                onChange={setRule}
+                startDate={date}
+              />
+              <Pressable
+                style={styles.checkboxRow}
+                onPress={() => setHasEndDate((v) => !v)}
+              >
+                <View style={[styles.checkbox, hasEndDate && styles.checkboxChecked]}>
+                  {hasEndDate ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  {t('scheduledTransactionModal.hasEndDateLabel')}
+                </Text>
+              </Pressable>
+              {hasEndDate ? (
+                <DateField
+                  label={t('scheduledTransactionModal.endDateLabel')}
+                  value={endDate}
+                  onChange={setEndDate}
+                />
+              ) : null}
+              <View style={styles.field}>
+                <Text style={styles.label}>
+                  {t('scheduledTransactionModal.postingLabel')}
+                </Text>
+                <View style={styles.segmented}>
+                  <Pressable
+                    style={[styles.segment, !autoPost && styles.segmentActive]}
+                    onPress={() => setAutoPost(false)}
+                  >
+                    <Text style={[styles.segmentText, !autoPost && styles.segmentTextActive]}>
+                      {t('scheduledTransactionModal.manualApprove')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.segment, autoPost && styles.segmentActive]}
+                    onPress={() => setAutoPost(true)}
+                  >
+                    <Text style={[styles.segmentText, autoPost && styles.segmentTextActive]}>
+                      {t('scheduledTransactionModal.autoPost')}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </>
+          ) : null}
           <TextInput
             style={styles.textInput}
             placeholder={t('spend.memoPlaceholder')}
@@ -430,6 +532,21 @@ const styles = StyleSheet.create({
   // stacked, so the form reads shorter without dropping any field.
   row: { flexDirection: 'row', gap: spacing.sm },
   half: { flex: 1 },
+  field: { gap: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  checkboxLabel: { fontSize: 14, color: colors.text },
   bigSaveButton: {
     backgroundColor: colors.accent,
     borderRadius: 14,

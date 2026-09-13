@@ -109,6 +109,7 @@ export interface ScheduledTransactionRow {
   end_date: string | null;
   auto_post: number;
   created_at: string;
+  days_of_week_mask: number | null;
 }
 
 export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {

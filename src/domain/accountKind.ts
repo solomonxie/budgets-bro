@@ -1,6 +1,7 @@
 import type { AccountKind, AccountType } from './types';
 
 const KIND_BY_TYPE: Record<AccountType, AccountKind> = {
+  income: 'Income',
   cash: 'Cash',
   savings: 'Savings',
   credit_card: 'Credit',
@@ -10,7 +11,7 @@ const KIND_BY_TYPE: Record<AccountType, AccountKind> = {
   asset: 'Asset',
 };
 
-export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Cash', 'Savings', 'Tracking', 'Asset', 'Loan', 'Credit'];
+export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Income', 'Cash', 'Savings', 'Tracking', 'Asset', 'Loan', 'Credit'];
 
 // Kinds whose balances are debts (stored as negative) — used to split Net
 // Worth into Assets vs. Debts.

@@ -18,6 +18,7 @@ import type { AccountsStackParamList } from '../../navigation/types';
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountsList'>;
 
 const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
+  Income: 'accounts.kindIncome',
   Cash: 'accounts.kindCash',
   Savings: 'accounts.kindSavings',
   Credit: 'accounts.kindCredit',

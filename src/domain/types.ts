@@ -13,9 +13,10 @@ export type AccountType =
   | 'loan'
   | 'mortgage'
   | 'tracking'
-  | 'asset';
+  | 'asset'
+  | 'income';
 
-export type AccountKind = 'Cash' | 'Savings' | 'Credit' | 'Loan' | 'Tracking' | 'Asset';
+export type AccountKind = 'Income' | 'Cash' | 'Savings' | 'Credit' | 'Loan' | 'Tracking' | 'Asset';
 
 export interface Account {
   id: number;
@@ -141,4 +142,20 @@ export interface CustomGoal {
 
 export interface CustomGoalWithProgress extends CustomGoal {
   progressCents: number;
+}
+
+// A per-hour/per-paycheck/etc. detail an 'income' account's ledger amount
+// alone can't express — e.g. "$45/hr as of March" alongside whatever
+// variable hours actually got logged as transactions. Same
+// history-of-effective-dated-rows shape as AccountRateChange, generalized
+// with a unit instead of assuming an annual rate.
+export type IncomeUnit = 'year' | 'month' | 'hour' | 'paycheck';
+
+export interface IncomeDetail {
+  id: number;
+  accountId: number;
+  amountCents: number;
+  unit: IncomeUnit;
+  effectiveDate: string; // 'YYYY-MM-DD'
+  note: string | null;
 }

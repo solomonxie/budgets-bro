@@ -17,6 +17,8 @@ import { LoanDetailsCard } from './LoanDetailsCard';
 import { HouseValueDetails } from './HouseValueDetails';
 import { TrackingValueDetails } from './TrackingValueDetails';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
+import { useIncomeInsights } from '../../hooks/useIncomeInsights';
+import { IncomeTrendChart } from './IncomeTrendChart';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -43,6 +45,11 @@ export function AccountDetailScreen() {
   const isMortgage = accountWithBalance?.account.type === 'mortgage';
   const isTracking = accountWithBalance?.account.type === 'tracking';
   const isAsset = accountWithBalance?.account.type === 'asset';
+  const isIncome = accountWithBalance?.account.type === 'income';
+  // A swept Income account's own ledger balance always nets to ~0 (see
+  // transactionsRepo's income auto-transfer) — not worth a number of its
+  // own, so the balance box shows what it actually earned instead.
+  const { thisMonthCents, thisYearCents, trend } = useIncomeInsights(isIncome ? accountId : null);
   // Savings/cash accounts keep their normal ledger balance (opening +
   // transactions) — they just get the same optional value-history
   // log/chart a tracking account has, purely to visualize deposits vs.
@@ -101,6 +108,16 @@ export function AccountDetailScreen() {
   return (
     <ScreenContainer>
       <View style={styles.summaryCard}>
+        {isIncome ? (
+          <Pressable style={styles.summaryTopRow} onPress={() => setValueExpanded((v) => !v)}>
+            <View style={styles.summaryLeft}>
+              <Text style={styles.summaryLabel}>{t('accountDetail.incomeThisMonth')}</Text>
+              <Text style={styles.summaryValue}>{formatMoney(thisMonthCents)}</Text>
+              <Text style={styles.hint}>{t('accountDetail.incomeThisYear', { amount: formatMoney(thisYearCents) })}</Text>
+            </View>
+            <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
+          </Pressable>
+        ) : (
         <View style={styles.summaryTopRow}>
           <View style={styles.summaryLeft}>
             <Text style={styles.summaryLabel}>{t('accountDetail.balance')}</Text>
@@ -138,6 +155,8 @@ export function AccountDetailScreen() {
             </Pressable>
           ) : null}
         </View>
+        )}
+        {isIncome && valueExpanded ? <IncomeTrendChart points={trend} /> : null}
         {isMortgage && valueExpanded && accountWithBalance ? (
           <HouseValueDetails
             account={accountWithBalance.account}
@@ -290,6 +309,7 @@ const styles = StyleSheet.create({
   depositGainRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   depositedText: { fontSize: 12, color: colors.textMuted },
   gainText: { fontSize: 12, fontWeight: '700', color: colors.positive },
+  hint: { fontSize: 12, color: colors.textMuted },
   houseValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   houseValueText: { fontSize: 15, fontWeight: '700', color: colors.text },
   trackingValueHeader: {

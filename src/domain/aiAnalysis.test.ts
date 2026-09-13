@@ -51,4 +51,20 @@ describe('formatContextForPrompt', () => {
     expect(text).toContain('Groceries: assigned $500, spent $482.13');
     expect(text).toContain('Dining Out — 2026-08: $180, 2026-09: $276.54');
   });
+
+  it('omits the profile line entirely when no field is set', () => {
+    expect(formatContextForPrompt(context)).not.toContain('Household profile');
+  });
+
+  it('includes only the profile fields that were actually filled in', () => {
+    const text = formatContextForPrompt({ ...context, profile: { city: 'Vancouver', country: '', age: '34', familySize: '' } });
+    expect(text).toContain('Household profile: city: Vancouver, age: 34');
+    expect(text).not.toContain('country:');
+    expect(text).not.toContain('family size:');
+  });
+
+  it('leaves the profile untouched by redactForPrivacy', () => {
+    const withProfile: AnalysisContext = { ...context, profile: { city: 'Vancouver', country: 'Canada', age: '34', familySize: '3' } };
+    expect(redactForPrivacy(withProfile).profile).toEqual(withProfile.profile);
+  });
 });

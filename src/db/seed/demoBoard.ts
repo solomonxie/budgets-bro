@@ -6,6 +6,8 @@ import * as accountValueHistoryRepo from '../repositories/accountValueHistoryRep
 import * as categoriesRepo from '../repositories/categoriesRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as budgetsRepo from '../repositories/budgetsRepo';
+import * as incomeRepo from '../repositories/incomeRepo';
+import * as incomeDetailHistoryRepo from '../repositories/incomeDetailHistoryRepo';
 import { currentMonth, lastNMonths } from '../../domain/month';
 import { addMonths } from '../../finance-tools/amortization';
 
@@ -40,11 +42,12 @@ function amortize(principalCents: number, annualRateBps: number, termMonths: num
 }
 
 // Invented, middle-class household finances shaped like a real board —
-// dual income (~$120k/yr combined), one mortgaged primary residence, one
-// fully paid-off cabin, a couple of credit cards, car loan/lease, a
-// student loan, a line of credit, and modest RRSP/TFSA/investing — for
-// showing someone the app without exposing any real money. Every number
-// here is fictional; nothing is derived from the caller's actual data.
+// three income accounts (salary, part-time, freelance; ~$120k/yr combined),
+// one mortgaged primary residence, one fully paid-off cabin, a couple of
+// credit cards, car loan/lease, a student loan, a line of credit, and
+// modest RRSP/TFSA/investing — for showing someone the app without
+// exposing any real money. Every number here is fictional; nothing is
+// derived from the caller's actual data.
 export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const boardId = await boardsRepo.createBoard(db, DEMO_BOARD_NAME);
   const months = lastNMonths(currentMonth(), 24); // oldest → newest, 24 entries
@@ -58,6 +61,45 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     name: 'High-Interest Savings',
     type: 'savings',
     openingBalanceCents: cents(12000),
+  });
+
+  // Income accounts — one per earner/gig, showcasing the type's three
+  // Pay Rate History units. Each is a recording layer only: its own
+  // balance nets back to ~0 every month via the sweep below, mirroring
+  // AddTransactionModal's real auto-transfer into the default cash
+  // account (set here to `checkingId`, same as Settings would).
+  const salaryIncomeId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Meridian Robotics Salary',
+    type: 'income',
+    openingBalanceCents: 0,
+  });
+  await incomeDetailHistoryRepo.addDetail(db, salaryIncomeId, {
+    amountCents: cents(72000),
+    unit: 'year',
+    effectiveDate: day(months[0], 1),
+    note: 'Software engineer, base salary',
+  });
+  const partTimeIncomeId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Alderbrook Part-Time Work',
+    type: 'income',
+    openingBalanceCents: 0,
+  });
+  await incomeDetailHistoryRepo.addDetail(db, partTimeIncomeId, {
+    amountCents: cents(28),
+    unit: 'hour',
+    effectiveDate: day(months[0], 1),
+    note: 'Weekend retail shifts',
+  });
+  const freelanceIncomeId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Freelance Design Gigs',
+    type: 'income',
+    openingBalanceCents: 0,
+  });
+  await incomeDetailHistoryRepo.addDetail(db, freelanceIncomeId, {
+    amountCents: cents(650),
+    unit: 'paycheck',
+    effectiveDate: day(months[0], 1),
+    note: 'Per-project rate, varies with scope',
   });
   const ccId = await accountsRepo.createAccount(db, boardId, {
     name: 'Rewards Visa',
@@ -209,6 +251,33 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const shoppingPayees = ['Amazon', 'Best Buy', 'Apple Store'];
   const travelPayees = ['Air Canada', 'WestJet'];
 
+  // Every 'income' account sweeps here — same setting Settings > Income
+  // would write via incomeRepo.setDefaultCashAccountId.
+  await incomeRepo.setDefaultCashAccountId(db, boardId, checkingId);
+
+  // Post one income entry on its own income account (no transferAccountId —
+  // counted by the income-insights queries), then sweep the same amount to
+  // the cash account via a real transfer. transactionsRepo.createTransaction
+  // alone doesn't do this; only AddTransactionModal's save() does, so
+  // seeding has to replicate both steps by hand.
+  const postIncome = async (incomeAccountId: number, payeeName: string, amountCents: number, date: string) => {
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: incomeAccountId,
+      categoryId: null,
+      payeeName,
+      memo: null,
+      amountCents,
+      date,
+    });
+    await transactionsRepo.createTransfer(db, boardId, {
+      fromAccountId: incomeAccountId,
+      toAccountId: checkingId,
+      amountCents,
+      date,
+      memo: payeeName,
+    });
+  };
+
   let rrspBalance = cents(45000);
   let tfsaBalance = cents(22000);
   let investBalance = cents(12000);
@@ -220,39 +289,17 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     const month = months[i];
     const inflation = 1 + (i / months.length) * 0.05; // slow drift up over the 2 years
 
-    // Household income — two earners, twice a month, ~$120k/yr combined.
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Meridian Robotics Inc',
-      memo: null,
-      amountCents: cents(rand(2900, 3100) * inflation),
-      date: day(month, 1),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Meridian Robotics Inc',
-      memo: null,
-      amountCents: cents(rand(2900, 3100) * inflation),
-      date: day(month, 15),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Alderbrook Consulting Group',
-      memo: null,
-      amountCents: cents(rand(1900, 2100) * inflation),
-      date: day(month, 1),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Alderbrook Consulting Group',
-      memo: null,
-      amountCents: cents(rand(1900, 2100) * inflation),
-      date: day(month, 15),
-    });
+    // Household income — two earners paid twice a month (~$120k/yr
+    // combined salary + part-time), plus the odd freelance gig.
+    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(2900, 3100) * inflation), day(month, 1));
+    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(2900, 3100) * inflation), day(month, 15));
+    await postIncome(partTimeIncomeId, 'Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 1));
+    await postIncome(partTimeIncomeId, 'Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 15));
+    // Freelance work is lumpy — most months get one payment, some get
+    // none, so the trend graph actually looks like gig income.
+    if (Math.random() < 0.75) {
+      await postIncome(freelanceIncomeId, 'Freelance Design Gigs', cents(rand(400, 1200) * inflation), day(month, pick([8, 22])));
+    }
 
     // Mortgage — principal (transfer, moves the loan balance) + interest
     // (plain expense) on the same category, same day. The cabin has no

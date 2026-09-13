@@ -1,4 +1,4 @@
-import { matchPreset, nextOccurrenceDate, ruleForPreset, MONDAY, THURSDAY, WEEKDAYS_MASK, WEEKEND_MASK } from './recurrence';
+import { nextOccurrenceDate, MONDAY, THURSDAY } from './recurrence';
 
 describe('nextOccurrenceDate', () => {
   it('steps daily by intervalN days', () => {
@@ -58,30 +58,5 @@ describe('nextOccurrenceDate', () => {
     it('falls back to plain weekly stepping when daysOfWeekMask is omitted', () => {
       expect(nextOccurrenceDate('2026-01-01', 'weekly', 1, null)).toBe('2026-01-08');
     });
-  });
-});
-
-describe('recurrence presets', () => {
-  it('round-trips every preset through matchPreset', () => {
-    expect(matchPreset(ruleForPreset('daily'))).toBe('daily');
-    expect(matchPreset(ruleForPreset('weekdays'))).toBe('weekdays');
-    expect(matchPreset(ruleForPreset('weekends'))).toBe('weekends');
-    expect(matchPreset(ruleForPreset('weekly'))).toBe('weekly');
-    expect(matchPreset(ruleForPreset('biweekly'))).toBe('biweekly');
-    expect(matchPreset(ruleForPreset('monthly'))).toBe('monthly');
-    expect(matchPreset(ruleForPreset('every3Months'))).toBe('every3Months');
-    expect(matchPreset(ruleForPreset('every6Months'))).toBe('every6Months');
-    expect(matchPreset(ruleForPreset('yearly'))).toBe('yearly');
-  });
-
-  it('matches weekdays/weekends masks regardless of how they were built', () => {
-    expect(matchPreset({ frequency: 'weekly', intervalN: 1, daysOfWeekMask: WEEKDAYS_MASK })).toBe('weekdays');
-    expect(matchPreset({ frequency: 'weekly', intervalN: 1, daysOfWeekMask: WEEKEND_MASK })).toBe('weekends');
-  });
-
-  it('returns null for anything that needs the Custom label', () => {
-    expect(matchPreset({ frequency: 'daily', intervalN: 5, daysOfWeekMask: null })).toBeNull();
-    expect(matchPreset({ frequency: 'weekly', intervalN: 2, daysOfWeekMask: MONDAY | THURSDAY })).toBeNull();
-    expect(matchPreset({ frequency: 'monthly', intervalN: 2, daysOfWeekMask: null })).toBeNull();
   });
 });

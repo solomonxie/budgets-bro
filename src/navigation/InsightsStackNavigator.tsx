@@ -1,8 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { InsightsScreen } from '../screens/insights/InsightsScreen';
-import { UpcomingScreen } from '../screens/insights/UpcomingScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
+import { CalculatorsHomeScreen } from '../screens/calculators/CalculatorsHomeScreen';
 import { StubScreen } from '../components/ui/StubScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
@@ -10,10 +10,10 @@ import type { InsightsStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
 
-// Baby Steps, Tax Insights, and Calculators are stubbed to "coming soon"
-// until redesigned — swap these back to their real screen components
-// (screens/insights/BabyStepsScreen, screens/tax/TaxInsightsScreen,
-// screens/calculators/CalculatorsHomeScreen) when ready.
+// Baby Steps and Tax Insights are stubbed to "coming soon" until
+// redesigned — swap these back to their real screen components
+// (screens/insights/BabyStepsScreen, screens/tax/TaxInsightsScreen)
+// when ready.
 //
 // Transactions is pushed locally here too (same screen component as
 // Budget's) instead of cross-tab-navigating into Budget's stack — so
@@ -35,11 +35,8 @@ export function InsightsStackNavigator() {
       <Stack.Screen name="TaxInsights" options={{ title: t('insights.taxInsights') }}>
         {() => <StubScreen title={t('insights.taxInsights')} />}
       </Stack.Screen>
-      <Stack.Screen name="Calculators" options={{ title: t('insights.calculators') }}>
-        {() => <StubScreen title={t('insights.calculators')} />}
-      </Stack.Screen>
+      <Stack.Screen name="Calculators" component={CalculatorsHomeScreen} options={{ title: t('insights.calculators') }} />
       <Stack.Screen name="AiAnalysis" component={AiAnalysisScreen} options={{ title: t('aiAnalysis.title') }} />
-      <Stack.Screen name="Upcoming" component={UpcomingScreen} options={{ title: t('upcoming.title') }} />
     </Stack.Navigator>
   );
 }

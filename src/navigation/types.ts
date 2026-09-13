@@ -28,7 +28,6 @@ export type InsightsStackParamList = {
   TaxInsights: undefined;
   Calculators: undefined;
   AiAnalysis: undefined;
-  Upcoming: undefined;
 };
 
 export type RootTabParamList = {

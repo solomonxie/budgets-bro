@@ -13,7 +13,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { HouseValueDetails } from './HouseValueDetails';
-import { useAccountHouseValueHistory } from '../../hooks/useAccountHouseValueHistory';
+import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -42,7 +42,7 @@ export function AccountDetailScreen() {
     history: houseValueHistory,
     currentValueCents,
     refresh: refreshHouseValue,
-  } = useAccountHouseValueHistory(isMortgage ? accountId : null);
+  } = useAccountValueHistory(isMortgage ? accountId : null);
 
   // Closing the account (from Edit) removes it from `accounts` — bounce
   // back to the list instead of showing a blank detail page.

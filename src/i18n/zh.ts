@@ -47,11 +47,10 @@ export const zh: Record<keyof typeof en, string> = {
   'assignedAmountModal.history': '历史记录',
 
   'settings.boardsHeading': '预算账本',
-  'settings.boardsHint': '账本是一个独立的预算——拥有自己的账户、分类和交易记录。切换账本可在同一应用中管理多个独立预算（例如个人预算和共同预算）。',
+  'settings.boardsHint': '账本是一个可切换的独立预算。',
   'settings.newBoardLink': '+ 新建账本',
   'settings.createDemoBoard': '创建演示账本',
-  'settings.payeesHeading': '收款方',
-  'settings.payeesHint': '选择一个收款方进行重命名或删除，或输入新名称以创建。',
+  'settings.payeesHeading': '管理收款方',
   'settings.payeeSelectPlaceholder': '选择或创建…',
   'settings.payeeSearchPlaceholder': '搜索或输入新的收款方',
   'settings.payeeLinkedHint': '已关联到某个账户——由系统自动管理，无法在此重命名或删除。',

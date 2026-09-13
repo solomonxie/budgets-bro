@@ -31,7 +31,7 @@ export interface NetWorth {
 // negative (debt) — Net Worth is the sum of everything either way, but
 // Assets/Debts are broken out since lumping them into one number isn't
 // meaningful on its own. A mortgage's `houseValueCents` (from
-// accountHouseValueHistoryRepo's latest entry) is folded in as its
+// accountValueHistoryRepo's latest entry) is folded in as its
 // offsetting asset, so a mortgage nets to home equity, not just the debt.
 export function netWorth(accounts: { type: AccountType; balanceCents: number; houseValueCents?: number }[]): NetWorth {
   let assetsCents = 0;

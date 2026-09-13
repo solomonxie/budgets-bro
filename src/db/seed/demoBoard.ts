@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import * as boardsRepo from '../repositories/boardsRepo';
 import * as accountsRepo from '../repositories/accountsRepo';
 import * as accountRateHistoryRepo from '../repositories/accountRateHistoryRepo';
-import * as accountHouseValueHistoryRepo from '../repositories/accountHouseValueHistoryRepo';
+import * as accountValueHistoryRepo from '../repositories/accountValueHistoryRepo';
 import * as categoriesRepo from '../repositories/categoriesRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as budgetsRepo from '../repositories/budgetsRepo';
@@ -78,9 +78,9 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     originalHousePriceCents: cents(1190000),
   });
   await accountRateHistoryRepo.addRateChange(db, lakeviewId, 479, day(months[0], 1));
-  await accountHouseValueHistoryRepo.addValueChange(db, lakeviewId, cents(1190000), day(months[0], 1));
-  await accountHouseValueHistoryRepo.addValueChange(db, lakeviewId, cents(1360000), day(months[11], 1));
-  await accountHouseValueHistoryRepo.addValueChange(db, lakeviewId, cents(1460000), day(months[23], 15));
+  await accountValueHistoryRepo.addValueChange(db, lakeviewId, cents(1190000), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, lakeviewId, cents(1360000), day(months[11], 1));
+  await accountValueHistoryRepo.addValueChange(db, lakeviewId, cents(1460000), day(months[23], 15));
 
   // Whistler: bought right at the start of the window — full original
   // principal, no seasoning.
@@ -96,9 +96,9 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     originalHousePriceCents: cents(650000),
   });
   await accountRateHistoryRepo.addRateChange(db, whistlerId, 510, day(months[0], 1));
-  await accountHouseValueHistoryRepo.addValueChange(db, whistlerId, cents(650000), day(months[0], 1));
-  await accountHouseValueHistoryRepo.addValueChange(db, whistlerId, cents(685000), day(months[11], 1));
-  await accountHouseValueHistoryRepo.addValueChange(db, whistlerId, cents(715000), day(months[23], 15));
+  await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(650000), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(685000), day(months[11], 1));
+  await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(715000), day(months[23], 15));
 
   const rrspId = await accountsRepo.createAccount(db, boardId, { name: 'RRSP', type: 'tracking', openingBalanceCents: cents(150000) });
   const tfsaId = await accountsRepo.createAccount(db, boardId, { name: 'TFSA', type: 'tracking', openingBalanceCents: cents(70000) });

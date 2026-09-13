@@ -44,12 +44,10 @@ export const en = {
   'assignedAmountModal.history': 'History',
 
   'settings.boardsHeading': 'Budget Boards',
-  'settings.boardsHint':
-    'A board is a self-contained budget — its own accounts, categories, and transactions. Switch boards to keep separate budgets (e.g. personal vs. a shared one) in one app.',
+  'settings.boardsHint': 'A board is a self-contained budget you can switch between.',
   'settings.newBoardLink': '+ New Board',
   'settings.createDemoBoard': 'Create Demo Board',
-  'settings.payeesHeading': 'Payees',
-  'settings.payeesHint': 'Pick a payee to rename or delete it, or type a new name to create one.',
+  'settings.payeesHeading': 'Manage Payees',
   'settings.payeeSelectPlaceholder': 'Select or create…',
   'settings.payeeSearchPlaceholder': 'Search or type a new payee',
   'settings.payeeLinkedHint': 'Linked to an account — managed automatically, can’t be renamed or deleted here.',

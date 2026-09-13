@@ -6,6 +6,7 @@ import { findOrCreatePayee } from './payeesRepo';
 import {
   LIST_FOR_BOARD,
   LIST_DUE_AUTO_POST,
+  GET_BY_ID,
   INSERT_SCHEDULED_TRANSACTION,
   UPDATE_SCHEDULED_TRANSACTION,
   UPDATE_NEXT_DATE,
@@ -36,6 +37,11 @@ function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabel
 export async function listForBoard(db: SQLiteDatabase, boardId: number): Promise<ScheduledTransactionWithLabels[]> {
   const rows = await db.getAllAsync<ScheduledTransactionJoinRow>(LIST_FOR_BOARD, boardId);
   return rows.map(mapRow);
+}
+
+export async function getScheduledTransaction(db: SQLiteDatabase, id: number): Promise<ScheduledTransactionWithLabels | null> {
+  const row = await db.getFirstAsync<ScheduledTransactionJoinRow>(GET_BY_ID, id);
+  return row ? mapRow(row) : null;
 }
 
 export async function listDueAutoPost(db: SQLiteDatabase, boardId: number, throughDate: string): Promise<ScheduledTransactionWithLabels[]> {

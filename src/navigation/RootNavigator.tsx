@@ -6,6 +6,7 @@ import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { AddTransactionModal } from '../screens/transactions/AddTransactionModal';
 import { AccountModal } from '../screens/accounts/AccountModal';
+import { ScheduledTransactionModal } from '../screens/insights/ScheduledTransactionModal';
 import { SettingsModal } from '../screens/settings/SettingsModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import type { TabIconName } from '../components/ui/TabBarIcon';
@@ -86,6 +87,7 @@ export function RootNavigator() {
       </Tab.Navigator>
       <AddTransactionModal />
       <AccountModal />
+      <ScheduledTransactionModal />
       <SettingsModal />
     </NavigationContainer>
   );

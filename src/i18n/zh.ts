@@ -271,6 +271,18 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.step7Title': '积累财富并回馈社会',
   'babySteps.stepPrefix': '第 {number} 步：{title}',
   'babySteps.progressCaption': '{current} / {target}',
+  'babySteps.goalsHeading': '我的目标',
+  'babySteps.addGoal': '+ 添加目标',
+  'babySteps.goalsEmpty': '还没有自定义目标——在上面设定你自己的目标，手动或通过关联账户跟踪进度。',
+
+  'customGoalModal.title': '目标',
+  'customGoalModal.nameLabel': '名称',
+  'customGoalModal.namePlaceholder': '例如 购车首付',
+  'customGoalModal.targetLabel': '目标金额',
+  'customGoalModal.modeManual': '手动',
+  'customGoalModal.modeLinked': '关联账户',
+  'customGoalModal.linkedAccountLabel': '账户',
+  'customGoalModal.progressLabel': '当前进度',
 
   'taxInsights.title': '税务洞察 — {year}',
   'taxInsights.disclaimer': '基于你的账本数据得出的初步估算，仅供规划参考。不构成税务建议——尚未涵盖申报身份、税率级距或司法管辖区的具体规则。',

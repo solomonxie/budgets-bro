@@ -3,18 +3,14 @@ import { InsightsScreen } from '../screens/insights/InsightsScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
 import { CalculatorsHomeScreen } from '../screens/calculators/CalculatorsHomeScreen';
-import { StubScreen } from '../components/ui/StubScreen';
+import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
+import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
 import type { InsightsStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
 
-// Baby Steps and Tax Insights are stubbed to "coming soon" until
-// redesigned — swap these back to their real screen components
-// (screens/insights/BabyStepsScreen, screens/tax/TaxInsightsScreen)
-// when ready.
-//
 // Transactions is pushed locally here too (same screen component as
 // Budget's) instead of cross-tab-navigating into Budget's stack — so
 // tapping a category/"All Others" row and then going back lands on
@@ -29,12 +25,8 @@ export function InsightsStackNavigator() {
         options={{ title: t('nav.insights'), headerLeft: () => <SettingsButton /> }}
       />
       <Stack.Screen name="Transactions" component={TransactionsScreen} options={{ title: t('nav.transactions') }} />
-      <Stack.Screen name="BabySteps" options={{ title: t('insights.babySteps') }}>
-        {() => <StubScreen title={t('insights.babySteps')} />}
-      </Stack.Screen>
-      <Stack.Screen name="TaxInsights" options={{ title: t('insights.taxInsights') }}>
-        {() => <StubScreen title={t('insights.taxInsights')} />}
-      </Stack.Screen>
+      <Stack.Screen name="BabySteps" component={BabyStepsScreen} options={{ title: t('insights.babySteps') }} />
+      <Stack.Screen name="TaxInsights" component={TaxInsightsScreen} options={{ title: t('insights.taxInsights') }} />
       <Stack.Screen name="Calculators" component={CalculatorsHomeScreen} options={{ title: t('insights.calculators') }} />
       <Stack.Screen name="AiAnalysis" component={AiAnalysisScreen} options={{ title: t('aiAnalysis.title') }} />
     </Stack.Navigator>

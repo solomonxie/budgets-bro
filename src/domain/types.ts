@@ -126,3 +126,19 @@ export interface ScheduledTransactionWithLabels extends ScheduledTransaction {
   categoryIcon: string | null;
   accountName: string;
 }
+
+// A user-defined Baby Steps goal — progress comes from exactly one of
+// `linkedAccountId` (the account's live balance) or `manualProgressCents`
+// (typed in directly), never both.
+export interface CustomGoal {
+  id: number;
+  name: string;
+  targetCents: number;
+  linkedAccountId: number | null;
+  manualProgressCents: number | null;
+  sortOrder: number;
+}
+
+export interface CustomGoalWithProgress extends CustomGoal {
+  progressCents: number;
+}

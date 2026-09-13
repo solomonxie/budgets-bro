@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -14,6 +14,7 @@ interface AssignedAmountModalProps {
   initialCents: number;
   unassignedCents: number;
   lastMonthAssignedCents: number;
+  rolloverCents: number;
   menuItems: MenuItem[];
   onSave: (cents: number) => void;
   onHistory: () => void;
@@ -34,6 +35,7 @@ export function AssignedAmountModal({
   initialCents,
   unassignedCents,
   lastMonthAssignedCents,
+  rolloverCents,
   menuItems,
   onSave,
   onHistory,
@@ -42,11 +44,17 @@ export function AssignedAmountModal({
   const t = useT();
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (visible) {
       setValue((initialCents / 100).toString());
       setError(null);
+      // Deferred, not `autoFocus` — focusing the field in the same tick as
+      // the modal's own fade-in competes with it for the main thread and
+      // reads as the popup taking a beat to appear (same fix as
+      // AddTransactionModal's amount field).
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [visible, initialCents]);
 
@@ -79,6 +87,11 @@ export function AssignedAmountModal({
             {categoryIcon ? `${categoryIcon} ` : ''}
             {categoryName}
           </Text>
+          {rolloverCents !== 0 ? (
+            <Text style={styles.rolloverHint}>
+              {t('assignedAmountModal.rolloverHint', { amount: formatMoney(rolloverCents) })}
+            </Text>
+          ) : null}
           <Text style={styles.label}>{t('assignedAmountModal.assignedThisMonth')}</Text>
           <TextInput
             style={styles.amountInput}
@@ -135,6 +148,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
+  rolloverHint: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
   amountInput: {
     fontSize: 40,
     fontWeight: '700',

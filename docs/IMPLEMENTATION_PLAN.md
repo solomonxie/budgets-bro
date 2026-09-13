@@ -68,8 +68,8 @@ Requested as a follow-up to Phase 4.
 Requested as a follow-up to Phase 4 — not yet implemented.
 
 - [x] T6.1 Replace the +/- stepper on a category's assigned amount with a direct number input (tap the amount, type a value)
-- [ ] T6.2 Show the rollover carried into the typed amount — i.e. the input should make clear how much of the category's balance is carryover from prior months vs. new assignment this month, not just accept a number in a vacuum
-- [ ] T6.3 Validate against Unassigned Cash: an assignment that would push Unassigned Cash negative is rejected with an explicit message to unassign from other categories first, rather than silently allowed (today's `adjustAssignedCents` has no such check)
+- [x] T6.2 Show the rollover carried into the typed amount — the assign popup shows a "Carried over: $X" line (derived from the category's existing balance/assigned/activity fields, no new query) whenever there's a nonzero carryover from prior months, so the typed number reads as new assignment on top of that, not a number in a vacuum
+- [x] T6.3 Validate against Unassigned Cash — already shipped in `a0331c6`: `AssignedAmountModal` caps the typed amount at `unassignedCents + initialCents` and shows `assignedAmountModal.exceedsError` if exceeded (this task's original "no such check" note was stale)
 
 ## Phase 7: YNAB Data Import
 One-time, idempotent import of a user's existing YNAB register export — see [`yama-mvp.md`](yama-mvp.md#ynab-data-import). Needs stable schema (Phase 1/2) and the Budget UI (Phase 3) to sanity-check imported data against.

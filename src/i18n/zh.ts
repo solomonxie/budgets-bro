@@ -42,6 +42,7 @@ export const zh: Record<keyof typeof en, string> = {
 
   'assignedAmountModal.assignedThisMonth': '本月已分配',
   'assignedAmountModal.unassignedHint': '未分配：{unassigned}   ·   上月：{lastMonth}',
+  'assignedAmountModal.rolloverHint': '结转：{amount}',
   'assignedAmountModal.exceedsError': '超出可分配金额 {amount}',
   'assignedAmountModal.history': '历史记录',
 

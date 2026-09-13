@@ -11,6 +11,11 @@ export const SELECT_WITH_LABELS = `
 
 export const LIST_FOR_BOARD = `${SELECT_WITH_LABELS} WHERE s.board_id = ? ORDER BY s.next_date ASC, s.id ASC`;
 
+// Powers the account page's "Scheduled" box, which doubles as schedule
+// management (view next date, approve, cancel) — see
+// useAccountScheduledTransactions.
+export const LIST_FOR_ACCOUNT = `${SELECT_WITH_LABELS} WHERE s.account_id = ? ORDER BY s.next_date ASC, s.id ASC`;
+
 export const GET_BY_ID = `${SELECT_WITH_LABELS} WHERE s.id = ?`;
 
 // Schedules due for approval — `next_date <= ?` (today). Nothing posts

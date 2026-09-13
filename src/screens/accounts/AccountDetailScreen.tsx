@@ -7,6 +7,8 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useFutureTransactions } from '../../hooks/useFutureTransactions';
+import { useAccountScheduledTransactions } from '../../hooks/useAccountScheduledTransactions';
+import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { withRunningBalances } from '../../domain/register';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
@@ -35,6 +37,8 @@ export function AccountDetailScreen() {
   const { accounts, loading } = useAccounts();
   const { transactions } = useTransactions(accountId);
   const { futureTransactions } = useFutureTransactions(accountId);
+  const { scheduledTransactions, approve: approveSchedule, cancel: cancelSchedule } = useAccountScheduledTransactions(accountId);
+  const today = currentDateISO();
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
   const [valueExpanded, setValueExpanded] = useState(false);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
@@ -194,7 +198,7 @@ export function AccountDetailScreen() {
           />
         ) : null}
       </View>
-      {futureTransactions.length > 0 ? (
+      {futureTransactions.length > 0 || scheduledTransactions.length > 0 ? (
         <View style={styles.scheduledCard}>
           <Pressable
             style={styles.scheduledHeader}
@@ -202,7 +206,7 @@ export function AccountDetailScreen() {
           >
             <Text style={styles.scheduledTitle}>
               {t('accountDetail.scheduledHeading', {
-                count: futureTransactions.length,
+                count: futureTransactions.length + scheduledTransactions.length,
               })}
             </Text>
             <Text style={styles.scheduledChevron}>
@@ -214,6 +218,42 @@ export function AccountDetailScreen() {
               <Text style={styles.scheduledHint}>
                 {t('accountDetail.scheduledHint')}
               </Text>
+              {scheduledTransactions.map((s) => (
+                <View key={`recurring-${s.id}`} style={styles.scheduledRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.payee}>
+                      {s.payeeName ?? t('common.noPayee')}
+                    </Text>
+                    <Text style={styles.sub}>
+                      {s.categoryIcon ? `${s.categoryIcon} ` : ''}
+                      {s.categoryName ?? t('common.uncategorized')} ·{' '}
+                      {t('accountDetail.nextDateLabel', { date: s.nextDate })}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.amount,
+                      s.amountCents < 0 ? styles.negative : styles.positive,
+                    ]}
+                  >
+                    {formatMoney(s.amountCents)}
+                  </Text>
+                  {s.nextDate <= today ? (
+                    <Pressable style={styles.approveBtn} onPress={() => approveSchedule(s.id)}>
+                      <Text style={styles.approveBtnText}>{t('pendingScheduled.approve')}</Text>
+                    </Pressable>
+                  ) : null}
+                  <RowMenuButton
+                    items={[
+                      {
+                        label: t('accountDetail.cancelSchedule'),
+                        destructive: true,
+                        onPress: () => cancelSchedule(s.id),
+                      },
+                    ]}
+                  />
+                </View>
+              ))}
               {futureTransactions.map((item) => (
                 <Pressable
                   key={item.id}
@@ -349,11 +389,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     opacity: 0.7,
   },
+  approveBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10 },
+  approveBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   txnRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -15,6 +15,7 @@ import { secureStore } from '../../secure/secureStore';
 import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
 import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
+import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
 import { isLocalBackupEnabled, setLocalBackupEnabled } from '../../sync/localProvider';
 import {
   syncNow,
@@ -62,6 +63,7 @@ export function SettingsScreen() {
   const [aiApiKey, setAiApiKey] = useState('');
   const [s3Configs, setS3Configs] = useState<S3ConfigMeta[]>([]);
   const [s3ModalOpen, setS3ModalOpen] = useState(false);
+  const [browsingS3Config, setBrowsingS3Config] = useState<S3ConfigMeta | null>(null);
   const [localBackupOn, setLocalBackupOn] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
   const [lastSyncedAt, setLastSyncedAtState] = useState<string | null>(null);
@@ -414,19 +416,20 @@ export function SettingsScreen() {
         <Text style={styles.sectionHint}>{t('settings.s3Hint')}</Text>
         <View style={styles.group}>
           {s3Configs.map((config) => (
-            <View key={config.id} style={styles.row}>
+            <Pressable key={config.id} style={styles.row} onPress={() => setBrowsingS3Config(config)}>
               <View style={styles.s3ConfigMain}>
                 <Text style={styles.rowTitle}>{config.bucket}</Text>
                 <Text style={styles.rowValue}>{config.keyPrefix ? `${config.region} · ${config.keyPrefix}` : config.region}</Text>
               </View>
               <RowMenuButton items={[{ label: t('common.delete'), destructive: true, onPress: () => confirmRemoveS3Config(config) }]} />
-            </View>
+            </Pressable>
           ))}
         </View>
         <Pressable style={styles.addLink} onPress={() => setS3ModalOpen(true)}>
           <Text style={styles.addLinkText}>{t('settings.addS3BackupLink')}</Text>
         </Pressable>
         <S3ConfigModal visible={s3ModalOpen} onCancel={() => setS3ModalOpen(false)} onSaved={addS3Backup} />
+        <S3BrowserModal config={browsingS3Config} onClose={() => setBrowsingS3Config(null)} />
       </View>
 
       <View style={styles.section}>

@@ -1,20 +1,17 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Polyline } from 'react-native-svg';
 import { getDb } from '../../db/client';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { HouseValueModal } from '../../components/ui/HouseValueModal';
 import type { HouseValueChangeValue } from '../../components/ui/HouseValueModal';
+import { ValueHistoryChart } from './ValueHistoryChart';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { Account, AccountValueChange } from '../../domain/types';
-
-const CHART_WIDTH = 280;
-const CHART_HEIGHT = 56;
 
 // Expanded panel under the balance box's home-value corner
 // (AccountDetailScreen): history/chart/edit for a mortgage's manual
@@ -60,16 +57,6 @@ export function HouseValueDetails({
   // balanceCents is negative (amount owed) — equity is what's left after it.
   const equityCents = currentValueCents != null ? currentValueCents + balanceCents : null;
 
-  const chronological = [...history].reverse(); // history is latest-first; the trend reads oldest→newest
-  const values = chronological.map((h) => h.valueCents);
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  const points = chronological.map((h, i) => {
-    const x = (i / (chronological.length - 1)) * CHART_WIDTH;
-    const y = maxValue === minValue ? CHART_HEIGHT / 2 : CHART_HEIGHT - ((h.valueCents - minValue) / (maxValue - minValue)) * (CHART_HEIGHT - 8) - 4;
-    return `${x},${y}`;
-  });
-
   return (
     <View style={styles.card}>
       {currentValueCents == null ? (
@@ -77,11 +64,7 @@ export function HouseValueDetails({
       ) : equityCents != null ? (
         <Text style={styles.hint}>{t('houseValueCard.equity', { amount: formatMoney(equityCents) })}</Text>
       ) : null}
-      {chronological.length > 1 ? (
-        <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-          <Polyline points={points.join(' ')} fill="none" stroke={colors.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      ) : null}
+      <ValueHistoryChart history={history} mode="single" />
       {history.map((h) => (
         <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
           <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>

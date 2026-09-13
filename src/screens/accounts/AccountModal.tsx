@@ -14,7 +14,7 @@ import * as accountValueHistoryRepo from '../../db/repositories/accountValueHist
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAppStore } from '../../state/useAppStore';
-import { isLoanLikeType } from '../../domain/accountKind';
+import { isLoanLikeType, usesLoggedValue } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { computeBalanceCorrectionCents } from '../../domain/register';
@@ -25,16 +25,15 @@ import { spacing } from '../../theme/spacing';
 import type { Account, AccountRateChange, AccountType } from '../../domain/types';
 
 const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
-  checking: 'accountModal.typeChecking',
-  savings: 'accountModal.typeSavings',
   cash: 'accountModal.typeCash',
-  income: 'accountModal.typeIncome',
-  credit_card: 'accountModal.typeCreditCard',
+  savings: 'accountModal.typeSavings',
+  tracking: 'accountModal.typeTracking',
+  asset: 'accountModal.typeAsset',
   loan: 'accountModal.typeLoan',
   mortgage: 'accountModal.typeMortgage',
-  tracking: 'accountModal.typeTracking',
+  credit_card: 'accountModal.typeCreditCard',
 };
-const TYPE_VALUES: AccountType[] = ['checking', 'savings', 'cash', 'income', 'credit_card', 'loan', 'mortgage', 'tracking'];
+const TYPE_VALUES: AccountType[] = ['cash', 'savings', 'tracking', 'asset', 'loan', 'mortgage', 'credit_card'];
 
 // Same "one sheet, create or edit" pattern as the transaction modal —
 // "+ Add Account" used to push a full-screen form; this matches it.
@@ -50,7 +49,7 @@ export function AccountModal() {
   const isEditing = editingAccountId != null;
 
   const [name, setName] = useState('');
-  const [type, setType] = useState<AccountType>('checking');
+  const [type, setType] = useState<AccountType>('cash');
   const [openingBalance, setOpeningBalance] = useState('0');
   const [latestBalance, setLatestBalance] = useState('0');
   const [loadedBalanceCents, setLoadedBalanceCents] = useState(0);
@@ -65,7 +64,7 @@ export function AccountModal() {
 
   const reset = () => {
     setName('');
-    setType('checking');
+    setType('cash');
     setOpeningBalance('0');
     setLatestBalance('0');
     setLoadedBalanceCents(0);
@@ -160,10 +159,10 @@ export function AccountModal() {
     };
     if (editingAccountId != null) {
       await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
-      // Tracking accounts don't have a "Latest Balance" correction field —
-      // their balance is driven by the value log (see TrackingValueDetails),
-      // not by a correction transaction.
-      if (type !== 'tracking') {
+      // Tracking/asset accounts don't have a "Latest Balance" correction
+      // field — their balance is driven by the value log (see
+      // TrackingValueDetails), not by a correction transaction.
+      if (!usesLoggedValue(type)) {
         const actualBalanceCents = Math.round(parseFloat(latestBalance || '0') * 100);
         const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
         if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
@@ -269,7 +268,7 @@ export function AccountModal() {
             keyboardType="decimal-pad"
             placeholder={t('common.amountPlaceholder')}
           />
-          {isEditing && type !== 'tracking' ? (
+          {isEditing && !usesLoggedValue(type) ? (
             <TextField
               label={t('accountModal.latestBalanceLabel')}
               value={latestBalance}

@@ -68,15 +68,16 @@ export function AddTransactionModal() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
-  // Tracking accounts sit outside the envelope system entirely (net-worth-
-  // only, never assigned money — see accountsRepo's on_budget derivation),
-  // so a category there wouldn't mean anything: there's no assigned cash
-  // for it to be spent out of. Budget activity queries already guard
-  // against this server-side (see databases/queries/budgets.ts), but the
-  // field shouldn't even be offered here.
+  // Off-budget accounts (Tracking, Asset) sit outside the envelope system
+  // entirely (net-worth-only, never assigned money — see accountsRepo's
+  // on_budget derivation), so a category there wouldn't mean anything:
+  // there's no assigned cash for it to be spent out of. Budget activity
+  // queries already guard against this server-side (see
+  // databases/queries/budgets.ts), but the field shouldn't even be offered
+  // here.
   const isTrackingAccount =
-    accounts.find((a) => a.account.id === accountId)?.account.type ===
-    'tracking';
+    accounts.find((a) => a.account.id === accountId)?.account.onBudget ===
+    false;
   const [date, setDate] = useState(currentDateISO());
 
   useEffect(() => {
@@ -369,7 +370,7 @@ export function AddTransactionModal() {
                         selected={accountId === account.id}
                         onPress={() => {
                           setAccountId(account.id);
-                          if (account.type === 'tracking') setCategoryId(null);
+                          if (!account.onBudget) setCategoryId(null);
                           close();
                         }}
                       />

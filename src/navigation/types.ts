@@ -18,6 +18,7 @@ export type AccountsStackParamList = {
   AccountsList: undefined;
   AccountDetail: { accountId: number };
   ClosedAccounts: undefined;
+  AmortizationSchedule: { accountId: number };
 };
 
 export type InsightsStackParamList = {

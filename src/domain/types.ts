@@ -7,16 +7,15 @@ export interface Board {
 }
 
 export type AccountType =
-  | 'checking'
   | 'savings'
   | 'credit_card'
   | 'cash'
   | 'loan'
   | 'mortgage'
-  | 'income'
-  | 'tracking';
+  | 'tracking'
+  | 'asset';
 
-export type AccountKind = 'Cash' | 'Savings' | 'Income' | 'Credit' | 'Loan' | 'Tracking';
+export type AccountKind = 'Cash' | 'Savings' | 'Credit' | 'Loan' | 'Tracking' | 'Asset';
 
 export interface Account {
   id: number;

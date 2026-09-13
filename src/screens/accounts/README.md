@@ -30,6 +30,28 @@ AccountDetailScreen.tsx
 │ Transaction list (FlatList)    │──→ inline
 └───────────────────────────────┘
 
+ValueHistoryChart.tsx — shared scrollable month-gridded chart (same look/drag as
+InsightsScreen's category-trend chart: 12 months visible, scroll for more,
+Jan/Feb.. + year labels). Two callers:
+- TrackingValueDetails.tsx (tracking AND savings/cash accounts — same component,
+  mode="stacked": deposited band + gain band, ../../domain/investmentGrowth.ts
+  splits the value-history log against the account's own transactions, no new
+  DB table) — savings/cash keep their normal ledger balance, this is chart-only.
+- HouseValueDetails.tsx (mortgage, mode="single": just the logged value, no
+  deposit split — a house has no "deposits").
+
+AmortizationScheduleScreen.tsx  (pushed from LoanDetailsCard's "View full calculator…" link)
+┌───────────────────────────────┐
+│ Loan inputs (amount/rate/term/  │──→ inline; prefilled from the account's
+│  extra payment)                 │    current outstanding balance + rate,
+├───────────────────────────────┤    still editable (doubles as ad-hoc calc)
+│ Result summary (payment,        │──→ inline
+│  projected payoff, interest)    │
+├───────────────────────────────┤
+│ Per-payment schedule table      │──→ inline; ../../finance-tools/amortization.ts
+│ (date/principal/interest/bal)   │    buildAmortizationSchedule()
+└───────────────────────────────┘
+
 ClosedAccountsScreen.tsx
 ┌───────────────────────────────┐
 │ empty state, or                │──→ inline

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   addMonths,
   monthlyPaymentCents,
@@ -15,6 +17,9 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { TextField } from '../../components/ui/TextField';
 import type { Account } from '../../domain/types';
+import type { AccountsStackParamList } from '../../navigation/types';
+
+type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
 
 // Full-context amortization projection for a loan/mortgage account: its
 // stored terms plus the ledger's *actual* current balance, so extra
@@ -25,6 +30,7 @@ import type { Account } from '../../domain/types';
 // default, tap to expand.
 export function LoanDetailsCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
   const t = useT();
+  const navigation = useNavigation<Nav>();
   const [expanded, setExpanded] = useState(false);
   const [extraPayment, setExtraPayment] = useState('');
   const openEditAccount = useAppStore((s) => s.openEditAccount);
@@ -82,6 +88,9 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
           />
           <Pressable onPress={() => openEditAccount(account.id)}>
             <Text style={styles.link}>{t('loanDetailsCard.editTerms')}</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('AmortizationSchedule', { accountId: account.id })}>
+            <Text style={styles.link}>{t('loanDetailsCard.viewSchedule')}</Text>
           </Pressable>
         </>
       ) : null}

@@ -6,12 +6,15 @@ import { DateField } from '../../components/ui/DateField';
 import { DropdownField, DropdownOption } from '../../components/ui/DropdownField';
 import { RateChangeModal } from '../../components/ui/RateChangeModal';
 import type { RateChangeValue } from '../../components/ui/RateChangeModal';
+import { IncomeDetailModal } from '../../components/ui/IncomeDetailModal';
+import type { IncomeDetailValue } from '../../components/ui/IncomeDetailModal';
 import { AmortizationCalculator } from '../../components/ui/AmortizationCalculator';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import * as accountRateHistoryRepo from '../../db/repositories/accountRateHistoryRepo';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
+import * as incomeDetailHistoryRepo from '../../db/repositories/incomeDetailHistoryRepo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAppStore } from '../../state/useAppStore';
@@ -24,9 +27,10 @@ import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountRateChange, AccountType } from '../../domain/types';
+import type { Account, AccountRateChange, AccountType, IncomeDetail } from '../../domain/types';
 
 const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
+  income: 'accountModal.typeIncome',
   cash: 'accountModal.typeCash',
   savings: 'accountModal.typeSavings',
   tracking: 'accountModal.typeTracking',
@@ -35,7 +39,7 @@ const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
   mortgage: 'accountModal.typeMortgage',
   credit_card: 'accountModal.typeCreditCard',
 };
-const TYPE_VALUES: AccountType[] = ['cash', 'savings', 'tracking', 'asset', 'loan', 'mortgage', 'credit_card'];
+const TYPE_VALUES: AccountType[] = ['income', 'cash', 'savings', 'tracking', 'asset', 'loan', 'mortgage', 'credit_card'];
 
 // Same "one sheet, create or edit" pattern as the transaction modal —
 // "+ Add Account" used to push a full-screen form; this matches it.
@@ -63,6 +67,8 @@ export function AccountModal() {
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
   const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [incomeHistory, setIncomeHistory] = useState<IncomeDetail[]>([]);
+  const [incomeDetailModal, setIncomeDetailModal] = useState<{ editing: IncomeDetail | null } | null>(null);
 
   const reset = () => {
     setName('');
@@ -78,6 +84,8 @@ export function AccountModal() {
     setArchivedAt(null);
     setRateModal(null);
     setToolsOpen(false);
+    setIncomeHistory([]);
+    setIncomeDetailModal(null);
   };
 
   useEffect(() => {
@@ -98,6 +106,7 @@ export function AccountModal() {
       setOriginalHousePrice(account.originalHousePriceCents != null ? (account.originalHousePriceCents / 100).toString() : '');
       setOriginationDate(account.originationDate ?? currentDateISO());
       setArchivedAt(account.archivedAt);
+      setIncomeHistory(await incomeDetailHistoryRepo.listHistory(db, editingAccountId));
     })();
     // Deliberately excludes `accounts` — it refreshes on every write (dataVersion
     // bump), and re-running this would clobber in-progress edits with the DB's
@@ -111,6 +120,37 @@ export function AccountModal() {
   };
 
   const isLoanLike = isLoanLikeType(type);
+  const isIncomeType = type === 'income';
+
+  const refreshIncomeHistory = async () => {
+    if (editingAccountId == null) return;
+    const db = await getDb();
+    setIncomeHistory(await incomeDetailHistoryRepo.listHistory(db, editingAccountId));
+  };
+
+  const submitIncomeDetail = async (value: IncomeDetailValue) => {
+    if (editingAccountId == null) return;
+    const db = await getDb();
+    const input = {
+      amountCents: Math.round((parseFloat(value.amount) || 0) * 100),
+      unit: value.unit,
+      effectiveDate: value.effectiveDate,
+      note: value.note || null,
+    };
+    if (incomeDetailModal?.editing) await incomeDetailHistoryRepo.updateDetail(db, incomeDetailModal.editing.id, input);
+    else await incomeDetailHistoryRepo.addDetail(db, editingAccountId, input);
+    await refreshIncomeHistory();
+    setIncomeDetailModal(null);
+  };
+
+  const deleteIncomeDetail = async () => {
+    if (!incomeDetailModal?.editing) return;
+    const db = await getDb();
+    await incomeDetailHistoryRepo.deleteDetail(db, incomeDetailModal.editing.id);
+    await refreshIncomeHistory();
+    setIncomeDetailModal(null);
+  };
+
   const downPaymentCents =
     originalHousePrice && originalPrincipal
       ? Math.round(parseFloat(originalHousePrice) * 100) - Math.round(parseFloat(originalPrincipal) * 100)
@@ -332,6 +372,25 @@ export function AccountModal() {
               <DateField label={t('accountModal.originationDateLabel')} value={originationDate} onChange={setOriginationDate} />
             </>
           ) : null}
+          {isEditing && isIncomeType ? (
+            <View style={styles.field}>
+              <Text style={styles.sectionLabel}>{t('accountModal.incomeDetailsHeading')}</Text>
+              <Text style={styles.hint}>{t('accountModal.incomeDetailsHint')}</Text>
+              {incomeHistory.length === 0 ? <Text style={styles.hint}>{t('accountModal.noIncomeDetails')}</Text> : null}
+              {incomeHistory.map((detail) => (
+                <Pressable key={detail.id} style={styles.rateRow} onPress={() => setIncomeDetailModal({ editing: detail })}>
+                  <Text style={styles.rateRowText}>
+                    {formatMoney(detail.amountCents)}
+                    {t(`incomeDetailModal.unit${detail.unit.charAt(0).toUpperCase()}${detail.unit.slice(1)}` as TranslationKey)}
+                  </Text>
+                  <Text style={styles.rateRowDate}>{t('common.effectivePrefix', { date: detail.effectiveDate })}</Text>
+                </Pressable>
+              ))}
+              <Pressable style={styles.addRateBtn} onPress={() => setIncomeDetailModal({ editing: null })}>
+                <Text style={styles.addRateBtnText}>{t('accountModal.addIncomeDetail')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           {isEditing && isLoanLike ? (
             <View style={styles.field}>
               <Text style={styles.sectionLabel}>{t('accountModal.toolsHeading')}</Text>
@@ -365,6 +424,18 @@ export function AccountModal() {
         onCancel={() => setRateModal(null)}
         onSubmit={submitRateChange}
         onDelete={rateModal?.editing ? deleteRateChange : undefined}
+      />
+      <IncomeDetailModal
+        visible={incomeDetailModal != null}
+        initial={{
+          amount: incomeDetailModal?.editing ? String(incomeDetailModal.editing.amountCents / 100) : '',
+          unit: incomeDetailModal?.editing?.unit ?? 'year',
+          effectiveDate: incomeDetailModal?.editing?.effectiveDate ?? currentDateISO(),
+          note: incomeDetailModal?.editing?.note ?? '',
+        }}
+        onCancel={() => setIncomeDetailModal(null)}
+        onSubmit={submitIncomeDetail}
+        onDelete={incomeDetailModal?.editing ? deleteIncomeDetail : undefined}
       />
       <Modal visible={toolsOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setToolsOpen(false)}>
         <ScreenContainer modal>

@@ -19,6 +19,7 @@ import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import * as scheduledTransactionsRepo from '../../db/repositories/scheduledTransactionsRepo';
+import * as incomeRepo from '../../db/repositories/incomeRepo';
 import {
   DropdownField,
   DropdownGroupLabel,
@@ -83,6 +84,8 @@ export function AddTransactionModal() {
   const isTrackingAccount =
     accounts.find((a) => a.account.id === accountId)?.account.onBudget ===
     false;
+  const isIncomeAccount =
+    accounts.find((a) => a.account.id === accountId)?.account.type === 'income';
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no
@@ -125,6 +128,15 @@ export function AddTransactionModal() {
       return;
     setAccountId((prev) => presetAccountId ?? prev ?? accounts[0].account.id);
   }, [isOpen, editingTransactionId, presetAccountId, accounts]);
+
+  useEffect(() => {
+    // A brand-new transaction on an Income account is overwhelmingly a
+    // deposit, not a correction — default the toggle so the common case
+    // needs no extra tap. Only defaults, never fights a manual override:
+    // it only fires when the account selection itself changes.
+    if (!isOpen || editingTransactionId != null) return;
+    if (isIncomeAccount) setDirection('in');
+  }, [isOpen, editingTransactionId, accountId, isIncomeAccount]);
 
   useEffect(() => {
     // Autofocus the amount field and pop the number pad — but only the
@@ -210,6 +222,25 @@ export function AddTransactionModal() {
       });
     } else {
       await transactionsRepo.createTransaction(db, boardId, input);
+      // An Income account is a recording layer, not somewhere money
+      // actually sits — sweep whatever was just entered into the board's
+      // designated cash account (Settings), same signed amount either
+      // direction, so the income account's own balance nets back to ~0
+      // instead of accumulating (see incomeRepo/AccountDetailScreen's
+      // income-insights box, which reads this account's entries directly
+      // rather than its ledger balance).
+      if (isIncomeAccount) {
+        const cashAccountId = await incomeRepo.getDefaultCashAccountId(db, boardId);
+        if (cashAccountId != null && cashAccountId !== accountId) {
+          await transactionsRepo.createTransfer(db, boardId, {
+            fromAccountId: accountId,
+            toAccountId: cashAccountId,
+            amountCents,
+            date,
+            memo: payee || null,
+          });
+        }
+      }
     }
     bumpDataVersion();
     close();

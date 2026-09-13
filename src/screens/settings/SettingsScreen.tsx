@@ -5,13 +5,16 @@ import { TextField } from '../../components/ui/TextField';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
-import { DropdownField } from '../../components/ui/DropdownField';
+import { DropdownField, DropdownOption } from '../../components/ui/DropdownField';
 import { useBoards } from '../../hooks/useBoards';
 import { usePayees } from '../../hooks/usePayees';
+import { useAccounts } from '../../hooks/useAccounts';
 import { useLanguageSetting } from '../../hooks/useLanguage';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as payeesRepo from '../../db/repositories/payeesRepo';
+import * as incomeRepo from '../../db/repositories/incomeRepo';
+import { accountKind } from '../../domain/accountKind';
 import { secureStore } from '../../secure/secureStore';
 import { runChatCompletion } from '../../ai/openaiClient';
 import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
@@ -57,7 +60,9 @@ export function SettingsScreen() {
   const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { payees, refresh: refreshPayees } = usePayees();
+  const { accounts } = useAccounts();
   const [prompt, setPrompt] = useState<PromptState>(null);
+  const [incomeCashAccountId, setIncomeCashAccountId] = useState<number | null>(null);
   const [selectedPayeeId, setSelectedPayeeId] = useState<number | null>(null);
   const [payeeNameInput, setPayeeNameInput] = useState('');
 
@@ -94,6 +99,21 @@ export function SettingsScreen() {
       setLastSyncedAtState(await getLastSyncedSummary(db));
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      setIncomeCashAccountId(await incomeRepo.getDefaultCashAccountId(db, boardId));
+    })();
+  }, [boardId]);
+
+  const selectIncomeCashAccount = async (accountId: number) => {
+    setIncomeCashAccountId(accountId);
+    const db = await getDb();
+    await incomeRepo.setDefaultCashAccountId(db, boardId, accountId);
+  };
+
+  const cashLikeAccounts = accounts.filter((a) => ['Cash', 'Savings'].includes(accountKind(a.account.type)));
 
   const selectTheme = async (next: ThemePreference) => {
     setTheme(next);
@@ -450,6 +470,33 @@ export function SettingsScreen() {
             </Pressable>
           ))}
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>{t('settings.incomeHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.incomeHint')}</Text>
+        <DropdownField
+          compact
+          label={t('settings.incomeCashAccountLabel')}
+          valueLabel={cashLikeAccounts.find((a) => a.account.id === incomeCashAccountId)?.account.name ?? ''}
+          placeholder={t('settings.incomeCashAccountPlaceholder')}
+        >
+          {(close) => (
+            <>
+              {cashLikeAccounts.map(({ account }) => (
+                <DropdownOption
+                  key={account.id}
+                  label={account.name}
+                  selected={incomeCashAccountId === account.id}
+                  onPress={() => {
+                    selectIncomeCashAccount(account.id);
+                    close();
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </DropdownField>
       </View>
 
       <View style={styles.section}>

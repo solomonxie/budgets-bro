@@ -50,6 +50,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.boardsHint': '账本是一个可切换的独立预算。',
   'settings.newBoardLink': '+ 新建账本',
   'settings.createDemoBoard': '创建演示账本',
+  'settings.creatingDemoBoard': '正在创建演示账本——需要几秒钟……',
+  'settings.createDemoBoardFailed': '无法创建演示账本。',
   'settings.payeesHeading': '管理收款方',
   'settings.payeeSelectPlaceholder': '选择或创建…',
   'settings.payeeSearchPlaceholder': '搜索或输入新的收款方',

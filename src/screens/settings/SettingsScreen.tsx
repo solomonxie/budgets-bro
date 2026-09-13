@@ -416,6 +416,7 @@ export function SettingsScreen() {
         <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
         <SearchableDropdownField
           compact
+          hideLabel
           label={t('common.payee')}
           valueLabel={payeeNameInput}
           placeholder={t('settings.payeeSelectPlaceholder')}

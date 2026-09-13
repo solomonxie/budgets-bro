@@ -355,6 +355,11 @@ export const en = {
   'budget.deleteGroupConfirmTitle': 'Delete "{name}"?',
   'budget.deleteGroupConfirmMessage': 'Its categories move to "Ungrouped" — they aren’t deleted.',
   'budget.deleteCategoryConfirmTitle': 'Delete "{name}"?',
+  'budget.pendingApprovals': '{count} scheduled pending approval',
+
+  'pendingScheduled.title': 'Pending Scheduled Transactions',
+  'pendingScheduled.empty': 'Nothing waiting on approval.',
+  'pendingScheduled.approve': 'Approve',
 
   'insights.spendingBreakdown': 'Spending Breakdown',
   'insights.topCategories': 'Top Categories',

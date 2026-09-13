@@ -40,7 +40,7 @@ export function useAutoPostScheduledTransactions() {
           date: nextDate,
         });
         posted = true;
-        nextDate = nextOccurrenceDate(nextDate, s.frequency, s.intervalN);
+        nextDate = nextOccurrenceDate(nextDate, s.frequency, s.intervalN, s.daysOfWeekMask, s.createdAt.slice(0, 10));
         if (s.endDate != null && nextDate > s.endDate) break;
       }
       if (!posted) continue;

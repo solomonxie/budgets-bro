@@ -41,7 +41,7 @@ export function UpcomingScreen() {
       amountCents: s.amountCents,
       date: currentDateISO(),
     });
-    const next = nextOccurrenceDate(s.nextDate, s.frequency, s.intervalN);
+    const next = nextOccurrenceDate(s.nextDate, s.frequency, s.intervalN, s.daysOfWeekMask, s.createdAt.slice(0, 10));
     if (s.endDate != null && next > s.endDate) await scheduledTransactionsRepo.deleteScheduledTransaction(db, s.id);
     else await scheduledTransactionsRepo.setNextDate(db, s.id, next);
     bumpDataVersion();

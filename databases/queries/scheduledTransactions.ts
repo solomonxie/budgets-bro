@@ -22,13 +22,13 @@ export const LIST_DUE_AUTO_POST = `
 `;
 
 export const INSERT_SCHEDULED_TRANSACTION = `
-  INSERT INTO scheduled_transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, auto_post)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO scheduled_transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, auto_post, days_of_week_mask)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 export const UPDATE_SCHEDULED_TRANSACTION = `
   UPDATE scheduled_transactions
-  SET account_id = ?, category_id = ?, payee_id = ?, memo = ?, amount_cents = ?, frequency = ?, interval_n = ?, next_date = ?, end_date = ?, auto_post = ?
+  SET account_id = ?, category_id = ?, payee_id = ?, memo = ?, amount_cents = ?, frequency = ?, interval_n = ?, next_date = ?, end_date = ?, auto_post = ?, days_of_week_mask = ?
   WHERE id = ?
 `;
 

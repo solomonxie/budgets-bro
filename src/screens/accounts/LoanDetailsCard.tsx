@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   addMonths,
   monthlyPaymentCents,
@@ -17,9 +15,6 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { TextField } from '../../components/ui/TextField';
 import type { Account } from '../../domain/types';
-import type { AccountsStackParamList } from '../../navigation/types';
-
-type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
 
 // Full-context amortization projection for a loan/mortgage account: its
 // stored terms plus the ledger's *actual* current balance, so extra
@@ -27,10 +22,10 @@ type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
 // from the account's rate history (its latest entry), not a static column
 // — see accountRateHistoryRepo. Renders as a section of the balance box
 // (AccountDetailScreen) below the balance number — one summary line by
-// default, tap to expand.
+// default, tap to expand. The full calculator/schedule table lives in the
+// account's edit page (AccountModal's Tools section), not here.
 export function LoanDetailsCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
   const t = useT();
-  const navigation = useNavigation<Nav>();
   const [expanded, setExpanded] = useState(false);
   const [extraPayment, setExtraPayment] = useState('');
   const openEditAccount = useAppStore((s) => s.openEditAccount);
@@ -88,9 +83,6 @@ export function LoanDetailsCard({ account, balanceCents }: { account: Account; b
           />
           <Pressable onPress={() => openEditAccount(account.id)}>
             <Text style={styles.link}>{t('loanDetailsCard.editTerms')}</Text>
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('AmortizationSchedule', { accountId: account.id })}>
-            <Text style={styles.link}>{t('loanDetailsCard.viewSchedule')}</Text>
           </Pressable>
         </>
       ) : null}

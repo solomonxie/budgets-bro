@@ -6,6 +6,7 @@ import { DateField } from '../../components/ui/DateField';
 import { DropdownField, DropdownOption } from '../../components/ui/DropdownField';
 import { RateChangeModal } from '../../components/ui/RateChangeModal';
 import type { RateChangeValue } from '../../components/ui/RateChangeModal';
+import { AmortizationCalculator } from '../../components/ui/AmortizationCalculator';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
@@ -18,6 +19,7 @@ import { isLoanLikeType, usesLoggedValue } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { computeBalanceCorrectionCents } from '../../domain/register';
+import { monthlyPaymentCents } from '../../finance-tools/amortization';
 import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -45,7 +47,7 @@ export function AccountModal() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
-  const { history: rateHistory } = useAccountRateHistory(editingAccountId);
+  const { history: rateHistory, currentRateBps } = useAccountRateHistory(editingAccountId);
   const isEditing = editingAccountId != null;
 
   const [name, setName] = useState('');
@@ -60,7 +62,7 @@ export function AccountModal() {
   const [originationDate, setOriginationDate] = useState(currentDateISO());
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
   const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
-  const [mergeTrackingId, setMergeTrackingId] = useState<number | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   const reset = () => {
     setName('');
@@ -75,7 +77,7 @@ export function AccountModal() {
     setOriginationDate(currentDateISO());
     setArchivedAt(null);
     setRateModal(null);
-    setMergeTrackingId(null);
+    setToolsOpen(false);
   };
 
   useEffect(() => {
@@ -114,33 +116,18 @@ export function AccountModal() {
       ? Math.round(parseFloat(originalHousePrice) * 100) - Math.round(parseFloat(originalPrincipal) * 100)
       : null;
 
-  // T8.3: fold a tracking account's value log into this mortgage/loan
-  // account's, then archive the tracking account — only ever offered from
-  // an existing loan-like account being edited, and only when there's a
-  // tracking account to merge in.
-  const trackingAccountsForMerge = accounts.filter(
-    (a) => a.account.type === 'tracking' && a.account.archivedAt == null,
-  );
-
-  const mergeTrackingAccount = () => {
-    if (mergeTrackingId == null || editingAccountId == null) return;
-    const trackingAccount = trackingAccountsForMerge.find((a) => a.account.id === mergeTrackingId)?.account;
-    if (!trackingAccount) return;
-    Alert.alert(t('accountModal.mergeConfirmTitle', { name: trackingAccount.name }), t('accountModal.mergeConfirmMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('accountModal.mergeButton'),
-        style: 'destructive',
-        onPress: async () => {
-          const db = await getDb();
-          await accountValueHistoryRepo.reassignAccount(db, mergeTrackingId, editingAccountId);
-          await accountsRepo.archiveAccount(db, mergeTrackingId);
-          bumpDataVersion();
-          setMergeTrackingId(null);
-        },
-      },
-    ]);
-  };
+  // Tools > Amortization Schedule prefill — the account's real outstanding
+  // balance (not opening balance) and current rate, same as the old
+  // per-account AmortizationScheduleScreen. `fixedPaymentCents` pins the
+  // payment to whatever's currently typed in the form's own term/principal
+  // fields (the "live" values being edited), not the last-saved DB record.
+  const outstandingCents = Math.max(0, -loadedBalanceCents);
+  const formTermMonths = termMonths ? Math.round(parseFloat(termMonths)) : null;
+  const formPrincipalCents = originalPrincipal ? Math.round(parseFloat(originalPrincipal) * 100) : null;
+  const scheduledPaymentCents =
+    formPrincipalCents != null && formTermMonths != null && currentRateBps != null
+      ? monthlyPaymentCents(formPrincipalCents, currentRateBps, formTermMonths)
+      : null;
 
   const save = async () => {
     if (!name.trim()) {
@@ -345,37 +332,13 @@ export function AccountModal() {
               <DateField label={t('accountModal.originationDateLabel')} value={originationDate} onChange={setOriginationDate} />
             </>
           ) : null}
-          {isEditing && isLoanLike && trackingAccountsForMerge.length > 0 ? (
+          {isEditing && isLoanLike ? (
             <View style={styles.field}>
-              <Text style={styles.sectionLabel}>{t('accountModal.mergeHeading')}</Text>
-              <Text style={styles.hint}>{t('accountModal.mergeHint')}</Text>
-              <DropdownField
-                compact
-                label={t('accountModal.mergeTrackingLabel')}
-                valueLabel={trackingAccountsForMerge.find((a) => a.account.id === mergeTrackingId)?.account.name ?? ''}
-                placeholder={t('accountModal.mergeTrackingPlaceholder')}
-              >
-                {(closeDropdown) => (
-                  <>
-                    {trackingAccountsForMerge.map(({ account: ta }) => (
-                      <DropdownOption
-                        key={ta.id}
-                        label={ta.name}
-                        selected={mergeTrackingId === ta.id}
-                        onPress={() => {
-                          setMergeTrackingId(ta.id);
-                          closeDropdown();
-                        }}
-                      />
-                    ))}
-                  </>
-                )}
-              </DropdownField>
-              {mergeTrackingId != null ? (
-                <Pressable onPress={mergeTrackingAccount}>
-                  <Text style={styles.closeLink}>{t('accountModal.mergeButton')}</Text>
-                </Pressable>
-              ) : null}
+              <Text style={styles.sectionLabel}>{t('accountModal.toolsHeading')}</Text>
+              <Pressable style={styles.rateRow} onPress={() => setToolsOpen(true)}>
+                <Text style={styles.rateRowText}>{t('amortizationSchedule.title')}</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
             </View>
           ) : null}
           {isEditing ? (
@@ -403,6 +366,23 @@ export function AccountModal() {
         onSubmit={submitRateChange}
         onDelete={rateModal?.editing ? deleteRateChange : undefined}
       />
+      <Modal visible={toolsOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setToolsOpen(false)}>
+        <ScreenContainer modal>
+          <View style={styles.header}>
+            <Pressable onPress={() => setToolsOpen(false)}>
+              <Text style={styles.headerBtn}>{t('common.back')}</Text>
+            </Pressable>
+            <Text style={styles.title}>{t('amortizationSchedule.title')}</Text>
+            <Text style={[styles.headerBtn, { opacity: 0 }]}>{t('common.back')}</Text>
+          </View>
+          <AmortizationCalculator
+            initialPrincipalCents={outstandingCents}
+            initialRateBps={currentRateBps}
+            initialTermMonths={formTermMonths ?? 360}
+            fixedPaymentCents={scheduledPaymentCents}
+          />
+        </ScreenContainer>
+      </Modal>
     </Modal>
   );
 }
@@ -435,4 +415,5 @@ const styles = StyleSheet.create({
   rateRowDate: { fontSize: 12, color: colors.textMuted },
   addRateBtn: { alignItems: 'center', paddingVertical: 8 },
   addRateBtnText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
+  chevron: { color: colors.textMuted, fontSize: 15 },
 });

@@ -174,6 +174,7 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.interestRateAnnualLabel': '利率（年化 %）',
   'accountModal.interestRatePlaceholder': '例如 6.25（可选）',
   'accountModal.loanTermsHeading': '贷款条款（用于账户页面的还清预测）',
+  'accountModal.toolsHeading': '工具',
   'accountModal.termMonthsPlaceholder': '例如 360',
   'accountModal.originalPrincipalLabel': '初始本金',
   'accountModal.originalHousePriceLabel': '原始房价',
@@ -185,13 +186,6 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.closeAccount': '关闭账户',
   'accountModal.closeAccountConfirmTitle': '关闭「{name}」？',
   'accountModal.closeAccountConfirmMessage': '将从账户列表中隐藏。其交易记录会保留，不会被删除。',
-  'accountModal.mergeHeading': '合并追踪账户',
-  'accountModal.mergeHint': '将某个追踪账户的数值历史并入此账户，然后关闭该追踪账户。',
-  'accountModal.mergeTrackingLabel': '追踪账户',
-  'accountModal.mergeTrackingPlaceholder': '选择…',
-  'accountModal.mergeButton': '合并',
-  'accountModal.mergeConfirmTitle': '将"{name}"合并到此账户？',
-  'accountModal.mergeConfirmMessage': '其数值历史会移到此账户，随后关闭——交易记录会保留，不会被删除。',
 
   'closedAccounts.empty': '没有已关闭的账户。',
   'closedAccounts.tapToReopen': '点击以重新开启',
@@ -246,7 +240,6 @@ export const zh: Record<keyof typeof en, string> = {
   'calculators.totalInterestLabel': '总利息支出',
   'calculators.payoffDateLabel': '还清日期（从今天起算）',
 
-  'loanDetailsCard.viewSchedule': '查看完整计算器与还款计划表',
 
   'amortizationSchedule.title': '还款计划表',
   'amortizationSchedule.inputsTitle': '贷款参数',

@@ -11,6 +11,8 @@ export const SELECT_WITH_LABELS = `
 
 export const LIST_FOR_BOARD = `${SELECT_WITH_LABELS} WHERE s.board_id = ? ORDER BY s.next_date ASC, s.id ASC`;
 
+export const GET_BY_ID = `${SELECT_WITH_LABELS} WHERE s.id = ?`;
+
 // Due auto-post schedules — `next_date <= ?` (today), checked lazily on
 // app foreground (see useAutoPostScheduledTransactions).
 export const LIST_DUE_AUTO_POST = `

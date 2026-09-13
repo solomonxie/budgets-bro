@@ -117,7 +117,6 @@ export interface ScheduledTransaction {
   daysOfWeekMask: number | null; // only meaningful when frequency is 'weekly' — see domain/recurrence.ts
   nextDate: string; // 'YYYY-MM-DD'
   endDate: string | null;
-  autoPost: boolean;
   createdAt: string;
 }
 

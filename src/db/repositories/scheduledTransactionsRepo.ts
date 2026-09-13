@@ -2,10 +2,13 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { ScheduledTransactionJoinRow } from '../schema';
 import type { ScheduledTransactionWithLabels } from '../../domain/types';
 import type { ScheduleFrequency } from '../../domain/recurrence';
+import { nextOccurrenceDate } from '../../domain/recurrence';
+import { currentDateISO } from '../../domain/month';
 import { findOrCreatePayee } from './payeesRepo';
+import * as transactionsRepo from './transactionsRepo';
 import {
   LIST_FOR_BOARD,
-  LIST_DUE_AUTO_POST,
+  LIST_DUE,
   GET_BY_ID,
   INSERT_SCHEDULED_TRANSACTION,
   UPDATE_SCHEDULED_TRANSACTION,
@@ -26,7 +29,6 @@ function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabel
     daysOfWeekMask: row.days_of_week_mask,
     nextDate: row.next_date,
     endDate: row.end_date,
-    autoPost: row.auto_post === 1,
     createdAt: row.created_at,
     payeeName: row.payee_name,
     categoryName: row.category_name,
@@ -45,9 +47,46 @@ export async function getScheduledTransaction(db: SQLiteDatabase, id: number): P
   return row ? mapRow(row) : null;
 }
 
-export async function listDueAutoPost(db: SQLiteDatabase, boardId: number, throughDate: string): Promise<ScheduledTransactionWithLabels[]> {
-  const rows = await db.getAllAsync<ScheduledTransactionJoinRow>(LIST_DUE_AUTO_POST, boardId, throughDate);
+// Schedules waiting on approval — `next_date <= today`. Nothing here has
+// posted to `transactions` yet; see approveOccurrence.
+export async function listDue(db: SQLiteDatabase, boardId: number, throughDate: string): Promise<ScheduledTransactionWithLabels[]> {
+  const rows = await db.getAllAsync<ScheduledTransactionJoinRow>(LIST_DUE, boardId, throughDate);
   return rows.map(mapRow);
+}
+
+// Caps how many missed occurrences a single approval catches up on — a
+// safety valve against an old/stale `next_date` (e.g. a weekly schedule
+// left pending for years) looping effectively forever.
+const MAX_CATCHUP_OCCURRENCES = 366;
+
+// Posts every occurrence of schedule `id` from its next_date through today
+// (catching up on any missed while unapproved), advances next_date past
+// today, and deletes the schedule once it's run past its end date. This is
+// the only place a scheduled transaction ever turns into a real row in
+// `transactions` — see usePendingScheduledTransactions for the UI that
+// calls it (Budget board's Spent This Month box).
+export async function approveOccurrence(db: SQLiteDatabase, boardId: number, id: number): Promise<void> {
+  const s = await getScheduledTransaction(db, id);
+  if (!s) return;
+  const today = currentDateISO();
+  let nextDate = s.nextDate;
+  let posted = false;
+  for (let i = 0; i < MAX_CATCHUP_OCCURRENCES && nextDate <= today; i++) {
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: s.accountId,
+      categoryId: s.categoryId,
+      payeeName: s.payeeName ?? '',
+      memo: s.memo,
+      amountCents: s.amountCents,
+      date: nextDate,
+    });
+    posted = true;
+    nextDate = nextOccurrenceDate(nextDate, s.frequency, s.intervalN, s.daysOfWeekMask, s.createdAt.slice(0, 10));
+    if (s.endDate != null && nextDate > s.endDate) break;
+  }
+  if (!posted) return;
+  if (s.endDate != null && nextDate > s.endDate) await deleteScheduledTransaction(db, s.id);
+  else await setNextDate(db, s.id, nextDate);
 }
 
 export interface ScheduledTransactionInput {
@@ -61,7 +100,6 @@ export interface ScheduledTransactionInput {
   daysOfWeekMask: number | null;
   nextDate: string;
   endDate: string | null;
-  autoPost: boolean;
 }
 
 export async function createScheduledTransaction(db: SQLiteDatabase, boardId: number, input: ScheduledTransactionInput): Promise<number> {
@@ -78,7 +116,6 @@ export async function createScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.intervalN,
     input.nextDate,
     input.endDate,
-    input.autoPost ? 1 : 0,
     input.daysOfWeekMask,
   );
   return result.lastInsertRowId;
@@ -101,7 +138,6 @@ export async function updateScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.intervalN,
     input.nextDate,
     input.endDate,
-    input.autoPost ? 1 : 0,
     input.daysOfWeekMask,
     input.id,
   );

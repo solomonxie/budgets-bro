@@ -198,9 +198,6 @@ export function AddTransactionModal() {
         daysOfWeekMask: rule.daysOfWeekMask,
         nextDate: date,
         endDate: hasEndDate ? endDate : null,
-        // Every schedule auto-posts — there's no manual-approve queue to
-        // check it against (see useAutoPostScheduledTransactions).
-        autoPost: true,
       });
       bumpDataVersion();
       close();

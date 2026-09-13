@@ -11,7 +11,9 @@ import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { MonthNav } from '../../components/ui/MonthNav';
 import { AssignedAmountModal } from '../../components/ui/AssignedAmountModal';
 import { DisclosureChevron } from '../../components/ui/DisclosureChevron';
+import { PendingScheduledTransactionsModal } from '../../components/ui/PendingScheduledTransactionsModal';
 import { useBudget } from '../../hooks/useBudget';
+import { usePendingScheduledTransactions } from '../../hooks/usePendingScheduledTransactions';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
 import * as categoriesRepo from '../../db/repositories/categoriesRepo';
@@ -54,6 +56,8 @@ export function BudgetScreen() {
   const totalSpentCents = Object.values(itemsByGroup)
     .flat()
     .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
+  const { pending, approve } = usePendingScheduledTransactions();
+  const [pendingModalOpen, setPendingModalOpen] = useState(false);
 
   // Feeds the assign popup's "last month" hint.
   const [prevMonthAssignedByCategory, setPrevMonthAssignedByCategory] = useState<Record<number, number>>({});
@@ -193,6 +197,19 @@ export function BudgetScreen() {
         ) : null}
       </View>
 
+      {pending.length > 0 ? (
+        <Pressable style={styles.pendingBanner} onPress={() => setPendingModalOpen(true)}>
+          <Text style={styles.pendingBannerText}>{t('budget.pendingApprovals', { count: String(pending.length) })}</Text>
+          <DisclosureChevron expanded={false} />
+        </Pressable>
+      ) : null}
+      <PendingScheduledTransactionsModal
+        visible={pendingModalOpen}
+        items={pending}
+        onApprove={approve}
+        onClose={() => setPendingModalOpen(false)}
+      />
+
       {groups.map((group) => {
         const items = itemsByGroup[group.id] ?? [];
         const collapsed = collapsedGroupIds.includes(group.id);
@@ -329,6 +346,19 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   summaryValue: { fontSize: 30, fontWeight: '700', marginTop: 4, color: colors.text },
   unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.amberTint,
+    borderWidth: 1,
+    borderColor: colors.amber,
+    borderRadius: 14,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  pendingBannerText: { color: colors.amber, fontWeight: '700', fontSize: 13 },
   group: { gap: spacing.xs },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
   groupHeaderMain: { flexDirection: 'row', alignItems: 'center', gap: 6 },

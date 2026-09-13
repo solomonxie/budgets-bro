@@ -197,10 +197,11 @@ async function signRequest(
   objectKey: string,
   body: Uint8Array | null,
   subresource?: string,
+  extraQuery?: Record<string, string>,
 ): Promise<{ url: string; headers: Record<string, string> }> {
   const hostname = `${config.bucket}.s3.${config.region}.amazonaws.com`;
   const path = objectKey ? `/${objectKey}` : '/';
-  const query: Record<string, string> = { 'x-yama-nonce': nonce() };
+  const query: Record<string, string> = { 'x-yama-nonce': nonce(), ...extraQuery };
   if (subresource) query[subresource] = '';
 
   const request = new HttpRequest({
@@ -263,8 +264,14 @@ async function get(config: S3Config, objectKey: string): Promise<Uint8Array | nu
 async function checkReachable(config: S3Config): Promise<void> {
   let res: Response;
   try {
-    const { url, headers } = await signRequest(config, 'HEAD', '', null);
-    res = await fetch(url, { method: 'HEAD', headers });
+    // GET (list-type=2&max-keys=0), not HEAD — a HeadBucket 403/404 never
+    // carries a response body (HTTP forbids one on HEAD), so a failure here
+    // used to surface as a bare, undiagnosable status code. This costs the
+    // same s3:ListBucket permission as HeadBucket but returns zero keys and
+    // AWS's real <Error><Code> (AccessDenied/SignatureDoesNotMatch/etc.) on
+    // failure, which the message below now includes.
+    const { url, headers } = await signRequest(config, 'GET', '', null, undefined, { 'list-type': '2', 'max-keys': '0' });
+    res = await fetch(url, { method: 'GET', headers });
   } catch (e) {
     throw new Error(`Bucket unreachable — ${e instanceof Error ? e.message : String(e)}`);
   }
@@ -352,6 +359,107 @@ export async function testS3Connection(input: S3ConnectionInput): Promise<string
 
   await checkNoAnonymousAccess(config);
   return region;
+}
+
+export interface S3ListEntry {
+  key: string;
+  size: number;
+  lastModified: string;
+}
+
+export interface S3ListResult {
+  // Sub-"folders" directly under the browsed prefix (CommonPrefixes) — full
+  // object-key prefixes, each ending in "/".
+  prefixes: string[];
+  objects: S3ListEntry[];
+}
+
+// Minimal, targeted parser for ListObjectsV2's fixed XML shape — pulling in
+// a general XML library (fast-xml-parser, xml2js, …) just for this one
+// well-known, attribute-free response isn't worth the added bundle weight
+// or the risk of it not running under Expo Go/Hermes.
+function xmlUnescape(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_m, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&');
+}
+
+function xmlTag(block: string, tag: string): string | undefined {
+  const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
+  return m ? xmlUnescape(m[1]) : undefined;
+}
+
+function xmlBlocks(xml: string, tag: string): string[] {
+  const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'g');
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml))) out.push(m[1]);
+  return out;
+}
+
+// One ListObjectsV2 page, delimited on "/" so it reads like a folder
+// listing (CommonPrefixes) instead of a flat key dump.
+async function listObjectsPage(
+  config: S3Config,
+  prefix: string,
+  continuationToken: string | undefined,
+): Promise<{ prefixes: string[]; objects: S3ListEntry[]; nextToken: string | undefined }> {
+  const query: Record<string, string> = { 'list-type': '2', 'delimiter': '/', 'max-keys': '1000' };
+  if (prefix) query.prefix = prefix;
+  if (continuationToken) query['continuation-token'] = continuationToken;
+  const { url, headers } = await signRequest(config, 'GET', '', null, undefined, query);
+  const res = await fetch(url, { method: 'GET', headers });
+  if (!res.ok) throw new Error(`S3 list failed: ${res.status} ${await res.text()}`);
+  const xml = await res.text();
+
+  const objects = xmlBlocks(xml, 'Contents')
+    .map((block) => ({
+      key: xmlTag(block, 'Key') ?? '',
+      size: Number(xmlTag(block, 'Size') ?? '0'),
+      lastModified: xmlTag(block, 'LastModified') ?? '',
+    }))
+    // The prefix itself can show up as its own zero-byte "folder marker"
+    // object (created when some other S3 client explicitly PUTs the
+    // "directory" key) — not real content, so drop it from the listing.
+    .filter((o) => o.key !== prefix);
+  const prefixes = xmlBlocks(xml, 'CommonPrefixes').map((block) => xmlTag(block, 'Prefix') ?? '');
+  const isTruncated = xmlTag(xml, 'IsTruncated') === 'true';
+  const nextToken = isTruncated ? xmlTag(xml, 'NextContinuationToken') : undefined;
+  return { prefixes, objects, nextToken };
+}
+
+async function listObjects(config: S3Config, prefix: string): Promise<S3ListResult> {
+  const prefixes: string[] = [];
+  const objects: S3ListEntry[] = [];
+  let token: string | undefined;
+  do {
+    const page = await listObjectsPage(config, prefix, token);
+    prefixes.push(...page.prefixes);
+    objects.push(...page.objects);
+    token = page.nextToken;
+  } while (token);
+  return { prefixes, objects };
+}
+
+// Browses one saved bucket's content, scoped to its configured keyPrefix —
+// `subPath` (no leading/trailing slashes) is the folder navigated into so
+// far, relative to that root, so callers can never wander above it.
+export async function listS3Objects(db: SQLiteDatabase, configId: string, subPath: string): Promise<S3ListResult> {
+  const configs = await listS3Configs(db);
+  const meta = configs.find((c) => c.id === configId);
+  if (!meta) throw new Error('S3 config not found');
+  const config = await resolveConfig(meta);
+  if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
+
+  const root = normalizePrefix(meta.keyPrefix);
+  const full = [root, normalizePrefix(subPath)].filter(Boolean).join('/');
+  const prefix = full ? `${full}/` : '';
+  return listObjects(config, prefix);
 }
 
 function toProvider(meta: S3ConfigMeta): CloudProvider {

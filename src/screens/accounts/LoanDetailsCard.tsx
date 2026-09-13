@@ -20,8 +20,9 @@ import type { Account } from '../../domain/types';
 // stored terms plus the ledger's *actual* current balance, so extra
 // payments already made show up as a shorter projected payoff. Rate comes
 // from the account's rate history (its latest entry), not a static column
-// — see accountRateHistoryRepo. Collapsed to one summary line by default —
-// tap to expand, so it doesn't push the transaction list off screen.
+// — see accountRateHistoryRepo. Renders as a section of the balance box
+// (AccountDetailScreen) below the balance number — one summary line by
+// default, tap to expand.
 export function LoanDetailsCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
@@ -99,11 +100,10 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
     gap: spacing.xs,
   },
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },

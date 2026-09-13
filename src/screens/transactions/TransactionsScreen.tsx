@@ -206,6 +206,11 @@ export function TransactionsScreen() {
                     {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
                     {txn.categoryName ?? t('common.uncategorized')}
                   </Text>
+                  {txn.memo ? (
+                    <Text style={styles.memo} numberOfLines={1}>
+                      {txn.memo}
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={[styles.signDot, { backgroundColor: txn.amountCents < 0 ? colors.negative : colors.positive }]} />
                 <Text style={styles.amount}>{formatMoney(txn.amountCents)}</Text>
@@ -255,6 +260,7 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
   payee: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  memo: { fontSize: 12, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
   signDot: { width: 8, height: 8, borderRadius: 999 },
   amount: { fontSize: 15, fontWeight: '700', color: colors.text },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.lg },

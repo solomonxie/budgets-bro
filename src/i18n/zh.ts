@@ -350,6 +350,9 @@ export const zh: Record<keyof typeof en, string> = {
 
   'addTransactionModal.scheduledToggleLabel': '定期交易',
   'addTransactionModal.startDateLabel': '开始日期',
+  'addTransactionModal.repeatLabel': '重复',
+  'addTransactionModal.hasEndDateLabel': '设置结束日期',
+  'addTransactionModal.endDateLabel': '结束日期',
 
   'spend.amountPlaceholder': '$0.00',
   'spend.spending': '支出',
@@ -363,9 +366,6 @@ export const zh: Record<keyof typeof en, string> = {
   'nav.budget': '预算',
   'nav.spend': '记一笔',
   'nav.accounts': '账户',
-  'addTransactionModal.repeatLabel': '重复',
-  'addTransactionModal.hasEndDateLabel': '设置结束日期',
-  'addTransactionModal.endDateLabel': '结束日期',
   'nav.insights': '洞察',
   'nav.transactions': '交易',
   'nav.history': '历史记录',

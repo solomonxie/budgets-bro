@@ -271,6 +271,18 @@ export const en = {
   'babySteps.step7Title': 'Build wealth and give',
   'babySteps.stepPrefix': 'Step {number}: {title}',
   'babySteps.progressCaption': '{current} of {target}',
+  'babySteps.goalsHeading': 'Your Goals',
+  'babySteps.addGoal': '+ Add Goal',
+  'babySteps.goalsEmpty': 'No custom goals yet — set your own target above and track it manually or from a linked account.',
+
+  'customGoalModal.title': 'Goal',
+  'customGoalModal.nameLabel': 'Name',
+  'customGoalModal.namePlaceholder': 'e.g. New car down payment',
+  'customGoalModal.targetLabel': 'Target amount',
+  'customGoalModal.modeManual': 'Manual',
+  'customGoalModal.modeLinked': 'Linked Account',
+  'customGoalModal.linkedAccountLabel': 'Account',
+  'customGoalModal.progressLabel': 'Progress so far',
 
   'taxInsights.title': 'Tax Insights — {year}',
   'taxInsights.disclaimer':

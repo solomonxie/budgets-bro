@@ -39,6 +39,7 @@ export const en = {
 
   'assignedAmountModal.assignedThisMonth': 'Assigned this month',
   'assignedAmountModal.unassignedHint': 'Unassigned: {unassigned}   ·   Last month: {lastMonth}',
+  'assignedAmountModal.rolloverHint': 'Carried over: {amount}',
   'assignedAmountModal.exceedsError': 'Exceeds unassigned cash by {amount}',
   'assignedAmountModal.history': 'History',
 

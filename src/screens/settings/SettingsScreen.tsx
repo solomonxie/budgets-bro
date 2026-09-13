@@ -5,6 +5,7 @@ import { TextField } from '../../components/ui/TextField';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
+import { DropdownField } from '../../components/ui/DropdownField';
 import { useBoards } from '../../hooks/useBoards';
 import { usePayees } from '../../hooks/usePayees';
 import { useLanguageSetting } from '../../hooks/useLanguage';
@@ -314,26 +315,59 @@ export function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.boardsHeading')}</Text>
         <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
-        <View style={styles.group}>
-          {boards.map((board) => (
-            <Pressable key={board.id} style={styles.row} onPress={() => switchBoard(board.id)}>
-              <View style={styles.boardRowMain}>
-                <View style={[styles.radio, board.id === currentBoardId && styles.radioActive]} />
-                <Text style={styles.rowTitle}>{board.name}</Text>
-              </View>
-              <RowMenuButton
-                items={[
-                  { label: t('common.rename'), onPress: () => setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name }) },
-                  { label: t('settings.createDemoBoard'), onPress: runCreateDemoBoard },
-                  { label: t('common.delete'), destructive: true, onPress: () => confirmDeleteBoard(board.id, board.name) },
-                ]}
-              />
-            </Pressable>
-          ))}
-        </View>
-        <Pressable style={styles.addLink} onPress={() => setPrompt({ type: 'newBoard' })}>
-          <Text style={styles.addLinkText}>{t('settings.newBoardLink')}</Text>
-        </Pressable>
+        <DropdownField
+          compact
+          label={t('settings.boardsHeading')}
+          valueLabel={boards.find((b) => b.id === currentBoardId)?.name ?? ''}
+        >
+          {(close) => (
+            <>
+              {boards.map((board) => (
+                <View key={board.id} style={styles.boardOptionRow}>
+                  <Pressable
+                    style={styles.boardOptionMain}
+                    onPress={() => {
+                      switchBoard(board.id);
+                      close();
+                    }}
+                  >
+                    <View style={[styles.radio, board.id === currentBoardId && styles.radioActive]} />
+                    <Text style={styles.rowTitle}>{board.name}</Text>
+                  </Pressable>
+                  <RowMenuButton
+                    items={[
+                      {
+                        label: t('common.rename'),
+                        onPress: () => {
+                          close();
+                          setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name });
+                        },
+                      },
+                      { label: t('settings.createDemoBoard'), onPress: () => { close(); runCreateDemoBoard(); } },
+                      {
+                        label: t('common.delete'),
+                        destructive: true,
+                        onPress: () => {
+                          close();
+                          confirmDeleteBoard(board.id, board.name);
+                        },
+                      },
+                    ]}
+                  />
+                </View>
+              ))}
+              <Pressable
+                style={styles.addLink}
+                onPress={() => {
+                  close();
+                  setPrompt({ type: 'newBoard' });
+                }}
+              >
+                <Text style={styles.addLinkText}>{t('settings.newBoardLink')}</Text>
+              </Pressable>
+            </>
+          )}
+        </DropdownField>
       </View>
 
       <View style={styles.section}>
@@ -538,6 +572,15 @@ const styles = StyleSheet.create({
   group: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 14, overflow: 'hidden' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
   boardRowMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  boardOptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  boardOptionMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   s3ConfigMain: { gap: 2 },
   radio: { width: 16, height: 16, borderRadius: 999, borderWidth: 2, borderColor: colors.border },
   radioActive: { borderColor: colors.accent, backgroundColor: colors.accent },

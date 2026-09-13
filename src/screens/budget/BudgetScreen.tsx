@@ -276,6 +276,7 @@ export function BudgetScreen() {
         initialCents={editingItem?.assignedThisMonthCents ?? 0}
         unassignedCents={unassignedCents}
         lastMonthAssignedCents={editingItem ? (prevMonthAssignedByCategory[editingItem.category.id] ?? 0) : 0}
+        rolloverCents={editingItem ? editingItem.balanceCents - editingItem.assignedThisMonthCents - editingItem.activityThisMonthCents : 0}
         menuItems={
           editingItem
             ? [

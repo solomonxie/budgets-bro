@@ -47,6 +47,8 @@ export const en = {
   'settings.boardsHint': 'A board is a self-contained budget you can switch between.',
   'settings.newBoardLink': '+ New Board',
   'settings.createDemoBoard': 'Create Demo Board',
+  'settings.creatingDemoBoard': 'Creating demo board — this takes a few seconds…',
+  'settings.createDemoBoardFailed': 'Could not create the demo board.',
   'settings.payeesHeading': 'Manage Payees',
   'settings.payeeSelectPlaceholder': 'Select or create…',
   'settings.payeeSearchPlaceholder': 'Search or type a new payee',

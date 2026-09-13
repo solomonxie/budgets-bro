@@ -63,6 +63,7 @@ export function SettingsScreen() {
   const { accounts } = useAccounts();
   const [prompt, setPrompt] = useState<PromptState>(null);
   const [incomeCashAccountId, setIncomeCashAccountId] = useState<number | null>(null);
+  const [creatingDemoBoard, setCreatingDemoBoard] = useState(false);
   const [selectedPayeeId, setSelectedPayeeId] = useState<number | null>(null);
   const [payeeNameInput, setPayeeNameInput] = useState('');
 
@@ -334,11 +335,23 @@ export function SettingsScreen() {
 
   // Always makes a fresh one — deleting the demo board doesn't bring it back
   // on its own (see useEnsureDemoBoard), so this is the only way back.
+  // Seeding is a few hundred sequential writes (24 months of transactions
+  // across a dozen accounts) — a few seconds, not instant — so this guards
+  // against a second tap starting a duplicate board mid-seed and surfaces
+  // a failure instead of leaving the UI looking stuck with no feedback.
   const runCreateDemoBoard = async () => {
-    const db = await getDb();
-    const id = await seedDemoBoard(db);
-    bumpDataVersion();
-    await switchBoard(id);
+    if (creatingDemoBoard) return;
+    setCreatingDemoBoard(true);
+    try {
+      const db = await getDb();
+      const id = await seedDemoBoard(db);
+      bumpDataVersion();
+      await switchBoard(id);
+    } catch {
+      Alert.alert(t('settings.createDemoBoardFailed'));
+    } finally {
+      setCreatingDemoBoard(false);
+    }
   };
 
   const confirmDeleteBoard = (id: number, name: string) => {
@@ -357,6 +370,7 @@ export function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.boardsHeading')}</Text>
         <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
+        {creatingDemoBoard ? <Text style={styles.sectionHint}>{t('settings.creatingDemoBoard')}</Text> : null}
         <DropdownField
           compact
           label={t('settings.boardsHeading')}
@@ -416,8 +430,7 @@ export function SettingsScreen() {
         <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
         <SearchableDropdownField
           compact
-          hideLabel
-          label={t('common.payee')}
+          label={t('settings.payeesHeading')}
           valueLabel={payeeNameInput}
           placeholder={t('settings.payeeSelectPlaceholder')}
           searchPlaceholder={t('settings.payeeSearchPlaceholder')}

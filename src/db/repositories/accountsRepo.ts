@@ -4,6 +4,7 @@ import type { Account, AccountType } from '../../domain/types';
 import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
 import { currentDateISO } from '../../domain/month';
 import * as payeesRepo from './payeesRepo';
+import * as accountValueHistoryRepo from './accountValueHistoryRepo';
 
 function mapRow(row: AccountRow): Account {
   return {
@@ -36,16 +37,30 @@ export interface AccountWithBalance {
   balanceCents: number;
 }
 
+// A tracking account's "balance" is its latest logged value (see
+// accountValueHistoryRepo/T8.6), not opening_balance + transactions — its
+// transactions track real cash movement, but growth/decline is tracked
+// separately via manual value-log entries. Falls back to the usual
+// computed balance for a tracking account with no value entries logged
+// yet (freshly created, only an opening balance).
+function resolveBalanceCents(
+  account: Account,
+  computedBalanceCents: number,
+  valuesByAccountId: Map<number, number>,
+): number {
+  if (account.type !== 'tracking') return computedBalanceCents;
+  return valuesByAccountId.get(account.id) ?? computedBalanceCents;
+}
+
 export async function listAccountsWithBalances(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(
-    LIST_ACCOUNTS_WITH_BALANCES,
-    currentDateISO(),
-    boardId,
-  );
-  return rows.map((row) => ({
-    account: mapRow(row),
-    balanceCents: row.opening_balance_cents + row.activity_cents,
-  }));
+  const [rows, valuesByAccountId] = await Promise.all([
+    db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES, currentDateISO(), boardId),
+    accountValueHistoryRepo.currentValuesByBoard(db, boardId),
+  ]);
+  return rows.map((row) => {
+    const account = mapRow(row);
+    return { account, balanceCents: resolveBalanceCents(account, row.opening_balance_cents + row.activity_cents, valuesByAccountId) };
+  });
 }
 
 export async function getAccount(db: SQLiteDatabase, id: number): Promise<Account | null> {
@@ -126,15 +141,14 @@ export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<vo
 }
 
 export async function listClosedAccounts(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
-  const rows = await db.getAllAsync<AccountRow & { activity_cents: number }>(
-    LIST_CLOSED_ACCOUNTS_WITH_BALANCES,
-    currentDateISO(),
-    boardId,
-  );
-  return rows.map((row) => ({
-    account: mapRow(row),
-    balanceCents: row.opening_balance_cents + row.activity_cents,
-  }));
+  const [rows, valuesByAccountId] = await Promise.all([
+    db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_CLOSED_ACCOUNTS_WITH_BALANCES, currentDateISO(), boardId),
+    accountValueHistoryRepo.currentValuesByBoard(db, boardId),
+  ]);
+  return rows.map((row) => {
+    const account = mapRow(row);
+    return { account, balanceCents: resolveBalanceCents(account, row.opening_balance_cents + row.activity_cents, valuesByAccountId) };
+  });
 }
 
 export async function reopenAccount(db: SQLiteDatabase, boardId: number, id: number): Promise<void> {

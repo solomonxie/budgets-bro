@@ -13,6 +13,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { HouseValueDetails } from './HouseValueDetails';
+import { TrackingValueDetails } from './TrackingValueDetails';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -31,18 +32,19 @@ export function AccountDetailScreen() {
   const { transactions } = useTransactions(accountId);
   const { futureTransactions } = useFutureTransactions(accountId);
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
-  const [houseValueExpanded, setHouseValueExpanded] = useState(false);
+  const [valueExpanded, setValueExpanded] = useState(false);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
   const isMortgage = accountWithBalance?.account.type === 'mortgage';
+  const isTracking = accountWithBalance?.account.type === 'tracking';
   const {
-    history: houseValueHistory,
+    history: valueHistory,
     currentValueCents,
-    refresh: refreshHouseValue,
-  } = useAccountValueHistory(isMortgage ? accountId : null);
+    refresh: refreshValueHistory,
+  } = useAccountValueHistory(isMortgage || isTracking ? accountId : null);
 
   // Closing the account (from Edit) removes it from `accounts` — bounce
   // back to the list instead of showing a blank detail page.
@@ -84,7 +86,7 @@ export function AccountDetailScreen() {
           {isMortgage ? (
             <Pressable
               style={styles.summaryRight}
-              onPress={() => setHouseValueExpanded((v) => !v)}
+              onPress={() => setValueExpanded((v) => !v)}
             >
               <Text style={styles.summaryLabel}>{t('houseValueCard.label')}</Text>
               <View style={styles.houseValueRow}>
@@ -93,18 +95,37 @@ export function AccountDetailScreen() {
                     ? t('houseValueCard.notSet')
                     : formatMoney(currentValueCents)}
                 </Text>
-                <Text style={styles.chevron}>{houseValueExpanded ? '▾' : '›'}</Text>
+                <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
               </View>
             </Pressable>
           ) : null}
         </View>
-        {isMortgage && houseValueExpanded && accountWithBalance ? (
+        {isMortgage && valueExpanded && accountWithBalance ? (
           <HouseValueDetails
             account={accountWithBalance.account}
             balanceCents={balanceCents}
-            history={houseValueHistory}
+            history={valueHistory}
             currentValueCents={currentValueCents}
-            refresh={refreshHouseValue}
+            refresh={refreshValueHistory}
+          />
+        ) : null}
+        {isTracking && accountWithBalance ? (
+          <Pressable
+            style={styles.trackingValueHeader}
+            onPress={() => setValueExpanded((v) => !v)}
+          >
+            <Text style={styles.trackingValueHeaderText}>
+              {t('trackingValueCard.label')}
+            </Text>
+            <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
+          </Pressable>
+        ) : null}
+        {isTracking && valueExpanded && accountWithBalance ? (
+          <TrackingValueDetails
+            account={accountWithBalance.account}
+            history={valueHistory}
+            currentValueCents={currentValueCents}
+            refresh={refreshValueHistory}
           />
         ) : null}
         {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
@@ -228,6 +249,16 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 30, fontWeight: '700', color: colors.text },
   houseValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   houseValueText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  trackingValueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  trackingValueHeaderText: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
   chevron: { fontSize: 14, color: colors.textMuted },
   scheduledCard: {
     backgroundColor: colors.surface,

@@ -133,3 +133,13 @@ export interface CustomGoalRow {
 export interface CustomGoalJoinRow extends CustomGoalRow {
   linked_balance_cents: number | null;
 }
+
+export interface IncomeDetailHistoryRow {
+  id: number;
+  account_id: number;
+  amount_cents: number;
+  unit: string;
+  effective_date: string;
+  note: string | null;
+  created_at: string;
+}

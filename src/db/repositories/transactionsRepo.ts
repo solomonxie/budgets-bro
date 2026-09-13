@@ -168,7 +168,11 @@ export async function deleteTransactions(db: SQLiteDatabase, ids: number[]): Pro
 export interface CreateTransferInput {
   fromAccountId: number;
   toAccountId: number;
-  amountCents: number; // positive
+  // Signed: positive moves money from fromAccountId to toAccountId as
+  // normal; negative reverses direction (toAccountId loses, fromAccountId
+  // gains) — lets a caller mirror whatever sign it already has (e.g. a
+  // negative income correction) without re-deriving direction itself.
+  amountCents: number;
   date: string;
   memo: string | null;
 }
@@ -179,7 +183,7 @@ export async function createTransfer(db: SQLiteDatabase, boardId: number, input:
       'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?, ?)',
       boardId,
       input.fromAccountId,
-      -Math.abs(input.amountCents),
+      -input.amountCents,
       input.date,
       input.memo,
       input.toAccountId,
@@ -188,7 +192,7 @@ export async function createTransfer(db: SQLiteDatabase, boardId: number, input:
       'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?, ?)',
       boardId,
       input.toAccountId,
-      Math.abs(input.amountCents),
+      input.amountCents,
       input.date,
       input.memo,
       input.fromAccountId,

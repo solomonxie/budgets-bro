@@ -118,3 +118,18 @@ export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {
   category_icon: string | null;
   account_name: string;
 }
+
+export interface CustomGoalRow {
+  id: number;
+  board_id: number;
+  name: string;
+  target_cents: number;
+  linked_account_id: number | null;
+  manual_progress_cents: number | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface CustomGoalJoinRow extends CustomGoalRow {
+  linked_balance_cents: number | null;
+}

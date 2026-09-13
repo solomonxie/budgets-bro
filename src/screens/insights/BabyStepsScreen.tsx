@@ -3,14 +3,19 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { Chip } from '../../components/ui/Chip';
 import { ProgressBar } from '../../components/ui/ProgressBar';
+import { CustomGoalModal } from '../../components/ui/CustomGoalModal';
+import type { CustomGoalValue } from '../../components/ui/CustomGoalModal';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useCustomGoals } from '../../hooks/useCustomGoals';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as reportsRepo from '../../db/repositories/reportsRepo';
+import * as customGoalsRepo from '../../db/repositories/customGoalsRepo';
 import { accountKind } from '../../domain/accountKind';
 import { currentMonth, previousMonth } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
+import type { CustomGoalWithProgress } from '../../domain/types';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -32,10 +37,13 @@ interface ManualSteps {
 export function BabyStepsScreen() {
   const t = useT();
   const { accounts } = useAccounts();
+  const { goals, refresh: refreshGoals } = useCustomGoals();
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const [emergencyFundAccountId, setEmergencyFundAccountId] = useState<number | null>(null);
   const [avgMonthlySpendingCents, setAvgMonthlySpendingCents] = useState(0);
   const [manual, setManual] = useState<ManualSteps>({ step4: false, step5: false, step7: false });
+  const [goalModal, setGoalModal] = useState<{ editing: CustomGoalWithProgress | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -70,6 +78,30 @@ export function BabyStepsScreen() {
     setEmergencyFundAccountId(accountId);
     const db = await getDb();
     await settingsRepo.setSetting(db, emergencyFundKey(boardId), String(accountId));
+  };
+
+  const submitGoal = async (value: CustomGoalValue) => {
+    const db = await getDb();
+    const input = {
+      name: value.name,
+      targetCents: Math.round((parseFloat(value.targetAmount) || 0) * 100),
+      linkedAccountId: value.linkedAccountId,
+      manualProgressCents: value.linkedAccountId == null ? Math.round((parseFloat(value.manualProgressAmount) || 0) * 100) : null,
+    };
+    if (goalModal?.editing) await customGoalsRepo.updateGoal(db, goalModal.editing.id, input);
+    else await customGoalsRepo.createGoal(db, boardId, input);
+    bumpDataVersion();
+    await refreshGoals();
+    setGoalModal(null);
+  };
+
+  const deleteGoal = async () => {
+    if (!goalModal?.editing) return;
+    const db = await getDb();
+    await customGoalsRepo.deleteGoal(db, goalModal.editing.id);
+    bumpDataVersion();
+    await refreshGoals();
+    setGoalModal(null);
   };
 
   const toggleManual = async (key: keyof ManualSteps) => {
@@ -142,6 +174,41 @@ export function BabyStepsScreen() {
         captionOverride={mortgageDebtCents === 0 ? t('babySteps.step6Done') : t('babySteps.remaining', { amount: formatMoney(mortgageDebtCents) })}
       />
       <ManualStep title={t('babySteps.step7Title')} checked={manual.step7} onToggle={() => toggleManual('step7')} />
+
+      <View style={styles.goalsHeaderRow}>
+        <Text style={styles.title}>{t('babySteps.goalsHeading')}</Text>
+        <Pressable onPress={() => setGoalModal({ editing: null })}>
+          <Text style={styles.addGoalText}>{t('babySteps.addGoal')}</Text>
+        </Pressable>
+      </View>
+      {goals.length === 0 ? <Text style={styles.hint}>{t('babySteps.goalsEmpty')}</Text> : null}
+      {goals.map((goal) => {
+        const percent = goal.targetCents > 0 ? Math.min(100, Math.round((goal.progressCents / goal.targetCents) * 100)) : 0;
+        return (
+          <Pressable key={goal.id} style={styles.card} onPress={() => setGoalModal({ editing: goal })}>
+            <Text style={styles.stepTitle}>{goal.name}</Text>
+            <ProgressBar percent={percent} color={percent >= 100 ? colors.positive : colors.accent} />
+            <Text style={styles.hint}>
+              {t('babySteps.progressCaption', { current: formatMoney(goal.progressCents), target: formatMoney(goal.targetCents) })}
+              {goal.linkedAccountId != null ? ` · ${t('customGoalModal.modeLinked')}` : ''}
+            </Text>
+          </Pressable>
+        );
+      })}
+
+      <CustomGoalModal
+        visible={goalModal != null}
+        initial={{
+          name: goalModal?.editing?.name ?? '',
+          targetAmount: goalModal?.editing ? String(goalModal.editing.targetCents / 100) : '',
+          linkedAccountId: goalModal?.editing?.linkedAccountId ?? null,
+          manualProgressAmount: goalModal?.editing?.manualProgressCents != null ? String(goalModal.editing.manualProgressCents / 100) : '',
+        }}
+        accounts={accounts.map((a) => ({ id: a.account.id, name: a.account.name }))}
+        onCancel={() => setGoalModal(null)}
+        onSubmit={submitGoal}
+        onDelete={goalModal?.editing ? deleteGoal : undefined}
+      />
     </ScreenContainer>
   );
 }
@@ -198,4 +265,6 @@ const styles = StyleSheet.create({
   manualRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border },
   checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
+  goalsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
+  addGoalText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
 });

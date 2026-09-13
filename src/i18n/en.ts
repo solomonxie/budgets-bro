@@ -174,6 +174,7 @@ export const en = {
   'accountModal.interestRateAnnualLabel': 'Interest Rate (annual %)',
   'accountModal.interestRatePlaceholder': 'e.g. 6.25 (optional)',
   'accountModal.loanTermsHeading': 'Loan Terms (for the payoff projection on the account page)',
+  'accountModal.toolsHeading': 'Tools',
   'accountModal.termMonthsPlaceholder': 'e.g. 360',
   'accountModal.originalPrincipalLabel': 'Original Principal',
   'accountModal.originalHousePriceLabel': 'Original House Price',
@@ -185,13 +186,6 @@ export const en = {
   'accountModal.closeAccount': 'Close Account',
   'accountModal.closeAccountConfirmTitle': 'Close "{name}"?',
   'accountModal.closeAccountConfirmMessage': 'Hides it from your accounts list. Its transactions are kept, not deleted.',
-  'accountModal.mergeHeading': 'Merge Tracking Account',
-  'accountModal.mergeHint': 'Folds a tracking account\'s value log into this one\'s, then closes the tracking account.',
-  'accountModal.mergeTrackingLabel': 'Tracking Account',
-  'accountModal.mergeTrackingPlaceholder': 'Select…',
-  'accountModal.mergeButton': 'Merge',
-  'accountModal.mergeConfirmTitle': 'Merge "{name}" into this account?',
-  'accountModal.mergeConfirmMessage': 'Its value history moves here and it closes — its transactions are kept, not deleted.',
 
   'closedAccounts.empty': 'No closed accounts.',
   'closedAccounts.tapToReopen': 'Tap to reopen',
@@ -246,7 +240,6 @@ export const en = {
   'calculators.totalInterestLabel': 'Total interest paid',
   'calculators.payoffDateLabel': 'Payoff date (from today)',
 
-  'loanDetailsCard.viewSchedule': 'View full calculator & amortization schedule',
 
   'amortizationSchedule.title': 'Amortization Schedule',
   'amortizationSchedule.inputsTitle': 'Loan inputs',

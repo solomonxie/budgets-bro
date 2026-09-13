@@ -40,12 +40,6 @@ Jan/Feb.. + year labels). Two callers:
 - HouseValueDetails.tsx (mortgage, mode="single": just the logged value, no
   deposit split — a house has no "deposits").
 
-AmortizationScheduleScreen.tsx  (pushed from LoanDetailsCard's "View full calculator…" link)
-— thin wrapper: prefills ../../components/ui/AmortizationCalculator.tsx from the
-account's current outstanding balance/rate (payment itself pinned to the loan's
-real contractual amount via `fixedPaymentCents`), same shared component
-screens/calculators/CalculatorsHomeScreen.tsx uses for its ad-hoc "what if" case.
-
 ClosedAccountsScreen.tsx
 ┌───────────────────────────────┐
 │ empty state, or                │──→ inline
@@ -64,6 +58,16 @@ AccountModal.tsx  (global sheet, not routed)
 │ Loan terms (loan-like only):   │──→ inline
 │  term, principal, house price, │
 │  origination date              │
+├───────────────────────────────┤
+│ Tools (loan-like, editing      │──→ row opens a nested pageSheet Modal
+│  only) — Amortization Schedule │    wrapping ../../components/ui/
+│                                 │    AmortizationCalculator.tsx (prefilled
+│                                 │    from the form's own term/principal/
+│                                 │    rate fields, payment pinned via
+│                                 │    `fixedPaymentCents`) — same shared
+│                                 │    component screens/calculators/
+│                                 │    CalculatorsHomeScreen.tsx uses for its
+│                                 │    ad-hoc "what if" case
 ├───────────────────────────────┤
 │ Close / Reopen account         │──→ inline
 └───────────────────────────────┘

@@ -230,8 +230,6 @@ export const zh: Record<keyof typeof en, string> = {
   'calculators.monthlyPaymentLabel': '每月还款',
   'calculators.totalInterestLabel': '总利息支出',
   'calculators.payoffDateLabel': '还清日期（从今天起算）',
-  'calculators.moreHeading': '更多计算器',
-  'calculators.moreHint': '单利／复利计算和提前还款加速功能——即将推出。',
 
   'loanDetailsCard.viewSchedule': '查看完整计算器与还款计划表',
 

@@ -107,7 +107,6 @@ export interface ScheduledTransactionRow {
   interval_n: number;
   next_date: string;
   end_date: string | null;
-  auto_post: number;
   created_at: string;
   days_of_week_mask: number | null;
 }

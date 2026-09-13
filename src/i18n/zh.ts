@@ -354,6 +354,11 @@ export const zh: Record<keyof typeof en, string> = {
   'budget.deleteGroupConfirmTitle': '删除「{name}」？',
   'budget.deleteGroupConfirmMessage': '其下的分类将移至「未分组」——不会被删除。',
   'budget.deleteCategoryConfirmTitle': '删除「{name}」？',
+  'budget.pendingApprovals': '{count} 笔定期交易待批准',
+
+  'pendingScheduled.title': '待批准的定期交易',
+  'pendingScheduled.empty': '暂无待批准的交易。',
+  'pendingScheduled.approve': '批准',
 
   'insights.spendingBreakdown': '支出构成',
   'insights.topCategories': '主要分类',

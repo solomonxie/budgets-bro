@@ -61,6 +61,9 @@ export const en = {
   'settings.openaiHeading': 'OpenAI',
   'settings.openaiHint':
     'Used by AI Analysis. Sent straight from this device to OpenAI when you run an analysis — never stored or seen by us. The key itself never leaves this device, including in backups.',
+  'settings.testAiKey': 'Test Connection',
+  'settings.aiKeyTestPassed': 'Connected — the key works.',
+  'settings.aiKeyTestFailed': 'Could not connect with this key.',
   'settings.s3Heading': 'AWS S3',
   'settings.s3Hint':
     'Every saved bucket gets a backup on every sync. Keys never leave this device, including in backups — only your board’s money data goes to S3.',
@@ -223,6 +226,18 @@ export const en = {
   'loanDetailsCard.summary': '{rate}% · {payment}/mo',
 
   'aiAnalysis.title': 'AI Analysis',
+  'aiAnalysis.noKeyHint': 'Add an OpenAI API key in Settings to run an analysis of your budget data.',
+  'aiAnalysis.openSettings': 'Open Settings',
+  'aiAnalysis.kindSpending': 'Spending',
+  'aiAnalysis.kindVariance': 'Variance',
+  'aiAnalysis.kindForecast': 'Forecast',
+  'aiAnalysis.privacyModeLabel': 'Privacy Mode',
+  'aiAnalysis.privacyModeHint': 'Rounds every amount to the nearest $10 and replaces category names with generic labels before sending anything to OpenAI.',
+  'aiAnalysis.runButton': 'Run Analysis',
+  'aiAnalysis.errorInvalidKey': 'OpenAI rejected the API key — check it in Settings.',
+  'aiAnalysis.errorRateLimited': 'Rate-limited by OpenAI — try again in a moment.',
+  'aiAnalysis.errorNetwork': 'Couldn’t reach OpenAI — check your connection.',
+  'aiAnalysis.errorUnknown': 'Something went wrong running the analysis.',
 
   'calculators.title': 'Mortgage / Loan Calculator',
   'calculators.loanAmountLabel': 'Loan Amount',

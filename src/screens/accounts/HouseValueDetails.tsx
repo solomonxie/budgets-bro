@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
 import { getDb } from '../../db/client';
 import * as accountHouseValueHistoryRepo from '../../db/repositories/accountHouseValueHistoryRepo';
-import { useAccountHouseValueHistory } from '../../hooks/useAccountHouseValueHistory';
 import { useAppStore } from '../../state/useAppStore';
 import { HouseValueModal } from '../../components/ui/HouseValueModal';
 import type { HouseValueChangeValue } from '../../components/ui/HouseValueModal';
@@ -17,16 +16,26 @@ import type { Account, AccountHouseValueChange } from '../../domain/types';
 const CHART_WIDTH = 280;
 const CHART_HEIGHT = 56;
 
-// Manual home-value history for a mortgage account — feeds the trend line
-// here and, via accountHouseValueHistoryRepo's latest-per-account query,
-// the offsetting asset in Net Worth (see domain/accountKind.netWorth).
-// Collapsed to one summary line by default — tap to expand, so it doesn't
-// push the transaction list off screen.
-export function HouseValueCard({ account, balanceCents }: { account: Account; balanceCents: number }) {
+// Expanded panel under the balance box's home-value corner
+// (AccountDetailScreen): history/chart/edit for a mortgage's manual
+// home-value entries. Also feeds the offsetting asset in Net Worth (see
+// accountHouseValueHistoryRepo's latest-per-account query,
+// domain/accountKind.netWorth).
+export function HouseValueDetails({
+  account,
+  balanceCents,
+  history,
+  currentValueCents,
+  refresh,
+}: {
+  account: Account;
+  balanceCents: number;
+  history: AccountHouseValueChange[];
+  currentValueCents: number | null;
+  refresh: () => void;
+}) {
   const t = useT();
-  const [expanded, setExpanded] = useState(false);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const { history, currentValueCents, refresh } = useAccountHouseValueHistory(account.id);
   const [modal, setModal] = useState<{ editing: AccountHouseValueChange | null } | null>(null);
 
   const submit = async (value: HouseValueChangeValue) => {
@@ -63,36 +72,25 @@ export function HouseValueCard({ account, balanceCents }: { account: Account; ba
 
   return (
     <View style={styles.card}>
-      <Pressable style={styles.summaryRow} onPress={() => setExpanded((v) => !v)}>
-        <Text style={styles.label}>{t('houseValueCard.label')}</Text>
-        <View style={styles.summaryRight}>
-          <Text style={styles.summaryText}>{currentValueCents == null ? t('houseValueCard.notSet') : formatMoney(currentValueCents)}</Text>
-          <Text style={styles.chevron}>{expanded ? '▾' : '›'}</Text>
-        </View>
-      </Pressable>
-      {expanded ? (
-        <>
-          {currentValueCents == null ? (
-            <Text style={styles.hint}>{t('houseValueCard.noValueYet')}</Text>
-          ) : equityCents != null ? (
-            <Text style={styles.hint}>{t('houseValueCard.equity', { amount: formatMoney(equityCents) })}</Text>
-          ) : null}
-          {chronological.length > 1 ? (
-            <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-              <Polyline points={points.join(' ')} fill="none" stroke={colors.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-          ) : null}
-          {history.map((h) => (
-            <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
-              <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
-              <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: h.effectiveDate })}</Text>
-            </Pressable>
-          ))}
-          <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
-            <Text style={styles.addBtnText}>{t('houseValueCard.updateButton')}</Text>
-          </Pressable>
-        </>
+      {currentValueCents == null ? (
+        <Text style={styles.hint}>{t('houseValueCard.noValueYet')}</Text>
+      ) : equityCents != null ? (
+        <Text style={styles.hint}>{t('houseValueCard.equity', { amount: formatMoney(equityCents) })}</Text>
       ) : null}
+      {chronological.length > 1 ? (
+        <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+          <Polyline points={points.join(' ')} fill="none" stroke={colors.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      ) : null}
+      {history.map((h) => (
+        <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
+          <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
+          <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: h.effectiveDate })}</Text>
+        </Pressable>
+      ))}
+      <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
+        <Text style={styles.addBtnText}>{t('houseValueCard.updateButton')}</Text>
+      </Pressable>
       <HouseValueModal
         visible={modal != null}
         initial={{
@@ -109,19 +107,13 @@ export function HouseValueCard({ account, balanceCents }: { account: Account; ba
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
     gap: spacing.xs,
   },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  summaryText: { fontSize: 13, fontWeight: '700', color: colors.text },
-  chevron: { fontSize: 14, color: colors.textMuted },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

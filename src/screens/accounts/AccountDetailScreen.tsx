@@ -12,7 +12,8 @@ import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
-import { HouseValueCard } from './HouseValueCard';
+import { HouseValueDetails } from './HouseValueDetails';
+import { useAccountHouseValueHistory } from '../../hooks/useAccountHouseValueHistory';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -30,11 +31,18 @@ export function AccountDetailScreen() {
   const { transactions } = useTransactions(accountId);
   const { futureTransactions } = useFutureTransactions(accountId);
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
+  const [houseValueExpanded, setHouseValueExpanded] = useState(false);
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
 
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
+  const isMortgage = accountWithBalance?.account.type === 'mortgage';
+  const {
+    history: houseValueHistory,
+    currentValueCents,
+    refresh: refreshHouseValue,
+  } = useAccountHouseValueHistory(isMortgage ? accountId : null);
 
   // Closing the account (from Edit) removes it from `accounts` — bounce
   // back to the list instead of showing a blank detail page.
@@ -64,25 +72,48 @@ export function AccountDetailScreen() {
   return (
     <ScreenContainer>
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>{t('accountDetail.balance')}</Text>
-        <Text
-          style={[styles.summaryValue, balanceCents < 0 && styles.negative]}
-        >
-          {formatMoney(balanceCents)}
-        </Text>
+        <View style={styles.summaryTopRow}>
+          <View style={styles.summaryLeft}>
+            <Text style={styles.summaryLabel}>{t('accountDetail.balance')}</Text>
+            <Text
+              style={[styles.summaryValue, balanceCents < 0 && styles.negative]}
+            >
+              {formatMoney(balanceCents)}
+            </Text>
+          </View>
+          {isMortgage ? (
+            <Pressable
+              style={styles.summaryRight}
+              onPress={() => setHouseValueExpanded((v) => !v)}
+            >
+              <Text style={styles.summaryLabel}>{t('houseValueCard.label')}</Text>
+              <View style={styles.houseValueRow}>
+                <Text style={styles.houseValueText}>
+                  {currentValueCents == null
+                    ? t('houseValueCard.notSet')
+                    : formatMoney(currentValueCents)}
+                </Text>
+                <Text style={styles.chevron}>{houseValueExpanded ? '▾' : '›'}</Text>
+              </View>
+            </Pressable>
+          ) : null}
+        </View>
+        {isMortgage && houseValueExpanded && accountWithBalance ? (
+          <HouseValueDetails
+            account={accountWithBalance.account}
+            balanceCents={balanceCents}
+            history={houseValueHistory}
+            currentValueCents={currentValueCents}
+            refresh={refreshHouseValue}
+          />
+        ) : null}
+        {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
+          <LoanDetailsCard
+            account={accountWithBalance.account}
+            balanceCents={balanceCents}
+          />
+        ) : null}
       </View>
-      {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
-        <LoanDetailsCard
-          account={accountWithBalance.account}
-          balanceCents={balanceCents}
-        />
-      ) : null}
-      {accountWithBalance && accountWithBalance.account.type === 'mortgage' ? (
-        <HouseValueCard
-          account={accountWithBalance.account}
-          balanceCents={balanceCents}
-        />
-      ) : null}
       {futureTransactions.length > 0 ? (
         <View style={styles.scheduledCard}>
           <Pressable
@@ -183,8 +214,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 18,
     padding: spacing.md,
-    gap: spacing.xs,
   },
+  summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  summaryLeft: { gap: spacing.xs },
+  summaryRight: { alignItems: 'flex-end', gap: spacing.xs },
   summaryLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -193,6 +226,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   summaryValue: { fontSize: 30, fontWeight: '700', color: colors.text },
+  houseValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  houseValueText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  chevron: { fontSize: 14, color: colors.textMuted },
   scheduledCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,

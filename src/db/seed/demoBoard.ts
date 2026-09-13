@@ -7,6 +7,7 @@ import * as categoriesRepo from '../repositories/categoriesRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as budgetsRepo from '../repositories/budgetsRepo';
 import { currentMonth, lastNMonths } from '../../domain/month';
+import { addMonths } from '../../finance-tools/amortization';
 
 export const DEMO_BOARD_NAME = 'Show Others';
 
@@ -100,6 +101,63 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(685000), day(months[11], 1));
   await accountValueHistoryRepo.addValueChange(db, whistlerId, cents(715000), day(months[23], 15));
 
+  // Loans — three different repayment shapes beyond the mortgages above:
+  // a standard interest-bearing installment loan (car), a fixed-payment
+  // loan with no interest to break out (lease — the money factor is baked
+  // into the manufacturer's residual pricing, not itemized like a real
+  // loan's rate), and a long-term loan already partway through repayment
+  // (student, seasoned like Lakeview above, just further along).
+  const carLoanSchedule = amortize(cents(32000), 649, 60, 14 + months.length);
+  const carLoanId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Highlander Auto Loan',
+    type: 'loan',
+    openingBalanceCents: -carLoanSchedule[13].balanceCents,
+    interestRateBps: 649,
+    termMonths: 60,
+    originalPrincipalCents: cents(32000),
+    originationDate: addMonths(day(months[0], 1), -14),
+  });
+  await accountRateHistoryRepo.addRateChange(db, carLoanId, 649, addMonths(day(months[0], 1), -14));
+  const carLoanPayments = carLoanSchedule.slice(14);
+
+  const carLeasePrincipalCents = cents(520 * 36);
+  const carLeaseSchedule = amortize(carLeasePrincipalCents, 0, 36, months.length);
+  const carLeaseId = await accountsRepo.createAccount(db, boardId, {
+    name: 'CR-V Lease',
+    type: 'loan',
+    openingBalanceCents: -carLeasePrincipalCents,
+    interestRateBps: 0,
+    termMonths: 36,
+    originalPrincipalCents: carLeasePrincipalCents,
+    originationDate: day(months[0], 1),
+  });
+  await accountRateHistoryRepo.addRateChange(db, carLeaseId, 0, day(months[0], 1));
+
+  const studentLoanSchedule = amortize(cents(24000), 549, 120, 30 + months.length);
+  const studentLoanId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Student Loan',
+    type: 'loan',
+    openingBalanceCents: -studentLoanSchedule[29].balanceCents,
+    interestRateBps: 549,
+    termMonths: 120,
+    originalPrincipalCents: cents(24000),
+    originationDate: addMonths(day(months[0], 1), -30),
+  });
+  await accountRateHistoryRepo.addRateChange(db, studentLoanId, 549, addMonths(day(months[0], 1), -30));
+  const studentLoanPayments = studentLoanSchedule.slice(30);
+
+  // Revolving, not installment — modeled like the credit card below rather
+  // than a LoanDetailsCard-style amortization: a draw against it spends
+  // directly from the account (no linked-payee mirror needed), interest
+  // accrues monthly on whatever's outstanding, and only part of it gets
+  // paid down each month.
+  const locId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Personal Line of Credit',
+    type: 'credit_card',
+    openingBalanceCents: -cents(3500),
+  });
+  let locBalance = cents(3500);
+
   const rrspId = await accountsRepo.createAccount(db, boardId, { name: 'RRSP', type: 'tracking', openingBalanceCents: cents(150000) });
   const tfsaId = await accountsRepo.createAccount(db, boardId, { name: 'TFSA', type: 'tracking', openingBalanceCents: cents(70000) });
   const investId = await accountsRepo.createAccount(db, boardId, {
@@ -136,6 +194,12 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const catRrsp = await categoriesRepo.createCategory(db, boardId, { groupId: savingsGroup, name: '🏦 RRSP Contributions', icon: null });
   const catTfsa = await categoriesRepo.createCategory(db, boardId, { groupId: savingsGroup, name: '💰 TFSA Contributions', icon: null });
   const catInvest = await categoriesRepo.createCategory(db, boardId, { groupId: savingsGroup, name: '📈 Investment Contributions', icon: null });
+
+  const loansGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Loans & Financing');
+  const catCarLoan = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🚙 Highlander Loan Payment', icon: null });
+  const catCarLease = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🚗 CR-V Lease Payment', icon: null });
+  const catStudentLoan = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🎓 Student Loan Payment', icon: null });
+  const catLocDraw = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🛠️ Line of Credit Draws', icon: null });
 
   // --- 24 months of transactions + budget ---
   const groceryPayees = ['Save-On-Foods', 'Whole Foods', 'Costco'];
@@ -222,6 +286,93 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: 'Mortgage interest',
       amountCents: -whistler.interestCents,
       date: day(month, 1),
+    });
+
+    // Car loan, lease, student loan — same principal/interest split as the
+    // mortgages above (the payeeName match on each principal leg is what
+    // mirrors it onto that loan account and pays it down, see
+    // transactionsRepo.postLinkedAccountLeg). The lease has no interest
+    // leg — nothing to break out at 0%.
+    const carLoan = carLoanPayments[i];
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: catCarLoan,
+      payeeName: 'Highlander Auto Loan',
+      memo: null,
+      amountCents: -carLoan.principalCents,
+      date: day(month, 4),
+    });
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: catCarLoan,
+      payeeName: '',
+      memo: 'Auto loan interest',
+      amountCents: -carLoan.interestCents,
+      date: day(month, 4),
+    });
+    const carLease = carLeaseSchedule[i];
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: catCarLease,
+      payeeName: 'CR-V Lease',
+      memo: null,
+      amountCents: -carLease.principalCents,
+      date: day(month, 4),
+    });
+    const studentLoan = studentLoanPayments[i];
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: catStudentLoan,
+      payeeName: 'Student Loan',
+      memo: null,
+      amountCents: -studentLoan.principalCents,
+      date: day(month, 20),
+    });
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: catStudentLoan,
+      payeeName: '',
+      memo: 'Student loan interest',
+      amountCents: -studentLoan.interestCents,
+      date: day(month, 20),
+    });
+
+    // Line of credit — revolving, not installment: an occasional draw
+    // spends directly from the account (like a card purchase, no transfer
+    // leg), interest accrues on whatever's outstanding, and only part of
+    // it gets paid down each month (same "don't always pay in full" shape
+    // as the credit card below).
+    if (i % 7 === 3) {
+      const drawCents = cents(rand(800, 2200));
+      locBalance += drawCents;
+      await transactionsRepo.createTransaction(db, boardId, {
+        accountId: locId,
+        categoryId: catLocDraw,
+        payeeName: 'Rona',
+        memo: null,
+        amountCents: -drawCents,
+        date: day(month, 10),
+      });
+    }
+    const locInterestCents = Math.round(locBalance * (rand(0.075, 0.095) / 12));
+    locBalance += locInterestCents;
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: locId,
+      categoryId: null,
+      payeeName: '',
+      memo: 'Interest',
+      amountCents: -locInterestCents,
+      date: day(month, 25),
+    });
+    const locPaymentCents = Math.round(locBalance * rand(0.1, 0.2));
+    locBalance -= locPaymentCents;
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: checkingId,
+      categoryId: null,
+      payeeName: 'Personal Line of Credit',
+      memo: null,
+      amountCents: -locPaymentCents,
+      date: day(month, 26),
     });
 
     // Property tax — quarterly.
@@ -457,6 +608,10 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     const assignments: [number, number][] = [
       [catLakeview, lakeview.principalCents + lakeview.interestCents],
       [catWhistler, whistler.principalCents + whistler.interestCents],
+      [catCarLoan, carLoan.principalCents + carLoan.interestCents],
+      [catCarLease, carLease.principalCents],
+      [catStudentLoan, studentLoan.principalCents + studentLoan.interestCents],
+      [catLocDraw, cents(150)],
       [catPropertyTax, cents(470)],
       [catHomeInsurance, cents(190)],
       [catUtilities, cents(230)],

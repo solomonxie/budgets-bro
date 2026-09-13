@@ -15,7 +15,7 @@ import { spacing } from '../../theme/spacing';
 import type { InsightsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
-type ToolScreen = 'BabySteps' | 'TaxInsights' | 'Calculators' | 'AiAnalysis' | 'Upcoming';
+type ToolScreen = 'BabySteps' | 'TaxInsights' | 'Calculators' | 'AiAnalysis';
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
 // order, never cycled.
@@ -40,7 +40,6 @@ export function InsightsScreen() {
     { label: t('insights.taxInsights'), screen: 'TaxInsights' },
     { label: t('insights.calculators'), screen: 'Calculators' },
     { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
-    { label: t('upcoming.title'), screen: 'Upcoming' },
   ];
   const navigation = useNavigation<Nav>();
   const [month, setMonth] = useState(currentMonth());

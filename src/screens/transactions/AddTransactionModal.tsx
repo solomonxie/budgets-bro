@@ -31,8 +31,9 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
-import { ruleForPreset } from '../../domain/recurrence';
 import type { RecurrenceRule } from '../../domain/recurrence';
+
+const DEFAULT_RULE: RecurrenceRule = { frequency: 'monthly', intervalN: 1, daysOfWeekMask: null };
 
 // YNAB-style amount entry: `amount` holds raw digits, always read right-to-
 // left as cents — typing "4444" reads as $44.44, no decimal point needed.
@@ -85,13 +86,13 @@ export function AddTransactionModal() {
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no
-  // "make this recurring" path, same as ScheduledTransactionModal has no
-  // "post this once" path the other way.
+  // "make this recurring" path. Every schedule auto-posts on its due date
+  // (see useAutoPostScheduledTransactions) — there's no manual-approve
+  // queue to review first.
   const [isScheduled, setIsScheduled] = useState(false);
-  const [rule, setRule] = useState<RecurrenceRule>(ruleForPreset('monthly'));
+  const [rule, setRule] = useState<RecurrenceRule>(DEFAULT_RULE);
   const [hasEndDate, setHasEndDate] = useState(false);
   const [endDate, setEndDate] = useState(currentDateISO());
-  const [autoPost, setAutoPost] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -141,10 +142,9 @@ export function AddTransactionModal() {
     setMemo('');
     setDate(currentDateISO());
     setIsScheduled(false);
-    setRule(ruleForPreset('monthly'));
+    setRule(DEFAULT_RULE);
     setHasEndDate(false);
     setEndDate(currentDateISO());
-    setAutoPost(false);
   };
 
   const cancel = () => {
@@ -186,7 +186,9 @@ export function AddTransactionModal() {
         daysOfWeekMask: rule.daysOfWeekMask,
         nextDate: date,
         endDate: hasEndDate ? endDate : null,
-        autoPost,
+        // Every schedule auto-posts — there's no manual-approve queue to
+        // check it against (see useAutoPostScheduledTransactions).
+        autoPost: true,
       });
       bumpDataVersion();
       close();
@@ -434,7 +436,7 @@ export function AddTransactionModal() {
           {isScheduled ? (
             <>
               <RepeatField
-                label={t('scheduledTransactionModal.repeatLabel')}
+                label={t('addTransactionModal.repeatLabel')}
                 rule={rule}
                 onChange={setRule}
                 startDate={date}
@@ -447,39 +449,16 @@ export function AddTransactionModal() {
                   {hasEndDate ? <Text style={styles.checkboxMark}>✓</Text> : null}
                 </View>
                 <Text style={styles.checkboxLabel}>
-                  {t('scheduledTransactionModal.hasEndDateLabel')}
+                  {t('addTransactionModal.hasEndDateLabel')}
                 </Text>
               </Pressable>
               {hasEndDate ? (
                 <DateField
-                  label={t('scheduledTransactionModal.endDateLabel')}
+                  label={t('addTransactionModal.endDateLabel')}
                   value={endDate}
                   onChange={setEndDate}
                 />
               ) : null}
-              <View style={styles.field}>
-                <Text style={styles.label}>
-                  {t('scheduledTransactionModal.postingLabel')}
-                </Text>
-                <View style={styles.segmented}>
-                  <Pressable
-                    style={[styles.segment, !autoPost && styles.segmentActive]}
-                    onPress={() => setAutoPost(false)}
-                  >
-                    <Text style={[styles.segmentText, !autoPost && styles.segmentTextActive]}>
-                      {t('scheduledTransactionModal.manualApprove')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.segment, autoPost && styles.segmentActive]}
-                    onPress={() => setAutoPost(true)}
-                  >
-                    <Text style={[styles.segmentText, autoPost && styles.segmentTextActive]}>
-                      {t('scheduledTransactionModal.autoPost')}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
             </>
           ) : null}
           <TextInput

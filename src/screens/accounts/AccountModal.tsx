@@ -61,6 +61,7 @@ export function AccountModal() {
   const [originationDate, setOriginationDate] = useState(currentDateISO());
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
   const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
+  const [mergeTrackingId, setMergeTrackingId] = useState<number | null>(null);
 
   const reset = () => {
     setName('');
@@ -75,6 +76,7 @@ export function AccountModal() {
     setOriginationDate(currentDateISO());
     setArchivedAt(null);
     setRateModal(null);
+    setMergeTrackingId(null);
   };
 
   useEffect(() => {
@@ -113,6 +115,34 @@ export function AccountModal() {
       ? Math.round(parseFloat(originalHousePrice) * 100) - Math.round(parseFloat(originalPrincipal) * 100)
       : null;
 
+  // T8.3: fold a tracking account's value log into this mortgage/loan
+  // account's, then archive the tracking account — only ever offered from
+  // an existing loan-like account being edited, and only when there's a
+  // tracking account to merge in.
+  const trackingAccountsForMerge = accounts.filter(
+    (a) => a.account.type === 'tracking' && a.account.archivedAt == null,
+  );
+
+  const mergeTrackingAccount = () => {
+    if (mergeTrackingId == null || editingAccountId == null) return;
+    const trackingAccount = trackingAccountsForMerge.find((a) => a.account.id === mergeTrackingId)?.account;
+    if (!trackingAccount) return;
+    Alert.alert(t('accountModal.mergeConfirmTitle', { name: trackingAccount.name }), t('accountModal.mergeConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('accountModal.mergeButton'),
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await accountValueHistoryRepo.reassignAccount(db, mergeTrackingId, editingAccountId);
+          await accountsRepo.archiveAccount(db, mergeTrackingId);
+          bumpDataVersion();
+          setMergeTrackingId(null);
+        },
+      },
+    ]);
+  };
+
   const save = async () => {
     if (!name.trim()) {
       cancel();
@@ -130,9 +160,14 @@ export function AccountModal() {
     };
     if (editingAccountId != null) {
       await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
-      const actualBalanceCents = Math.round(parseFloat(latestBalance || '0') * 100);
-      const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
-      if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
+      // Tracking accounts don't have a "Latest Balance" correction field —
+      // their balance is driven by the value log (see TrackingValueDetails),
+      // not by a correction transaction.
+      if (type !== 'tracking') {
+        const actualBalanceCents = Math.round(parseFloat(latestBalance || '0') * 100);
+        const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
+        if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
+      }
     } else {
       const id = await accountsRepo.createAccount(db, boardId, { ...input, interestRateBps: initialInterestRate ? Math.round(parseFloat(initialInterestRate) * 100) : null });
       if (initialInterestRate) {
@@ -234,7 +269,7 @@ export function AccountModal() {
             keyboardType="decimal-pad"
             placeholder={t('common.amountPlaceholder')}
           />
-          {isEditing ? (
+          {isEditing && type !== 'tracking' ? (
             <TextField
               label={t('accountModal.latestBalanceLabel')}
               value={latestBalance}
@@ -310,6 +345,39 @@ export function AccountModal() {
               </View>
               <DateField label={t('accountModal.originationDateLabel')} value={originationDate} onChange={setOriginationDate} />
             </>
+          ) : null}
+          {isEditing && isLoanLike && trackingAccountsForMerge.length > 0 ? (
+            <View style={styles.field}>
+              <Text style={styles.sectionLabel}>{t('accountModal.mergeHeading')}</Text>
+              <Text style={styles.hint}>{t('accountModal.mergeHint')}</Text>
+              <DropdownField
+                compact
+                label={t('accountModal.mergeTrackingLabel')}
+                valueLabel={trackingAccountsForMerge.find((a) => a.account.id === mergeTrackingId)?.account.name ?? ''}
+                placeholder={t('accountModal.mergeTrackingPlaceholder')}
+              >
+                {(closeDropdown) => (
+                  <>
+                    {trackingAccountsForMerge.map(({ account: ta }) => (
+                      <DropdownOption
+                        key={ta.id}
+                        label={ta.name}
+                        selected={mergeTrackingId === ta.id}
+                        onPress={() => {
+                          setMergeTrackingId(ta.id);
+                          closeDropdown();
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+              </DropdownField>
+              {mergeTrackingId != null ? (
+                <Pressable onPress={mergeTrackingAccount}>
+                  <Text style={styles.closeLink}>{t('accountModal.mergeButton')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
           ) : null}
           {isEditing ? (
             <View style={styles.dangerZone}>

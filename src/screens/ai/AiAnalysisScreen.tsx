@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { TextField } from '../../components/ui/TextField';
 import { useAppStore } from '../../state/useAppStore';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountValues } from '../../hooks/useAccountValues';
@@ -8,9 +9,10 @@ import { useCategories } from '../../hooks/useCategories';
 import { useInsights } from '../../hooks/useInsights';
 import { getDb } from '../../db/client';
 import * as budgetsRepo from '../../db/repositories/budgetsRepo';
+import * as settingsRepo from '../../db/repositories/settingsRepo';
 import { netWorth as computeNetWorth } from '../../domain/accountKind';
 import { formatContextForPrompt, redactForPrivacy } from '../../domain/aiAnalysis';
-import type { AnalysisContext } from '../../domain/aiAnalysis';
+import type { AiProfile, AnalysisContext } from '../../domain/aiAnalysis';
 import { ANALYSIS_KINDS, buildAnalysisMessages } from '../../ai/prompts';
 import type { AnalysisKind } from '../../ai/prompts';
 import { AiClientError, runChatCompletion } from '../../ai/openaiClient';
@@ -21,10 +23,15 @@ import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
+const PROFILE_SETTING_KEY = 'aiAnalysis.profile';
+const EMPTY_PROFILE: AiProfile = { city: '', country: '', age: '', familySize: '' };
+
 const KIND_LABEL_KEY: Record<AnalysisKind, TranslationKey> = {
   spending: 'aiAnalysis.kindSpending',
   variance: 'aiAnalysis.kindVariance',
   forecast: 'aiAnalysis.kindForecast',
+  health: 'aiAnalysis.kindHealth',
+  comparison: 'aiAnalysis.kindComparison',
 };
 const ERROR_MESSAGE_KEY: Record<AiClientErrorCode, TranslationKey> = {
   invalid_key: 'aiAnalysis.errorInvalidKey',
@@ -51,13 +58,24 @@ export function AiAnalysisScreen() {
   const [apiKey, setApiKey] = useState<string | null | undefined>(undefined); // undefined = still loading from secureStore
   const [kind, setKind] = useState<AnalysisKind>('spending');
   const [privacyMode, setPrivacyMode] = useState(true);
+  const [profile, setProfile] = useState<AiProfile>(EMPTY_PROFILE);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<TranslationKey | null>(null);
 
   useEffect(() => {
     secureStore.getAiApiKey().then(setApiKey);
+    (async () => {
+      const db = await getDb();
+      setProfile(await settingsRepo.getJsonSetting(db, PROFILE_SETTING_KEY, EMPTY_PROFILE));
+    })();
   }, []);
+
+  const saveProfile = async (next: AiProfile) => {
+    setProfile(next);
+    const db = await getDb();
+    await settingsRepo.setJsonSetting(db, PROFILE_SETTING_KEY, next);
+  };
 
   const netWorth = useMemo(
     () =>
@@ -82,6 +100,7 @@ export function AiAnalysisScreen() {
         .filter((v) => v.assignedCents !== 0 || v.spentCents !== 0);
       const trend = trendPoints.map((p) => ({ categoryId: p.categoryId, name: p.name, month: p.month, spentCents: p.spentCents }));
 
+      const hasProfile = Object.values(profile).some((v) => v.trim());
       let context: AnalysisContext = {
         month,
         netWorthCents: netWorth.netWorthCents,
@@ -89,6 +108,7 @@ export function AiAnalysisScreen() {
         debtsCents: netWorth.debtsCents,
         variance,
         trend,
+        profile: hasProfile ? profile : undefined,
       };
       if (privacyMode) context = redactForPrivacy(context);
 
@@ -118,6 +138,32 @@ export function AiAnalysisScreen() {
 
   return (
     <ScreenContainer scroll>
+      <View style={styles.card}>
+        <Text style={styles.title}>{t('aiAnalysis.profileHeading')}</Text>
+        <Text style={styles.hint}>{t('aiAnalysis.profileHint')}</Text>
+        <View style={styles.row}>
+          <View style={styles.half}>
+            <TextField label={t('aiAnalysis.cityLabel')} value={profile.city} onChangeText={(v) => saveProfile({ ...profile, city: v })} />
+          </View>
+          <View style={styles.half}>
+            <TextField label={t('aiAnalysis.countryLabel')} value={profile.country} onChangeText={(v) => saveProfile({ ...profile, country: v })} />
+          </View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.half}>
+            <TextField label={t('aiAnalysis.ageLabel')} value={profile.age} onChangeText={(v) => saveProfile({ ...profile, age: v })} keyboardType="number-pad" />
+          </View>
+          <View style={styles.half}>
+            <TextField
+              label={t('aiAnalysis.familySizeLabel')}
+              value={profile.familySize}
+              onChangeText={(v) => saveProfile({ ...profile, familySize: v })}
+              keyboardType="number-pad"
+            />
+          </View>
+        </View>
+      </View>
+
       <View style={styles.segmented}>
         {ANALYSIS_KINDS.map((k) => (
           <Pressable key={k} style={[styles.segment, kind === k && styles.segmentActive]} onPress={() => setKind(k)}>
@@ -160,11 +206,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
+  title: { fontSize: 15, fontWeight: '700', color: colors.text },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  row: { flexDirection: 'row', gap: spacing.sm },
+  half: { flex: 1 },
   settingsLink: { alignSelf: 'flex-start' },
   settingsLinkText: { color: colors.accent, fontWeight: '600', fontSize: 14 },
   segmented: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -172,7 +222,7 @@ const styles = StyleSheet.create({
     padding: 3,
     gap: 3,
   },
-  segment: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  segment: { flexGrow: 1, flexBasis: '31%', paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },

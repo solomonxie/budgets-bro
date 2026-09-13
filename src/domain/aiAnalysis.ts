@@ -19,6 +19,17 @@ export interface CategoryTrendRow {
   spentCents: number;
 }
 
+// Free-text household context for the Health/Comparison analysis kinds —
+// entered once in AiAnalysisScreen's Profile section, not board data.
+// Every field is optional; omit whichever the user hasn't filled in rather
+// than sending an empty string.
+export interface AiProfile {
+  city: string;
+  country: string;
+  age: string;
+  familySize: string;
+}
+
 export interface AnalysisContext {
   month: string;
   netWorthCents: number;
@@ -26,6 +37,12 @@ export interface AnalysisContext {
   debtsCents: number;
   variance: CategoryVarianceRow[];
   trend: CategoryTrendRow[];
+  // Deliberately outside redactForPrivacy's scope — Privacy Mode redacts
+  // financial specifics (amounts, category identity), not this. The
+  // profile is already opt-in by nature of being typed in at all; leaving
+  // it out of Privacy Mode is what keeps the Comparison kind (which needs
+  // a real city/country to be useful) from being silently neutered by it.
+  profile?: AiProfile;
 }
 
 // Privacy Mode's trade: round every dollar figure to the nearest $10 and
@@ -60,9 +77,14 @@ export function formatContextForPrompt(context: AnalysisContext): string {
   const lines: string[] = [
     `Month: ${context.month}`,
     `Net worth: ${formatMoney(context.netWorthCents)} (assets ${formatMoney(context.assetsCents)}, debts ${formatMoney(context.debtsCents)})`,
-    '',
-    'Budget vs actual this month, by category:',
   ];
+  const profileParts: string[] = [];
+  if (context.profile?.city) profileParts.push(`city: ${context.profile.city}`);
+  if (context.profile?.country) profileParts.push(`country: ${context.profile.country}`);
+  if (context.profile?.age) profileParts.push(`age: ${context.profile.age}`);
+  if (context.profile?.familySize) profileParts.push(`family size: ${context.profile.familySize}`);
+  if (profileParts.length > 0) lines.push(`Household profile: ${profileParts.join(', ')}`);
+  lines.push('', 'Budget vs actual this month, by category:');
   for (const v of context.variance) {
     lines.push(`- ${v.name}: assigned ${formatMoney(v.assignedCents)}, spent ${formatMoney(v.spentCents)}`);
   }

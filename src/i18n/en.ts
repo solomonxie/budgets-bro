@@ -230,8 +230,6 @@ export const en = {
   'calculators.monthlyPaymentLabel': 'Monthly payment',
   'calculators.totalInterestLabel': 'Total interest paid',
   'calculators.payoffDateLabel': 'Payoff date (from today)',
-  'calculators.moreHeading': 'More calculators',
-  'calculators.moreHint': 'Simple/compound interest and extra-payment payoff acceleration — coming soon.',
 
   'loanDetailsCard.viewSchedule': 'View full calculator & amortization schedule',
 

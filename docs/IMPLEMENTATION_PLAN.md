@@ -92,7 +92,7 @@ Requested as a follow-up; design captured in [`yama-mvp.md`](yama-mvp.md#loanmor
 - [x] T8.5 Mortgage account page: equity (value − debt) and value history log (`HouseValueCard`), payoff projection card with an adjustable extra-payment input (`LoanDetailsCard`) — rate history list already shipped in T8.1
 - [x] T8.6 Tracking/investment account page: value log entry form with the two modes (exact gain vs. latest total balance, auto-computing the delta for the latter) — `TrackingValueDetails`/`TrackingValueModal`; generalized `account_house_value_history` into `account_value_history` (migration 014) so mortgage and tracking accounts share one table; a tracking account's balance now resolves from its latest logged value instead of transaction math
 - [x] T8.7 `scheduled_transactions` table + repo (frequency, interval, next_date, end_date, auto_post) — `scheduledTransactionsRepo.ts`; recurrence math (`nextOccurrenceDate`) lives in `domain/recurrence.ts`, unit-tested, reusing `finance-tools/amortization.ts`'s `addMonths` for monthly/yearly steps
-- [ ] T8.8 "Upcoming" list (manual-approve schedules) + lazy auto-post check on app foreground for `auto_post` schedules
+- [x] T8.8 "Upcoming" list (`UpcomingScreen`, Insights tab) + lazy auto-post check on app foreground (`useAutoPostScheduledTransactions`, mounted in `RootNavigator` beside `useAutoCloudSync`) for `auto_post` schedules — catches up multiple missed occurrences in one pass, capped at 366
 - [ ] T8.9 Scheduled-transaction CRUD UI (create/edit/pause/delete a schedule, from the transaction entry sheet or a dedicated list)
 
 ## Phase 9: Cloud Backup & Restore

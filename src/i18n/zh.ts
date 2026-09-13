@@ -300,6 +300,12 @@ export const zh: Record<keyof typeof en, string> = {
   'insights.babySteps': '理财七步',
   'insights.taxInsights': '税务洞察',
   'insights.calculators': '计算器',
+  'upcoming.title': '定期交易',
+  'upcoming.empty': '尚未设置定期交易。',
+  'upcoming.newSchedule': '+ 新建定期交易',
+  'upcoming.postNow': '立即记账',
+  'upcoming.autoBadge': '自动',
+  'upcoming.deleteConfirmTitle': '删除"{name}"的定期交易？',
 
   'spend.amountPlaceholder': '$0.00',
   'spend.spending': '支出',

@@ -33,6 +33,12 @@ interface AppState {
   openEditAccount: (id: number) => void;
   closeAccountModal: () => void;
 
+  // Same pattern again, for a recurring-transaction schedule (T8.9).
+  scheduledTransactionModal: { open: boolean; editingId: number | null };
+  openAddScheduledTransaction: () => void;
+  openEditScheduledTransaction: (id: number) => void;
+  closeScheduledTransactionModal: () => void;
+
   // Settings lives in a global modal (opened from a corner button on each
   // tab's home screen) instead of its own bottom tab, and doesn't need a
   // navigation stack — SettingsScreen has no navigation dependency itself.
@@ -68,6 +74,11 @@ export const useAppStore = create<AppState>((set) => ({
   openAddAccount: () => set({ accountModal: { open: true, editingAccountId: null } }),
   openEditAccount: (id) => set({ accountModal: { open: true, editingAccountId: id } }),
   closeAccountModal: () => set({ accountModal: { open: false, editingAccountId: null } }),
+
+  scheduledTransactionModal: { open: false, editingId: null },
+  openAddScheduledTransaction: () => set({ scheduledTransactionModal: { open: true, editingId: null } }),
+  openEditScheduledTransaction: (id) => set({ scheduledTransactionModal: { open: true, editingId: id } }),
+  closeScheduledTransactionModal: () => set({ scheduledTransactionModal: { open: false, editingId: null } }),
 
   settingsModal: { open: false },
   openSettings: () => set({ settingsModal: { open: true } }),

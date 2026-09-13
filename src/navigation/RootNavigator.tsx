@@ -12,6 +12,7 @@ import type { TabIconName } from '../components/ui/TabBarIcon';
 import { useBootstrapActiveBoard, useEnsureDemoBoard } from '../hooks/useBoards';
 import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
+import { useAutoPostScheduledTransactions } from '../hooks/useAutoPostScheduledTransactions';
 import { useAppStore } from '../state/useAppStore';
 import { useT } from '../i18n';
 import { colors } from '../theme/colors';
@@ -50,6 +51,7 @@ export function RootNavigator() {
   useEnsureDemoBoard();
   useBootstrapLanguage();
   useAutoCloudSync();
+  useAutoPostScheduledTransactions();
   const t = useT();
   return (
     <NavigationContainer theme={navigationTheme}>

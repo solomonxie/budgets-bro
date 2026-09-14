@@ -71,7 +71,11 @@ export function AssignedAmountModal({
   const done = () => {
     const parsed = parseFloat(value);
     const cents = Number.isNaN(parsed) ? 0 : Math.round(parsed * 100);
-    if (cents > availableCents) {
+    // Only raising the assignment draws from unassigned — leaving it
+    // unchanged or lowering it must always be allowed, even if Unassigned
+    // is already negative (e.g. from an overcommitted budget), since that's
+    // the only way to claw a negative Unassigned back to zero.
+    if (cents > initialCents && cents > availableCents) {
       setError(t('assignedAmountModal.exceedsError', { amount: formatMoney(cents - availableCents) }));
       return;
     }

@@ -66,6 +66,10 @@ export function AddTransactionModal() {
   const isEditing = editingTransactionId != null;
 
   const amountInputRef = useRef<TextInput>(null);
+  // iOS leaves the InputAccessoryView floating at the bottom of the screen
+  // after the keyboard dismisses if it stays mounted — only mount it while
+  // the amount field actually has focus.
+  const [amountFocused, setAmountFocused] = useState(false);
 
   const [amount, setAmount] = useState('');
   const [direction, setDirection] = useState<'out' | 'in'>('out');
@@ -287,6 +291,8 @@ export function AddTransactionModal() {
             inputAccessoryViewID={
               Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
             }
+            onFocus={() => setAmountFocused(true)}
+            onBlur={() => setAmountFocused(false)}
             value={amount ? `$${formatAmountDigits(amount)}` : ''}
             onChangeText={(text) =>
               setAmount(
@@ -532,7 +538,7 @@ export function AddTransactionModal() {
             </Pressable>
           ) : null}
         </ScrollView>
-        {Platform.OS === 'ios' ? (
+        {Platform.OS === 'ios' && amountFocused ? (
           <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
             <View style={styles.accessoryBar}>
               <Pressable

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { BottomSheet } from './BottomSheet';
 import { useT } from '../../i18n';
@@ -11,7 +11,14 @@ interface DropdownFieldProps {
   label: string;
   valueLabel: string;
   placeholder?: string;
-  children: (close: () => void) => ReactNode;
+  // `close(after)` closes this picker and, once it's actually finished
+  // dismissing (not just requested to), runs `after` — for a caller that
+  // wants to present another modal/Alert next. Presenting on top of a
+  // still-animating dismissal can wedge iOS's window presentation state
+  // entirely (see RowMenuButton, which has the same mechanism for its own
+  // sheet — this and that compose for pickers that also carry a row menu,
+  // like Settings' board list).
+  children: (close: (after?: () => void) => void) => ReactNode;
   // Half-height bottom sheet (swipe down or drag the handle to dismiss,
   // same as the full-screen picker's Back) instead of a full-screen page —
   // this is the default look now for every picker in the app, including
@@ -28,7 +35,19 @@ interface DropdownFieldProps {
 export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
+  const pendingRef = useRef<(() => void) | null>(null);
+
+  const runDismissed = () => {
+    const fn = pendingRef.current;
+    pendingRef.current = null;
+    fn?.();
+  };
+
+  const close = (after?: () => void) => {
+    pendingRef.current = after ?? null;
+    setOpen(false);
+    if (Platform.OS !== 'ios') runDismissed();
+  };
 
   // Dismiss the keyboard (not just visually — resigns first responder)
   // before presenting the picker's own native Modal. Two stacked native
@@ -50,7 +69,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
         <Text style={styles.chevron}>▾</Text>
       </Pressable>
       {compact ? (
-        <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+        <Modal visible={open} transparent animationType="slide" onRequestClose={() => close()} onDismiss={runDismissed}>
           <BottomSheet title={label} onClose={close}>
             {children(close)}
           </BottomSheet>
@@ -58,11 +77,21 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
       ) : (
         // iOS lets a pageSheet be swiped down to dismiss directly, without
         // ever pressing the button — onDismiss keeps `open` in sync with
-        // that, same as pressing Back would.
-        <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={close} onDismiss={close}>
+        // that, same as pressing Back would, and still runs any pending
+        // post-close action.
+        <Modal
+          visible={open}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => close()}
+          onDismiss={() => {
+            setOpen(false);
+            runDismissed();
+          }}
+        >
           <ScreenContainer modal>
             <View style={styles.header}>
-              <Pressable onPress={close} hitSlop={10}>
+              <Pressable onPress={() => close()} hitSlop={10}>
                 <Text style={styles.headerBtn}>{t('common.back')}</Text>
               </Pressable>
               <Text style={styles.title} numberOfLines={1}>

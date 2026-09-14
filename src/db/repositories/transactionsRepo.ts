@@ -3,7 +3,13 @@ import type { TransactionJoinRow } from '../schema';
 import type { TransactionWithLabels } from '../../domain/types';
 import { currentDateISO } from '../../domain/month';
 import { findOrCreatePayee, getPayee } from './payeesRepo';
-import { SELECT_WITH_LABELS, INSERT_TRANSACTION, UPDATE_TRANSACTION, LAST_CATEGORY_FOR_PAYEE } from '../../../databases/queries/transactions';
+import {
+  SELECT_WITH_LABELS,
+  INSERT_TRANSACTION,
+  UPDATE_TRANSACTION,
+  LAST_CATEGORY_FOR_PAYEE,
+  SELECT_FOR_INCOME_ACCOUNT,
+} from '../../../databases/queries/transactions';
 
 function mapRow(row: TransactionJoinRow): TransactionWithLabels {
   return {
@@ -15,12 +21,14 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
     amountCents: row.amount_cents,
     date: row.date,
     transferAccountId: row.transfer_account_id,
+    incomeAccountId: row.income_account_id,
     importId: row.import_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     payeeName: row.payee_name,
     categoryName: row.category_name,
     categoryIcon: row.category_icon,
+    accountName: row.account_name,
   };
 }
 
@@ -58,6 +66,23 @@ export async function listFutureTransactionsForAccount(
   return rows.map(mapRow);
 }
 
+// Powers an Income account's own detail page — see migration 021; an
+// Income account has no ledger rows of its own, just tagged transactions
+// on whatever real accounts the money landed in.
+export async function listTransactionsForIncomeAccount(
+  db: SQLiteDatabase,
+  boardId: number,
+  incomeAccountId: number,
+): Promise<TransactionWithLabels[]> {
+  const rows = await db.getAllAsync<TransactionJoinRow>(
+    SELECT_FOR_INCOME_ACCOUNT,
+    incomeAccountId,
+    boardId,
+    currentDateISO(),
+  );
+  return rows.map(mapRow);
+}
+
 // Excludes scheduled/future transactions (date > today) — see
 // listTransactionsForAccount.
 export async function listTransactions(db: SQLiteDatabase, boardId: number): Promise<TransactionWithLabels[]> {
@@ -86,6 +111,9 @@ export interface CreateTransactionInput {
   memo: string | null;
   amountCents: number; // signed
   date: string;
+  // Tags this as belonging to an Income-typed account's earnings — see
+  // migration 021. Undefined/null for anything that isn't income.
+  incomeAccountId?: number | null;
 }
 
 // If `payeeId` is an account's auto-generated payee (see
@@ -113,6 +141,7 @@ async function postLinkedAccountLeg(
     input.date,
     input.accountId,
     null,
+    null,
   );
 }
 
@@ -131,6 +160,7 @@ export async function createTransaction(db: SQLiteDatabase, boardId: number, inp
       input.date,
       null,
       null,
+      input.incomeAccountId ?? null,
     );
     insertedId = result.lastInsertRowId;
     await postLinkedAccountLeg(db, boardId, { ...input, payeeId });
@@ -155,6 +185,7 @@ export async function updateTransaction(db: SQLiteDatabase, boardId: number, inp
     input.memo,
     input.amountCents,
     input.date,
+    input.incomeAccountId ?? null,
     input.id,
   );
 }

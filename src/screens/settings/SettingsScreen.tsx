@@ -13,8 +13,6 @@ import { useLanguageSetting } from '../../hooks/useLanguage';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as payeesRepo from '../../db/repositories/payeesRepo';
-import * as incomeRepo from '../../db/repositories/incomeRepo';
-import { accountKind } from '../../domain/accountKind';
 import { secureStore } from '../../secure/secureStore';
 import { runChatCompletion } from '../../ai/openaiClient';
 import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
@@ -62,8 +60,8 @@ export function SettingsScreen() {
   const { payees, refresh: refreshPayees } = usePayees();
   const { accounts } = useAccounts();
   const [prompt, setPrompt] = useState<PromptState>(null);
-  const [incomeCashAccountId, setIncomeCashAccountId] = useState<number | null>(null);
   const [creatingDemoBoard, setCreatingDemoBoard] = useState(false);
+  const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
   const [selectedPayeeId, setSelectedPayeeId] = useState<number | null>(null);
   const [payeeNameInput, setPayeeNameInput] = useState('');
 
@@ -100,21 +98,6 @@ export function SettingsScreen() {
       setLastSyncedAtState(await getLastSyncedSummary(db));
     })();
   }, []);
-
-  useEffect(() => {
-    (async () => {
-      const db = await getDb();
-      setIncomeCashAccountId(await incomeRepo.getDefaultCashAccountId(db, boardId));
-    })();
-  }, [boardId]);
-
-  const selectIncomeCashAccount = async (accountId: number) => {
-    setIncomeCashAccountId(accountId);
-    const db = await getDb();
-    await incomeRepo.setDefaultCashAccountId(db, boardId, accountId);
-  };
-
-  const cashLikeAccounts = accounts.filter((a) => ['Cash', 'Savings'].includes(accountKind(a.account.type)));
 
   const selectTheme = async (next: ThemePreference) => {
     setTheme(next);
@@ -354,6 +337,22 @@ export function SettingsScreen() {
     }
   };
 
+  // Guards against a double-tap firing two overlapping deletes (deleteBoard's
+  // transaction isn't exclusive, so two interleaved runs can step on each
+  // other) and surfaces a failure instead of leaving the row looking stuck
+  // with no feedback — same pattern as runCreateDemoBoard above.
+  const runDeleteBoard = async (id: number) => {
+    if (deletingBoardId != null) return;
+    setDeletingBoardId(id);
+    try {
+      await removeBoard(id);
+    } catch {
+      Alert.alert(t('settings.deleteBoardFailed'));
+    } finally {
+      setDeletingBoardId(null);
+    }
+  };
+
   const confirmDeleteBoard = (id: number, name: string) => {
     if (boards.length <= 1) {
       Alert.alert(t('settings.cantDeleteOnlyBoardTitle'), t('settings.cantDeleteOnlyBoardMessage'));
@@ -361,7 +360,7 @@ export function SettingsScreen() {
     }
     Alert.alert(t('settings.deleteBoardConfirmTitle', { name }), t('settings.deleteBoardConfirmMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => removeBoard(id) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => runDeleteBoard(id) },
     ]);
   };
 
@@ -371,6 +370,7 @@ export function SettingsScreen() {
         <Text style={styles.sectionHeading}>{t('settings.boardsHeading')}</Text>
         <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
         {creatingDemoBoard ? <Text style={styles.sectionHint}>{t('settings.creatingDemoBoard')}</Text> : null}
+        {deletingBoardId != null ? <Text style={styles.sectionHint}>{t('common.deleting')}</Text> : null}
         <DropdownField
           compact
           label={t('settings.boardsHeading')}
@@ -394,32 +394,30 @@ export function SettingsScreen() {
                     items={[
                       {
                         label: t('common.rename'),
-                        onPress: () => {
-                          close();
-                          setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name });
-                        },
+                        // `close(after)` waits for this picker sheet to
+                        // actually finish dismissing before running `after`
+                        // — presenting the rename prompt on top of a still-
+                        // animating dismissal can wedge iOS's window
+                        // presentation state entirely (screen looks normal,
+                        // but no touch ever lands again — see delete-board
+                        // freeze investigation). RowMenuButton does the same
+                        // for its own "⋯" sheet, so both close in sequence.
+                        onPress: () => close(() => setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name })),
                       },
-                      { label: t('settings.createDemoBoard'), onPress: () => { close(); runCreateDemoBoard(); } },
                       {
                         label: t('common.delete'),
                         destructive: true,
-                        onPress: () => {
-                          close();
-                          confirmDeleteBoard(board.id, board.name);
-                        },
+                        onPress: () => close(() => confirmDeleteBoard(board.id, board.name)),
                       },
                     ]}
                   />
                 </View>
               ))}
-              <Pressable
-                style={styles.addLink}
-                onPress={() => {
-                  close();
-                  setPrompt({ type: 'newBoard' });
-                }}
-              >
+              <Pressable style={styles.addLink} onPress={() => close(() => setPrompt({ type: 'newBoard' }))}>
                 <Text style={styles.addLinkText}>{t('settings.newBoardLink')}</Text>
+              </Pressable>
+              <Pressable style={styles.addLink} onPress={() => close(runCreateDemoBoard)}>
+                <Text style={styles.addLinkText}>{t('settings.createDemoBoard')}</Text>
               </Pressable>
             </>
           )}
@@ -484,33 +482,6 @@ export function SettingsScreen() {
             </Pressable>
           ))}
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.incomeHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.incomeHint')}</Text>
-        <DropdownField
-          compact
-          label={t('settings.incomeCashAccountLabel')}
-          valueLabel={cashLikeAccounts.find((a) => a.account.id === incomeCashAccountId)?.account.name ?? ''}
-          placeholder={t('settings.incomeCashAccountPlaceholder')}
-        >
-          {(close) => (
-            <>
-              {cashLikeAccounts.map(({ account }) => (
-                <DropdownOption
-                  key={account.id}
-                  label={account.name}
-                  selected={incomeCashAccountId === account.id}
-                  onPress={() => {
-                    selectIncomeCashAccount(account.id);
-                    close();
-                  }}
-                />
-              ))}
-            </>
-          )}
-        </DropdownField>
       </View>
 
       <View style={styles.section}>

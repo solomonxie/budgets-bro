@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -20,13 +20,37 @@ interface RowMenuButtonProps {
 export function RowMenuButton({ items }: RowMenuButtonProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const pendingRef = useRef<(() => void) | null>(null);
+
+  // An item's own onPress often opens another modal/Alert of its own (e.g.
+  // Settings' board delete confirms via Alert.alert) — firing that in the
+  // same tick as this sheet's own dismissal stacks two native modal
+  // transitions at once, which can wedge iOS's window presentation state
+  // entirely (screen looks normal, touches stop landing anywhere, no crash
+  // — see delete-board freeze investigation). `onDismiss` fires exactly
+  // when this sheet's own dismiss animation actually finishes — no
+  // guessed duration, and it still holds up if that animation is skipped
+  // (Reduce Motion) or slower than usual (loaded device). Android's Modal
+  // doesn't call onDismiss at all, but doesn't share this iOS-specific
+  // wedging either, so it runs the action right away there.
+  const runDismissed = () => {
+    const fn = pendingRef.current;
+    pendingRef.current = null;
+    fn?.();
+  };
 
   return (
     <>
       <Pressable onPress={() => setOpen(true)} hitSlop={10} style={styles.trigger}>
         <Text style={styles.triggerText}>⋯</Text>
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+        onDismiss={runDismissed}
+      >
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <View style={styles.sheet}>
             {items.map((item) => (
@@ -34,8 +58,9 @@ export function RowMenuButton({ items }: RowMenuButtonProps) {
                 key={item.label}
                 style={styles.item}
                 onPress={() => {
+                  pendingRef.current = item.onPress;
                   setOpen(false);
-                  item.onPress();
+                  if (Platform.OS !== 'ios') runDismissed();
                 }}
               >
                 <Text style={[styles.itemText, item.destructive && styles.itemTextDestructive]}>{item.label}</Text>

@@ -118,11 +118,10 @@ export function AccountsScreen() {
         <View key={group.kind} style={styles.group}>
           <View style={styles.groupHeader}>
             <Text style={styles.groupLabel}>{t(KIND_LABEL_KEY[group.kind])}</Text>
-            <Text style={styles.groupSub}>
-              {group.kind === 'Income'
-                ? t('accounts.incomeThisYearAmount', { amount: formatMoney(group.subtotalCents) })
-                : formatMoney(group.subtotalCents)}
-            </Text>
+            <View style={styles.valueStack}>
+              <Text style={styles.groupSub}>{formatMoney(group.subtotalCents)}</Text>
+              {group.kind === 'Income' ? <Text style={styles.thisYearHint}>{t('accounts.thisYear')}</Text> : null}
+            </View>
           </View>
           {group.accounts.map(({ account, displayCents }) => (
             <Pressable
@@ -130,12 +129,13 @@ export function AccountsScreen() {
               style={styles.row}
               onPress={() => navigation.navigate('AccountDetail', { accountId: account.id })}
             >
-              <Text style={styles.rowTitle}>{account.name}</Text>
-              <Text style={[styles.rowValue, displayCents < 0 && styles.negative]}>
-                {group.kind === 'Income'
-                  ? t('accounts.incomeThisYearAmount', { amount: formatMoney(displayCents) })
-                  : formatMoney(displayCents)}
+              <Text style={styles.rowTitle} numberOfLines={1} ellipsizeMode="tail">
+                {account.name}
               </Text>
+              <View style={styles.valueStack}>
+                <Text style={[styles.rowValue, displayCents < 0 && styles.negative]}>{formatMoney(displayCents)}</Text>
+                {group.kind === 'Income' ? <Text style={styles.thisYearHint}>{t('accounts.thisYear')}</Text> : null}
+              </View>
             </Pressable>
           ))}
         </View>
@@ -216,8 +216,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: spacing.md,
   },
-  rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
+  rowTitle: { flex: 1, marginRight: spacing.sm, fontSize: 15, fontWeight: '600', color: colors.text },
+  valueStack: { alignItems: 'flex-end' },
   rowValue: { fontSize: 15, fontWeight: '700', color: colors.text },
+  thisYearHint: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
   negative: { color: colors.negative },
   addButton: { alignItems: 'center', paddingVertical: spacing.sm },
   addButtonText: { color: colors.accent, fontWeight: '700' },

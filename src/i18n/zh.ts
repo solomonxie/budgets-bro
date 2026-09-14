@@ -140,7 +140,7 @@ export const zh: Record<keyof typeof en, string> = {
 
   'accounts.netWorth': '净资产',
   'accounts.customize': '自定义',
-  'accounts.incomeThisYearAmount': '今年 {amount}',
+  'accounts.thisYear': '今年',
   'accounts.assets': '资产 {amount}',
   'accounts.debts': '负债 {amount}',
   'accounts.includeInNetWorth': '计入净资产',
@@ -303,7 +303,10 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.step7Title': '积累财富并回馈社会',
   'babySteps.stepPrefix': '第 {number} 步：{title}',
   'babySteps.progressCaption': '{current} / {target}',
+  'babySteps.markDone': '标记完成',
+  'babySteps.markedDone': '✓ 已完成',
   'babySteps.goalsHeading': '我的目标',
+  'babySteps.goalsHint': '这是你自己设定的目标——与上面的 7 个理财步骤无关，也不计入它们的进度。可以手动跟踪，也可以关联某个账户的余额。',
   'babySteps.addGoal': '+ 添加目标',
   'babySteps.goalsEmpty': '还没有自定义目标——在上面设定你自己的目标，手动或通过关联账户跟踪进度。',
 

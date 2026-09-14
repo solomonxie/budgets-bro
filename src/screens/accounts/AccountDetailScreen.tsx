@@ -10,6 +10,7 @@ import { useFutureTransactions } from '../../hooks/useFutureTransactions';
 import { useAccountScheduledTransactions } from '../../hooks/useAccountScheduledTransactions';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { withRunningBalances } from '../../domain/register';
+import { monthlyBalanceTrend } from '../../domain/balanceTrend';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
@@ -22,6 +23,7 @@ import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { useIncomeInsights } from '../../hooks/useIncomeInsights';
 import { useIncomeAccountTransactions } from '../../hooks/useIncomeAccountTransactions';
 import { IncomeTrendChart } from './IncomeTrendChart';
+import { BalanceTrendChart } from './BalanceTrendChart';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -41,6 +43,9 @@ export function AccountDetailScreen() {
   const isTracking = accountWithBalance?.account.type === 'tracking';
   const isAsset = accountWithBalance?.account.type === 'asset';
   const isIncome = accountWithBalance?.account.type === 'income';
+  const isCreditCard = accountWithBalance?.account.type === 'credit_card';
+  const isCashOrSavings =
+    accountWithBalance?.account.type === 'savings' || accountWithBalance?.account.type === 'cash';
   const { transactions } = useTransactions(accountId);
   // An Income account has no ledger rows of its own — its "transactions"
   // are a filtered view over whichever real accounts the money actually
@@ -59,13 +64,17 @@ export function AccountDetailScreen() {
   // not worth a balance number, so the balance box shows what it actually
   // earned instead.
   const { thisMonthCents, thisYearCents, trend } = useIncomeInsights(isIncome ? accountId : null);
-  // Savings/cash accounts keep their normal ledger balance (opening +
-  // transactions) — they just get the same optional value-history
-  // log/chart a tracking account has, purely to visualize deposits vs.
-  // interest/gain over time. It never overrides the real balance the way
-  // a tracking/asset account's does (see accountsRepo.resolveBalanceCents).
-  const hasValueHistory =
-    isTracking || isAsset || accountWithBalance?.account.type === 'savings' || accountWithBalance?.account.type === 'cash';
+  const hasValueHistory = isTracking || isAsset;
+  // Cash/savings/credit card balances are fully derivable from the real
+  // ledger (opening balance + transactions) — no manual logging needed,
+  // unlike tracking/asset's value history. Credit card also gets its
+  // monthly spend overlaid: a balance that's paid off every cycle reads as
+  // flat/near-zero and hides how much actually got charged.
+  const showsBalanceTrend = isCashOrSavings || isCreditCard;
+  const balanceTrend = useMemo(
+    () => (showsBalanceTrend ? monthlyBalanceTrend(transactions, balanceCents) : []),
+    [showsBalanceTrend, transactions, balanceCents],
+  );
   const {
     history: valueHistory,
     currentValueCents,
@@ -198,6 +207,22 @@ export function AccountDetailScreen() {
             mode={isAsset ? 'single' : 'stacked'}
             refresh={refreshValueHistory}
           />
+        ) : null}
+        {showsBalanceTrend && accountWithBalance ? (
+          <Pressable
+            style={styles.trackingValueHeader}
+            onPress={() => setValueExpanded((v) => !v)}
+          >
+            <Text style={styles.trackingValueHeaderText}>
+              {t('trackingValueCard.label')}
+            </Text>
+            <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
+          </Pressable>
+        ) : null}
+        {showsBalanceTrend && valueExpanded ? (
+          <View style={styles.balanceTrendCard}>
+            <BalanceTrendChart points={balanceTrend} showSpending={isCreditCard} />
+          </View>
         ) : null}
         {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
           <LoanDetailsCard
@@ -378,6 +403,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   trackingValueHeaderText: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
+  balanceTrendCard: { marginTop: spacing.sm },
   chevron: { fontSize: 14, color: colors.textMuted },
   scheduledCard: {
     backgroundColor: colors.surface,

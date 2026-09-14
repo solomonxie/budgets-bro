@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   doneButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  group: { gap: spacing.xs },
+  group: { gap: spacing.xs, marginTop: spacing.sm },
   groupHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2 },
   groupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
   groupSub: { fontSize: 12, fontWeight: '700', color: colors.textMuted },

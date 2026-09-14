@@ -140,7 +140,7 @@ export const en = {
 
   'accounts.netWorth': 'Net Worth',
   'accounts.customize': 'Customize',
-  'accounts.incomeThisYearAmount': '{amount} this year',
+  'accounts.thisYear': 'this year',
   'accounts.assets': 'Assets {amount}',
   'accounts.debts': 'Debts {amount}',
   'accounts.includeInNetWorth': 'Include in Net Worth',
@@ -303,7 +303,10 @@ export const en = {
   'babySteps.step7Title': 'Build wealth and give',
   'babySteps.stepPrefix': 'Step {number}: {title}',
   'babySteps.progressCaption': '{current} of {target}',
+  'babySteps.markDone': 'Mark Done',
+  'babySteps.markedDone': '✓ Done',
   'babySteps.goalsHeading': 'Your Goals',
+  'babySteps.goalsHint': "Your own targets — separate from the 7 Baby Steps above, and not counted in any of their progress. Track anything (a car, a trip) either manually or against a linked account's balance.",
   'babySteps.addGoal': '+ Add Goal',
   'babySteps.goalsEmpty': 'No custom goals yet — set your own target above and track it manually or from a linked account.',
 

@@ -160,11 +160,12 @@ export function BabyStepsScreen() {
         }
       />
       <ManualStep
+        number={4}
         title={t('babySteps.step4Title')}
         checked={manual.step4}
         onToggle={() => toggleManual('step4')}
       />
-      <ManualStep title={t('babySteps.step5Title')} checked={manual.step5} onToggle={() => toggleManual('step5')} />
+      <ManualStep number={5} title={t('babySteps.step5Title')} checked={manual.step5} onToggle={() => toggleManual('step5')} />
       <Step
         number={6}
         title={t('babySteps.step6Title')}
@@ -173,7 +174,7 @@ export function BabyStepsScreen() {
         target={1}
         captionOverride={mortgageDebtCents === 0 ? t('babySteps.step6Done') : t('babySteps.remaining', { amount: formatMoney(mortgageDebtCents) })}
       />
-      <ManualStep title={t('babySteps.step7Title')} checked={manual.step7} onToggle={() => toggleManual('step7')} />
+      <ManualStep number={7} title={t('babySteps.step7Title')} checked={manual.step7} onToggle={() => toggleManual('step7')} />
 
       <View style={styles.goalsHeaderRow}>
         <Text style={styles.title}>{t('babySteps.goalsHeading')}</Text>
@@ -181,6 +182,7 @@ export function BabyStepsScreen() {
           <Text style={styles.addGoalText}>{t('babySteps.addGoal')}</Text>
         </Pressable>
       </View>
+      <Text style={styles.hint}>{t('babySteps.goalsHint')}</Text>
       {goals.length === 0 ? <Text style={styles.hint}>{t('babySteps.goalsEmpty')}</Text> : null}
       {goals.map((goal) => {
         const percent = goal.targetCents > 0 ? Math.min(100, Math.round((goal.progressCents / goal.targetCents) * 100)) : 0;
@@ -240,11 +242,28 @@ function Step({
   );
 }
 
-function ManualStep({ title, checked, onToggle }: { title: string; checked: boolean; onToggle: () => void }) {
+function ManualStep({
+  number,
+  title,
+  checked,
+  onToggle,
+}: {
+  number: number;
+  title: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const t = useT();
   return (
-    <Pressable style={[styles.card, styles.manualRow]} onPress={onToggle}>
-      <View style={[styles.checkbox, checked && styles.checkboxChecked]} />
-      <Text style={styles.stepTitle}>{title}</Text>
+    <Pressable style={styles.card} onPress={onToggle}>
+      <View style={styles.manualHeaderRow}>
+        <Text style={styles.stepTitle}>{t('babySteps.stepPrefix', { number, title })}</Text>
+        <View style={[styles.statusPill, checked && styles.statusPillDone]}>
+          <Text style={[styles.statusPillText, checked && styles.statusPillTextDone]}>
+            {checked ? t('babySteps.markedDone') : t('babySteps.markDone')}
+          </Text>
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -261,10 +280,18 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  stepTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
-  manualRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border },
-  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
+  stepTitle: { fontSize: 14, fontWeight: '700', color: colors.text, flex: 1, marginRight: spacing.sm },
+  manualHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  statusPill: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  statusPillDone: { backgroundColor: colors.accent, borderColor: colors.accent },
+  statusPillText: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
+  statusPillTextDone: { color: '#fff' },
   goalsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
   addGoalText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
 });

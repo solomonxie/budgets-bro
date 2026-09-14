@@ -310,6 +310,11 @@ export function AccountDetailScreen() {
                 {item.categoryName ?? t('common.uncategorized')}
                 {isIncome ? ` · ${item.accountName}` : ''} · {item.date}
               </Text>
+              {item.memo ? (
+                <Text style={styles.memo} numberOfLines={1}>
+                  {item.memo}
+                </Text>
+              ) : null}
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text
@@ -417,6 +422,7 @@ const styles = StyleSheet.create({
   },
   payee: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  memo: { fontSize: 12, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
   amount: { fontSize: 15, fontWeight: '700' },
   running: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   negative: { color: colors.negative },

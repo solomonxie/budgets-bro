@@ -142,6 +142,17 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   await accountValueHistoryRepo.addValueChange(db, cabinId, cents(365000), day(months[11], 1));
   await accountValueHistoryRepo.addValueChange(db, cabinId, cents(380000), day(months[23], 15));
 
+  // Smaller resellable personal property, same Asset type as the cabin —
+  // a depreciating item (laptop) and an appreciating one (watch), so Net
+  // Worth's asset side isn't just real estate.
+  const laptopId = await accountsRepo.createAccount(db, boardId, { name: 'MacBook Pro', type: 'asset', openingBalanceCents: cents(2200) });
+  await accountValueHistoryRepo.addValueChange(db, laptopId, cents(2200), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, laptopId, cents(1400), day(months[23], 15));
+
+  const watchId = await accountsRepo.createAccount(db, boardId, { name: 'Omega Seamaster Watch', type: 'asset', openingBalanceCents: cents(4800) });
+  await accountValueHistoryRepo.addValueChange(db, watchId, cents(4800), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, watchId, cents(5100), day(months[23], 15));
+
   // Loans — three different repayment shapes beyond the mortgage above:
   // a standard interest-bearing installment loan (car), a fixed-payment
   // loan with no interest to break out (lease — the money factor is baked
@@ -301,8 +312,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: catHouse,
-      payeeName: '',
-      memo: 'Mortgage interest',
+      payeeName: 'Mortgage Interest',
+      memo: null,
       amountCents: -house.interestCents,
       date: day(month, 1),
     });
@@ -324,8 +335,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: catCarLoan,
-      payeeName: '',
-      memo: 'Auto loan interest',
+      payeeName: 'Auto Loan Interest',
+      memo: null,
       amountCents: -carLoan.interestCents,
       date: day(month, 4),
     });
@@ -350,8 +361,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
       categoryId: catStudentLoan,
-      payeeName: '',
-      memo: 'Student loan interest',
+      payeeName: 'Student Loan Interest',
+      memo: null,
       amountCents: -studentLoan.interestCents,
       date: day(month, 20),
     });
@@ -378,8 +389,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: locId,
       categoryId: null,
-      payeeName: '',
-      memo: 'Interest',
+      payeeName: 'Line of Credit Interest',
+      memo: null,
       amountCents: -locInterestCents,
       date: day(month, 25),
     });
@@ -585,8 +596,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: rrspId,
       categoryId: null,
-      payeeName: '',
-      memo: 'Market growth',
+      payeeName: 'RRSP Market Growth',
+      memo: null,
       amountCents: rrspGrowth,
       date: day(month, 28),
     });
@@ -605,8 +616,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: tfsaId,
       categoryId: null,
-      payeeName: '',
-      memo: 'Market growth',
+      payeeName: 'TFSA Market Growth',
+      memo: null,
       amountCents: tfsaGrowth,
       date: day(month, 28),
     });
@@ -625,8 +636,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: investId,
       categoryId: null,
-      payeeName: '',
-      memo: 'Market growth',
+      payeeName: 'Investment Market Growth',
+      memo: null,
       amountCents: investGrowth,
       date: day(month, 28),
     });
@@ -647,8 +658,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: savingsId,
       categoryId: null,
-      payeeName: '',
-      memo: 'Interest',
+      payeeName: 'Savings Interest',
+      memo: null,
       amountCents: savingsInterest,
       date: day(month, 28),
     });

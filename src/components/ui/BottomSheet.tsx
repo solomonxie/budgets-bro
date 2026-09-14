@@ -54,12 +54,12 @@ export function BottomSheet({ title, onClose, stickyContent, listHeight, childre
     // anchored to the (now keyboard-covered) bottom of the screen instead
     // of sliding up above the keyboard.
     <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <Pressable style={styles.backdropTouch} onPress={onClose}>
+      <Pressable style={styles.backdropTouch} onPress={() => onClose()}>
         <Animated.View style={[styles.card, { transform: [{ translateY }] }]} {...panResponder.panHandlers}>
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.handle} />
             <View style={styles.header}>
-              <Pressable onPress={onClose} hitSlop={10}>
+              <Pressable onPress={() => onClose()} hitSlop={10}>
                 <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
               </Pressable>
               <Text style={styles.title} numberOfLines={1}>

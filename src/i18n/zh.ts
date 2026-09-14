@@ -220,9 +220,11 @@ export const zh: Record<keyof typeof en, string> = {
   'houseValueCard.equity': '净值：{amount}',
   'houseValueCard.updateButton': '+ 更新房屋价值',
 
-  'trackingValueCard.label': '数值历史',
+  'trackingValueCard.label': '余额趋势',
   'trackingValueCard.noValueYet': '尚未记录数值。',
   'trackingValueCard.updateButton': '+ 记录新数值',
+  'balanceTrendChart.balanceLabel': '余额',
+  'balanceTrendChart.spendingLabel': '支出',
   'trackingValueModal.title': '记录数值',
   'trackingValueModal.modeTotal': '总余额',
   'trackingValueModal.modeGain': '盈亏',
@@ -394,7 +396,6 @@ export const zh: Record<keyof typeof en, string> = {
   'repeatField.everyWithDays': '每 {n} {unit}，{days}',
 
   'addTransactionModal.incomeAccountLabel': '收入账户',
-  'addTransactionModal.incomeAccountNone': '无',
   'addTransactionModal.scheduledToggleLabel': '定期交易',
   'addTransactionModal.startDateLabel': '开始日期',
   'addTransactionModal.repeatLabel': '重复',

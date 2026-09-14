@@ -40,15 +40,26 @@ function amortize(principalCents: number, annualRateBps: number, termMonths: num
   return steps;
 }
 
+// Repeated "Create Demo Board" taps (see SettingsScreen.runCreateDemoBoard)
+// would otherwise pile up several boards all named "Demo" — append " 2",
+// " 3", etc. until the name is free.
+async function uniqueBoardName(db: SQLiteDatabase, base: string): Promise<string> {
+  const existing = new Set((await boardsRepo.listBoards(db)).map((b) => b.name));
+  if (!existing.has(base)) return base;
+  let n = 2;
+  while (existing.has(`${base} ${n}`)) n++;
+  return `${base} ${n}`;
+}
+
 // Invented, middle-class household finances shaped like a real board —
-// three income accounts (salary, part-time, freelance; ~$120k/yr combined),
+// three income accounts (salary, part-time, freelance; ~$140k/yr combined),
 // one mortgaged primary residence, one fully paid-off cabin, a couple of
 // credit cards, car loan/lease, a student loan, a line of credit, and
 // modest RRSP/TFSA/investing — for showing someone the app without
 // exposing any real money. Every number here is fictional; nothing is
 // derived from the caller's actual data.
 export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
-  const boardId = await boardsRepo.createBoard(db, DEMO_BOARD_NAME);
+  const boardId = await boardsRepo.createBoard(db, await uniqueBoardName(db, DEMO_BOARD_NAME));
   const months = lastNMonths(currentMonth(), 24); // oldest → newest, 24 entries
 
   const checkingId = await accountsRepo.createAccount(db, boardId, {
@@ -72,7 +83,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     openingBalanceCents: 0,
   });
   await incomeDetailHistoryRepo.addDetail(db, salaryIncomeId, {
-    amountCents: cents(72000),
+    amountCents: cents(84000),
     unit: 'year',
     effectiveDate: day(months[0], 1),
     note: 'Software engineer, base salary',
@@ -142,16 +153,23 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   await accountValueHistoryRepo.addValueChange(db, cabinId, cents(365000), day(months[11], 1));
   await accountValueHistoryRepo.addValueChange(db, cabinId, cents(380000), day(months[23], 15));
 
-  // Smaller resellable personal property, same Asset type as the cabin —
-  // a depreciating item (laptop) and an appreciating one (watch), so Net
-  // Worth's asset side isn't just real estate.
-  const laptopId = await accountsRepo.createAccount(db, boardId, { name: 'MacBook Pro', type: 'asset', openingBalanceCents: cents(2200) });
-  await accountValueHistoryRepo.addValueChange(db, laptopId, cents(2200), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, laptopId, cents(1400), day(months[23], 15));
-
-  const watchId = await accountsRepo.createAccount(db, boardId, { name: 'Omega Seamaster Watch', type: 'asset', openingBalanceCents: cents(4800) });
-  await accountValueHistoryRepo.addValueChange(db, watchId, cents(4800), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, watchId, cents(5100), day(months[23], 15));
+  // Everyday resellable belongings, same Asset type as the cabin — one
+  // account bundling ordinary household/personal items (electronics,
+  // furniture, jewelry) rather than a line per item, so Net Worth's asset
+  // side isn't just real estate. Value drifts like real mixed possessions
+  // would: electronics/furniture depreciate, a mid-window purchase bumps it
+  // back up, jewelry holds value — same multi-point history shape as the
+  // cabin above, just an asset with no ledger transactions of its own.
+  const belongingsId = await accountsRepo.createAccount(db, boardId, {
+    name: 'Personal Belongings',
+    type: 'asset',
+    openingBalanceCents: cents(9600),
+  });
+  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(9600), day(months[0], 1));
+  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(8700), day(months[7], 1));
+  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(10200), day(months[8], 15));
+  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(9300), day(months[15], 1));
+  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(8100), day(months[23], 15));
 
   // Loans — three different repayment shapes beyond the mortgage above:
   // a standard interest-bearing installment loan (car), a fixed-payment
@@ -260,12 +278,55 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const shoppingPayees = ['Amazon', 'Best Buy', 'Apple Store'];
   const travelPayees = ['Air Canada', 'WestJet'];
 
-  // One real transaction on the cash account, tagged to its income account
-  // (see migration 021) — no separate sweep-transfer pair needed anymore.
-  const postIncome = async (incomeAccountId: number, payeeName: string, amountCents: number, date: string) => {
+  let checkingBalance = cents(4000);
+  let rrspBalance = cents(45000);
+  let tfsaBalance = cents(22000);
+  let investBalance = cents(12000);
+  let savingsBalance = cents(12000);
+  let ccBalance = 0;
+  let cc2Balance = 0;
+  const CHECKING_FLOOR = cents(300);
+
+  // Every Chequing in/out runs through this — a mid-cycle bill landing
+  // before the next paycheque nets the month positive but can still dip
+  // Chequing below the floor day-to-day. Real banks cover that with
+  // overdraft protection linked to Savings; model the same thing instead
+  // of letting the balance go negative.
+  const postChecking = async (
+    categoryId: number | null,
+    payeeName: string,
+    amountCents: number,
+    date: string,
+    incomeAccountId?: number,
+  ) => {
+    const shortfall = amountCents < 0 ? CHECKING_FLOOR - (checkingBalance + amountCents) : 0;
+    if (shortfall > 0) {
+      const coverCents = Math.min(shortfall, Math.max(0, savingsBalance));
+      if (coverCents > 0) {
+        savingsBalance -= coverCents;
+        checkingBalance += coverCents;
+        await transactionsRepo.createTransaction(db, boardId, {
+          accountId: savingsId,
+          categoryId: null,
+          payeeName: 'Overdraft Protection Transfer',
+          memo: null,
+          amountCents: -coverCents,
+          date,
+        });
+        await transactionsRepo.createTransaction(db, boardId, {
+          accountId: checkingId,
+          categoryId: null,
+          payeeName: 'Overdraft Protection Transfer',
+          memo: null,
+          amountCents: coverCents,
+          date,
+        });
+      }
+    }
+    checkingBalance += amountCents;
     await transactionsRepo.createTransaction(db, boardId, {
       accountId: checkingId,
-      categoryId: null,
+      categoryId,
       payeeName,
       memo: null,
       amountCents,
@@ -274,21 +335,23 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     });
   };
 
-  let rrspBalance = cents(45000);
-  let tfsaBalance = cents(22000);
-  let investBalance = cents(12000);
-  let savingsBalance = cents(12000);
-  let ccBalance = 0;
-  let cc2Balance = 0;
+  // One real transaction on the cash account, tagged to its income account
+  // (see migration 021) — no separate sweep-transfer pair needed anymore.
+  const postIncome = (incomeAccountId: number, payeeName: string, amountCents: number, date: string) =>
+    postChecking(null, payeeName, amountCents, date, incomeAccountId);
 
   for (let i = 0; i < months.length; i++) {
     const month = months[i];
     const inflation = 1 + (i / months.length) * 0.05; // slow drift up over the 2 years
 
-    // Household income — two earners paid twice a month (~$120k/yr
-    // combined salary + part-time), plus the odd freelance gig.
-    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(2900, 3100) * inflation), day(month, 1));
-    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(2900, 3100) * inflation), day(month, 15));
+    // Household income — two earners paid twice a month (~$140k/yr
+    // combined salary + part-time), plus the odd freelance gig. Sized so
+    // real cash keeps pace with the mortgage/loans/expenses below —
+    // otherwise Unassigned drifts deeply negative and every category
+    // assignment (even leaving one unchanged) gets rejected as "exceeds
+    // unassigned" (see AssignedAmountModal's cap).
+    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 1));
+    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 15));
     await postIncome(partTimeIncomeId, 'Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 1));
     await postIncome(partTimeIncomeId, 'Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 15));
     // Freelance work is lumpy — most months get one payment, some get
@@ -301,22 +364,8 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     // (plain expense) on the same category, same day. The cabin has no
     // payment of its own — it's paid off, just a logged value.
     const house = housePayments[i];
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catHouse,
-      payeeName: 'Maple Street House Mortgage',
-      memo: null,
-      amountCents: -house.principalCents,
-      date: day(month, 1),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catHouse,
-      payeeName: 'Mortgage Interest',
-      memo: null,
-      amountCents: -house.interestCents,
-      date: day(month, 1),
-    });
+    await postChecking(catHouse, 'Maple Street House Mortgage', -house.principalCents, day(month, 1));
+    await postChecking(catHouse, 'Mortgage Interest', -house.interestCents, day(month, 1));
 
     // Car loan, lease, student loan — same principal/interest split as the
     // mortgage above (the payeeName match on each principal leg is what
@@ -324,48 +373,13 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     // transactionsRepo.postLinkedAccountLeg). The lease has no interest
     // leg — nothing to break out at 0%.
     const carLoan = carLoanPayments[i];
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catCarLoan,
-      payeeName: 'Highlander Auto Loan',
-      memo: null,
-      amountCents: -carLoan.principalCents,
-      date: day(month, 4),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catCarLoan,
-      payeeName: 'Auto Loan Interest',
-      memo: null,
-      amountCents: -carLoan.interestCents,
-      date: day(month, 4),
-    });
+    await postChecking(catCarLoan, 'Highlander Auto Loan', -carLoan.principalCents, day(month, 4));
+    await postChecking(catCarLoan, 'Auto Loan Interest', -carLoan.interestCents, day(month, 4));
     const carLease = carLeaseSchedule[i];
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catCarLease,
-      payeeName: 'CR-V Lease',
-      memo: null,
-      amountCents: -carLease.principalCents,
-      date: day(month, 4),
-    });
+    await postChecking(catCarLease, 'CR-V Lease', -carLease.principalCents, day(month, 4));
     const studentLoan = studentLoanPayments[i];
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catStudentLoan,
-      payeeName: 'Student Loan',
-      memo: null,
-      amountCents: -studentLoan.principalCents,
-      date: day(month, 20),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catStudentLoan,
-      payeeName: 'Student Loan Interest',
-      memo: null,
-      amountCents: -studentLoan.interestCents,
-      date: day(month, 20),
-    });
+    await postChecking(catStudentLoan, 'Student Loan', -studentLoan.principalCents, day(month, 20));
+    await postChecking(catStudentLoan, 'Student Loan Interest', -studentLoan.interestCents, day(month, 20));
 
     // Line of credit — revolving, not installment: an occasional draw
     // spends directly from the account (like a card purchase, no transfer
@@ -396,84 +410,28 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     });
     const locPaymentCents = Math.round(locBalance * rand(0.1, 0.2));
     locBalance -= locPaymentCents;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Personal Line of Credit',
-      memo: null,
-      amountCents: -locPaymentCents,
-      date: day(month, 26),
-    });
+    await postChecking(null, 'Personal Line of Credit', -locPaymentCents, day(month, 26));
 
     // Property tax — quarterly.
     if (i % 3 === 0) {
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: checkingId,
-        categoryId: catPropertyTax,
-        payeeName: 'City Property Tax',
-        memo: null,
-        amountCents: -cents(rand(1000, 1200) * 3),
-        date: day(month, 2),
-      });
+      await postChecking(catPropertyTax, 'City Property Tax', -cents(rand(1000, 1200) * 3), day(month, 2));
     }
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catHomeInsurance,
-      payeeName: 'Coastal Insurance Co.',
-      memo: null,
-      amountCents: -cents(rand(130, 160)),
-      date: day(month, 3),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catUtilities,
-      payeeName: pick(['BC Hydro', 'Telus', 'Shaw']),
-      memo: null,
-      amountCents: -cents(rand(180, 260)),
-      date: day(month, 8),
-    });
+    await postChecking(catHomeInsurance, 'Coastal Insurance Co.', -cents(rand(130, 160)), day(month, 3));
+    await postChecking(catUtilities, pick(['BC Hydro', 'Telus', 'Shaw']), -cents(rand(180, 260)), day(month, 8));
     if (Math.random() < 0.3) {
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: checkingId,
-        categoryId: catHomeMaintenance,
-        payeeName: 'Home Depot',
-        memo: null,
-        amountCents: -cents(rand(120, 500)),
-        date: day(month, 12),
-      });
+      await postChecking(catHomeMaintenance, 'Home Depot', -cents(rand(120, 500)), day(month, 12));
     }
 
     // Everyday spend — groceries/dining on Chequing, discretionary split
     // across the two cards.
     for (let g = 0; g < 4; g++) {
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: checkingId,
-        categoryId: catGroceries,
-        payeeName: pick(groceryPayees),
-        memo: null,
-        amountCents: -cents(rand(130, 230)),
-        date: day(month, 3 + g * 6),
-      });
+      await postChecking(catGroceries, pick(groceryPayees), -cents(rand(130, 230)), day(month, 3 + g * 6));
     }
     for (let d = 0; d < 4; d++) {
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: checkingId,
-        categoryId: catDining,
-        payeeName: pick(diningPayees),
-        memo: null,
-        amountCents: -cents(rand(40, 110)),
-        date: day(month, 4 + d * 6),
-      });
+      await postChecking(catDining, pick(diningPayees), -cents(rand(40, 110)), day(month, 4 + d * 6));
     }
     for (let g = 0; g < 3; g++) {
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: checkingId,
-        categoryId: catTransport,
-        payeeName: 'Chevron',
-        memo: null,
-        amountCents: -cents(rand(55, 90)),
-        date: day(month, 6 + g * 8),
-      });
+      await postChecking(catTransport, 'Chevron', -cents(rand(55, 90)), day(month, 6 + g * 8));
     }
 
     let ccCharges = 0;
@@ -529,68 +487,26 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     }
 
     for (let h = 0; h < 2; h++) {
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: checkingId,
-        categoryId: catHobbies,
-        payeeName: 'Local Rec Centre',
-        memo: null,
-        amountCents: -cents(rand(30, 70)),
-        date: day(month, 14 + h * 10),
-      });
+      await postChecking(catHobbies, 'Local Rec Centre', -cents(rand(30, 70)), day(month, 14 + h * 10));
     }
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catGym,
-      payeeName: 'GoodLife Fitness',
-      memo: null,
-      amountCents: -cents(60),
-      date: day(month, 4),
-    });
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catCharity,
-      payeeName: 'Local Food Bank',
-      memo: null,
-      amountCents: -cents(80),
-      date: day(month, 20),
-    });
+    await postChecking(catGym, 'GoodLife Fitness', -cents(60), day(month, 4));
+    await postChecking(catCharity, 'Local Food Bank', -cents(80), day(month, 20));
 
     // Pay most (not all) of each card's balance each month — a small
     // revolving balance reads more real than always paying in full.
     const owed = ccBalance + ccCharges;
     const ccPayment = Math.round(owed * rand(0.75, 0.95));
     ccBalance = owed - ccPayment;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Rewards Visa',
-      memo: null,
-      amountCents: -ccPayment,
-      date: day(month, 26),
-    });
+    await postChecking(null, 'Rewards Visa', -ccPayment, day(month, 26));
     const owed2 = cc2Balance + cc2Charges;
     const cc2Payment = Math.round(owed2 * rand(0.9, 1));
     cc2Balance = owed2 - cc2Payment;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'Cashback Mastercard',
-      memo: null,
-      amountCents: -cc2Payment,
-      date: day(month, 26),
-    });
+    await postChecking(null, 'Cashback Mastercard', -cc2Payment, day(month, 26));
 
     // Retirement/investment contributions + simulated growth — modest,
     // not maxed out, given how much of the paycheque the mortgage takes.
     const rrspContribution = cents(400);
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catRrsp,
-      payeeName: 'RRSP',
-      memo: null,
-      amountCents: -rrspContribution,
-      date: day(month, 27),
-    });
+    await postChecking(catRrsp, 'RRSP', -rrspContribution, day(month, 27));
     const rrspGrowth = Math.round(rrspBalance * rand(-0.01, 0.02));
     rrspBalance += rrspContribution + rrspGrowth;
     await transactionsRepo.createTransaction(db, boardId, {
@@ -603,14 +519,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     });
 
     const tfsaContribution = cents(300);
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catTfsa,
-      payeeName: 'TFSA',
-      memo: null,
-      amountCents: -tfsaContribution,
-      date: day(month, 27),
-    });
+    await postChecking(catTfsa, 'TFSA', -tfsaContribution, day(month, 27));
     const tfsaGrowth = Math.round(tfsaBalance * rand(-0.01, 0.02));
     tfsaBalance += tfsaContribution + tfsaGrowth;
     await transactionsRepo.createTransaction(db, boardId, {
@@ -623,14 +532,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     });
 
     const investContribution = cents(200);
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: catInvest,
-      payeeName: 'Non-Registered Investments',
-      memo: null,
-      amountCents: -investContribution,
-      date: day(month, 27),
-    });
+    await postChecking(catInvest, 'Non-Registered Investments', -investContribution, day(month, 27));
     const investGrowth = Math.round(investBalance * rand(-0.015, 0.025));
     investBalance += investContribution + investGrowth;
     await transactionsRepo.createTransaction(db, boardId, {
@@ -643,16 +545,14 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     });
 
     // Sweep whatever's left in Chequing past a comfortable cushion into
-    // Savings, which also earns a bit of interest on its own.
-    const savingsTransfer = cents(rand(150, 350));
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId: null,
-      payeeName: 'High-Interest Savings',
-      memo: null,
-      amountCents: -savingsTransfer,
-      date: day(month, 28),
-    });
+    // Savings, which also earns a bit of interest on its own — capped to
+    // what's actually there so the sweep itself never forces an overdraft
+    // cover-transfer right back out of Savings.
+    const sweepHeadroom = Math.max(0, checkingBalance - CHECKING_FLOOR - cents(200));
+    const savingsTransfer = Math.min(cents(rand(150, 350)), sweepHeadroom);
+    if (savingsTransfer > 0) {
+      await postChecking(null, 'High-Interest Savings', -savingsTransfer, day(month, 28));
+    }
     const savingsInterest = Math.round(savingsBalance * rand(0.002, 0.004));
     savingsBalance += savingsTransfer + savingsInterest;
     await transactionsRepo.createTransaction(db, boardId, {

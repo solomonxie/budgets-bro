@@ -71,6 +71,16 @@ Non-cash accounts (RRSP/TFSA-style investments, or any `tracking` account) get t
 
 Both modes store the same row shape (`value_cents` absolute, `gain_cents` delta, `as_of_date`, `mode`) — the UI difference is only which field the user fills in. Account "balance" for a tracking account becomes the latest `account_value_entries.value_cents` instead of opening_balance + transactions (transactions still exist for any real cash movement in/out, e.g. a contribution, but growth/decline is tracked separately from cash flow).
 
+## Income accounts (shipped)
+An `income`-typed account is a saved filter/tag, not a place money sits — no transaction ever targets it directly (`transactions.account_id` never equals it), so it never carries a ledger balance and is excluded from Net Worth by kind, not by coincidence.
+
+- `transactions.income_account_id` (nullable FK → accounts, app-enforced `type = 'income'`, same as `type` itself has no DB-level enum) tags any transaction as income received, independent of which real account (cash, savings, tracking/investment, etc.) the money actually landed in — covers salary, freelance, and non-cash comp like RSU vesting into a Tracking account.
+- The tag is offered only for positive-amount, non-transfer entries — receiving value, not moving your own money between your own accounts.
+- An Income account's "balance" (Accounts list row/subtotal, detail page) is `SUM(amount_cents) WHERE income_account_id = X` for the period (this year / this month), never a ledger balance.
+- Replaces an earlier create-then-sweep model (a real entry on the Income account + a generated mirror transfer into a board-wide default cash account): that was two independently-editable rows that could desync on edit/delete since only creation kept them in sync. One real row now, tagged, not paired.
+- Every new board seeds one default Cash, Savings, and Income account, since at least one Income account must exist to tag anything as income.
+- Accounts list orders the Income group last (`ACCOUNT_KIND_ORDER`), rather than first.
+
 ## Recurring/scheduled transactions (designed, not yet built)
 New table `scheduled_transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents, frequency, interval_n, next_date, end_date nullable, auto_post boolean, is_interest, created_at) mirroring a real transaction's shape. Two posting modes, chosen per schedule:
 - **Manual approve** — an "Upcoming" list (Budget or History screen) shows what's due; tapping one posts it as a real transaction with today's date, prefilled from the template.

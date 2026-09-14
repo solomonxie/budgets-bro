@@ -84,6 +84,7 @@ export interface TransactionRow {
   amount_cents: number;
   date: string;
   transfer_account_id: number | null;
+  income_account_id: number | null;
   import_id: string | null;
   created_at: string;
   updated_at: string;
@@ -93,6 +94,7 @@ export interface TransactionJoinRow extends TransactionRow {
   payee_name: string | null;
   category_name: string | null;
   category_icon: string | null;
+  account_name: string;
 }
 
 export interface ScheduledTransactionRow {
@@ -109,6 +111,7 @@ export interface ScheduledTransactionRow {
   end_date: string | null;
   created_at: string;
   days_of_week_mask: number | null;
+  income_account_id: number | null;
 }
 
 export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {

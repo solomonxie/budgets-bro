@@ -20,6 +20,7 @@ import { HouseValueDetails } from './HouseValueDetails';
 import { TrackingValueDetails } from './TrackingValueDetails';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { useIncomeInsights } from '../../hooks/useIncomeInsights';
+import { useIncomeAccountTransactions } from '../../hooks/useIncomeAccountTransactions';
 import { IncomeTrendChart } from './IncomeTrendChart';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -35,7 +36,16 @@ export function AccountDetailScreen() {
   const route = useRoute<Route>();
   const { accountId } = route.params;
   const { accounts, loading } = useAccounts();
+  const accountWithBalance = accounts.find((a) => a.account.id === accountId);
+  const isMortgage = accountWithBalance?.account.type === 'mortgage';
+  const isTracking = accountWithBalance?.account.type === 'tracking';
+  const isAsset = accountWithBalance?.account.type === 'asset';
+  const isIncome = accountWithBalance?.account.type === 'income';
   const { transactions } = useTransactions(accountId);
+  // An Income account has no ledger rows of its own — its "transactions"
+  // are a filtered view over whichever real accounts the money actually
+  // landed in (see migration 021).
+  const { transactions: incomeTaggedTransactions } = useIncomeAccountTransactions(isIncome ? accountId : null);
   const { futureTransactions } = useFutureTransactions(accountId);
   const { scheduledTransactions, approve: approveSchedule, cancel: cancelSchedule } = useAccountScheduledTransactions(accountId);
   const today = currentDateISO();
@@ -44,15 +54,10 @@ export function AccountDetailScreen() {
   const openEditTransaction = useAppStore((s) => s.openEditTransaction);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
 
-  const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
-  const isMortgage = accountWithBalance?.account.type === 'mortgage';
-  const isTracking = accountWithBalance?.account.type === 'tracking';
-  const isAsset = accountWithBalance?.account.type === 'asset';
-  const isIncome = accountWithBalance?.account.type === 'income';
-  // A swept Income account's own ledger balance always nets to ~0 (see
-  // transactionsRepo's income auto-transfer) — not worth a number of its
-  // own, so the balance box shows what it actually earned instead.
+  // An Income account has no ledger rows of its own (see migration 021) —
+  // not worth a balance number, so the balance box shows what it actually
+  // earned instead.
   const { thisMonthCents, thisYearCents, trend } = useIncomeInsights(isIncome ? accountId : null);
   // Savings/cash accounts keep their normal ledger balance (opening +
   // transactions) — they just get the same optional value-history
@@ -105,8 +110,11 @@ export function AccountDetailScreen() {
   }, [navigation, accountWithBalance, accountId, openEditAccount, t]);
 
   const rows = useMemo(
-    () => withRunningBalances(transactions, balanceCents),
-    [transactions, balanceCents],
+    () =>
+      isIncome
+        ? incomeTaggedTransactions.map((tx) => ({ ...tx, runningBalanceCents: 0 }))
+        : withRunningBalances(transactions, balanceCents),
+    [isIncome, incomeTaggedTransactions, transactions, balanceCents],
   );
 
   return (
@@ -115,9 +123,9 @@ export function AccountDetailScreen() {
         {isIncome ? (
           <Pressable style={styles.summaryTopRow} onPress={() => setValueExpanded((v) => !v)}>
             <View style={styles.summaryLeft}>
-              <Text style={styles.summaryLabel}>{t('accountDetail.incomeThisMonth')}</Text>
-              <Text style={styles.summaryValue}>{formatMoney(thisMonthCents)}</Text>
-              <Text style={styles.hint}>{t('accountDetail.incomeThisYear', { amount: formatMoney(thisYearCents) })}</Text>
+              <Text style={styles.summaryLabel}>{t('accountDetail.incomeThisYear')}</Text>
+              <Text style={styles.summaryValue}>{formatMoney(thisYearCents)}</Text>
+              <Text style={styles.hint}>{t('accountDetail.incomeThisMonth', { amount: formatMoney(thisMonthCents) })}</Text>
             </View>
             <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
           </Pressable>
@@ -299,7 +307,8 @@ export function AccountDetailScreen() {
               </Text>
               <Text style={styles.sub}>
                 {item.categoryIcon ? `${item.categoryIcon} ` : ''}
-                {item.categoryName ?? t('common.uncategorized')} · {item.date}
+                {item.categoryName ?? t('common.uncategorized')}
+                {isIncome ? ` · ${item.accountName}` : ''} · {item.date}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
@@ -311,9 +320,11 @@ export function AccountDetailScreen() {
               >
                 {formatMoney(item.amountCents)}
               </Text>
-              <Text style={styles.running}>
-                {formatMoney(item.runningBalanceCents)}
-              </Text>
+              {isIncome ? null : (
+                <Text style={styles.running}>
+                  {formatMoney(item.runningBalanceCents)}
+                </Text>
+              )}
             </View>
           </Pressable>
         )}

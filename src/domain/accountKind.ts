@@ -11,7 +11,7 @@ const KIND_BY_TYPE: Record<AccountType, AccountKind> = {
   asset: 'Asset',
 };
 
-export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Income', 'Cash', 'Savings', 'Tracking', 'Asset', 'Loan', 'Credit'];
+export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Cash', 'Savings', 'Tracking', 'Asset', 'Loan', 'Credit', 'Income'];
 
 // Kinds whose balances are debts (stored as negative) — used to split Net
 // Worth into Assets vs. Debts.
@@ -37,6 +37,11 @@ export function netWorth(accounts: { type: AccountType; balanceCents: number; ho
   let assetsCents = 0;
   let debtsCents = 0;
   for (const { type, balanceCents, houseValueCents } of accounts) {
+    // Income accounts are a saved filter/tag over real accounts'
+    // transactions, not a store of value (see migration 021) — never part
+    // of Net Worth, regardless of whatever their own (frozen, pre-redesign)
+    // ledger balance happens to be.
+    if (accountKind(type) === 'Income') continue;
     if (LIABILITY_KINDS.includes(accountKind(type))) {
       debtsCents += -balanceCents;
       if (type === 'mortgage' && houseValueCents != null) assetsCents += houseValueCents;

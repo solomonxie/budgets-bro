@@ -94,6 +94,11 @@ export interface Transaction {
   amountCents: number;
   date: string; // 'YYYY-MM-DD'
   transferAccountId: number | null;
+  // Tags this transaction as belonging to an Income-typed account's earnings
+  // — independent of `accountId` (the real account the money landed in).
+  // An Income account has no ledger rows of its own; this is the only link
+  // back to it. See migration 021.
+  incomeAccountId: number | null;
   importId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -103,6 +108,7 @@ export interface TransactionWithLabels extends Transaction {
   payeeName: string | null;
   categoryName: string | null;
   categoryIcon: string | null;
+  accountName: string;
 }
 
 export interface ScheduledTransaction {
@@ -117,6 +123,7 @@ export interface ScheduledTransaction {
   daysOfWeekMask: number | null; // only meaningful when frequency is 'weekly' — see domain/recurrence.ts
   nextDate: string; // 'YYYY-MM-DD'
   endDate: string | null;
+  incomeAccountId: number | null;
   createdAt: string;
 }
 

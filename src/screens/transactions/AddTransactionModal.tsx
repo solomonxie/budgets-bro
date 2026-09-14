@@ -19,7 +19,6 @@ import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import * as scheduledTransactionsRepo from '../../db/repositories/scheduledTransactionsRepo';
-import * as incomeRepo from '../../db/repositories/incomeRepo';
 import {
   DropdownField,
   DropdownGroupLabel,
@@ -74,6 +73,19 @@ export function AddTransactionModal() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
+  // Income accounts hold no real balance — they're a tag on a transaction,
+  // not somewhere money sits (see migration 021) — so they're never a
+  // choice in the real "Account" field, only in the separate Income
+  // Account tag below.
+  const realAccounts = accounts.filter((a) => a.account.type !== 'income');
+  const incomeAccounts = accounts.filter((a) => a.account.type === 'income');
+  const [incomeAccountId, setIncomeAccountId] = useState<number | null>(null);
+  const selectIncomeAccount = (id: number | null) => {
+    setIncomeAccountId(id);
+    // Tagging only ever makes sense on an inflow — switch the toggle so
+    // picking one doesn't silently get dropped by the outflow branch below.
+    if (id != null) setDirection('in');
+  };
   // Off-budget accounts (Tracking, Asset) sit outside the envelope system
   // entirely (net-worth-only, never assigned money — see accountsRepo's
   // on_budget derivation), so a category there wouldn't mean anything:
@@ -84,8 +96,6 @@ export function AddTransactionModal() {
   const isTrackingAccount =
     accounts.find((a) => a.account.id === accountId)?.account.onBudget ===
     false;
-  const isIncomeAccount =
-    accounts.find((a) => a.account.id === accountId)?.account.type === 'income';
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no
@@ -112,6 +122,7 @@ export function AddTransactionModal() {
         setPayee(t.payeeName ?? '');
         setCategoryId(t.categoryId);
         setAccountId(t.accountId);
+        setIncomeAccountId(t.incomeAccountId);
         setMemo(t.memo ?? '');
         setDate(t.date);
       })();
@@ -124,19 +135,10 @@ export function AddTransactionModal() {
     // focus effect below so an unrelated `accounts` refetch (e.g. another
     // screen bumping dataVersion) never steals focus back to the amount
     // field mid-edit.
-    if (!isOpen || editingTransactionId != null || accounts.length === 0)
+    if (!isOpen || editingTransactionId != null || realAccounts.length === 0)
       return;
-    setAccountId((prev) => presetAccountId ?? prev ?? accounts[0].account.id);
-  }, [isOpen, editingTransactionId, presetAccountId, accounts]);
-
-  useEffect(() => {
-    // A brand-new transaction on an Income account is overwhelmingly a
-    // deposit, not a correction — default the toggle so the common case
-    // needs no extra tap. Only defaults, never fights a manual override:
-    // it only fires when the account selection itself changes.
-    if (!isOpen || editingTransactionId != null) return;
-    if (isIncomeAccount) setDirection('in');
-  }, [isOpen, editingTransactionId, accountId, isIncomeAccount]);
+    setAccountId((prev) => presetAccountId ?? prev ?? realAccounts[0].account.id);
+  }, [isOpen, editingTransactionId, presetAccountId, realAccounts]);
 
   useEffect(() => {
     // Autofocus the amount field and pop the number pad — but only the
@@ -151,6 +153,7 @@ export function AddTransactionModal() {
     setDirection('out');
     setPayee('');
     setCategoryId(null);
+    setIncomeAccountId(null);
     setMemo('');
     setDate(currentDateISO());
     setIsScheduled(false);
@@ -198,6 +201,7 @@ export function AddTransactionModal() {
         daysOfWeekMask: rule.daysOfWeekMask,
         nextDate: date,
         endDate: hasEndDate ? endDate : null,
+        incomeAccountId: direction === 'in' ? incomeAccountId : null,
       });
       bumpDataVersion();
       close();
@@ -211,6 +215,7 @@ export function AddTransactionModal() {
       memo: memo || null,
       amountCents,
       date,
+      incomeAccountId: direction === 'in' ? incomeAccountId : null,
     };
     if (editingTransactionId != null) {
       await transactionsRepo.updateTransaction(db, boardId, {
@@ -219,25 +224,6 @@ export function AddTransactionModal() {
       });
     } else {
       await transactionsRepo.createTransaction(db, boardId, input);
-      // An Income account is a recording layer, not somewhere money
-      // actually sits — sweep whatever was just entered into the board's
-      // designated cash account (Settings), same signed amount either
-      // direction, so the income account's own balance nets back to ~0
-      // instead of accumulating (see incomeRepo/AccountDetailScreen's
-      // income-insights box, which reads this account's entries directly
-      // rather than its ledger balance).
-      if (isIncomeAccount) {
-        const cashAccountId = await incomeRepo.getDefaultCashAccountId(db, boardId);
-        if (cashAccountId != null && cashAccountId !== accountId) {
-          await transactionsRepo.createTransfer(db, boardId, {
-            fromAccountId: accountId,
-            toAccountId: cashAccountId,
-            amountCents,
-            date,
-            memo: payee || null,
-          });
-        }
-      }
     }
     bumpDataVersion();
     close();
@@ -425,13 +411,13 @@ export function AddTransactionModal() {
                 label={t('common.account')}
                 placeholder={t('common.account')}
                 valueLabel={
-                  accounts.find((a) => a.account.id === accountId)?.account
+                  realAccounts.find((a) => a.account.id === accountId)?.account
                     .name ?? ''
                 }
               >
                 {(close) => (
                   <>
-                    {accounts.map(({ account }) => (
+                    {realAccounts.map(({ account }) => (
                       <DropdownOption
                         key={account.id}
                         label={account.name}
@@ -448,6 +434,42 @@ export function AddTransactionModal() {
               </DropdownField>
             </View>
           </View>
+          {direction === 'in' && incomeAccounts.length > 0 ? (
+            <DropdownField
+              compact
+              hideLabel
+              label={t('addTransactionModal.incomeAccountLabel')}
+              placeholder={t('addTransactionModal.incomeAccountLabel')}
+              valueLabel={
+                incomeAccounts.find((a) => a.account.id === incomeAccountId)
+                  ?.account.name ?? ''
+              }
+            >
+              {(close) => (
+                <>
+                  <DropdownOption
+                    label={t('addTransactionModal.incomeAccountNone')}
+                    selected={incomeAccountId == null}
+                    onPress={() => {
+                      selectIncomeAccount(null);
+                      close();
+                    }}
+                  />
+                  {incomeAccounts.map(({ account }) => (
+                    <DropdownOption
+                      key={account.id}
+                      label={account.name}
+                      selected={incomeAccountId === account.id}
+                      onPress={() => {
+                        selectIncomeAccount(account.id);
+                        close();
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </DropdownField>
+          ) : null}
           {isEditing ? null : (
             <Pressable
               style={styles.checkboxRow}

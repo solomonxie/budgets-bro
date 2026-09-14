@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountValues } from '../../hooks/useAccountValues';
+import { useIncomeAccountYearTotals } from '../../hooks/useIncomeAccountYearTotals';
 import { useAppStore } from '../../state/useAppStore';
 import { ACCOUNT_KIND_ORDER, accountKind, netWorth as computeNetWorth } from '../../domain/accountKind';
 import type { AccountKind } from '../../domain/types';
@@ -33,6 +34,7 @@ export function AccountsScreen() {
   const openAddAccount = useAppStore((s) => s.openAddAccount);
   const { accounts } = useAccounts();
   const { valuesByAccountId: houseValues } = useAccountValues();
+  const { totalsByAccountId: incomeYearTotals } = useIncomeAccountYearTotals();
   const [excludedAccountIds, setExcludedAccountIds] = useState<Set<number>>(new Set());
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
 
@@ -55,12 +57,20 @@ export function AccountsScreen() {
     [accounts, excludedAccountIds, houseValues],
   );
 
+  // An Income account's "balance" is its own ledger only by accident (see
+  // migration 021) — it's really a tag over real accounts' transactions, so
+  // its list value is this year's tagged total, not balanceCents.
   const groups = useMemo(() => {
     return ACCOUNT_KIND_ORDER.map((kind) => {
-      const list = accounts.filter((a) => accountKind(a.account.type) === kind);
-      return { kind, accounts: list, subtotalCents: list.reduce((s, a) => s + a.balanceCents, 0) };
+      const list = accounts
+        .filter((a) => accountKind(a.account.type) === kind)
+        .map((a) => ({
+          account: a.account,
+          displayCents: kind === 'Income' ? incomeYearTotals.get(a.account.id) ?? 0 : a.balanceCents,
+        }));
+      return { kind, accounts: list, subtotalCents: list.reduce((s, a) => s + a.displayCents, 0) };
     }).filter((g) => g.accounts.length > 0);
-  }, [accounts]);
+  }, [accounts, incomeYearTotals]);
 
   return (
     <ScreenContainer scroll>
@@ -85,7 +95,7 @@ export function AccountsScreen() {
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>{t('accounts.includeInNetWorth')}</Text>
             <ScrollView>
-              {accounts.map(({ account }) => {
+              {accounts.filter((a) => a.account.type !== 'income').map(({ account }) => {
                 const included = !excludedAccountIds.has(account.id);
                 return (
                   <Pressable key={account.id} style={styles.accountRow} onPress={() => toggleAccountIncluded(account.id)}>
@@ -108,16 +118,24 @@ export function AccountsScreen() {
         <View key={group.kind} style={styles.group}>
           <View style={styles.groupHeader}>
             <Text style={styles.groupLabel}>{t(KIND_LABEL_KEY[group.kind])}</Text>
-            <Text style={styles.groupSub}>{formatMoney(group.subtotalCents)}</Text>
+            <Text style={styles.groupSub}>
+              {group.kind === 'Income'
+                ? t('accounts.incomeThisYearAmount', { amount: formatMoney(group.subtotalCents) })
+                : formatMoney(group.subtotalCents)}
+            </Text>
           </View>
-          {group.accounts.map(({ account, balanceCents }) => (
+          {group.accounts.map(({ account, displayCents }) => (
             <Pressable
               key={account.id}
               style={styles.row}
               onPress={() => navigation.navigate('AccountDetail', { accountId: account.id })}
             >
               <Text style={styles.rowTitle}>{account.name}</Text>
-              <Text style={[styles.rowValue, balanceCents < 0 && styles.negative]}>{formatMoney(balanceCents)}</Text>
+              <Text style={[styles.rowValue, displayCents < 0 && styles.negative]}>
+                {group.kind === 'Income'
+                  ? t('accounts.incomeThisYearAmount', { amount: formatMoney(displayCents) })
+                  : formatMoney(displayCents)}
+              </Text>
             </Pressable>
           ))}
         </View>

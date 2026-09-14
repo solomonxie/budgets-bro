@@ -18,6 +18,13 @@ export function getDb(): Promise<SQLiteDatabase> {
       // small transactions — e.g. the demo-board seed — is visibly slow.
       await db.execAsync('PRAGMA journal_mode = WAL');
       await db.execAsync('PRAGMA synchronous = NORMAL');
+      // Without this, a writer that can't get the lock immediately (e.g. a
+      // connection left over from a Fast Refresh reload during dev) fails
+      // with zero retry — or, worse, an app-level bug that leaves a
+      // transaction open makes every later write wait forever with no
+      // timeout at all. Bounding it turns that into a clear error instead
+      // of the app looking frozen.
+      await db.execAsync('PRAGMA busy_timeout = 5000');
       await migrate(db);
       return db;
     });

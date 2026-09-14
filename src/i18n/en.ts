@@ -220,9 +220,11 @@ export const en = {
   'houseValueCard.equity': 'Equity: {amount}',
   'houseValueCard.updateButton': '+ Update Home Value',
 
-  'trackingValueCard.label': 'Value History',
+  'trackingValueCard.label': 'Balance Trend',
   'trackingValueCard.noValueYet': 'No value recorded yet.',
   'trackingValueCard.updateButton': '+ Log a New Value',
+  'balanceTrendChart.balanceLabel': 'Balance',
+  'balanceTrendChart.spendingLabel': 'Spending',
   'trackingValueModal.title': 'Log Value',
   'trackingValueModal.modeTotal': 'Total Balance',
   'trackingValueModal.modeGain': 'Gain/Loss',
@@ -396,7 +398,6 @@ export const en = {
   'repeatField.everyWithDays': 'Every {n} {unit} on {days}',
 
   'addTransactionModal.incomeAccountLabel': 'Income Account',
-  'addTransactionModal.incomeAccountNone': 'None',
   'addTransactionModal.scheduledToggleLabel': 'Scheduled',
   'addTransactionModal.startDateLabel': 'Starts',
   'addTransactionModal.repeatLabel': 'Repeat',

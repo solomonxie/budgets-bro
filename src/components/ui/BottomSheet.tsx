@@ -70,6 +70,7 @@ export function BottomSheet({ title, onClose, stickyContent, listHeight, childre
             {stickyContent}
             <ScrollView
               style={[styles.list, listHeight != null && { height: listHeight, flexShrink: 0 }]}
+              contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
               scrollEventThrottle={16}
               onScroll={(e) => {
@@ -109,4 +110,5 @@ const styles = StyleSheet.create({
   headerBtnGhost: { opacity: 0 },
   title: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: colors.text, marginHorizontal: spacing.sm },
   list: { flexShrink: 1, marginTop: spacing.xs },
+  listContent: { paddingBottom: spacing.lg },
 });

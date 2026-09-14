@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getDb } from '../db/client';
 import * as boardsRepo from '../db/repositories/boardsRepo';
+import * as accountsRepo from '../db/repositories/accountsRepo';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { seedDemoBoard } from '../db/seed/demoBoard';
 import type { Board } from '../domain/types';
@@ -71,6 +72,13 @@ export function useBoards() {
     async (name: string) => {
       const db = await getDb();
       const id = await boardsRepo.createBoard(db, name);
+      // At least one Income account must exist to tag a transaction as
+      // income (see migration 021) — seed the common starting set so a
+      // brand-new board isn't unusable until the user manually adds
+      // accounts.
+      await accountsRepo.createAccount(db, id, { name: 'Cash', type: 'cash', openingBalanceCents: 0 });
+      await accountsRepo.createAccount(db, id, { name: 'Savings', type: 'savings', openingBalanceCents: 0 });
+      await accountsRepo.createAccount(db, id, { name: 'Income', type: 'income', openingBalanceCents: 0 });
       bumpDataVersion();
       return id;
     },

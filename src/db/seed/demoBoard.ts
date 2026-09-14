@@ -6,7 +6,6 @@ import * as accountValueHistoryRepo from '../repositories/accountValueHistoryRep
 import * as categoriesRepo from '../repositories/categoriesRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as budgetsRepo from '../repositories/budgetsRepo';
-import * as incomeRepo from '../repositories/incomeRepo';
 import * as incomeDetailHistoryRepo from '../repositories/incomeDetailHistoryRepo';
 import { currentMonth, lastNMonths } from '../../domain/month';
 import { addMonths } from '../../finance-tools/amortization';
@@ -64,10 +63,9 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   });
 
   // Income accounts — one per earner/gig, showcasing the type's three
-  // Pay Rate History units. Each is a recording layer only: its own
-  // balance nets back to ~0 every month via the sweep below, mirroring
-  // AddTransactionModal's real auto-transfer into the default cash
-  // account (set here to `checkingId`, same as Settings would).
+  // Pay Rate History units. Each is a tag, not a ledger (see migration
+  // 021): every paycheck posts as a real transaction on `checkingId`
+  // below, tagged back to whichever of these three it came from.
   const salaryIncomeId = await accountsRepo.createAccount(db, boardId, {
     name: 'Meridian Robotics Salary',
     type: 'income',
@@ -251,30 +249,17 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   const shoppingPayees = ['Amazon', 'Best Buy', 'Apple Store'];
   const travelPayees = ['Air Canada', 'WestJet'];
 
-  // Every 'income' account sweeps here — same setting Settings > Income
-  // would write via incomeRepo.setDefaultCashAccountId.
-  await incomeRepo.setDefaultCashAccountId(db, boardId, checkingId);
-
-  // Post one income entry on its own income account (no transferAccountId —
-  // counted by the income-insights queries), then sweep the same amount to
-  // the cash account via a real transfer. transactionsRepo.createTransaction
-  // alone doesn't do this; only AddTransactionModal's save() does, so
-  // seeding has to replicate both steps by hand.
+  // One real transaction on the cash account, tagged to its income account
+  // (see migration 021) — no separate sweep-transfer pair needed anymore.
   const postIncome = async (incomeAccountId: number, payeeName: string, amountCents: number, date: string) => {
     await transactionsRepo.createTransaction(db, boardId, {
-      accountId: incomeAccountId,
+      accountId: checkingId,
       categoryId: null,
       payeeName,
       memo: null,
       amountCents,
       date,
-    });
-    await transactionsRepo.createTransfer(db, boardId, {
-      fromAccountId: incomeAccountId,
-      toAccountId: checkingId,
-      amountCents,
-      date,
-      memo: payeeName,
+      incomeAccountId,
     });
   };
 

@@ -116,6 +116,18 @@ Converts a working skeleton into a submittable app.
 - [ ] T10.4 TestFlight build via EAS + manual QA pass
 - [ ] T10.5 EAS Submit to App Store
 
+## Phase 11: Income accounts redesign — tag, not ledger
+Design captured in [`DESIGN.md`](DESIGN.md#income-accounts-shipped). Replaces the original create-then-sweep model (a real entry on the Income account + a generated mirror transfer into a board-wide default cash account) — two independently-editable rows that desynced if you edited or deleted just one after the fact.
+
+- [x] T11.1 `transactions.income_account_id` + `scheduled_transactions.income_account_id` (nullable FK → accounts) — migration 021; backfills existing income-account entries (`income_account_id = account_id` for pre-sweep rows) so historical income-insights totals keep working without surgically collapsing the old sweep-transfer pairs (left in place, self-cancelling, harmless — Income accounts are excluded from Net Worth by kind regardless)
+- [x] T11.2 `AddTransactionModal`: the real "Account" field no longer offers Income-typed accounts (nothing to target — they hold no balance); a new optional "Income Account" dropdown appears for positive-amount entries, tagging the transaction. Old auto-sweep-on-save logic removed entirely.
+- [x] T11.3 `accountsRepo`/`incomeRepo`/`useIncomeInsights` queries switched from `account_id = ? AND transfer_account_id IS NULL` to `income_account_id = ?`; new `incomeRepo.thisYearTotalsByBoard` powers the Accounts list's Income group (shows "$X this year" per row/subtotal instead of a near-zero ledger balance); `netWorth()` explicitly skips Income-kind accounts rather than relying on their balance netting to ~0
+- [x] T11.4 `AccountDetailScreen`'s Income branch swapped to show "Income This Year" big / "$X this month" small (was the reverse); its transaction list now reads `income_account_id`-tagged rows across whichever real accounts the money landed in (`useIncomeAccountTransactions`), each row showing which account that was, with no running-balance column (not a ledger)
+- [x] T11.5 Accounts list moves the Income group to the end (`ACCOUNT_KIND_ORDER`), was first
+- [x] T11.6 New-board creation (`useBoards.addBoard`) seeds a default Cash, Savings, and Income account — at least one Income account must exist to tag a transaction as income. Scoped to the user-facing "new board" action only, not `boardsRepo.createBoard` itself (shared by demo-board seeding and backup/YNAB-import board creation, both of which populate their own full account set and would double up)
+- [x] T11.7 Settings' old "Default Cash Account" (board-wide sweep target) section removed — superseded by the per-transaction Income Account tag
+- [x] T11.8 Demo board updated to post tagged transactions directly on checking instead of the entry-plus-sweep-transfer pair
+
 ## Backlog
 Not sequenced against the phases above — pick up opportunistically.
 

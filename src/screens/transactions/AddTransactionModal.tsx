@@ -141,6 +141,14 @@ export function AddTransactionModal() {
   }, [isOpen, editingTransactionId, presetAccountId, realAccounts]);
 
   useEffect(() => {
+    // An income transaction must be tagged to a stream — default to
+    // whichever one was last used (or the first) so the field is never
+    // blank, same as the real Account field above.
+    if (!isOpen || incomeAccounts.length === 0) return;
+    setIncomeAccountId((prev) => prev ?? incomeAccounts[0].account.id);
+  }, [isOpen, incomeAccounts]);
+
+  useEffect(() => {
     // Autofocus the amount field and pop the number pad — but only the
     // instant the sheet opens for a brand-new transaction, never when
     // editing an existing one (its amount is already known).
@@ -179,7 +187,9 @@ export function AddTransactionModal() {
 
   const save = async () => {
     const enteredCents = centsFromAmountDigits(amount);
-    if (!enteredCents || accountId == null) {
+    const missingIncomeAccount =
+      direction === 'in' && incomeAccounts.length > 0 && incomeAccountId == null;
+    if (!enteredCents || accountId == null || missingIncomeAccount) {
       cancel();
       return;
     }
@@ -447,14 +457,6 @@ export function AddTransactionModal() {
             >
               {(close) => (
                 <>
-                  <DropdownOption
-                    label={t('addTransactionModal.incomeAccountNone')}
-                    selected={incomeAccountId == null}
-                    onPress={() => {
-                      selectIncomeAccount(null);
-                      close();
-                    }}
-                  />
                   {incomeAccounts.map(({ account }) => (
                     <DropdownOption
                       key={account.id}

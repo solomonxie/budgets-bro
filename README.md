@@ -29,4 +29,6 @@ npm start
 ```
 
 ## Screenshots
-<img src="docs/screenshots/budget.png" alt="Budget screen" width="320"> <img src="docs/screenshots/insights.png" alt="Insights screen" width="320">
+| Budget | Insights |
+|---|---|
+| <img src="docs/screenshots/budget.png" alt="Budget screen" width="320"> | <img src="docs/screenshots/insights.png" alt="Insights screen" width="320"> |

@@ -85,3 +85,92 @@ export async function incomeAndSpendingInRange(
   );
   return { incomeCents: row?.income_cents ?? 0, spendingCents: row?.spending_cents ?? 0 };
 }
+
+// Total inbound money landing in any of `accountIds` within [startDate,
+// endDateExclusive) — deposits and transfers-in alike, unlike
+// incomeAndSpendingInRange's income_cents which excludes transfers. Powers
+// Baby Step 4's "retirement contributions vs income" check, where a
+// transfer from checking into the retirement account is exactly the
+// contribution we want to count. Dynamic IN-list, so built inline rather
+// than as a static export — see transactionsRepo.deleteTransactions.
+export async function depositsIntoAccountsInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  accountIds: number[],
+  startDate: string,
+  endDateExclusive: string,
+): Promise<number> {
+  if (accountIds.length === 0) return 0;
+  const placeholders = accountIds.map(() => '?').join(',');
+  const row = await db.getFirstAsync<{ total: number }>(
+    `SELECT COALESCE(SUM(amount_cents), 0) as total FROM transactions
+     WHERE board_id = ? AND account_id IN (${placeholders}) AND amount_cents > 0 AND date >= ? AND date < ? AND date <= ?`,
+    boardId,
+    ...accountIds,
+    startDate,
+    endDateExclusive,
+    currentDateISO(),
+  );
+  return row?.total ?? 0;
+}
+
+export interface CategoryRangeTotals {
+  incomeCents: number;
+  expenseCents: number;
+}
+
+// Both directions for a category set in one query — e.g. an "Interest"
+// category can hold both interest earned (positive) and interest paid
+// (negative) transactions, and Tax Insights wants both without asking the
+// user to pick two separate category sets.
+export async function categoryIncomeAndExpenseInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  categoryIds: number[],
+  startDate: string,
+  endDateExclusive: string,
+): Promise<CategoryRangeTotals> {
+  if (categoryIds.length === 0) return { incomeCents: 0, expenseCents: 0 };
+  const placeholders = categoryIds.map(() => '?').join(',');
+  const row = await db.getFirstAsync<{ income_cents: number; expense_cents: number }>(
+    `SELECT
+       COALESCE(SUM(CASE WHEN t.amount_cents > 0 THEN t.amount_cents ELSE 0 END), 0) as income_cents,
+       COALESCE(SUM(CASE WHEN t.amount_cents < 0 THEN -t.amount_cents ELSE 0 END), 0) as expense_cents
+     FROM transactions t JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+     WHERE t.board_id = ? AND t.category_id IN (${placeholders}) AND t.transfer_account_id IS NULL
+       AND t.date >= ? AND t.date < ? AND t.date <= ?`,
+    boardId,
+    ...categoryIds,
+    startDate,
+    endDateExclusive,
+    currentDateISO(),
+  );
+  return { incomeCents: row?.income_cents ?? 0, expenseCents: row?.expense_cents ?? 0 };
+}
+
+// Total spend tagged to any of `categoryIds` within [startDate,
+// endDateExclusive) — same on-budget/non-transfer rules as
+// SPENDING_BY_CATEGORY, just summed across an arbitrary category set and
+// date range instead of one month. Powers Baby Step 7's donation total.
+export async function categorySpendingInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  categoryIds: number[],
+  startDate: string,
+  endDateExclusive: string,
+): Promise<number> {
+  if (categoryIds.length === 0) return 0;
+  const placeholders = categoryIds.map(() => '?').join(',');
+  const row = await db.getFirstAsync<{ total: number }>(
+    `SELECT COALESCE(SUM(-t.amount_cents), 0) as total FROM transactions t
+     JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+     WHERE t.board_id = ? AND t.category_id IN (${placeholders}) AND t.amount_cents < 0
+       AND t.transfer_account_id IS NULL AND t.date >= ? AND t.date < ? AND t.date <= ?`,
+    boardId,
+    ...categoryIds,
+    startDate,
+    endDateExclusive,
+    currentDateISO(),
+  );
+  return row?.total ?? 0;
+}

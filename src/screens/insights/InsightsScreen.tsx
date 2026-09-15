@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -22,9 +22,6 @@ import {
   formatMonthShort,
 } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
-import { getDb } from '../../db/client';
-import { getAiKeyStrategy, setAiKeyStrategy } from '../../ai/aiKeys';
-import type { AiKeyStrategy } from '../../ai/aiKeys';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -66,24 +63,7 @@ export function InsightsScreen() {
     new Set(),
   );
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
-  const [aiKeyStrategy, setAiKeyStrategyState] =
-    useState<AiKeyStrategy>('sequential');
   const trendScrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    (async () => {
-      const db = await getDb();
-      setAiKeyStrategyState(await getAiKeyStrategy(db));
-    })();
-  }, []);
-
-  const toggleAiKeyStrategy = async () => {
-    const next: AiKeyStrategy =
-      aiKeyStrategy === 'sequential' ? 'round_robin' : 'sequential';
-    setAiKeyStrategyState(next);
-    const db = await getDb();
-    await setAiKeyStrategy(db, next);
-  };
 
   const toggleCategoryVisible = (categoryId: number) => {
     setHiddenCategoryIds((prev) => {
@@ -446,17 +426,6 @@ export function InsightsScreen() {
             onPress={() => navigation.navigate(row.screen)}
           >
             <Text style={styles.toolRowText}>{row.label}</Text>
-            {row.screen === 'AiAnalysis' ? (
-              <Text
-                style={styles.toolRowStrategy}
-                onPress={toggleAiKeyStrategy}
-              >
-                {aiKeyStrategy === 'sequential'
-                  ? t('settings.aiKeyStrategySequential')
-                  : t('settings.aiKeyStrategyRoundRobin')}{' '}
-                ▾
-              </Text>
-            ) : null}
             <Text style={styles.toolRowArrow}>›</Text>
           </Pressable>
         ))}
@@ -533,11 +502,5 @@ const styles = StyleSheet.create({
   },
   toolRowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
   toolRowText: { fontSize: 15, fontWeight: '600', color: colors.text },
-  toolRowStrategy: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.accent,
-    marginRight: spacing.sm,
-  },
   toolRowArrow: { fontSize: 18, color: colors.textMuted },
 });

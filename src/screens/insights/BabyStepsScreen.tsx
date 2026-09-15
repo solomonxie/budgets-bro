@@ -6,8 +6,6 @@ import { TextField } from '../../components/ui/TextField';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DropdownOption, DropdownGroupLabel } from '../../components/ui/DropdownField';
 import { ProgressBar } from '../../components/ui/ProgressBar';
-import { CustomGoalModal } from '../../components/ui/CustomGoalModal';
-import type { CustomGoalValue } from '../../components/ui/CustomGoalModal';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
 import { useCustomGoals } from '../../hooks/useCustomGoals';
@@ -35,9 +33,7 @@ const step3AccountsKey = (boardId: number) => `babySteps.step3AccountIds:${board
 const step4AccountsKey = (boardId: number) => `babySteps.step4AccountIds:${boardId}`;
 const step5AccountsKey = (boardId: number) => `babySteps.step5AccountIds:${boardId}`;
 const step5TargetKey = (boardId: number) => `babySteps.step5TargetCents:${boardId}`;
-// Exported — Tax Insights reads the same setting so "which categories count
-// as giving" is picked once, not asked twice.
-export const step7CategoriesKey = (boardId: number) => `babySteps.step7CategoryIds:${boardId}`;
+const step7CategoriesKey = (boardId: number) => `babySteps.step7CategoryIds:${boardId}`;
 const manualStepsKey = (boardId: number) => `babySteps.manual:${boardId}`;
 
 const STARTER_FUND_CENTS = 100_000; // $1,000
@@ -93,13 +89,22 @@ export function BabyStepsScreen() {
   const [manual, setManual] = useState<ManualSteps>({ step5: false, step7: false });
   const [editingStep5Target, setEditingStep5Target] = useState(false);
   const [step5TargetInput, setStep5TargetInput] = useState('');
-  const [goalModal, setGoalModal] = useState<{ editing: CustomGoalWithProgress | null } | null>(null);
 
   const [step1PickerOpen, setStep1PickerOpen] = useState(false);
   const [step3PickerOpen, setStep3PickerOpen] = useState(false);
   const [step4PickerOpen, setStep4PickerOpen] = useState(false);
   const [step5PickerOpen, setStep5PickerOpen] = useState(false);
   const [step7PickerOpen, setStep7PickerOpen] = useState(false);
+
+  // Goal editing is inline, not a modal — 'new' while adding, a goal id
+  // while editing that one, null otherwise. Only one goal (or the new-goal
+  // slot) can be open at a time.
+  const [editingGoalId, setEditingGoalId] = useState<number | 'new' | null>(null);
+  const [goalDraftName, setGoalDraftName] = useState('');
+  const [goalDraftTargetInput, setGoalDraftTargetInput] = useState('');
+  const [goalDraftAccountId, setGoalDraftAccountId] = useState<number | null>(null);
+  const [goalDraftManualProgressInput, setGoalDraftManualProgressInput] = useState('');
+  const [goalAccountPickerOpen, setGoalAccountPickerOpen] = useState(false);
 
   // Settings + averages that don't depend on the live accounts list.
   useEffect(() => {
@@ -237,49 +242,74 @@ export function BabyStepsScreen() {
     await settingsRepo.setJsonSetting(db, manualStepsKey(boardId), next);
   };
 
-  const submitGoal = async (value: CustomGoalValue) => {
+  const startAddGoal = () => {
+    setEditingGoalId('new');
+    setGoalDraftName('');
+    setGoalDraftTargetInput('');
+    setGoalDraftAccountId(null);
+    setGoalDraftManualProgressInput('');
+  };
+  const startEditGoal = (goal: CustomGoalWithProgress) => {
+    setEditingGoalId(goal.id);
+    setGoalDraftName(goal.name);
+    setGoalDraftTargetInput(String(goal.targetCents / 100));
+    setGoalDraftAccountId(goal.linkedAccountId);
+    setGoalDraftManualProgressInput(goal.manualProgressCents != null ? String(goal.manualProgressCents / 100) : '');
+  };
+  const cancelEditGoal = () => setEditingGoalId(null);
+  const saveGoal = async () => {
+    if (!goalDraftName.trim()) return;
     const db = await getDb();
     const input = {
-      name: value.name,
-      targetCents: Math.round((parseFloat(value.targetAmount) || 0) * 100),
-      linkedAccountId: value.linkedAccountId,
-      manualProgressCents: value.linkedAccountId == null ? Math.round((parseFloat(value.manualProgressAmount) || 0) * 100) : null,
+      name: goalDraftName.trim(),
+      targetCents: Math.round((parseFloat(goalDraftTargetInput) || 0) * 100),
+      linkedAccountId: goalDraftAccountId,
+      manualProgressCents: goalDraftAccountId == null ? Math.round((parseFloat(goalDraftManualProgressInput) || 0) * 100) : null,
     };
-    if (goalModal?.editing) await customGoalsRepo.updateGoal(db, goalModal.editing.id, input);
+    if (typeof editingGoalId === 'number') await customGoalsRepo.updateGoal(db, editingGoalId, input);
     else await customGoalsRepo.createGoal(db, boardId, input);
     bumpDataVersion();
     await refreshGoals();
-    setGoalModal(null);
+    setEditingGoalId(null);
   };
-
   const deleteGoal = async () => {
-    if (!goalModal?.editing) return;
+    if (typeof editingGoalId !== 'number') return;
     const db = await getDb();
-    await customGoalsRepo.deleteGoal(db, goalModal.editing.id);
+    await customGoalsRepo.deleteGoal(db, editingGoalId);
     bumpDataVersion();
     await refreshGoals();
-    setGoalModal(null);
+    setEditingGoalId(null);
   };
 
-  // A small inline "· Account Name ▾" text link (nested inside the step's
-  // caption Text) plus the bottom sheet it opens, rendered as a sibling —
-  // RCTText only tolerates nested Text, so the sheet can't live inside the
-  // same Text node as the link itself.
-  const accountLinkLabel = (ids: number[], pool: AccountWithBalance[]) => {
-    if (ids.length === 0) return t('babySteps.selectAccounts');
-    if (ids.length === 1) return pool.find((a) => a.account.id === ids[0])?.account.name ?? t('babySteps.selectAccounts');
-    return t('babySteps.accountsSelected', { count: ids.length });
+  // A small inline "Field label ▾" text link plus the bottom sheet it
+  // opens, kept as separate pieces (not one JSX tree) — the sheet is
+  // rendered as a sibling of whichever step card is currently showing
+  // rather than nested inside it, so switching a step between its
+  // auto-tracked and manual layouts (e.g. Step 5 once an account gets
+  // linked) doesn't remount the Modal mid-interaction and make it flicker
+  // closed-then-open.
+  const accountLinkLabel = (ids: number[], pool: AccountWithBalance[], fieldLabel: string) => {
+    if (ids.length === 0) return fieldLabel;
+    if (ids.length === 1) return pool.find((a) => a.account.id === ids[0])?.account.name ?? fieldLabel;
+    return t('babySteps.accountsCount', { count: ids.length });
   };
 
-  const accountPicker = (pool: AccountWithBalance[], ids: number[], onToggle: (id: number) => void, open: boolean, setOpen: (v: boolean) => void) => ({
+  const accountPicker = (
+    pool: AccountWithBalance[],
+    ids: number[],
+    onToggle: (id: number) => void,
+    open: boolean,
+    setOpen: (v: boolean) => void,
+    fieldLabel: string,
+  ) => ({
     trigger: (
       <Text style={styles.linkText} onPress={() => setOpen(true)}>
-        {accountLinkLabel(ids, pool)} ▾
+        {accountLinkLabel(ids, pool, fieldLabel)} ▾
       </Text>
     ),
     modal: (
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <BottomSheet title={t('babySteps.trackAccountsLabel')} onClose={() => setOpen(false)}>
+        <BottomSheet title={fieldLabel} onClose={() => setOpen(false)}>
           {pool.map((a) => (
             <DropdownOption key={a.account.id} label={a.account.name} selected={ids.includes(a.account.id)} onPress={() => onToggle(a.account.id)} />
           ))}
@@ -289,21 +319,21 @@ export function BabyStepsScreen() {
     ),
   });
 
-  const categoryLinkLabel = (ids: number[]) => {
-    if (ids.length === 0) return t('babySteps.selectCategories');
-    if (ids.length === 1) return categories.find((c) => c.id === ids[0])?.name ?? t('babySteps.selectCategories');
-    return t('babySteps.accountsSelected', { count: ids.length });
+  const categoryLinkLabel = (ids: number[], fieldLabel: string) => {
+    if (ids.length === 0) return fieldLabel;
+    if (ids.length === 1) return categories.find((c) => c.id === ids[0])?.name ?? fieldLabel;
+    return t('babySteps.categoriesCount', { count: ids.length });
   };
 
-  const categoryPicker = (ids: number[], onToggle: (id: number) => void, open: boolean, setOpen: (v: boolean) => void) => ({
+  const categoryPicker = (ids: number[], onToggle: (id: number) => void, open: boolean, setOpen: (v: boolean) => void, fieldLabel: string) => ({
     trigger: (
       <Text style={styles.linkText} onPress={() => setOpen(true)}>
-        {categoryLinkLabel(ids)} ▾
+        {categoryLinkLabel(ids, fieldLabel)} ▾
       </Text>
     ),
     modal: (
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <BottomSheet title={t('babySteps.trackCategoriesLabel')} onClose={() => setOpen(false)}>
+        <BottomSheet title={fieldLabel} onClose={() => setOpen(false)}>
           {groups.map((group) => {
             const groupCategories = categories.filter((c) => c.groupId === group.id);
             if (groupCategories.length === 0) return null;
@@ -327,11 +357,42 @@ export function BabyStepsScreen() {
     ),
   });
 
-  const step1Picker = accountPicker(cashLikeAccounts, step1AccountIds, toggleStep1Account, step1PickerOpen, setStep1PickerOpen);
-  const step3Picker = accountPicker(cashLikeAccounts, step3AccountIds, toggleStep3Account, step3PickerOpen, setStep3PickerOpen);
-  const step4Picker = accountPicker(investableAccounts, step4AccountIds, toggleStep4Account, step4PickerOpen, setStep4PickerOpen);
-  const step5Picker = accountPicker(investableAccounts, step5AccountIds, toggleStep5Account, step5PickerOpen, setStep5PickerOpen);
-  const step7Picker = categoryPicker(step7CategoryIds, toggleStep7Category, step7PickerOpen, setStep7PickerOpen);
+  const step1Picker = accountPicker(cashLikeAccounts, step1AccountIds, toggleStep1Account, step1PickerOpen, setStep1PickerOpen, t('babySteps.emergencyFundAccountsLabel'));
+  const step3Picker = accountPicker(cashLikeAccounts, step3AccountIds, toggleStep3Account, step3PickerOpen, setStep3PickerOpen, t('babySteps.emergencyFundAccountsLabel'));
+  const step4Picker = accountPicker(investableAccounts, step4AccountIds, toggleStep4Account, step4PickerOpen, setStep4PickerOpen, t('babySteps.retirementAccountsLabel'));
+  const step5Picker = accountPicker(investableAccounts, step5AccountIds, toggleStep5Account, step5PickerOpen, setStep5PickerOpen, t('babySteps.educationAccountsLabel'));
+  const step7Picker = categoryPicker(step7CategoryIds, toggleStep7Category, step7PickerOpen, setStep7PickerOpen, t('babySteps.givingCategoriesLabel'));
+
+  // Single-select — a goal links to at most one account. The first sheet
+  // option unlinks back to manual tracking, same idea as a category
+  // picker's "Uncategorized" option.
+  const goalAccountLabel =
+    goalDraftAccountId == null ? t('babySteps.goalAccountLabel') : accounts.find((a) => a.account.id === goalDraftAccountId)?.account.name ?? t('babySteps.goalAccountLabel');
+  const goalAccountPickerModal = (
+    <Modal visible={goalAccountPickerOpen} transparent animationType="slide" onRequestClose={() => setGoalAccountPickerOpen(false)}>
+      <BottomSheet title={t('babySteps.goalAccountLabel')} onClose={() => setGoalAccountPickerOpen(false)}>
+        <DropdownOption
+          label={t('customGoalModal.modeManual')}
+          selected={goalDraftAccountId == null}
+          onPress={() => {
+            setGoalDraftAccountId(null);
+            setGoalAccountPickerOpen(false);
+          }}
+        />
+        {accounts.map((a) => (
+          <DropdownOption
+            key={a.account.id}
+            label={a.account.name}
+            selected={goalDraftAccountId === a.account.id}
+            onPress={() => {
+              setGoalDraftAccountId(a.account.id);
+              setGoalAccountPickerOpen(false);
+            }}
+          />
+        ))}
+      </BottomSheet>
+    </Modal>
+  );
 
   const { year: currentYear } = currentYearWindow();
 
@@ -343,8 +404,8 @@ export function BabyStepsScreen() {
         current={step1Cents}
         target={STARTER_FUND_CENTS}
         pickerTrigger={step1Picker.trigger}
-        pickerModal={step1Picker.modal}
       />
+      {step1Picker.modal}
       <Step
         number={2}
         title={t('babySteps.step2Title')}
@@ -358,7 +419,6 @@ export function BabyStepsScreen() {
         current={step3Cents}
         target={fullEmergencyFundTargetCents}
         pickerTrigger={step3Picker.trigger}
-        pickerModal={step3Picker.modal}
         captionOverride={
           avgMonthlySpendingCents > 0
             ? t('babySteps.step3Caption', {
@@ -369,13 +429,13 @@ export function BabyStepsScreen() {
             : t('babySteps.notEnoughHistory')
         }
       />
+      {step3Picker.modal}
       <Step
         number={4}
         title={t('babySteps.step4Title')}
         current={retirementPercent}
         target={RETIREMENT_TARGET_PERCENT}
         pickerTrigger={step4Picker.trigger}
-        pickerModal={step4Picker.modal}
         captionOverride={
           step4AccountIds.length === 0
             ? t('babySteps.step4NoAccounts')
@@ -384,6 +444,7 @@ export function BabyStepsScreen() {
               : t('babySteps.notEnoughHistory')
         }
       />
+      {step4Picker.modal}
       {step5AccountIds.length > 0 ? (
         <Step
           number={5}
@@ -391,8 +452,14 @@ export function BabyStepsScreen() {
           current={step5Cents}
           target={step5TargetCents}
           pickerTrigger={step5Picker.trigger}
-          pickerModal={step5Picker.modal}
-          footer={<EditStep5Target />}
+          captionSuffix={
+            editingStep5Target ? null : (
+              <Text style={styles.linkText} onPress={startEditingStep5Target}>
+                {t('babySteps.editTarget', { target: formatMoney(step5TargetCents) })}
+              </Text>
+            )
+          }
+          footer={editingStep5Target ? <Step5TargetEditRow /> : null}
         />
       ) : (
         <ManualStep
@@ -401,9 +468,9 @@ export function BabyStepsScreen() {
           checked={manual.step5}
           onToggle={() => toggleManual('step5')}
           pickerTrigger={step5Picker.trigger}
-          pickerModal={step5Picker.modal}
         />
       )}
+      {step5Picker.modal}
       <Step
         number={6}
         title={t('babySteps.step6Title')}
@@ -417,7 +484,6 @@ export function BabyStepsScreen() {
           title={t('babySteps.step7Title')}
           caption={t('babySteps.step7Caption', { amount: formatMoney(donationCentsThisYear), year: currentYear })}
           pickerTrigger={step7Picker.trigger}
-          pickerModal={step7Picker.modal}
         />
       ) : (
         <ManualStep
@@ -426,70 +492,102 @@ export function BabyStepsScreen() {
           checked={manual.step7}
           onToggle={() => toggleManual('step7')}
           pickerTrigger={step7Picker.trigger}
-          pickerModal={step7Picker.modal}
         />
       )}
+      {step7Picker.modal}
 
       <View style={styles.goalsHeaderRow}>
         <Text style={styles.title}>{t('babySteps.goalsHeading')}</Text>
-        <Pressable onPress={() => setGoalModal({ editing: null })}>
+        <Pressable onPress={startAddGoal}>
           <Text style={styles.addGoalText}>{t('babySteps.addGoal')}</Text>
         </Pressable>
       </View>
       <Text style={styles.hint}>{t('babySteps.goalsHint')}</Text>
-      {goals.length === 0 ? <Text style={styles.hint}>{t('babySteps.goalsEmpty')}</Text> : null}
+      {goals.length === 0 && editingGoalId !== 'new' ? <Text style={styles.hint}>{t('babySteps.goalsEmpty')}</Text> : null}
+      {editingGoalId === 'new' ? <GoalEditCard /> : null}
       {goals.map((goal) => {
+        if (editingGoalId === goal.id) return <GoalEditCard key={goal.id} />;
         const percent = goal.targetCents > 0 ? Math.min(100, Math.round((goal.progressCents / goal.targetCents) * 100)) : 0;
+        const linkedAccountName = goal.linkedAccountId != null ? accounts.find((a) => a.account.id === goal.linkedAccountId)?.account.name : null;
         return (
-          <Pressable key={goal.id} style={styles.card} onPress={() => setGoalModal({ editing: goal })}>
+          <Pressable key={goal.id} style={styles.card} onPress={() => startEditGoal(goal)}>
             <Text style={styles.stepTitle}>{goal.name}</Text>
             <ProgressBar percent={percent} color={percent >= 100 ? colors.positive : colors.accent} />
             <Text style={styles.hint}>
               {t('babySteps.progressCaption', { current: formatMoney(goal.progressCents), target: formatMoney(goal.targetCents) })}
-              {goal.linkedAccountId != null ? ` · ${t('customGoalModal.modeLinked')}` : ''}
+              {linkedAccountName ? ` · ${linkedAccountName}` : ''}
             </Text>
           </Pressable>
         );
       })}
-
-      <CustomGoalModal
-        visible={goalModal != null}
-        initial={{
-          name: goalModal?.editing?.name ?? '',
-          targetAmount: goalModal?.editing ? String(goalModal.editing.targetCents / 100) : '',
-          linkedAccountId: goalModal?.editing?.linkedAccountId ?? null,
-          manualProgressAmount: goalModal?.editing?.manualProgressCents != null ? String(goalModal.editing.manualProgressCents / 100) : '',
-        }}
-        accounts={accounts.map((a) => ({ id: a.account.id, name: a.account.name }))}
-        onCancel={() => setGoalModal(null)}
-        onSubmit={submitGoal}
-        onDelete={goalModal?.editing ? deleteGoal : undefined}
-      />
+      {goalAccountPickerModal}
     </ScreenContainer>
   );
 
-  function EditStep5Target() {
-    if (editingStep5Target) {
-      return (
-        <View style={styles.targetEditRow}>
+  function Step5TargetEditRow() {
+    return (
+      <View style={styles.targetEditRow}>
+        <TextField
+          style={styles.targetEditInput}
+          value={step5TargetInput}
+          onChangeText={setStep5TargetInput}
+          keyboardType="decimal-pad"
+          placeholder={t('common.amountPlaceholder')}
+          autoFocus
+        />
+        <Pressable onPress={saveStep5Target}>
+          <Text style={styles.linkText}>{t('common.save')}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  function GoalEditCard() {
+    const isNew = editingGoalId === 'new';
+    return (
+      <View style={styles.card}>
+        <TextField
+          label={t('customGoalModal.nameLabel')}
+          value={goalDraftName}
+          onChangeText={setGoalDraftName}
+          placeholder={t('customGoalModal.namePlaceholder')}
+          autoFocus={isNew}
+        />
+        <TextField
+          label={t('customGoalModal.targetLabel')}
+          value={goalDraftTargetInput}
+          onChangeText={setGoalDraftTargetInput}
+          keyboardType="decimal-pad"
+          placeholder={t('common.amountPlaceholder')}
+        />
+        <Text style={styles.linkText} onPress={() => setGoalAccountPickerOpen(true)}>
+          {goalAccountLabel} ▾
+        </Text>
+        {goalDraftAccountId == null ? (
           <TextField
-            style={styles.targetEditInput}
-            value={step5TargetInput}
-            onChangeText={setStep5TargetInput}
+            label={t('customGoalModal.progressLabel')}
+            value={goalDraftManualProgressInput}
+            onChangeText={setGoalDraftManualProgressInput}
             keyboardType="decimal-pad"
             placeholder={t('common.amountPlaceholder')}
-            autoFocus
           />
-          <Pressable onPress={saveStep5Target}>
-            <Text style={styles.linkText}>{t('common.save')}</Text>
-          </Pressable>
+        ) : null}
+        <View style={styles.goalActionsRow}>
+          {isNew ? <View /> : (
+            <Pressable onPress={deleteGoal}>
+              <Text style={styles.deleteLinkText}>{t('common.delete')}</Text>
+            </Pressable>
+          )}
+          <View style={styles.goalActionsRight}>
+            <Pressable onPress={cancelEditGoal}>
+              <Text style={styles.hint}>{t('common.cancel')}</Text>
+            </Pressable>
+            <Pressable onPress={saveGoal}>
+              <Text style={styles.linkText}>{t('common.save')}</Text>
+            </Pressable>
+          </View>
         </View>
-      );
-    }
-    return (
-      <Pressable onPress={startEditingStep5Target}>
-        <Text style={styles.linkText}>{t('babySteps.editTarget', { target: formatMoney(step5TargetCents) })}</Text>
-      </Pressable>
+      </View>
     );
   }
 }
@@ -500,8 +598,8 @@ function Step({
   current,
   target,
   captionOverride,
+  captionSuffix,
   pickerTrigger,
-  pickerModal,
   footer,
 }: {
   number: number;
@@ -509,52 +607,43 @@ function Step({
   current: number;
   target: number;
   captionOverride?: string;
+  // Rendered on the same row as the caption, pinned to the right (e.g. an
+  // "edit target" link) — unlike pickerTrigger, which always gets its own
+  // line below so a long caption (Step 3's) doesn't wrap into it.
+  captionSuffix?: ReactNode;
   pickerTrigger?: ReactNode;
-  pickerModal?: ReactNode;
   footer?: ReactNode;
 }) {
   const t = useT();
   const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const captionText = captionOverride ?? t('babySteps.progressCaption', { current: formatMoney(current), target: formatMoney(target) });
   return (
     <View style={styles.card}>
       <Text style={styles.stepTitle}>{t('babySteps.stepPrefix', { number, title })}</Text>
       <ProgressBar percent={percent} color={percent >= 100 ? colors.positive : colors.accent} />
-      <Text style={styles.hint}>
-        {captionOverride ?? t('babySteps.progressCaption', { current: formatMoney(current), target: formatMoney(target) })}
-        {pickerTrigger ? ' · ' : null}
-        {pickerTrigger}
-      </Text>
+      {captionSuffix ? (
+        <View style={styles.captionRow}>
+          <Text style={[styles.hint, styles.captionText]}>{captionText}</Text>
+          {captionSuffix}
+        </View>
+      ) : (
+        <Text style={styles.hint}>{captionText}</Text>
+      )}
+      {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
       {footer}
-      {pickerModal}
     </View>
   );
 }
 
 // Open-ended stat with no fixed target (e.g. lifetime/annual giving) — a
 // caption, no progress bar.
-function StatStep({
-  number,
-  title,
-  caption,
-  pickerTrigger,
-  pickerModal,
-}: {
-  number: number;
-  title: string;
-  caption: string;
-  pickerTrigger?: ReactNode;
-  pickerModal?: ReactNode;
-}) {
+function StatStep({ number, title, caption, pickerTrigger }: { number: number; title: string; caption: string; pickerTrigger?: ReactNode }) {
   const t = useT();
   return (
     <View style={styles.card}>
       <Text style={styles.stepTitle}>{t('babySteps.stepPrefix', { number, title })}</Text>
-      <Text style={styles.hint}>
-        {caption}
-        {pickerTrigger ? ' · ' : null}
-        {pickerTrigger}
-      </Text>
-      {pickerModal}
+      <Text style={styles.hint}>{caption}</Text>
+      {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
     </View>
   );
 }
@@ -565,14 +654,12 @@ function ManualStep({
   checked,
   onToggle,
   pickerTrigger,
-  pickerModal,
 }: {
   number: number;
   title: string;
   checked: boolean;
   onToggle: () => void;
   pickerTrigger?: ReactNode;
-  pickerModal?: ReactNode;
 }) {
   const t = useT();
   return (
@@ -586,7 +673,6 @@ function ManualStep({
         </View>
       </Pressable>
       <Text style={styles.hint}>{pickerTrigger}</Text>
-      {pickerModal}
     </View>
   );
 }
@@ -602,6 +688,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+  captionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  captionText: { flex: 1 },
   stepTitle: { fontSize: 14, fontWeight: '700', color: colors.text, flex: 1, marginRight: spacing.sm },
   manualHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statusPill: {
@@ -615,8 +703,11 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
   statusPillTextDone: { color: '#fff' },
   linkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
+  deleteLinkText: { fontSize: 12, fontWeight: '700', color: colors.negative },
   targetEditRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   targetEditInput: { flex: 1, paddingVertical: 6, fontSize: 13 },
   goalsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
   addGoalText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
+  goalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xs },
+  goalActionsRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
 });

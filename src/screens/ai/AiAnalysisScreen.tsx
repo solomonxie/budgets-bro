@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
 import { useAppStore } from '../../state/useAppStore';
@@ -11,20 +17,28 @@ import { getDb } from '../../db/client';
 import * as budgetsRepo from '../../db/repositories/budgetsRepo';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import { netWorth as computeNetWorth } from '../../domain/accountKind';
-import { formatContextForPrompt, redactForPrivacy } from '../../domain/aiAnalysis';
+import {
+  formatContextForPrompt,
+  redactForPrivacy,
+} from '../../domain/aiAnalysis';
 import type { AiProfile, AnalysisContext } from '../../domain/aiAnalysis';
 import { ANALYSIS_KINDS, buildAnalysisMessages } from '../../ai/prompts';
 import type { AnalysisKind } from '../../ai/prompts';
-import { AiClientError, runChatCompletion } from '../../ai/openaiClient';
+import { AiClientError } from '../../ai/openaiClient';
 import type { AiClientErrorCode } from '../../ai/openaiClient';
-import { secureStore } from '../../secure/secureStore';
+import { listAiKeys, runWithAiKeys } from '../../ai/aiKeys';
 import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 const PROFILE_SETTING_KEY = 'aiAnalysis.profile';
-const EMPTY_PROFILE: AiProfile = { city: '', country: '', age: '', familySize: '' };
+const EMPTY_PROFILE: AiProfile = {
+  city: '',
+  country: '',
+  age: '',
+  familySize: '',
+};
 
 const KIND_LABEL_KEY: Record<AnalysisKind, TranslationKey> = {
   spending: 'aiAnalysis.kindSpending',
@@ -42,9 +56,9 @@ const ERROR_MESSAGE_KEY: Record<AiClientErrorCode, TranslationKey> = {
 
 // Everything here reads local budget data already loaded for other screens
 // (useAccounts/useCategories/useInsights) — only "Run Analysis" itself is a
-// one-shot network call, sent straight from this device to OpenAI with the
-// user's own key (see secureStore/SettingsScreen's OpenAI section); nothing
-// is proxied through or stored by this app.
+// one-shot network call, sent straight from this device to whichever vendor
+// the current key belongs to (see ai/aiKeys.ts and Settings' AI Keys
+// section); nothing is proxied through or stored by this app.
 export function AiAnalysisScreen() {
   const t = useT();
   const openSettings = useAppStore((s) => s.openSettings);
@@ -55,7 +69,7 @@ export function AiAnalysisScreen() {
   const { categories } = useCategories();
   const { spending, trendPoints } = useInsights(month);
 
-  const [apiKey, setApiKey] = useState<string | null | undefined>(undefined); // undefined = still loading from secureStore
+  const [hasAiKey, setHasAiKey] = useState<boolean | undefined>(undefined); // undefined = still loading
   const [kind, setKind] = useState<AnalysisKind>('spending');
   const [privacyMode, setPrivacyMode] = useState(true);
   const [profile, setProfile] = useState<AiProfile>(EMPTY_PROFILE);
@@ -64,10 +78,16 @@ export function AiAnalysisScreen() {
   const [errorKey, setErrorKey] = useState<TranslationKey | null>(null);
 
   useEffect(() => {
-    secureStore.getAiApiKey().then(setApiKey);
     (async () => {
       const db = await getDb();
-      setProfile(await settingsRepo.getJsonSetting(db, PROFILE_SETTING_KEY, EMPTY_PROFILE));
+      setHasAiKey((await listAiKeys(db)).length > 0);
+      setProfile(
+        await settingsRepo.getJsonSetting(
+          db,
+          PROFILE_SETTING_KEY,
+          EMPTY_PROFILE,
+        ),
+      );
     })();
   }, []);
 
@@ -80,25 +100,45 @@ export function AiAnalysisScreen() {
   const netWorth = useMemo(
     () =>
       computeNetWorth(
-        accounts.map((a) => ({ type: a.account.type, balanceCents: a.balanceCents, houseValueCents: houseValues.get(a.account.id) })),
+        accounts.map((a) => ({
+          type: a.account.type,
+          balanceCents: a.balanceCents,
+          houseValueCents: houseValues.get(a.account.id),
+        })),
       ),
     [accounts, houseValues],
   );
 
   const run = async () => {
-    if (!apiKey) return;
+    if (!hasAiKey) return;
     setLoading(true);
     setErrorKey(null);
     setResult(null);
     try {
       const db = await getDb();
-      const assignedByCategory = await budgetsRepo.assignedThisMonthByCategory(db, boardId, month);
-      const spentByCategory = new Map(spending.map((s) => [s.categoryId, s.spentCents]));
+      const assignedByCategory = await budgetsRepo.assignedThisMonthByCategory(
+        db,
+        boardId,
+        month,
+      );
+      const spentByCategory = new Map(
+        spending.map((s) => [s.categoryId, s.spentCents]),
+      );
       const variance = categories
         .filter((c) => c.archivedAt == null)
-        .map((c) => ({ categoryId: c.id, name: c.name, assignedCents: assignedByCategory[c.id] ?? 0, spentCents: spentByCategory.get(c.id) ?? 0 }))
+        .map((c) => ({
+          categoryId: c.id,
+          name: c.name,
+          assignedCents: assignedByCategory[c.id] ?? 0,
+          spentCents: spentByCategory.get(c.id) ?? 0,
+        }))
         .filter((v) => v.assignedCents !== 0 || v.spentCents !== 0);
-      const trend = trendPoints.map((p) => ({ categoryId: p.categoryId, name: p.name, month: p.month, spentCents: p.spentCents }));
+      const trend = trendPoints.map((p) => ({
+        categoryId: p.categoryId,
+        name: p.name,
+        month: p.month,
+        spentCents: p.spentCents,
+      }));
 
       const hasProfile = Object.values(profile).some((v) => v.trim());
       let context: AnalysisContext = {
@@ -112,24 +152,31 @@ export function AiAnalysisScreen() {
       };
       if (privacyMode) context = redactForPrivacy(context);
 
-      const text = await runChatCompletion(apiKey, buildAnalysisMessages(kind, formatContextForPrompt(context)));
+      const text = await runWithAiKeys(
+        db,
+        buildAnalysisMessages(kind, formatContextForPrompt(context)),
+      );
       setResult(text);
     } catch (e) {
-      setErrorKey(ERROR_MESSAGE_KEY[e instanceof AiClientError ? e.code : 'unknown']);
+      setErrorKey(
+        ERROR_MESSAGE_KEY[e instanceof AiClientError ? e.code : 'unknown'],
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  if (apiKey === undefined) return <ScreenContainer />;
+  if (hasAiKey === undefined) return <ScreenContainer />;
 
-  if (!apiKey) {
+  if (!hasAiKey) {
     return (
       <ScreenContainer>
         <View style={styles.card}>
           <Text style={styles.hint}>{t('aiAnalysis.noKeyHint')}</Text>
           <Pressable style={styles.settingsLink} onPress={openSettings}>
-            <Text style={styles.settingsLinkText}>{t('aiAnalysis.openSettings')}</Text>
+            <Text style={styles.settingsLinkText}>
+              {t('aiAnalysis.openSettings')}
+            </Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -143,15 +190,28 @@ export function AiAnalysisScreen() {
         <Text style={styles.hint}>{t('aiAnalysis.profileHint')}</Text>
         <View style={styles.row}>
           <View style={styles.half}>
-            <TextField label={t('aiAnalysis.cityLabel')} value={profile.city} onChangeText={(v) => saveProfile({ ...profile, city: v })} />
+            <TextField
+              label={t('aiAnalysis.cityLabel')}
+              value={profile.city}
+              onChangeText={(v) => saveProfile({ ...profile, city: v })}
+            />
           </View>
           <View style={styles.half}>
-            <TextField label={t('aiAnalysis.countryLabel')} value={profile.country} onChangeText={(v) => saveProfile({ ...profile, country: v })} />
+            <TextField
+              label={t('aiAnalysis.countryLabel')}
+              value={profile.country}
+              onChangeText={(v) => saveProfile({ ...profile, country: v })}
+            />
           </View>
         </View>
         <View style={styles.row}>
           <View style={styles.half}>
-            <TextField label={t('aiAnalysis.ageLabel')} value={profile.age} onChangeText={(v) => saveProfile({ ...profile, age: v })} keyboardType="number-pad" />
+            <TextField
+              label={t('aiAnalysis.ageLabel')}
+              value={profile.age}
+              onChangeText={(v) => saveProfile({ ...profile, age: v })}
+              keyboardType="number-pad"
+            />
           </View>
           <View style={styles.half}>
             <TextField
@@ -166,24 +226,44 @@ export function AiAnalysisScreen() {
 
       <View style={styles.segmented}>
         {ANALYSIS_KINDS.map((k) => (
-          <Pressable key={k} style={[styles.segment, kind === k && styles.segmentActive]} onPress={() => setKind(k)}>
-            <Text style={[styles.segmentText, kind === k && styles.segmentTextActive]}>{t(KIND_LABEL_KEY[k])}</Text>
+          <Pressable
+            key={k}
+            style={[styles.segment, kind === k && styles.segmentActive]}
+            onPress={() => setKind(k)}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                kind === k && styles.segmentTextActive,
+              ]}
+            >
+              {t(KIND_LABEL_KEY[k])}
+            </Text>
           </Pressable>
         ))}
       </View>
 
-      <Pressable style={styles.checkboxRow} onPress={() => setPrivacyMode((v) => !v)}>
+      <Pressable
+        style={styles.checkboxRow}
+        onPress={() => setPrivacyMode((v) => !v)}
+      >
         <View style={[styles.checkbox, privacyMode && styles.checkboxChecked]}>
           {privacyMode ? <Text style={styles.checkboxMark}>✓</Text> : null}
         </View>
         <View style={styles.checkboxTextGroup}>
-          <Text style={styles.checkboxLabel}>{t('aiAnalysis.privacyModeLabel')}</Text>
+          <Text style={styles.checkboxLabel}>
+            {t('aiAnalysis.privacyModeLabel')}
+          </Text>
           <Text style={styles.hint}>{t('aiAnalysis.privacyModeHint')}</Text>
         </View>
       </Pressable>
 
       <Pressable style={styles.runButton} onPress={run} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.runButtonText}>{t('aiAnalysis.runButton')}</Text>}
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.runButtonText}>{t('aiAnalysis.runButton')}</Text>
+        )}
       </Pressable>
 
       {errorKey ? <Text style={styles.errorText}>{t(errorKey)}</Text> : null}
@@ -222,11 +302,21 @@ const styles = StyleSheet.create({
     padding: 3,
     gap: 3,
   },
-  segment: { flexGrow: 1, flexBasis: '31%', paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  segment: {
+    flexGrow: 1,
+    flexBasis: '31%',
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
-  checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
   checkbox: {
     width: 22,
     height: 22,
@@ -237,11 +327,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 2,
   },
-  checkboxChecked: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkboxChecked: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
   checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   checkboxTextGroup: { flex: 1, gap: 2 },
   checkboxLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-  runButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  runButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   runButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   errorText: { color: colors.negative, fontSize: 13 },
   resultText: { fontSize: 14, color: colors.text, lineHeight: 20 },

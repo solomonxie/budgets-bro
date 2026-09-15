@@ -3,10 +3,76 @@ import * as settingsRepo from '../db/repositories/settingsRepo';
 import { secureStore } from '../secure/secureStore';
 import { runChatCompletion as runOpenAi } from './openaiClient';
 import { runChatCompletion as runAnthropic } from './anthropicClient';
-import type { ChatMessage } from './openaiClient';
+import { runChatCompletion as runGoogle } from './googleClient';
+import { runChatCompletion as runGroq } from './groqClient';
+import { runChatCompletion as runMistral } from './mistralClient';
+import { runChatCompletion as runDeepSeek } from './deepseekClient';
+import { runChatCompletion as runXai } from './xaiClient';
+import type { ChatMessage } from './types';
 
-export type AiVendor = 'openai' | 'anthropic';
+export type AiVendor =
+  'openai' | 'anthropic' | 'google' | 'groq' | 'mistral' | 'deepseek' | 'xai';
 export type AiKeyStrategy = 'sequential' | 'round_robin';
+
+// Display name, a short hint about what the key looks like, and where to
+// go make one — shown in AiKeyModal so "add a key" doesn't require already
+// knowing each vendor's console. keyHint doubles as the field's masked
+// placeholder.
+export interface AiVendorMeta {
+  code: AiVendor;
+  name: string;
+  keyHint: string;
+  docsUrl: string;
+}
+
+export const AI_VENDORS: AiVendorMeta[] = [
+  {
+    code: 'openai',
+    name: 'OpenAI',
+    keyHint: 'sk-...',
+    docsUrl: 'https://platform.openai.com/api-keys',
+  },
+  {
+    code: 'anthropic',
+    name: 'Anthropic',
+    keyHint: 'sk-ant-...',
+    docsUrl: 'https://console.anthropic.com/settings/keys',
+  },
+  {
+    code: 'google',
+    name: 'Google Gemini',
+    keyHint: 'AIza...',
+    docsUrl: 'https://aistudio.google.com/apikey',
+  },
+  {
+    code: 'groq',
+    name: 'Groq',
+    keyHint: 'gsk_...',
+    docsUrl: 'https://console.groq.com/keys',
+  },
+  {
+    code: 'mistral',
+    name: 'Mistral',
+    keyHint: '...',
+    docsUrl: 'https://console.mistral.ai/api-keys',
+  },
+  {
+    code: 'deepseek',
+    name: 'DeepSeek',
+    keyHint: 'sk-...',
+    docsUrl: 'https://platform.deepseek.com/api_keys',
+  },
+  {
+    code: 'xai',
+    name: 'xAI (Grok)',
+    keyHint: 'xai-...',
+    docsUrl: 'https://console.x.ai',
+  },
+];
+
+export function aiVendorName(vendor: AiVendor): string {
+  return AI_VENDORS.find((v) => v.code === vendor)?.name ?? vendor;
+}
 
 // requestCount is a plain usage counter (every attempt, success or not) —
 // shown next to each key in Settings so you can see which ones are
@@ -127,14 +193,25 @@ async function setCursor(db: SQLiteDatabase, value: number): Promise<void> {
   await settingsRepo.setSetting(db, CURSOR_KEY, String(value));
 }
 
+const VENDOR_RUNNERS: Record<
+  AiVendor,
+  (secret: string, messages: ChatMessage[]) => Promise<string>
+> = {
+  openai: runOpenAi,
+  anthropic: runAnthropic,
+  google: runGoogle,
+  groq: runGroq,
+  mistral: runMistral,
+  deepseek: runDeepSeek,
+  xai: runXai,
+};
+
 export async function runChatCompletionForVendor(
   vendor: AiVendor,
   secret: string,
   messages: ChatMessage[],
 ): Promise<string> {
-  return vendor === 'openai'
-    ? runOpenAi(secret, messages)
-    : runAnthropic(secret, messages);
+  return VENDOR_RUNNERS[vendor](secret, messages);
 }
 
 export class NoAiKeyError extends Error {

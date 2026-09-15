@@ -1,5 +1,5 @@
-import type { ChatMessage } from './openaiClient';
-import { AiClientError } from './openaiClient';
+import { AiClientError } from './types';
+import type { ChatMessage } from './types';
 
 // Second vendor for AI Keys' multi-provider support — same hand-rolled
 // `fetch` choice as openaiClient.ts. Anthropic's Messages API takes system

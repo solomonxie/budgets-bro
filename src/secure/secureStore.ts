@@ -8,12 +8,25 @@ const AI_API_KEY = 'ai_api_key';
 // provider credentials, not money data, so they must never leave this
 // device via any backup path. The app's own backup/export (exportBoard.ts)
 // never touches secureStore either way — only board-owned SQLite tables.
-const OPTIONS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
+const OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
 
 export const secureStore = {
+  // Legacy single-key slot — pre-dates multi-provider AI Keys (see
+  // ai/aiKeys.ts). Only read once, to migrate into the new per-key slots.
   getAiApiKey: () => SecureStore.getItemAsync(AI_API_KEY),
-  setAiApiKey: (value: string) => SecureStore.setItemAsync(AI_API_KEY, value, OPTIONS),
+  setAiApiKey: (value: string) =>
+    SecureStore.setItemAsync(AI_API_KEY, value, OPTIONS),
   clearAiApiKey: () => SecureStore.deleteItemAsync(AI_API_KEY),
+
+  // Keyed by the AI key's own id — same "several side by side" shape as
+  // the S3 credentials below.
+  getAiKeySecret: (id: string) => SecureStore.getItemAsync(`ai_api_key_${id}`),
+  setAiKeySecret: (id: string, value: string) =>
+    SecureStore.setItemAsync(`ai_api_key_${id}`, value, OPTIONS),
+  clearAiKeySecret: (id: string) =>
+    SecureStore.deleteItemAsync(`ai_api_key_${id}`),
 
   // Keyed by configId — one app install can hold several S3 buckets'
   // worth of credentials side by side (see sync/s3Provider.ts).
@@ -22,12 +35,26 @@ export const secureStore = {
       SecureStore.getItemAsync(`s3_access_key_id_${configId}`),
       SecureStore.getItemAsync(`s3_secret_access_key_${configId}`),
     ]);
-    return accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : null;
+    return accessKeyId && secretAccessKey
+      ? { accessKeyId, secretAccessKey }
+      : null;
   },
-  setS3Credentials: (configId: string, accessKeyId: string, secretAccessKey: string) =>
+  setS3Credentials: (
+    configId: string,
+    accessKeyId: string,
+    secretAccessKey: string,
+  ) =>
     Promise.all([
-      SecureStore.setItemAsync(`s3_access_key_id_${configId}`, accessKeyId, OPTIONS),
-      SecureStore.setItemAsync(`s3_secret_access_key_${configId}`, secretAccessKey, OPTIONS),
+      SecureStore.setItemAsync(
+        `s3_access_key_id_${configId}`,
+        accessKeyId,
+        OPTIONS,
+      ),
+      SecureStore.setItemAsync(
+        `s3_secret_access_key_${configId}`,
+        secretAccessKey,
+        OPTIONS,
+      ),
     ]),
   clearS3Credentials: (configId: string) =>
     Promise.all([

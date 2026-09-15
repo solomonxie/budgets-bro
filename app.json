@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "YaMa",
-    "slug": "yet-another-money-app",
+    "name": "BYO Budget",
+    "slug": "build-your-own-budget",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.solomonxie.yetanothermoneyapp"
+      "bundleIdentifier": "com.solomonxie.buildyourownbudget"
     },
     "android": {
       "adaptiveIcon": {

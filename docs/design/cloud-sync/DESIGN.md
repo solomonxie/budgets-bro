@@ -35,7 +35,7 @@ without remembering to export by hand.
     could only ever be a manual "pick folder, sync now" action re-prompted
     every cold start — not real auto-sync, and not worth the UI over just
     dragging the Local Backup file into iCloud Drive by hand. See Backlog
-    in `docs/yama-mvp-plan.md`.
+    in `docs/IMPLEMENTATION_PLAN.md`.
   - What's shipped instead (`sync/localProvider.ts`) piggybacks on the OS's
     own device backup — see Providers → Local below — which covers "back
     this up somewhere iCloud-ish" without any of that native infra.
@@ -113,7 +113,7 @@ needed for personal use. Refresh token stored in `secureStore`; access
 token refreshed on demand.
 
 User-side setup (Google Cloud Console, one-time): create an OAuth 2.0
-Client ID (type: iOS), add the app's bundle ID (`com.solomonxie.yama`) and
+Client ID (type: iOS), add the app's bundle ID (`com.solomonxie.buildyourownbudget`) and
 a custom URL scheme for the redirect. Hand the Client ID back for
 `app.json`'s scheme config — no client secret needed for the PKCE/installed
 -app flow.

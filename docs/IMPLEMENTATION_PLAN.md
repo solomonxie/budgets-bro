@@ -1,6 +1,6 @@
-# YAMA MVP — Implementation Plan
+# ByoBudget MVP — Implementation Plan
 
-See [`yama-mvp.md`](yama-mvp.md) for the design doc these phases implement.
+See [`DESIGN.md`](DESIGN.md) for the design doc these phases implement.
 
 ## Phase 0: Repo & Tooling Bootstrap
 Version control, Expo/TS app shell, and the skeleton (nav, DB, secure store) every later phase builds on.
@@ -31,7 +31,7 @@ Core ledger and envelope math the budget UI depends on.
 - [x] T2.4 Unit tests for `budgetMath.ts`
 
 ## Phase 3: Core Budget UI
-User-facing screens for end-to-end manual budgeting. Reference: real YNAB's screenshots — see [`yama-mvp.md`](yama-mvp.md#core-ui) for the full breakdown per screen.
+User-facing screens for end-to-end manual budgeting. Reference: real YNAB's screenshots — see [`DESIGN.md`](DESIGN.md#core-ui) for the full breakdown per screen.
 
 - [x] T3.0 Add a Reports tab; consolidate Calculators + AI Analysis into a single "Tools" tab so the bottom bar stays at 5 slots — updates the Phase 0 tab layout in `src/navigation/RootNavigator.tsx`
 - [x] T3.1 Budget screen: "Unassigned Cash" banner, collapsible category groups, per-category status badge (funded/partial/overspent) + progress bar + status caption, month navigation
@@ -72,7 +72,7 @@ Requested as a follow-up to Phase 4 — not yet implemented.
 - [x] T6.3 Validate against Unassigned Cash — already shipped in `a0331c6`: `AssignedAmountModal` caps the typed amount at `unassignedCents + initialCents` and shows `assignedAmountModal.exceedsError` if exceeded (this task's original "no such check" note was stale)
 
 ## Phase 7: YNAB Data Import
-One-time, idempotent import of a user's existing YNAB register export — see [`yama-mvp.md`](yama-mvp.md#ynab-data-import). Needs stable schema (Phase 1/2) and the Budget UI (Phase 3) to sanity-check imported data against.
+One-time, idempotent import of a user's existing YNAB register export — see [`DESIGN.md`](DESIGN.md#ynab-data-import). Needs stable schema (Phase 1/2) and the Budget UI (Phase 3) to sanity-check imported data against.
 
 - [x] T7.1 Add `import_id` (nullable, unique) to `transactions` if not already in the Phase 1 schema — dedupe key
 - [x] T7.2 CSV parser for YNAB's Register/Plan export format — `src/import/csv.ts`
@@ -81,10 +81,10 @@ One-time, idempotent import of a user's existing YNAB register export — see [`
 - [x] T7.5 Parser verified against a real export (2489 register rows / 945 plan rows, all dates/amounts/months parsed, transfers detected); full on-device round-trip still untested
 
 ## Phase 8: Loan/mortgage v2, investment tracking, recurring transactions
-Requested as a follow-up; design captured in [`yama-mvp.md`](yama-mvp.md#loanmortgage-accounts-v2-designed-not-yet-built). Moved ahead of Backup/Polish — pick up now.
+Requested as a follow-up; design captured in [`DESIGN.md`](DESIGN.md#loanmortgage-accounts-v2-designed-not-yet-built). Moved ahead of Backup/Polish — pick up now.
 
 - [x] T8.1 `account_rate_history` table (id, account_id, rate_bps, effective_date) replacing the single static `interest_rate_bps` column on loan/mortgage accounts; migration backfills one row per existing account from its current rate. Edit Account shows the tracked list (add/edit/delete) for an existing loan/mortgage account.
-- [x] T8.1b Debt-account linkage moved from category to **payee**: a loan/mortgage account auto-owns a payee named after it (`payees.linked_account_id`); selecting that payee on a transaction posts a mirrored credit to the account, regardless of category. Migration backfills a linked payee for every existing loan/mortgage account. (Supersedes an earlier category-based version — see `yama-mvp.md`.)
+- [x] T8.1b Debt-account linkage moved from category to **payee**: a loan/mortgage account auto-owns a payee named after it (`payees.linked_account_id`); selecting that payee on a transaction posts a mirrored credit to the account, regardless of category. Migration backfills a linked payee for every existing loan/mortgage account. (Supersedes an earlier category-based version — see `DESIGN.md`.)
 - [x] T8.1c "Original House Price" field + computed "Down payment: $X" hint (Original House Price − Original Principal).
 - [x] T8.2 `account_house_value_history` table (id, account_id, value_cents, effective_date, created_at) — manual value log for a mortgage's home value, feeding Net Worth as the offsetting asset (`HouseValueDetails`). Renamed to `account_value_history` in T8.6 (migration 014) and reused as the generic table for both mortgage house value and tracking-account value logs
 - [x] T8.3 Merge loan/mortgage debt + a separate tracking (value) account into one combined account — "Merge Tracking Account" in `AccountModal` (editing a loan-like account) re-points the tracking account's value-history rows onto this account (`accountValueHistoryRepo.reassignAccount`) and archives it
@@ -135,5 +135,5 @@ Not sequenced against the phases above — pick up opportunistically.
 - [x] AI Analysis (BYO Key): Settings' OpenAI section (key entry via `secureStore`, now also a "Test Connection" button) already existed; added `ai/openaiClient.ts` (plain `fetch` to Chat Completions, no SDK) + `ai/prompts.ts` (spending/variance/forecast templates) + `domain/aiAnalysis.ts` (pure context-shaping and Privacy Mode redaction, unit-tested) + a real `AiAnalysisScreen` (kind picker, Privacy Mode toggle, run/result/error states). Provider is OpenAI only for now (matching the pre-existing Settings copy) — Anthropic adapter not built.
 - [x] AI Analysis extended: an optional "About You" profile (city/country/age/family size — `settingsRepo` JSON setting, outside Privacy Mode's redaction since it's opt-in by nature of being typed in) feeds two new kinds — **Health** (net worth + this month's spending + profile → overall financial-health read) and **Comparison** (spending vs. typical city/country/world figures, explicitly labeled an LLM general-knowledge estimate, not a real data source — see the external-data-widgets Backlog item below for the real thing).
 - [ ] Insights — external-data widgets: cost of living by city, interest rate trends, exchange rates, housing market stats — each needs a data source/API not yet chosen; decide free-vs-paid and where API keys live (likely BYO key via `expo-secure-store`, same pattern as the AI Analysis item above). Note: AI Analysis's "Comparison" kind (see Phase 8-era AI Analysis entry) covers a lighter version of the cost-of-living-by-city case already — an LLM general-knowledge estimate, explicitly labeled as such, not a verified data source. This item is for the real thing.
-- [ ] Google Drive as a second cloud-sync provider (`sync/googleDriveProvider.ts`): `expo-auth-session` PKCE against `drive.appdata` scope, Drive REST v3 multipart upload/download to `appDataFolder`, Connect/Disconnect in Settings — see `docs/design/cloud-sync/DESIGN.md`/`IMPLEMENT_PLAN.md` (T2.3–T2.5, T4.2). Blocked on a user-owned Google Cloud Console OAuth Client ID (bundle id `com.solomonxie.yama`, `drive.appdata` scope, self as test user) before any of this can start.
+- [ ] Google Drive as a second cloud-sync provider (`sync/googleDriveProvider.ts`): `expo-auth-session` PKCE against `drive.appdata` scope, Drive REST v3 multipart upload/download to `appDataFolder`, Connect/Disconnect in Settings — see `docs/design/cloud-sync/DESIGN.md`/`IMPLEMENT_PLAN.md` (T2.3–T2.5, T4.2). Blocked on a user-owned Google Cloud Console OAuth Client ID (bundle id `com.solomonxie.buildyourownbudget`, `drive.appdata` scope, self as test user) before any of this can start.
 - [ ] "Backup to iCloud/Folder…" via `Directory.pickDirectoryAsync()` (system folder picker, iCloud Drive included as a normal destination — no native module, entitlement, or paid Apple account needed, unlike real ubiquity-container integration). Deliberately not built: iOS only grants that folder access for the current app session (no persisted security-scoped bookmark in Expo's JS API), so it can only ever be a manual "pick folder, sync now" action, re-prompting after every cold start — not real auto-sync. Given the Local Backup provider (T9.5) already rides the user's normal iPhone/iCloud device backup for free, and manually copying a file from the Files app into iCloud Drive is already one drag-and-drop away, the added picker UI wasn't worth it. Revisit only if Expo's file-system API grows persisted bookmark support.

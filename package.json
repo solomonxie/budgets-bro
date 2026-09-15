@@ -1,5 +1,5 @@
 {
-  "name": "yet-another-money-app",
+  "name": "build-your-own-budget",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {

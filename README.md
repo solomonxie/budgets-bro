@@ -1,10 +1,10 @@
-# YAMA — Yet Another Money App
+# ByoBudget — Build Your Own Budget
 
 > 🚧 Work in progress.
 
 Free, privacy-first, YNAB-style budgeting for iOS. Envelope budgeting, common financial calculators, and optional AI analysis — no backend, no subscription.
 
-See [`docs/yama-mvp.md`](docs/yama-mvp.md) for the design doc and [`docs/yama-mvp-plan.md`](docs/yama-mvp-plan.md) for the implementation plan.
+See [`docs/DESIGN.md`](docs/DESIGN.md) for the design doc and [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for the implementation plan.
 
 ## Core
 - YNAB-style envelope/zero-based budgeting

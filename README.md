@@ -27,6 +27,19 @@ Expo (React Native, TypeScript).
 npm install
 npm start
 ```
+Opens Expo Go — quick iteration, but native modules (sqlite, secure-store, sharing) run in Expo Go's own shell, not the real app.
+
+### Real app on simulator (not Expo Go)
+SDK 57 needs Swift tools 6.2 (Xcode 26+) to build locally; if your Xcode is older, build in the cloud instead:
+```
+npx eas-cli build --profile preview --platform ios --non-interactive
+```
+Then download the `.tar.gz` from the printed artifact URL, extract, and install:
+```
+tar -xzf app.tar.gz
+xcrun simctl install booted BYOBudget.app
+xcrun simctl launch booted com.solomonxie.buildyourownbudget
+```
 
 ## Screenshots
 | Budget | Insights | Account Trend | Mortgage |

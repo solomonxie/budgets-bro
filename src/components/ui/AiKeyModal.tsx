@@ -1,25 +1,21 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { ScreenContainer } from './ScreenContainer';
+import { BottomSheet } from './BottomSheet';
 import { TextField } from './TextField';
-import { runChatCompletionForVendor } from '../../ai/aiKeys';
+import { DropdownField, DropdownOption } from './DropdownField';
+import { AI_VENDORS, runChatCompletionForVendor } from '../../ai/aiKeys';
 import type { AiVendor } from '../../ai/aiKeys';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-
-const VENDORS: { code: AiVendor; name: string }[] = [
-  { code: 'openai', name: 'OpenAI' },
-  { code: 'anthropic', name: 'Anthropic' },
-];
 
 interface AiKeyModalProps {
   visible: boolean;
@@ -27,16 +23,19 @@ interface AiKeyModalProps {
   onSaved: (vendor: AiVendor, secret: string) => Promise<void>;
 }
 
-// No separate "Test Connection" button — Save itself sends one real,
-// cheap request through the chosen vendor's client and only calls
-// onSaved (which persists the key) once that succeeds, same flow as
-// S3ConfigModal's own test-then-save.
+// Half-height sheet, not a full page — a vendor picker and one text field
+// don't need more room. No separate "Test Connection" button: Save itself
+// sends one real, cheap request through the chosen vendor's client and
+// only calls onSaved (which persists the key) once that succeeds, same
+// flow as S3ConfigModal's own test-then-save.
 export function AiKeyModal({ visible, onCancel, onSaved }: AiKeyModalProps) {
   const t = useT();
   const [vendor, setVendor] = useState<AiVendor>('openai');
   const [secret, setSecret] = useState('');
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const vendorMeta = AI_VENDORS.find((v) => v.code === vendor)!;
 
   const reset = () => {
     setVendor('openai');
@@ -76,101 +75,83 @@ export function AiKeyModal({ visible, onCancel, onSaved }: AiKeyModalProps) {
   return (
     <Modal
       visible={visible}
+      transparent
       animationType="slide"
-      presentationStyle="pageSheet"
       onRequestClose={cancel}
     >
-      <ScreenContainer modal>
-        <View style={styles.header}>
-          <Pressable onPress={cancel}>
-            <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
-          </Pressable>
-          <Text style={styles.title}>{t('aiKeyModal.title')}</Text>
-          <Pressable onPress={save} disabled={testing}>
-            {testing ? (
-              <ActivityIndicator />
-            ) : (
-              <Text style={[styles.headerBtn, styles.saveBtn]}>
-                {t('common.save')}
-              </Text>
+      <BottomSheet title={t('aiKeyModal.title')} onClose={cancel}>
+        <View style={styles.form}>
+          <DropdownField
+            compact
+            label={t('aiKeyModal.vendorLabel')}
+            valueLabel={vendorMeta.name}
+          >
+            {(close) => (
+              <>
+                {AI_VENDORS.map((v) => (
+                  <DropdownOption
+                    key={v.code}
+                    label={v.name}
+                    selected={vendor === v.code}
+                    onPress={() => {
+                      setVendor(v.code);
+                      close();
+                    }}
+                  />
+                ))}
+              </>
             )}
-          </Pressable>
-        </View>
-        <ScrollView
-          contentContainerStyle={styles.form}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.segmented}>
-            {VENDORS.map((v) => (
-              <Pressable
-                key={v.code}
-                style={[
-                  styles.segment,
-                  vendor === v.code && styles.segmentActive,
-                ]}
-                onPress={() => setVendor(v.code)}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    vendor === v.code && styles.segmentTextActive,
-                  ]}
-                >
-                  {v.name}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          </DropdownField>
           <TextField
             label={t('aiKeyModal.keyLabel')}
-            placeholder={vendor === 'openai' ? 'sk-...' : 'sk-ant-...'}
+            placeholder={vendorMeta.keyHint}
             value={secret}
             onChangeText={setSecret}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
           />
+          <Text style={styles.hint}>
+            {t('aiKeyModal.getKeyHint', { vendor: vendorMeta.name })}{' '}
+            <Text
+              style={styles.linkText}
+              onPress={() => Linking.openURL(vendorMeta.docsUrl)}
+            >
+              {t('aiKeyModal.getKeyLink')}
+            </Text>
+          </Text>
           {testing ? (
             <Text style={styles.hint}>{t('aiKeyModal.testing')}</Text>
           ) : null}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        </ScrollView>
-      </ScreenContainer>
+          <Pressable
+            style={styles.saveButton}
+            onPress={save}
+            disabled={testing}
+          >
+            {testing ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+            )}
+          </Pressable>
+        </View>
+      </BottomSheet>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
-  saveBtn: { color: colors.accent },
-  title: { fontSize: 15, fontWeight: '700', color: colors.text },
-  form: { gap: spacing.md, paddingTop: spacing.md },
-  hint: { fontSize: 13, color: colors.textMuted },
+  form: { gap: spacing.md, paddingBottom: spacing.md },
+  hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  linkText: { color: colors.accent, fontWeight: '600' },
   errorText: { fontSize: 13, color: colors.negative },
-  segmented: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 3,
-    gap: 3,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 9,
+  saveButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
+    marginTop: spacing.xs,
   },
-  segmentActive: { backgroundColor: colors.accent },
-  segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
-  segmentTextActive: { color: '#fff' },
+  saveButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

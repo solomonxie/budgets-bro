@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ScreenContainer } from './ScreenContainer';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { BottomSheet } from './BottomSheet';
 import { TextField } from './TextField';
 import { getDb } from '../../db/client';
 import {
@@ -22,11 +29,15 @@ interface S3ConfigModalProps {
   onSaved: (input: S3ConfigInput) => Promise<void>;
 }
 
-// Full-screen form for adding one S3 bucket to back up to — Save runs
-// testS3Connection first (auto-detects the region, then a real
-// upload+delete round-trip) and only calls onSaved, which persists the
-// config, once that succeeds.
-export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps) {
+// Half-height sheet, not a full page — four fields and an optional drafts
+// list still fit and scroll within it. Save runs testS3Connection first
+// (auto-detects the region, then a real upload+delete round-trip) and only
+// calls onSaved, which persists the config, once that succeeds.
+export function S3ConfigModal({
+  visible,
+  onCancel,
+  onSaved,
+}: S3ConfigModalProps) {
   const t = useT();
   const [bucket, setBucket] = useState('');
   const [keyPrefix, setKeyPrefix] = useState(DEFAULT_S3_KEY_PREFIX);
@@ -80,7 +91,12 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
       setError(t('s3ConfigModal.missingFields'));
       return;
     }
-    const connection = { bucket: bucket.trim(), keyPrefix: keyPrefix.trim(), accessKeyId: accessKeyId.trim(), secretAccessKey: secretAccessKey.trim() };
+    const connection = {
+      bucket: bucket.trim(),
+      keyPrefix: keyPrefix.trim(),
+      accessKeyId: accessKeyId.trim(),
+      secretAccessKey: secretAccessKey.trim(),
+    };
     setTesting(true);
     setError(null);
     const db = await getDb();
@@ -94,7 +110,11 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
       await removeS3Draft(db, draftId);
       reset();
     } catch (e) {
-      setError(t('s3ConfigModal.testFailed', { error: e instanceof Error ? e.message : String(e) }));
+      setError(
+        t('s3ConfigModal.testFailed', {
+          error: e instanceof Error ? e.message : String(e),
+        }),
+      );
     } finally {
       setTesting(false);
       refreshDrafts();
@@ -102,19 +122,21 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={cancel}>
-      <ScreenContainer modal>
-        <View style={styles.header}>
-          <Pressable onPress={cancel}>
-            <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
-          </Pressable>
-          <Text style={styles.title}>{t('s3ConfigModal.title')}</Text>
-          <Pressable onPress={save} disabled={testing}>
-            {testing ? <ActivityIndicator /> : <Text style={[styles.headerBtn, styles.saveBtn]}>{t('common.save')}</Text>}
-          </Pressable>
-        </View>
-        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-          <TextField label={t('settings.s3BucketLabel')} value={bucket} onChangeText={setBucket} autoCapitalize="none" autoCorrect={false} />
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={cancel}
+    >
+      <BottomSheet title={t('s3ConfigModal.title')} onClose={cancel}>
+        <View style={styles.form}>
+          <TextField
+            label={t('settings.s3BucketLabel')}
+            value={bucket}
+            onChangeText={setBucket}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
           <TextField
             label={t('s3ConfigModal.keyPrefixLabel')}
             value={keyPrefix}
@@ -123,20 +145,54 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TextField label={t('settings.s3AccessKeyLabel')} value={accessKeyId} onChangeText={setAccessKeyId} autoCapitalize="none" autoCorrect={false} />
-          <TextField label={t('settings.s3SecretKeyLabel')} value={secretAccessKey} onChangeText={setSecretAccessKey} autoCapitalize="none" autoCorrect={false} secureTextEntry />
-          {testing ? <Text style={styles.hint}>{t('s3ConfigModal.testing')}</Text> : null}
+          <TextField
+            label={t('settings.s3AccessKeyLabel')}
+            value={accessKeyId}
+            onChangeText={setAccessKeyId}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TextField
+            label={t('settings.s3SecretKeyLabel')}
+            value={secretAccessKey}
+            onChangeText={setSecretAccessKey}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+          />
+          {testing ? (
+            <Text style={styles.hint}>{t('s3ConfigModal.testing')}</Text>
+          ) : null}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <Pressable
+            style={styles.saveButton}
+            onPress={save}
+            disabled={testing}
+          >
+            {testing ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+            )}
+          </Pressable>
 
           {drafts.length > 0 ? (
             <View style={styles.draftsSection}>
-              <Text style={styles.draftsHeading}>{t('s3ConfigModal.draftsHeading')}</Text>
+              <Text style={styles.draftsHeading}>
+                {t('s3ConfigModal.draftsHeading')}
+              </Text>
               <Text style={styles.hint}>{t('s3ConfigModal.draftsHint')}</Text>
               {drafts.map((draft) => (
-                <Pressable key={draft.id} style={styles.draftRow} onPress={() => fillFromDraft(draft.id)}>
+                <Pressable
+                  key={draft.id}
+                  style={styles.draftRow}
+                  onPress={() => fillFromDraft(draft.id)}
+                >
                   <View style={styles.draftRowMain}>
                     <Text style={styles.draftBucket}>{draft.bucket}</Text>
-                    {draft.keyPrefix ? <Text style={styles.draftSub}>{draft.keyPrefix}</Text> : null}
+                    {draft.keyPrefix ? (
+                      <Text style={styles.draftSub}>{draft.keyPrefix}</Text>
+                    ) : null}
                   </View>
                   <Pressable
                     hitSlop={10}
@@ -151,22 +207,31 @@ export function S3ConfigModal({ visible, onCancel, onSaved }: S3ConfigModalProps
               ))}
             </View>
           ) : null}
-        </ScrollView>
-      </ScreenContainer>
+        </View>
+      </BottomSheet>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
-  saveBtn: { color: colors.accent },
-  title: { fontSize: 15, fontWeight: '700', color: colors.text },
-  form: { gap: spacing.md, paddingTop: spacing.md },
+  form: { gap: spacing.md, paddingBottom: spacing.md },
   hint: { fontSize: 13, color: colors.textMuted },
   errorText: { fontSize: 13, color: colors.negative },
-  draftsSection: { marginTop: spacing.md, gap: spacing.xs },
-  draftsHeading: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  saveButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  saveButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  draftsSection: { marginTop: spacing.xs, gap: spacing.xs },
+  draftsHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
   draftRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -181,5 +246,9 @@ const styles = StyleSheet.create({
   draftRowMain: { flex: 1, gap: 2 },
   draftBucket: { fontSize: 14, fontWeight: '600', color: colors.text },
   draftSub: { fontSize: 12, color: colors.textMuted },
-  draftDelete: { fontSize: 15, color: colors.textMuted, paddingLeft: spacing.md },
+  draftDelete: {
+    fontSize: 15,
+    color: colors.textMuted,
+    paddingLeft: spacing.md,
+  },
 });

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "yet-another-money-app",
+    "name": "YaMa",
     "slug": "yet-another-money-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.solomonxie.yama"
+      "bundleIdentifier": "com.solomonxie.yetanothermoneyapp"
     },
     "android": {
       "adaptiveIcon": {

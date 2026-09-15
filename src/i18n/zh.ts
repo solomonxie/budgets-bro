@@ -95,7 +95,10 @@ export const zh: Record<keyof typeof en, string> = {
   's3ConfigModal.draftsHint': '来自之前的尝试 —— 点击可填入，✕ 可删除。',
 
   'aiKeyModal.title': '添加 AI 密钥',
+  'aiKeyModal.vendorLabel': '服务商',
   'aiKeyModal.keyLabel': 'API 密钥',
+  'aiKeyModal.getKeyHint': '还没有 {vendor} 密钥？',
+  'aiKeyModal.getKeyLink': '去获取 →',
   'aiKeyModal.missingKey': '请输入密钥。',
   'aiKeyModal.testing': '正在测试密钥……',
   'aiKeyModal.testFailed': '无法连接：{error}',

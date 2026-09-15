@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Keyboard,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -28,22 +35,40 @@ function formatDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function formatDisplay(date: Date, locale: string, shortFormat?: boolean): string {
+function formatDisplay(
+  date: Date,
+  locale: string,
+  shortFormat?: boolean,
+): string {
   return shortFormat
     ? date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
-    : date.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' });
+    : date.toLocaleDateString(locale, {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
 }
 
 // A hand-rolled scroll-wheel picker kept losing the drag gesture inside the
 // confirm-sheet Modal, however it was built — this is the real OS date
 // picker (spinner wheels on iOS, same widget on Android via this library),
 // so it just scrolls.
-export function DateField({ label, value, onChange, hideLabel, shortFormat }: DateFieldProps) {
+export function DateField({
+  label,
+  value,
+  onChange,
+  hideLabel,
+  shortFormat,
+}: DateFieldProps) {
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseDate(value));
 
   const openPicker = () => {
+    // Same reasoning as DropdownField/SearchableDropdownField's own
+    // dismiss-before-open — a still-focused text input's keyboard shouldn't
+    // linger once a picker sheet is up.
+    Keyboard.dismiss();
     setDraft(parseDate(value));
     setOpen(true);
   };
@@ -57,10 +82,17 @@ export function DateField({ label, value, onChange, hideLabel, shortFormat }: Da
     <View>
       {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
       <Pressable style={styles.field} onPress={openPicker}>
-        <Text style={styles.valueText}>{formatDisplay(parseDate(value), localeTag(language), shortFormat)}</Text>
+        <Text style={styles.valueText}>
+          {formatDisplay(parseDate(value), localeTag(language), shortFormat)}
+        </Text>
         <Text style={styles.chevron}>▾</Text>
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.title}>{label}</Text>
@@ -83,7 +115,12 @@ export function DateField({ label, value, onChange, hideLabel, shortFormat }: Da
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 6 },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginBottom: 6,
+  },
   field: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -97,7 +134,13 @@ const styles = StyleSheet.create({
   },
   valueText: { fontSize: 15, color: colors.text, flex: 1 },
   chevron: { color: colors.textMuted, fontSize: 13, marginLeft: spacing.sm },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
   card: {
     width: '100%',
     maxWidth: 340,
@@ -108,8 +151,19 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
-  title: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+  },
   picker: { alignSelf: 'center' },
-  confirmBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: spacing.xs },
+  confirmBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
   confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

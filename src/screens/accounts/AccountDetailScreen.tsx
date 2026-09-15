@@ -28,6 +28,18 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { AccountsStackParamList } from '../../navigation/types';
+import type { TranslationKey } from '../../i18n';
+
+// Income transactions carry no category by design — "Uncategorized" would
+// be noise on every single one of them, so only fall back to it for an
+// outflow (spending genuinely missing a category is worth flagging).
+function categorySubLabel(
+  item: { categoryIcon: string | null; categoryName: string | null; amountCents: number },
+  t: (key: TranslationKey) => string,
+): string | null {
+  if (item.categoryName) return `${item.categoryIcon ? item.categoryIcon + ' ' : ''}${item.categoryName}`;
+  return item.amountCents < 0 ? t('common.uncategorized') : null;
+}
 
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
 type Route = RouteProp<AccountsStackParamList, 'AccountDetail'>;
@@ -258,9 +270,7 @@ export function AccountDetailScreen() {
                       {s.payeeName ?? t('common.noPayee')}
                     </Text>
                     <Text style={styles.sub}>
-                      {s.categoryIcon ? `${s.categoryIcon} ` : ''}
-                      {s.categoryName ?? t('common.uncategorized')} ·{' '}
-                      {t('accountDetail.nextDateLabel', { date: s.nextDate })}
+                      {[categorySubLabel(s, t), t('accountDetail.nextDateLabel', { date: s.nextDate })].filter(Boolean).join(' · ')}
                     </Text>
                   </View>
                   <Text
@@ -297,11 +307,7 @@ export function AccountDetailScreen() {
                     <Text style={styles.payee}>
                       {item.payeeName ?? t('common.noPayee')}
                     </Text>
-                    <Text style={styles.sub}>
-                      {item.categoryIcon ? `${item.categoryIcon} ` : ''}
-                      {item.categoryName ?? t('common.uncategorized')} ·{' '}
-                      {item.date}
-                    </Text>
+                    <Text style={styles.sub}>{[categorySubLabel(item, t), item.date].filter(Boolean).join(' · ')}</Text>
                   </View>
                   <Text
                     style={[
@@ -331,9 +337,7 @@ export function AccountDetailScreen() {
                 {item.payeeName ?? t('common.noPayee')}
               </Text>
               <Text style={styles.sub}>
-                {item.categoryIcon ? `${item.categoryIcon} ` : ''}
-                {item.categoryName ?? t('common.uncategorized')}
-                {isIncome ? ` · ${item.accountName}` : ''} · {item.date}
+                {[categorySubLabel(item, t), isIncome ? item.accountName : null, item.date].filter(Boolean).join(' · ')}
               </Text>
               {item.memo ? (
                 <Text style={styles.memo} numberOfLines={1}>

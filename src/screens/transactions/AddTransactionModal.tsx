@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   InputAccessoryView,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -10,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useAppStore } from '../../state/useAppStore';
@@ -33,7 +35,11 @@ import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
 import type { RecurrenceRule } from '../../domain/recurrence';
 
-const DEFAULT_RULE: RecurrenceRule = { frequency: 'monthly', intervalN: 1, daysOfWeekMask: null };
+const DEFAULT_RULE: RecurrenceRule = {
+  frequency: 'monthly',
+  intervalN: 1,
+  daysOfWeekMask: null,
+};
 
 // YNAB-style amount entry: `amount` holds raw digits, always read right-to-
 // left as cents — typing "4444" reads as $44.44, no decimal point needed.
@@ -85,10 +91,16 @@ export function AddTransactionModal() {
   const incomeAccounts = accounts.filter((a) => a.account.type === 'income');
   const [incomeAccountId, setIncomeAccountId] = useState<number | null>(null);
   const selectIncomeAccount = (id: number | null) => {
+    Keyboard.dismiss();
     setIncomeAccountId(id);
     // Tagging only ever makes sense on an inflow — switch the toggle so
     // picking one doesn't silently get dropped by the outflow branch below.
-    if (id != null) setDirection('in');
+    // Scheduling isn't offered for income (see the toggle below), so drop
+    // it too rather than leave a hidden-but-still-active schedule behind.
+    if (id != null) {
+      setDirection('in');
+      setIsScheduled(false);
+    }
   };
   // Off-budget accounts (Tracking, Asset) sit outside the envelope system
   // entirely (net-worth-only, never assigned money — see accountsRepo's
@@ -141,7 +153,9 @@ export function AddTransactionModal() {
     // field mid-edit.
     if (!isOpen || editingTransactionId != null || realAccounts.length === 0)
       return;
-    setAccountId((prev) => presetAccountId ?? prev ?? realAccounts[0].account.id);
+    setAccountId(
+      (prev) => presetAccountId ?? prev ?? realAccounts[0].account.id,
+    );
   }, [isOpen, editingTransactionId, presetAccountId, realAccounts]);
 
   useEffect(() => {
@@ -190,19 +204,23 @@ export function AddTransactionModal() {
   };
 
   const save = async () => {
+    Keyboard.dismiss();
     const enteredCents = centsFromAmountDigits(amount);
     const missingIncomeAccount =
-      direction === 'in' && incomeAccounts.length > 0 && incomeAccountId == null;
+      direction === 'in' &&
+      incomeAccounts.length > 0 &&
+      incomeAccountId == null;
     if (!enteredCents || accountId == null || missingIncomeAccount) {
       cancel();
       return;
     }
     const amountCents = enteredCents * (direction === 'out' ? -1 : 1);
     const db = await getDb();
-    // Defense in depth — the field's hidden and cleared on account switch
-    // for a tracking account already, but never let a stale categoryId
-    // slip through regardless.
-    const categoryIdToSave = isTrackingAccount ? null : categoryId;
+    // Defense in depth — the field's already hidden for a tracking account
+    // or an income transaction (income needs no category), but never let a
+    // stale categoryId slip through regardless.
+    const categoryIdToSave =
+      isTrackingAccount || direction === 'in' ? null : categoryId;
     if (isScheduled && editingTransactionId == null) {
       await scheduledTransactionsRepo.createScheduledTransaction(db, boardId, {
         accountId,
@@ -246,6 +264,7 @@ export function AddTransactionModal() {
 
   const remove = () => {
     if (editingTransactionId == null) return;
+    Keyboard.dismiss();
     Alert.alert(t('spend.deleteConfirmTitle'), t('common.cannotBeUndone'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -274,269 +293,342 @@ export function AddTransactionModal() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.sheet}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
-            <Pressable onPress={cancel}>
-              <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            ref={amountInputRef}
-            style={styles.amountInput}
-            placeholder={t('spend.amountPlaceholder')}
-            keyboardType="number-pad"
-            keyboardAppearance="dark"
-            inputAccessoryViewID={
-              Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
-            }
-            onFocus={() => setAmountFocused(true)}
-            onBlur={() => setAmountFocused(false)}
-            value={amount ? `$${formatAmountDigits(amount)}` : ''}
-            onChangeText={(text) =>
-              setAmount(
-                text
-                  .replace(/\D/g, '')
-                  .replace(/^0+(?=\d)/, '')
-                  .slice(0, 9),
-              )
-            }
-            placeholderTextColor={colors.textMuted}
-          />
-          <View style={styles.segmented}>
-            <Pressable
-              style={[
-                styles.segment,
-                direction === 'out' && styles.segmentActive,
-              ]}
-              onPress={() => setDirection('out')}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  direction === 'out' && styles.segmentTextActive,
-                ]}
-              >
-                {t('spend.spending')}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.segment,
-                direction === 'in' && styles.segmentActive,
-              ]}
-              onPress={() => setDirection('in')}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  direction === 'in' && styles.segmentTextActive,
-                ]}
-              >
-                {t('spend.income')}
-              </Text>
-            </Pressable>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <SearchableDropdownField
-                compact
-                hideLabel
-                label={t('common.payee')}
-                valueLabel={payee}
-                placeholder={t('spend.payeePlaceholder')}
-                searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                options={payees.map((p) => ({ id: p.id, label: p.name }))}
-                onSelect={(o) => selectPayee(o.label, o.id)}
-                onUseText={setPayee}
-              />
-            </View>
-            {isTrackingAccount ? null : (
-              <View style={styles.half}>
-                <DropdownField
-                  compact
-                  hideLabel
-                  label={t('common.category')}
-                  valueLabel={
-                    categoryId == null
-                      ? ''
-                      : (() => {
-                          const c = categories.find(
-                            (cat) => cat.id === categoryId,
-                          );
-                          return c
-                            ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
-                            : '';
-                        })()
-                  }
-                  placeholder={t('common.uncategorized')}
+          {/* Tapping any blank gap between fields dismisses the keyboard —
+              keyboardShouldPersistTaps="handled" above already lets taps on
+              the fields/buttons themselves still register in one tap. */}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.sheet}>
+              <View style={styles.header}>
+                <Pressable
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    cancel();
+                  }}
                 >
-                  {(close) => (
-                    <>
-                      <DropdownOption
-                        label={t('common.uncategorized')}
-                        selected={categoryId == null}
-                        onPress={() => {
-                          setCategoryId(null);
-                          close();
-                        }}
-                      />
-                      {groups.map((group) => {
-                        const groupCategories = categories.filter(
-                          (c) => c.groupId === group.id,
-                        );
-                        if (groupCategories.length === 0) return null;
-                        return (
-                          <View key={group.id}>
-                            <DropdownGroupLabel label={group.name} />
-                            {groupCategories.map((c) => (
+                  <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
+                </Pressable>
+                {/* Folded into the header's empty right side instead of its own
+                full-width checkbox row below — a "Scheduled" toggle doesn't
+                need a whole line to itself, and the header has the room.
+                Hidden for income: paychecks/deposits are logged after the
+                fact, not set up in advance like a recurring bill, and
+                dropping it keeps the Income form short enough that the
+                keyboard doesn't push Save off-screen. */}
+                {isEditing || direction === 'in' ? null : (
+                  <Pressable
+                    style={[
+                      styles.scheduledPill,
+                      isScheduled && styles.scheduledPillActive,
+                    ]}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setIsScheduled((v) => !v);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.scheduledPillText,
+                        isScheduled && styles.scheduledPillTextActive,
+                      ]}
+                    >
+                      {t(
+                        isScheduled
+                          ? 'addTransactionModal.scheduledToggleLabelActive'
+                          : 'addTransactionModal.scheduledToggleLabel',
+                      )}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+              <TextInput
+                ref={amountInputRef}
+                style={styles.amountInput}
+                placeholder={t('spend.amountPlaceholder')}
+                keyboardType="number-pad"
+                keyboardAppearance="dark"
+                inputAccessoryViewID={
+                  Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
+                }
+                onFocus={() => setAmountFocused(true)}
+                onBlur={() => setAmountFocused(false)}
+                value={amount ? `$${formatAmountDigits(amount)}` : ''}
+                onChangeText={(text) =>
+                  setAmount(
+                    text
+                      .replace(/\D/g, '')
+                      .replace(/^0+(?=\d)/, '')
+                      .slice(0, 9),
+                  )
+                }
+                placeholderTextColor={colors.textMuted}
+              />
+              <View style={styles.segmented}>
+                <Pressable
+                  style={[
+                    styles.segment,
+                    direction === 'out' && styles.segmentActive,
+                  ]}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setDirection('out');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      direction === 'out' && styles.segmentTextActive,
+                    ]}
+                  >
+                    {t('spend.spending')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.segment,
+                    direction === 'in' && styles.segmentActive,
+                  ]}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setDirection('in');
+                    setIsScheduled(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      direction === 'in' && styles.segmentTextActive,
+                    ]}
+                  >
+                    {t('spend.income')}
+                  </Text>
+                </Pressable>
+              </View>
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.microLabel}>{t('common.payee')}</Text>
+                  <SearchableDropdownField
+                    compact
+                    hideLabel
+                    label={t('common.payee')}
+                    valueLabel={payee}
+                    placeholder={t('spend.payeePlaceholder')}
+                    searchPlaceholder={t('spend.payeeSearchPlaceholder')}
+                    options={payees.map((p) => ({ id: p.id, label: p.name }))}
+                    onSelect={(o) => selectPayee(o.label, o.id)}
+                    onUseText={setPayee}
+                  />
+                </View>
+                {direction === 'in' ? (
+                  incomeAccounts.length > 0 ? (
+                    <View style={styles.half}>
+                      <Text style={styles.microLabel}>
+                        {t('addTransactionModal.incomeAccountLabel')}
+                      </Text>
+                      <DropdownField
+                        compact
+                        hideLabel
+                        label={t('addTransactionModal.incomeAccountLabel')}
+                        placeholder={t(
+                          'addTransactionModal.incomeAccountLabel',
+                        )}
+                        valueLabel={
+                          incomeAccounts.find(
+                            (a) => a.account.id === incomeAccountId,
+                          )?.account.name ?? ''
+                        }
+                      >
+                        {(close) => (
+                          <>
+                            {incomeAccounts.map(({ account }) => (
                               <DropdownOption
-                                key={c.id}
-                                label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                                selected={categoryId === c.id}
+                                key={account.id}
+                                label={account.name}
+                                selected={incomeAccountId === account.id}
                                 onPress={() => {
-                                  setCategoryId(c.id);
+                                  selectIncomeAccount(account.id);
                                   close();
                                 }}
                               />
                             ))}
-                          </View>
-                        );
-                      })}
-                    </>
-                  )}
-                </DropdownField>
-              </View>
-            )}
-          </View>
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <DateField
-                hideLabel
-                shortFormat
-                label={t(isScheduled ? 'addTransactionModal.startDateLabel' : 'common.date')}
-                value={date}
-                onChange={setDate}
-              />
-            </View>
-            <View style={styles.half}>
-              <DropdownField
-                compact
-                hideLabel
-                label={t('common.account')}
-                placeholder={t('common.account')}
-                valueLabel={
-                  realAccounts.find((a) => a.account.id === accountId)?.account
-                    .name ?? ''
-                }
-              >
-                {(close) => (
-                  <>
-                    {realAccounts.map(({ account }) => (
-                      <DropdownOption
-                        key={account.id}
-                        label={account.name}
-                        selected={accountId === account.id}
-                        onPress={() => {
-                          setAccountId(account.id);
-                          if (!account.onBudget) setCategoryId(null);
-                          close();
-                        }}
-                      />
-                    ))}
-                  </>
+                          </>
+                        )}
+                      </DropdownField>
+                    </View>
+                  ) : null
+                ) : isTrackingAccount ? null : (
+                  <View style={styles.half}>
+                    <Text style={styles.microLabel}>
+                      {t('common.category')}
+                    </Text>
+                    <DropdownField
+                      compact
+                      hideLabel
+                      label={t('common.category')}
+                      valueLabel={
+                        categoryId == null
+                          ? ''
+                          : (() => {
+                              const c = categories.find(
+                                (cat) => cat.id === categoryId,
+                              );
+                              return c
+                                ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                                : '';
+                            })()
+                      }
+                      placeholder={t('common.uncategorized')}
+                    >
+                      {(close) => (
+                        <>
+                          <DropdownOption
+                            label={t('common.uncategorized')}
+                            selected={categoryId == null}
+                            onPress={() => {
+                              setCategoryId(null);
+                              close();
+                            }}
+                          />
+                          {groups.map((group) => {
+                            const groupCategories = categories.filter(
+                              (c) => c.groupId === group.id,
+                            );
+                            if (groupCategories.length === 0) return null;
+                            return (
+                              <View key={group.id}>
+                                <DropdownGroupLabel label={group.name} />
+                                {groupCategories.map((c) => (
+                                  <DropdownOption
+                                    key={c.id}
+                                    label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                                    selected={categoryId === c.id}
+                                    onPress={() => {
+                                      setCategoryId(c.id);
+                                      close();
+                                    }}
+                                  />
+                                ))}
+                              </View>
+                            );
+                          })}
+                        </>
+                      )}
+                    </DropdownField>
+                  </View>
                 )}
-              </DropdownField>
-            </View>
-          </View>
-          {direction === 'in' && incomeAccounts.length > 0 ? (
-            <DropdownField
-              compact
-              hideLabel
-              label={t('addTransactionModal.incomeAccountLabel')}
-              placeholder={t('addTransactionModal.incomeAccountLabel')}
-              valueLabel={
-                incomeAccounts.find((a) => a.account.id === incomeAccountId)
-                  ?.account.name ?? ''
-              }
-            >
-              {(close) => (
-                <>
-                  {incomeAccounts.map(({ account }) => (
-                    <DropdownOption
-                      key={account.id}
-                      label={account.name}
-                      selected={incomeAccountId === account.id}
-                      onPress={() => {
-                        selectIncomeAccount(account.id);
-                        close();
-                      }}
-                    />
-                  ))}
-                </>
-              )}
-            </DropdownField>
-          ) : null}
-          {isEditing ? null : (
-            <Pressable
-              style={styles.checkboxRow}
-              onPress={() => setIsScheduled((v) => !v)}
-            >
-              <View style={[styles.checkbox, isScheduled && styles.checkboxChecked]}>
-                {isScheduled ? <Text style={styles.checkboxMark}>✓</Text> : null}
               </View>
-              <Text style={styles.checkboxLabel}>
-                {t('addTransactionModal.scheduledToggleLabel')}
-              </Text>
-            </Pressable>
-          )}
-          {isScheduled ? (
-            <>
-              <RepeatField
-                label={t('addTransactionModal.repeatLabel')}
-                rule={rule}
-                onChange={setRule}
-                startDate={date}
-              />
-              <Pressable
-                style={styles.checkboxRow}
-                onPress={() => setHasEndDate((v) => !v)}
-              >
-                <View style={[styles.checkbox, hasEndDate && styles.checkboxChecked]}>
-                  {hasEndDate ? <Text style={styles.checkboxMark}>✓</Text> : null}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.microLabel}>
+                    {t(
+                      isScheduled
+                        ? 'addTransactionModal.startDateLabel'
+                        : 'common.date',
+                    )}
+                  </Text>
+                  <DateField
+                    hideLabel
+                    shortFormat
+                    label={t(
+                      isScheduled
+                        ? 'addTransactionModal.startDateLabel'
+                        : 'common.date',
+                    )}
+                    value={date}
+                    onChange={setDate}
+                  />
                 </View>
-                <Text style={styles.checkboxLabel}>
-                  {t('addTransactionModal.hasEndDateLabel')}
-                </Text>
-              </Pressable>
-              {hasEndDate ? (
-                <DateField
-                  label={t('addTransactionModal.endDateLabel')}
-                  value={endDate}
-                  onChange={setEndDate}
-                />
+                <View style={styles.half}>
+                  <Text style={styles.microLabel}>{t('common.account')}</Text>
+                  <DropdownField
+                    compact
+                    hideLabel
+                    label={t('common.account')}
+                    placeholder={t('common.account')}
+                    valueLabel={
+                      realAccounts.find((a) => a.account.id === accountId)
+                        ?.account.name ?? ''
+                    }
+                  >
+                    {(close) => (
+                      <>
+                        {realAccounts.map(({ account }) => (
+                          <DropdownOption
+                            key={account.id}
+                            label={account.name}
+                            selected={accountId === account.id}
+                            onPress={() => {
+                              setAccountId(account.id);
+                              if (!account.onBudget) setCategoryId(null);
+                              close();
+                            }}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </DropdownField>
+                </View>
+              </View>
+              {isScheduled ? (
+                <>
+                  <RepeatField
+                    label={t('addTransactionModal.repeatLabel')}
+                    rule={rule}
+                    onChange={setRule}
+                    startDate={date}
+                  />
+                  <Pressable
+                    style={styles.checkboxRow}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setHasEndDate((v) => !v);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        hasEndDate && styles.checkboxChecked,
+                      ]}
+                    >
+                      {hasEndDate ? (
+                        <Text style={styles.checkboxMark}>✓</Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.checkboxLabel}>
+                      {t('addTransactionModal.hasEndDateLabel')}
+                    </Text>
+                  </Pressable>
+                  {hasEndDate ? (
+                    <DateField
+                      label={t('addTransactionModal.endDateLabel')}
+                      value={endDate}
+                      onChange={setEndDate}
+                    />
+                  ) : null}
+                </>
               ) : null}
-            </>
-          ) : null}
-          <TextInput
-            style={styles.textInput}
-            placeholder={t('spend.memoPlaceholder')}
-            value={memo}
-            onChangeText={setMemo}
-            placeholderTextColor={colors.textMuted}
-            keyboardAppearance="dark"
-          />
-          <Pressable style={styles.bigSaveButton} onPress={save}>
-            <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
-          </Pressable>
-          {isEditing ? (
-            <Pressable style={styles.deleteButton} onPress={remove}>
-              <Text style={styles.deleteButtonText}>
-                {t('spend.deleteTransaction')}
-              </Text>
-            </Pressable>
-          ) : null}
+              <TextInput
+                style={styles.textInput}
+                placeholder={t('spend.memoPlaceholder')}
+                value={memo}
+                onChangeText={setMemo}
+                placeholderTextColor={colors.textMuted}
+                keyboardAppearance="dark"
+              />
+              <Pressable style={styles.bigSaveButton} onPress={save}>
+                <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
+              </Pressable>
+              {isEditing ? (
+                <Pressable style={styles.deleteButton} onPress={remove}>
+                  <Text style={styles.deleteButtonText}>
+                    {t('spend.deleteTransaction')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </TouchableWithoutFeedback>
         </ScrollView>
         {Platform.OS === 'ios' && amountFocused ? (
           <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
@@ -557,20 +649,54 @@ export function AddTransactionModal() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
+  // flexGrow on the ScrollView's own contentContainer, not `sheet` below —
+  // `sheet` sits one level deeper now (inside the tap-to-dismiss wrapper),
+  // so it just needs to fill whatever height the container grew to.
+  scrollContent: { flexGrow: 1, backgroundColor: colors.background },
   sheet: {
     padding: spacing.md,
     gap: spacing.md,
     backgroundColor: colors.background,
-    flexGrow: 1,
+    flex: 1,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
+  scheduledPill: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  scheduledPillActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  scheduledPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  scheduledPillTextActive: { color: '#fff' },
   // Payee+category, then date+account — each pair side by side instead of
   // stacked, so the form reads shorter without dropping any field.
   row: { flexDirection: 'row', gap: spacing.sm },
   half: { flex: 1 },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  // A tiny caption above an otherwise-unlabeled compact field, just enough
+  // to say what it is without pushing the form taller like the full-size
+  // label (fontSize 13 + marginBottom 6) would.
+  microLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkbox: {
     width: 22,
@@ -581,7 +707,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxChecked: { borderColor: colors.accent, backgroundColor: colors.accent },
+  checkboxChecked: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
   checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   checkboxLabel: { fontSize: 14, color: colors.text },
   bigSaveButton: {

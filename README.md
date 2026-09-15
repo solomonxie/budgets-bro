@@ -29,6 +29,6 @@ npm start
 ```
 
 ## Screenshots
-| Budget | Insights |
-|---|---|
-| <img src="docs/screenshots/budget.png" alt="Budget screen" width="320"> | <img src="docs/screenshots/insights.png" alt="Insights screen" width="320"> |
+| Budget | Insights | Account Trend | Mortgage |
+|---|---|---|---|
+| <img src="docs/screenshots/budget.png" alt="Budget screen" width="320"> | <img src="docs/screenshots/insights.png" alt="Insights screen" width="320"> | <img src="docs/screenshots/account-trend.png" alt="Account trend screen" width="320"> | <img src="docs/screenshots/mortgage.png" alt="Mortgage calculator screen" width="320"> |

@@ -26,6 +26,7 @@ import {
   moveAiKey,
   getAiKeyStrategy,
   setAiKeyStrategy,
+  aiVendorName,
 } from '../../ai/aiKeys';
 import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
 import { AiKeyModal } from '../../components/ui/AiKeyModal';
@@ -656,9 +657,7 @@ export function SettingsScreen() {
           {aiKeys.map((key, i) => (
             <View key={key.id} style={styles.row}>
               <View style={styles.s3ConfigMain}>
-                <Text style={styles.rowTitle}>
-                  {key.vendor === 'openai' ? 'OpenAI' : 'Anthropic'}
-                </Text>
+                <Text style={styles.rowTitle}>{aiVendorName(key.vendor)}</Text>
                 <Text style={styles.rowValue}>
                   {t('settings.aiKeyRequestCount', { count: key.requestCount })}
                 </Text>

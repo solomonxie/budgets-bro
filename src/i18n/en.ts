@@ -94,7 +94,10 @@ export const en = {
   's3ConfigModal.draftsHint': 'From past attempts — tap to refill, ✕ to remove.',
 
   'aiKeyModal.title': 'Add AI Key',
+  'aiKeyModal.vendorLabel': 'Vendor',
   'aiKeyModal.keyLabel': 'API key',
+  'aiKeyModal.getKeyHint': "Don't have a {vendor} key yet?",
+  'aiKeyModal.getKeyLink': 'Get one →',
   'aiKeyModal.missingKey': 'Enter a key.',
   'aiKeyModal.testing': 'Testing the key…',
   'aiKeyModal.testFailed': 'Could not connect: {error}',

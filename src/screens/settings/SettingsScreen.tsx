@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { TextField } from '../../components/ui/TextField';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
@@ -12,13 +19,28 @@ import { useLanguageSetting } from '../../hooks/useLanguage';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as payeesRepo from '../../db/repositories/payeesRepo';
-import { secureStore } from '../../secure/secureStore';
-import { runChatCompletion } from '../../ai/openaiClient';
-import { listS3Configs, addS3Config, removeS3Config } from '../../sync/s3Provider';
+import {
+  listAiKeys,
+  addAiKey,
+  removeAiKey,
+  moveAiKey,
+  getAiKeyStrategy,
+  setAiKeyStrategy,
+} from '../../ai/aiKeys';
+import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
+import { AiKeyModal } from '../../components/ui/AiKeyModal';
+import {
+  listS3Configs,
+  addS3Config,
+  removeS3Config,
+} from '../../sync/s3Provider';
 import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
 import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
-import { isLocalBackupEnabled, setLocalBackupEnabled } from '../../sync/localProvider';
+import {
+  isLocalBackupEnabled,
+  setLocalBackupEnabled,
+} from '../../sync/localProvider';
 import {
   syncNow,
   isAutoSyncEnabled,
@@ -53,7 +75,14 @@ type PromptState =
 export function SettingsScreen() {
   const t = useT();
   const { language, selectLanguage } = useLanguageSetting();
-  const { boards, currentBoardId, switchBoard, addBoard, renameBoard, removeBoard } = useBoards();
+  const {
+    boards,
+    currentBoardId,
+    switchBoard,
+    addBoard,
+    renameBoard,
+    removeBoard,
+  } = useBoards();
   const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { payees, refresh: refreshPayees } = usePayees();
@@ -64,12 +93,15 @@ export function SettingsScreen() {
   const [payeeNameInput, setPayeeNameInput] = useState('');
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
-  const [aiApiKey, setAiApiKey] = useState('');
-  const [testingAiKey, setTestingAiKey] = useState(false);
-  const [aiKeyTestPassed, setAiKeyTestPassed] = useState<boolean | null>(null);
+  const [aiKeys, setAiKeys] = useState<AiKeyMeta[]>([]);
+  const [aiKeyModalOpen, setAiKeyModalOpen] = useState(false);
+  const [aiKeyStrategy, setAiKeyStrategyState] =
+    useState<AiKeyStrategy>('sequential');
   const [s3Configs, setS3Configs] = useState<S3ConfigMeta[]>([]);
   const [s3ModalOpen, setS3ModalOpen] = useState(false);
-  const [browsingS3Config, setBrowsingS3Config] = useState<S3ConfigMeta | null>(null);
+  const [browsingS3Config, setBrowsingS3Config] = useState<S3ConfigMeta | null>(
+    null,
+  );
   const [localBackupOn, setLocalBackupOn] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
   const [lastSyncedAt, setLastSyncedAtState] = useState<string | null>(null);
@@ -78,10 +110,13 @@ export function SettingsScreen() {
   const [restoringFromCloud, setRestoringFromCloud] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<YnabImportResult | null>(null);
+  const [importResult, setImportResult] = useState<YnabImportResult | null>(
+    null,
+  );
   const [importError, setImportError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
-  const [restoreResult, setRestoreResult] = useState<AppExportImportResult | null>(null);
+  const [restoreResult, setRestoreResult] =
+    useState<AppExportImportResult | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -89,7 +124,8 @@ export function SettingsScreen() {
       const db = await getDb();
       const savedTheme = await settingsRepo.getSetting(db, THEME_KEY);
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
-      setAiApiKey((await secureStore.getAiApiKey()) ?? '');
+      setAiKeys(await listAiKeys(db));
+      setAiKeyStrategyState(await getAiKeyStrategy(db));
       setS3Configs(await listS3Configs(db));
       setLocalBackupOn(await isLocalBackupEnabled(db));
       setAutoSync(await isAutoSyncEnabled(db));
@@ -103,28 +139,42 @@ export function SettingsScreen() {
     await settingsRepo.setSetting(db, THEME_KEY, next);
   };
 
-  const saveAiApiKey = async () => {
-    setAiKeyTestPassed(null);
-    if (aiApiKey.trim()) await secureStore.setAiApiKey(aiApiKey.trim());
-    else await secureStore.clearAiApiKey();
+  const addAiKeyRow = async (vendor: AiVendor, secret: string) => {
+    const db = await getDb();
+    await addAiKey(db, vendor, secret);
+    setAiKeys(await listAiKeys(db));
+    setAiKeyModalOpen(false);
   };
 
-  // A trivial, cheap request — this only confirms the key authenticates,
-  // not that AI Analysis's actual prompts will succeed (rate limits/model
-  // access could still differ), but that's the same gap every "test
-  // connection" button in this screen has (S3's own test is the deeper
-  // exception, since a bucket needs a real permission checklist).
-  const testAiApiKey = async () => {
-    setTestingAiKey(true);
-    setAiKeyTestPassed(null);
-    try {
-      await runChatCompletion(aiApiKey.trim(), [{ role: 'user', content: 'Reply with "ok".' }]);
-      setAiKeyTestPassed(true);
-    } catch {
-      setAiKeyTestPassed(false);
-    } finally {
-      setTestingAiKey(false);
-    }
+  const confirmRemoveAiKey = (key: AiKeyMeta) => {
+    Alert.alert(
+      t('settings.deleteAiKeyConfirmTitle'),
+      t('settings.deleteAiKeyConfirmMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            const db = await getDb();
+            await removeAiKey(db, key.id);
+            setAiKeys(await listAiKeys(db));
+          },
+        },
+      ],
+    );
+  };
+
+  const moveAiKeyRow = async (id: string, direction: -1 | 1) => {
+    const db = await getDb();
+    await moveAiKey(db, id, direction);
+    setAiKeys(await listAiKeys(db));
+  };
+
+  const selectAiKeyStrategy = async (strategy: AiKeyStrategy) => {
+    setAiKeyStrategyState(strategy);
+    const db = await getDb();
+    await setAiKeyStrategy(db, strategy);
   };
 
   const addS3Backup = async (input: S3ConfigInput) => {
@@ -135,18 +185,22 @@ export function SettingsScreen() {
   };
 
   const confirmRemoveS3Config = (config: S3ConfigMeta) => {
-    Alert.alert(t('settings.deleteS3ConfigConfirmTitle', { name: config.bucket }), t('settings.deleteS3ConfigConfirmMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          const db = await getDb();
-          await removeS3Config(db, config.id);
-          setS3Configs(await listS3Configs(db));
+    Alert.alert(
+      t('settings.deleteS3ConfigConfirmTitle', { name: config.bucket }),
+      t('settings.deleteS3ConfigConfirmMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            const db = await getDb();
+            await removeS3Config(db, config.id);
+            setS3Configs(await listS3Configs(db));
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const toggleLocalBackup = async (value: boolean) => {
@@ -204,7 +258,9 @@ export function SettingsScreen() {
       bumpDataVersion();
       await switchBoard(summary.boardId);
     } catch (e) {
-      setRestoreError(e instanceof Error ? e.message : t('settings.restoreFailed'));
+      setRestoreError(
+        e instanceof Error ? e.message : t('settings.restoreFailed'),
+      );
     } finally {
       setRestoringFromCloud(false);
     }
@@ -222,7 +278,9 @@ export function SettingsScreen() {
       setImportResult(summary);
       bumpDataVersion();
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : t('settings.importFailed'));
+      setImportError(
+        e instanceof Error ? e.message : t('settings.importFailed'),
+      );
     } finally {
       setImporting(false);
     }
@@ -243,7 +301,9 @@ export function SettingsScreen() {
       bumpDataVersion();
       await switchBoard(summary.boardId);
     } catch (e) {
-      setRestoreError(e instanceof Error ? e.message : t('settings.restoreFailed'));
+      setRestoreError(
+        e instanceof Error ? e.message : t('settings.restoreFailed'),
+      );
     } finally {
       setRestoring(false);
     }
@@ -256,7 +316,10 @@ export function SettingsScreen() {
       const board = boards.find((b) => b.id === boardId);
       await exportBoardZip(db, boardId, board?.name ?? 'board');
     } catch (e) {
-      Alert.alert(t('settings.exportFailedTitle'), e instanceof Error ? e.message : t('settings.exportFailedFallback'));
+      Alert.alert(
+        t('settings.exportFailedTitle'),
+        e instanceof Error ? e.message : t('settings.exportFailedFallback'),
+      );
     } finally {
       setExporting(false);
     }
@@ -353,13 +416,24 @@ export function SettingsScreen() {
 
   const confirmDeleteBoard = (id: number, name: string) => {
     if (boards.length <= 1) {
-      Alert.alert(t('settings.cantDeleteOnlyBoardTitle'), t('settings.cantDeleteOnlyBoardMessage'));
+      Alert.alert(
+        t('settings.cantDeleteOnlyBoardTitle'),
+        t('settings.cantDeleteOnlyBoardMessage'),
+      );
       return;
     }
-    Alert.alert(t('settings.deleteBoardConfirmTitle', { name }), t('settings.deleteBoardConfirmMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => runDeleteBoard(id) },
-    ]);
+    Alert.alert(
+      t('settings.deleteBoardConfirmTitle', { name }),
+      t('settings.deleteBoardConfirmMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => runDeleteBoard(id),
+        },
+      ],
+    );
   };
 
   return (
@@ -367,8 +441,14 @@ export function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.boardsHeading')}</Text>
         <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
-        {creatingDemoBoard ? <Text style={styles.sectionHint}>{t('settings.creatingDemoBoard')}</Text> : null}
-        {deletingBoardId != null ? <Text style={styles.sectionHint}>{t('common.deleting')}</Text> : null}
+        {creatingDemoBoard ? (
+          <Text style={styles.sectionHint}>
+            {t('settings.creatingDemoBoard')}
+          </Text>
+        ) : null}
+        {deletingBoardId != null ? (
+          <Text style={styles.sectionHint}>{t('common.deleting')}</Text>
+        ) : null}
         <DropdownField
           compact
           label={t('settings.boardsHeading')}
@@ -385,7 +465,12 @@ export function SettingsScreen() {
                       close();
                     }}
                   >
-                    <View style={[styles.radio, board.id === currentBoardId && styles.radioActive]} />
+                    <View
+                      style={[
+                        styles.radio,
+                        board.id === currentBoardId && styles.radioActive,
+                      ]}
+                    />
                     <Text style={styles.rowTitle}>{board.name}</Text>
                   </Pressable>
                   <RowMenuButton
@@ -400,22 +485,40 @@ export function SettingsScreen() {
                         // but no touch ever lands again — see delete-board
                         // freeze investigation). RowMenuButton does the same
                         // for its own "⋯" sheet, so both close in sequence.
-                        onPress: () => close(() => setPrompt({ type: 'renameBoard', boardId: board.id, initial: board.name })),
+                        onPress: () =>
+                          close(() =>
+                            setPrompt({
+                              type: 'renameBoard',
+                              boardId: board.id,
+                              initial: board.name,
+                            }),
+                          ),
                       },
                       {
                         label: t('common.delete'),
                         destructive: true,
-                        onPress: () => close(() => confirmDeleteBoard(board.id, board.name)),
+                        onPress: () =>
+                          close(() => confirmDeleteBoard(board.id, board.name)),
                       },
                     ]}
                   />
                 </View>
               ))}
-              <Pressable style={styles.addLink} onPress={() => close(() => setPrompt({ type: 'newBoard' }))}>
-                <Text style={styles.addLinkText}>{t('settings.newBoardLink')}</Text>
+              <Pressable
+                style={styles.addLink}
+                onPress={() => close(() => setPrompt({ type: 'newBoard' }))}
+              >
+                <Text style={styles.addLinkText}>
+                  {t('settings.newBoardLink')}
+                </Text>
               </Pressable>
-              <Pressable style={styles.addLink} onPress={() => close(runCreateDemoBoard)}>
-                <Text style={styles.addLinkText}>{t('settings.createDemoBoard')}</Text>
+              <Pressable
+                style={styles.addLink}
+                onPress={() => close(runCreateDemoBoard)}
+              >
+                <Text style={styles.addLinkText}>
+                  {t('settings.createDemoBoard')}
+                </Text>
               </Pressable>
             </>
           )}
@@ -426,27 +529,46 @@ export function SettingsScreen() {
         <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
         <SearchableDropdownField
           compact
+          hideLabel
           label={t('settings.payeesHeading')}
           valueLabel={payeeNameInput}
           placeholder={t('settings.payeeSelectPlaceholder')}
           searchPlaceholder={t('settings.payeeSearchPlaceholder')}
-          options={payees.map((p) => ({ id: p.id, label: p.linkedAccountId != null ? `${p.name} (account)` : p.name }))}
-          onSelect={(o) => selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))}
+          options={payees.map((p) => ({
+            id: p.id,
+            label: p.linkedAccountId != null ? `${p.name} (account)` : p.name,
+          }))}
+          onSelect={(o) =>
+            selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))
+          }
           onUseText={createPayee}
         />
         {selectedPayee != null ? (
           selectedPayee.linkedAccountId != null ? (
-            <Text style={styles.sectionHint}>{t('settings.payeeLinkedHint')}</Text>
+            <Text style={styles.sectionHint}>
+              {t('settings.payeeLinkedHint')}
+            </Text>
           ) : (
             <View style={styles.payeeActions}>
               <Pressable
                 style={styles.payeeActionButton}
-                onPress={() => setPrompt({ type: 'renamePayee', payeeId: selectedPayee.id, initial: payeeNameInput })}
+                onPress={() =>
+                  setPrompt({
+                    type: 'renamePayee',
+                    payeeId: selectedPayee.id,
+                    initial: payeeNameInput,
+                  })
+                }
               >
                 <Text style={styles.payeeActionText}>{t('common.rename')}</Text>
               </Pressable>
-              <Pressable style={styles.payeeActionButton} onPress={deleteSelectedPayee}>
-                <Text style={[styles.payeeActionText, styles.deletePayeeText]}>{t('common.delete')}</Text>
+              <Pressable
+                style={styles.payeeActionButton}
+                onPress={deleteSelectedPayee}
+              >
+                <Text style={[styles.payeeActionText, styles.deletePayeeText]}>
+                  {t('common.delete')}
+                </Text>
               </Pressable>
             </View>
           )
@@ -454,80 +576,144 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.appearanceHeading')}</Text>
+        <Text style={styles.sectionHeading}>
+          {t('settings.appearanceHeading')}
+        </Text>
         <View style={styles.segmented}>
           {(['dark', 'light'] as const).map((opt) => (
-            <Pressable key={opt} style={[styles.segment, theme === opt && styles.segmentActive]} onPress={() => selectTheme(opt)}>
-              <Text style={[styles.segmentText, theme === opt && styles.segmentTextActive]}>
-                {opt === 'dark' ? t('settings.themeDark') : t('settings.themeLight')}
+            <Pressable
+              key={opt}
+              style={[styles.segment, theme === opt && styles.segmentActive]}
+              onPress={() => selectTheme(opt)}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  theme === opt && styles.segmentTextActive,
+                ]}
+              >
+                {opt === 'dark'
+                  ? t('settings.themeDark')
+                  : t('settings.themeLight')}
               </Text>
             </Pressable>
           ))}
         </View>
-        {theme === 'light' ? <Text style={styles.sectionHint}>{t('settings.themeLightHint')}</Text> : null}
+        {theme === 'light' ? (
+          <Text style={styles.sectionHint}>{t('settings.themeLightHint')}</Text>
+        ) : null}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.languageHeading')}</Text>
+        <Text style={styles.sectionHeading}>
+          {t('settings.languageHeading')}
+        </Text>
         <View style={styles.segmented}>
           {LANGUAGES.map((opt) => (
             <Pressable
               key={opt.code}
-              style={[styles.segment, language === opt.code && styles.segmentActive]}
+              style={[
+                styles.segment,
+                language === opt.code && styles.segmentActive,
+              ]}
               onPress={() => selectLanguage(opt.code)}
             >
-              <Text style={[styles.segmentText, language === opt.code && styles.segmentTextActive]}>{t(opt.labelKey)}</Text>
+              <Text
+                style={[
+                  styles.segmentText,
+                  language === opt.code && styles.segmentTextActive,
+                ]}
+              >
+                {t(opt.labelKey)}
+              </Text>
             </Pressable>
           ))}
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.openaiHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.openaiHint')}</Text>
-        <TextField
-          placeholder="sk-..."
-          value={aiApiKey}
-          onChangeText={setAiApiKey}
-          onBlur={saveAiApiKey}
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
+        <View style={styles.sectionHeadingRow}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.aiKeysHeading')}
+          </Text>
+          <Pressable
+            onPress={() =>
+              selectAiKeyStrategy(
+                aiKeyStrategy === 'sequential' ? 'round_robin' : 'sequential',
+              )
+            }
+          >
+            <Text style={styles.strategyLinkText}>
+              {aiKeyStrategy === 'sequential'
+                ? t('settings.aiKeyStrategySequential')
+                : t('settings.aiKeyStrategyRoundRobin')}{' '}
+              ▾
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={styles.sectionHint}>{t('settings.aiKeysHint')}</Text>
+        <View style={styles.group}>
+          {aiKeys.map((key, i) => (
+            <View key={key.id} style={styles.row}>
+              <View style={styles.s3ConfigMain}>
+                <Text style={styles.rowTitle}>
+                  {key.vendor === 'openai' ? 'OpenAI' : 'Anthropic'}
+                </Text>
+                <Text style={styles.rowValue}>
+                  {t('settings.aiKeyRequestCount', { count: key.requestCount })}
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={8}
+                disabled={i === 0}
+                onPress={() => moveAiKeyRow(key.id, -1)}
+              >
+                <Text
+                  style={[
+                    styles.reorderArrow,
+                    i === 0 && styles.reorderArrowDisabled,
+                  ]}
+                >
+                  ↑
+                </Text>
+              </Pressable>
+              <Pressable
+                hitSlop={8}
+                disabled={i === aiKeys.length - 1}
+                onPress={() => moveAiKeyRow(key.id, 1)}
+              >
+                <Text
+                  style={[
+                    styles.reorderArrow,
+                    i === aiKeys.length - 1 && styles.reorderArrowDisabled,
+                  ]}
+                >
+                  ↓
+                </Text>
+              </Pressable>
+              <RowMenuButton
+                items={[
+                  {
+                    label: t('common.delete'),
+                    destructive: true,
+                    onPress: () => confirmRemoveAiKey(key),
+                  },
+                ]}
+              />
+            </View>
+          ))}
+        </View>
+        <Pressable
+          style={styles.addLink}
+          onPress={() => setAiKeyModalOpen(true)}
+        >
+          <Text style={styles.addLinkText}>{t('settings.addAiKeyLink')}</Text>
+        </Pressable>
+        <AiKeyModal
+          visible={aiKeyModalOpen}
+          onCancel={() => setAiKeyModalOpen(false)}
+          onSaved={addAiKeyRow}
         />
-        <Pressable style={styles.importButton} onPress={testAiApiKey} disabled={testingAiKey || !aiApiKey.trim()}>
-          {testingAiKey ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.testAiKey')}</Text>}
-        </Pressable>
-        {aiKeyTestPassed === true ? <Text style={styles.rowValue}>{t('settings.aiKeyTestPassed')}</Text> : null}
-        {aiKeyTestPassed === false ? <Text style={styles.errorText}>{t('settings.aiKeyTestFailed')}</Text> : null}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.localBackupHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.localBackupHint')}</Text>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>{t('settings.localBackupToggle')}</Text>
-          <Switch value={localBackupOn} onValueChange={toggleLocalBackup} trackColor={{ true: colors.accent, false: colors.border }} />
-        </View>
-        {localBackupOn ? <Text style={styles.rowValue}>{t('settings.localBackupSavedNote')}</Text> : null}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.syncHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.syncHint')}</Text>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>{t('settings.autoSyncToggle')}</Text>
-          <Switch value={autoSync} onValueChange={toggleAutoSync} trackColor={{ true: colors.accent, false: colors.border }} />
-        </View>
-        <Text style={styles.sectionHint}>
-          {lastSyncedAt ? t('settings.lastSynced', { time: new Date(lastSyncedAt).toLocaleString() }) : t('settings.lastSyncedNever')}
-        </Text>
-        {syncError ? <Text style={styles.errorText}>{syncError}</Text> : null}
-        <Pressable style={styles.importButton} onPress={runSyncNow} disabled={syncing}>
-          {syncing ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.syncNow')}</Text>}
-        </Pressable>
-        <Pressable style={styles.importButton} onPress={runRestoreFromCloud} disabled={restoringFromCloud}>
-          {restoringFromCloud ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.restoreFromCloud')}</Text>}
-        </Pressable>
       </View>
 
       <View style={styles.section}>
@@ -535,52 +721,207 @@ export function SettingsScreen() {
         <Text style={styles.sectionHint}>{t('settings.s3Hint')}</Text>
         <View style={styles.group}>
           {s3Configs.map((config) => (
-            <Pressable key={config.id} style={styles.row} onPress={() => setBrowsingS3Config(config)}>
+            <Pressable
+              key={config.id}
+              style={styles.row}
+              onPress={() => setBrowsingS3Config(config)}
+            >
               <View style={styles.s3ConfigMain}>
                 <Text style={styles.rowTitle}>{config.bucket}</Text>
-                <Text style={styles.rowValue}>{config.keyPrefix ? `${config.region} · ${config.keyPrefix}` : config.region}</Text>
+                <Text style={styles.rowValue}>
+                  {config.keyPrefix
+                    ? `${config.region} · ${config.keyPrefix}`
+                    : config.region}
+                </Text>
               </View>
-              <RowMenuButton items={[{ label: t('common.delete'), destructive: true, onPress: () => confirmRemoveS3Config(config) }]} />
+              <RowMenuButton
+                items={[
+                  {
+                    label: t('common.delete'),
+                    destructive: true,
+                    onPress: () => confirmRemoveS3Config(config),
+                  },
+                ]}
+              />
             </Pressable>
           ))}
         </View>
         <Pressable style={styles.addLink} onPress={() => setS3ModalOpen(true)}>
-          <Text style={styles.addLinkText}>{t('settings.addS3BackupLink')}</Text>
+          <Text style={styles.addLinkText}>
+            {t('settings.addS3BackupLink')}
+          </Text>
         </Pressable>
-        <S3ConfigModal visible={s3ModalOpen} onCancel={() => setS3ModalOpen(false)} onSaved={addS3Backup} />
-        <S3BrowserModal config={browsingS3Config} onClose={() => setBrowsingS3Config(null)} />
+        <S3ConfigModal
+          visible={s3ModalOpen}
+          onCancel={() => setS3ModalOpen(false)}
+          onSaved={addS3Backup}
+        />
+        <S3BrowserModal
+          config={browsingS3Config}
+          onClose={() => setBrowsingS3Config(null)}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>
+          {t('settings.localBackupHeading')}
+        </Text>
+        <Text style={styles.sectionHint}>{t('settings.localBackupHint')}</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>
+            {t('settings.localBackupToggle')}
+          </Text>
+          <Switch
+            value={localBackupOn}
+            onValueChange={toggleLocalBackup}
+            trackColor={{ true: colors.accent, false: colors.border }}
+          />
+        </View>
+        {localBackupOn ? (
+          <Text style={styles.rowValue}>
+            {t('settings.localBackupSavedNote')}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>{t('settings.syncHeading')}</Text>
+        <Text style={styles.sectionHint}>{t('settings.syncHint')}</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>{t('settings.autoSyncToggle')}</Text>
+          <Switch
+            value={autoSync}
+            onValueChange={toggleAutoSync}
+            trackColor={{ true: colors.accent, false: colors.border }}
+          />
+        </View>
+        <Text style={styles.sectionHint}>
+          {lastSyncedAt
+            ? t('settings.lastSynced', {
+                time: new Date(lastSyncedAt).toLocaleString(),
+              })
+            : t('settings.lastSyncedNever')}
+        </Text>
+        {syncError ? <Text style={styles.errorText}>{syncError}</Text> : null}
+        <Pressable
+          style={styles.importButton}
+          onPress={runSyncNow}
+          disabled={syncing}
+        >
+          {syncing ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.importButtonText}>{t('settings.syncNow')}</Text>
+          )}
+        </Pressable>
+        <Pressable
+          style={styles.importButton}
+          onPress={runRestoreFromCloud}
+          disabled={restoringFromCloud}
+        >
+          {restoringFromCloud ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.importButtonText}>
+              {t('settings.restoreFromCloud')}
+            </Text>
+          )}
+        </Pressable>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.dataHeading')}</Text>
-        <Pressable style={styles.importButton} onPress={runImport} disabled={importing}>
-          {importing ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.importYnab')}</Text>}
+        <Pressable
+          style={styles.importButton}
+          onPress={runImport}
+          disabled={importing}
+        >
+          {importing ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.importButtonText}>
+              {t('settings.importYnab')}
+            </Text>
+          )}
         </Pressable>
-        {importError ? <Text style={styles.errorText}>{importError}</Text> : null}
+        {importError ? (
+          <Text style={styles.errorText}>{importError}</Text>
+        ) : null}
         {importResult ? (
           <View style={styles.group}>
-            <ImportResultRow label={t('settings.importResultTxnInserted')} value={importResult.transactionsInserted} />
-            <ImportResultRow label={t('settings.importResultTxnUpdated')} value={importResult.transactionsUpdated} />
-            <ImportResultRow label={t('settings.importResultBudgetWritten')} value={importResult.budgetEntriesWritten} />
-            <ImportResultRow label={t('settings.importResultAccountsCreated')} value={importResult.accountsCreated} />
-            <ImportResultRow label={t('settings.importResultCategoriesCreated')} value={importResult.categoriesCreated} />
+            <ImportResultRow
+              label={t('settings.importResultTxnInserted')}
+              value={importResult.transactionsInserted}
+            />
+            <ImportResultRow
+              label={t('settings.importResultTxnUpdated')}
+              value={importResult.transactionsUpdated}
+            />
+            <ImportResultRow
+              label={t('settings.importResultBudgetWritten')}
+              value={importResult.budgetEntriesWritten}
+            />
+            <ImportResultRow
+              label={t('settings.importResultAccountsCreated')}
+              value={importResult.accountsCreated}
+            />
+            <ImportResultRow
+              label={t('settings.importResultCategoriesCreated')}
+              value={importResult.categoriesCreated}
+            />
           </View>
         ) : null}
-        <Pressable style={styles.importButton} onPress={runRestore} disabled={restoring}>
-          {restoring ? <ActivityIndicator /> : <Text style={styles.importButtonText}>{t('settings.importAppBackup')}</Text>}
+        <Pressable
+          style={styles.importButton}
+          onPress={runRestore}
+          disabled={restoring}
+        >
+          {restoring ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.importButtonText}>
+              {t('settings.importAppBackup')}
+            </Text>
+          )}
         </Pressable>
-        <Text style={styles.sectionHint}>{t('settings.importAppBackupHint')}</Text>
-        {restoreError ? <Text style={styles.errorText}>{restoreError}</Text> : null}
+        <Text style={styles.sectionHint}>
+          {t('settings.importAppBackupHint')}
+        </Text>
+        {restoreError ? (
+          <Text style={styles.errorText}>{restoreError}</Text>
+        ) : null}
         {restoreResult ? (
           <View style={styles.group}>
-            <ImportResultRow label={t('settings.restoreResultBoard')} value={restoreResult.boardName} />
-            <ImportResultRow label={t('settings.restoreResultAccounts')} value={restoreResult.accountsImported} />
-            <ImportResultRow label={t('settings.restoreResultCategories')} value={restoreResult.categoriesImported} />
-            <ImportResultRow label={t('settings.restoreResultTransactions')} value={restoreResult.transactionsImported} />
+            <ImportResultRow
+              label={t('settings.restoreResultBoard')}
+              value={restoreResult.boardName}
+            />
+            <ImportResultRow
+              label={t('settings.restoreResultAccounts')}
+              value={restoreResult.accountsImported}
+            />
+            <ImportResultRow
+              label={t('settings.restoreResultCategories')}
+              value={restoreResult.categoriesImported}
+            />
+            <ImportResultRow
+              label={t('settings.restoreResultTransactions')}
+              value={restoreResult.transactionsImported}
+            />
           </View>
         ) : null}
-        <Pressable style={styles.exportButton} onPress={runExport} disabled={exporting}>
-          {exporting ? <ActivityIndicator color="#fff" /> : <Text style={styles.exportButtonText}>{t('settings.exportBoard')}</Text>}
+        <Pressable
+          style={styles.exportButton}
+          onPress={runExport}
+          disabled={exporting}
+        >
+          {exporting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.exportButtonText}>
+              {t('settings.exportBoard')}
+            </Text>
+          )}
         </Pressable>
       </View>
 
@@ -603,7 +944,11 @@ export function SettingsScreen() {
               ? t('settings.renamePayeeTitle')
               : t('settings.renameBoardTitle')
         }
-        placeholder={prompt?.type === 'renamePayee' ? t('settings.payeeNamePlaceholder') : t('settings.boardNamePlaceholder')}
+        placeholder={
+          prompt?.type === 'renamePayee'
+            ? t('settings.payeeNamePlaceholder')
+            : t('settings.boardNamePlaceholder')
+        }
         initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
         onCancel={() => setPrompt(null)}
         onSubmit={submitPrompt}
@@ -612,7 +957,13 @@ export function SettingsScreen() {
   );
 }
 
-function ImportResultRow({ label, value }: { label: string; value: number | string }) {
+function ImportResultRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowTitle}>{label}</Text>
@@ -623,10 +974,33 @@ function ImportResultRow({ label, value }: { label: string; value: number | stri
 
 const styles = StyleSheet.create({
   section: { gap: spacing.xs, marginBottom: spacing.md },
-  sectionHeading: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  sectionHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  strategyLinkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
   sectionHint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
-  group: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 14, overflow: 'hidden' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
+  group: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
   boardRowMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   boardOptionRow: {
     flexDirection: 'row',
@@ -636,16 +1010,46 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  boardOptionMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
-  s3ConfigMain: { gap: 2 },
-  radio: { width: 16, height: 16, borderRadius: 999, borderWidth: 2, borderColor: colors.border },
+  boardOptionMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  s3ConfigMain: { flex: 1, gap: 2 },
+  reorderArrow: {
+    fontSize: 16,
+    color: colors.textMuted,
+    paddingHorizontal: spacing.xs,
+  },
+  reorderArrowDisabled: { opacity: 0.3 },
+  radio: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
   radioActive: { borderColor: colors.accent, backgroundColor: colors.accent },
   rowTitle: { fontSize: 15, color: colors.text },
   rowValue: { fontSize: 13, color: colors.textMuted },
   addLink: { alignItems: 'center', paddingVertical: spacing.sm },
   addLinkText: { color: colors.accent, fontWeight: '700' },
-  segmented: { flexDirection: 'row', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 3, gap: 3 },
-  segment: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 3,
+    gap: 3,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
@@ -672,8 +1076,19 @@ const styles = StyleSheet.create({
   payeeActionText: { fontWeight: '600', fontSize: 14, color: colors.text },
   deletePayeeText: { color: colors.negative },
   errorText: { color: colors.negative, fontSize: 13 },
-  importButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  importButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   importButtonText: { color: colors.text, fontWeight: '700', fontSize: 15 },
-  exportButton: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  exportButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   exportButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

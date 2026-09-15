@@ -159,7 +159,11 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   // side isn't just real estate. Value drifts like real mixed possessions
   // would: electronics/furniture depreciate, a mid-window purchase bumps it
   // back up, jewelry holds value — same multi-point history shape as the
-  // cabin above, just an asset with no ledger transactions of its own.
+  // cabin above. Unlike the cabin, this one also gets real itemized
+  // purchase transactions (a watch, an iPad, …) — the BALANCE figure still
+  // comes from the value log above (see accountsRepo.resolveBalanceCents),
+  // not these, so they don't need to reconcile to the cent; they're here so
+  // the account's transaction list isn't just empty.
   const belongingsId = await accountsRepo.createAccount(db, boardId, {
     name: 'Personal Belongings',
     type: 'asset',
@@ -170,6 +174,27 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
   await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(10200), day(months[8], 15));
   await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(9300), day(months[15], 1));
   await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(8100), day(months[23], 15));
+
+  const belongingsPurchases: [string, string, number, number, number][] = [
+    // [item, merchant, price, monthIndex, day]
+    ['iPad Air', 'Apple Store', 650, 2, 14],
+    ['Sony WH-1000XM5 Headphones', 'Best Buy', 380, 5, 20],
+    ['Apple Watch Ultra 2', 'Apple Store', 850, 8, 9], // + the Dyson below is the "mid-window purchase" bump logged on the 15th
+    ['Dyson V15 Vacuum', 'Best Buy', 650, 8, 11],
+    ['PlayStation 5', 'Best Buy', 500, 12, 5],
+    ['Sectional Sofa', 'IKEA', 700, 18, 22],
+    ['Canon EOS R50 Camera', 'Canon Store', 680, 21, 9],
+  ];
+  for (const [item, merchant, price, monthIndex, d] of belongingsPurchases) {
+    await transactionsRepo.createTransaction(db, boardId, {
+      accountId: belongingsId,
+      categoryId: null, // off-budget asset account — a category wouldn't mean anything here
+      payeeName: item,
+      memo: merchant,
+      amountCents: cents(price),
+      date: day(months[monthIndex], d),
+    });
+  }
 
   // Loans — three different repayment shapes beyond the mortgage above:
   // a standard interest-bearing installment loan (car), a fixed-payment

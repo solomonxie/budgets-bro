@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -13,16 +11,12 @@ import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as reportsRepo from '../../db/repositories/reportsRepo';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
-import { step7CategoriesKey } from '../insights/BabyStepsScreen';
 import { accountKind } from '../../domain/accountKind';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
-import type { InsightsStackParamList } from '../../navigation/types';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-
-type Nav = NativeStackNavigationProp<InsightsStackParamList, 'TaxInsights'>;
 
 // Only jurisdiction with real deadline/forms logic so far — the array
 // shape is what grows when a second country is added.
@@ -43,10 +37,15 @@ const CANADA_PROVINCES = [
   { code: 'YT', name: 'Yukon' },
 ];
 const INTEREST_CATEGORY_PATTERN = /interest/i;
+const DONATION_CATEGORY_PATTERN = /charit|donat|giving/i;
 
 const countryKey = (boardId: number) => `taxInsights.country:${boardId}`;
 const provinceKey = (boardId: number) => `taxInsights.province:${boardId}`;
 const interestCategoriesKey = (boardId: number) => `taxInsights.interestCategoryIds:${boardId}`;
+// Its own setting, deliberately not shared with Baby Steps' Step 7 —
+// picking "which categories mean X" here shouldn't require a trip to a
+// different screen, and the two don't have to agree on what "giving" means.
+const donationCategoriesKey = (boardId: number) => `taxInsights.donationCategoryIds:${boardId}`;
 
 function toCents(text: string): number {
   const parsed = parseFloat(text);
@@ -92,7 +91,6 @@ function toggleId(ids: number[], id: number): number[] {
 // mean "interest") are genuinely ambiguous and need a pick.
 export function TaxInsightsScreen() {
   const t = useT();
-  const navigation = useNavigation<Nav>();
   const month = useAppStore((s) => s.currentMonth);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
@@ -114,6 +112,7 @@ export function TaxInsightsScreen() {
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
   const [interestPickerOpen, setInterestPickerOpen] = useState(false);
+  const [donationPickerOpen, setDonationPickerOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -123,7 +122,6 @@ export function TaxInsightsScreen() {
 
       setCountry(await settingsRepo.getSetting(db, countryKey(boardId)) ?? 'CA');
       setProvince(await settingsRepo.getSetting(db, provinceKey(boardId)));
-      setDonationCategoryIds(await settingsRepo.getJsonSetting<number[]>(db, step7CategoriesKey(boardId), []));
 
       const interestRaw = await settingsRepo.getSetting(db, interestCategoriesKey(boardId));
       if (interestRaw != null) {
@@ -132,6 +130,15 @@ export function TaxInsightsScreen() {
         const detected = categories.filter((c) => INTEREST_CATEGORY_PATTERN.test(c.name)).map((c) => c.id);
         setInterestCategoryIds(detected);
         await settingsRepo.setJsonSetting(db, interestCategoriesKey(boardId), detected);
+      }
+
+      const donationRaw = await settingsRepo.getSetting(db, donationCategoriesKey(boardId));
+      if (donationRaw != null) {
+        setDonationCategoryIds(JSON.parse(donationRaw));
+      } else if (categories.length > 0) {
+        const detected = categories.filter((c) => DONATION_CATEGORY_PATTERN.test(c.name)).map((c) => c.id);
+        setDonationCategoryIds(detected);
+        await settingsRepo.setJsonSetting(db, donationCategoriesKey(boardId), detected);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,10 +219,26 @@ export function TaxInsightsScreen() {
 
   const interestLabel =
     interestCategoryIds.length === 0
-      ? t('taxInsights.selectCategories')
+      ? t('taxInsights.interestCategoriesLabel')
       : interestCategoryIds.length === 1
-        ? categories.find((c) => c.id === interestCategoryIds[0])?.name ?? t('taxInsights.selectCategories')
-        : t('taxInsights.categoriesSelected', { count: interestCategoryIds.length });
+        ? categories.find((c) => c.id === interestCategoryIds[0])?.name ?? t('taxInsights.interestCategoriesLabel')
+        : t('taxInsights.categoriesCount', { count: interestCategoryIds.length });
+
+  const toggleDonationCategory = (id: number) => {
+    const next = toggleId(donationCategoryIds, id);
+    setDonationCategoryIds(next);
+    (async () => {
+      const db = await getDb();
+      await settingsRepo.setJsonSetting(db, donationCategoriesKey(boardId), next);
+    })();
+  };
+
+  const donationLabel =
+    donationCategoryIds.length === 0
+      ? t('taxInsights.donationCategoriesLabel')
+      : donationCategoryIds.length === 1
+        ? categories.find((c) => c.id === donationCategoryIds[0])?.name ?? t('taxInsights.donationCategoriesLabel')
+        : t('taxInsights.categoriesCount', { count: donationCategoryIds.length });
 
   return (
     <ScreenContainer scroll>
@@ -237,8 +260,8 @@ export function TaxInsightsScreen() {
       </View>
 
       <View style={styles.card}>
-        <Row label={t('taxInsights.ledgerIncomeLabel', { year })} value={formatMoney(ledgerTotals.incomeCents)} />
-        <Row label={t('taxInsights.ledgerSpendingLabel', { year })} value={formatMoney(ledgerTotals.spendingCents)} />
+        <Row label={t('taxInsights.totalIncomeLabel', { year })} value={formatMoney(ledgerTotals.incomeCents)} />
+        <Row label={t('taxInsights.totalSpendingLabel', { year })} value={formatMoney(ledgerTotals.spendingCents)} />
       </View>
 
       <View style={styles.card}>
@@ -252,8 +275,10 @@ export function TaxInsightsScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>
-          {t('taxInsights.interestLabel')} · <Text style={styles.linkText} onPress={() => setInterestPickerOpen(true)}>{interestLabel} ▾</Text>
+        <Text style={styles.label}>{t('taxInsights.interestLabel')}</Text>
+        <Text style={styles.hint}>{t('taxInsights.interestHint')}</Text>
+        <Text style={styles.linkText} onPress={() => setInterestPickerOpen(true)}>
+          {interestLabel} ▾
         </Text>
         <Row label={t('taxInsights.interestEarned')} value={formatMoney(interestTotals.incomeCents)} />
         <Row label={t('taxInsights.interestPaid')} value={formatMoney(interestTotals.expenseCents)} />
@@ -278,13 +303,10 @@ export function TaxInsightsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>{t('taxInsights.donationsLabel', { year })}</Text>
-        {donationCategoryIds.length === 0 ? (
-          <Text style={styles.linkText} onPress={() => navigation.navigate('BabySteps')}>
-            {t('taxInsights.setUpDonationCategories')}
-          </Text>
-        ) : (
-          <Text style={styles.value}>{formatMoney(donationCents)}</Text>
-        )}
+        <Text style={styles.linkText} onPress={() => setDonationPickerOpen(true)}>
+          {donationLabel} ▾
+        </Text>
+        <Text style={styles.value}>{formatMoney(donationCents)}</Text>
         <Text style={styles.hint}>{t('taxInsights.donationsHint')}</Text>
       </View>
 
@@ -350,13 +372,27 @@ export function TaxInsightsScreen() {
       </Modal>
 
       <Modal visible={interestPickerOpen} transparent animationType="slide" onRequestClose={() => setInterestPickerOpen(false)}>
-        <BottomSheet title={t('taxInsights.interestLabel')} onClose={() => setInterestPickerOpen(false)}>
+        <BottomSheet title={t('taxInsights.interestCategoriesLabel')} onClose={() => setInterestPickerOpen(false)}>
           {categories.map((c) => (
             <DropdownOption
               key={c.id}
               label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
               selected={interestCategoryIds.includes(c.id)}
               onPress={() => toggleInterestCategory(c.id)}
+            />
+          ))}
+          {categories.length === 0 ? <Text style={styles.hint}>{t('taxInsights.noCategoriesAvailable')}</Text> : null}
+        </BottomSheet>
+      </Modal>
+
+      <Modal visible={donationPickerOpen} transparent animationType="slide" onRequestClose={() => setDonationPickerOpen(false)}>
+        <BottomSheet title={t('taxInsights.donationCategoriesLabel')} onClose={() => setDonationPickerOpen(false)}>
+          {categories.map((c) => (
+            <DropdownOption
+              key={c.id}
+              label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+              selected={donationCategoryIds.includes(c.id)}
+              onPress={() => toggleDonationCategory(c.id)}
             />
           ))}
           {categories.length === 0 ? <Text style={styles.hint}>{t('taxInsights.noCategoriesAvailable')}</Text> : null}

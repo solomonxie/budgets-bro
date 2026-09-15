@@ -1,6 +1,6 @@
 # App Source
 
-TypeScript/React Native source for YAMA:
+TypeScript/React Native source for ByoBudget:
 
 - `screens/` — one folder per tab/feature area
 - `components/` — shared UI building blocks

@@ -202,10 +202,12 @@ export function TransactionsScreen() {
                 ) : null}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.payee}>{txn.payeeName ?? t('common.noPayee')}</Text>
-                  <Text style={styles.sub}>
-                    {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
-                    {txn.categoryName ?? t('common.uncategorized')}
-                  </Text>
+                  {txn.categoryName || txn.amountCents < 0 ? (
+                    <Text style={styles.sub}>
+                      {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
+                      {txn.categoryName ?? t('common.uncategorized')}
+                    </Text>
+                  ) : null}
                   {txn.memo ? (
                     <Text style={styles.memo} numberOfLines={1}>
                       {txn.memo}

@@ -89,40 +89,7 @@ New table `scheduled_transactions` (id, account_id, category_id nullable, payee_
 Scope cut for v1: no YNAB-style "Age of Money"/next-month-funding-plan integration — schedules are a posting convenience, not a forecasting engine.
 
 ## Core UI
-Reference: real YNAB's screenshots. ByoBudget reuses the interaction patterns that carry the core budgeting workflow; the goal-tracking and cosmetic extras noted above stay out for MVP.
-
-**Budget screen**
-- "Unassigned Cash" banner at the top — money not yet assigned to any category, tappable, large and color-coded (green when positive, red when negative). (Deliberately not "Ready to Assign" — that's YNAB's own term for this figure.)
-- Category groups, collapsible (tap the group header to expand/collapse)
-- Each category row: icon (optional emoji) + name, a status badge showing the available amount — colored green when fully funded, yellow/amber when partially funded, red when overspent — plus a thin progress bar (spent vs. assigned) and a one-line status caption ("Funded" / "Spent $X of $Y")
-- Month selector (prev/next or a dropdown) in the nav bar
-- Floating "+ Transaction" button, always reachable, for quick entry from any tab
-
-**Transaction entry/edit sheet** (modal, opened by the floating button or tapping a transaction)
-- Large amount field with a numeric keypad
-- Inflow/Outflow toggle (sets the sign)
-- Payee picker (recent/autocomplete, create-new inline)
-- Category picker
-- Account picker
-- Date picker (defaults to today)
-- Memo (free text)
-- "Interest income" toggle, shown on inflows — tags the transaction `is_interest` for reports/AI to break out later
-- Cleared/uncleared toggle
-- Save / Cancel
-
-**Transactions (Spending) list**
-- Grouped by date, most recent first
-- Each row: payee, category tag (icon + name), amount (colored for outflow), a small cleared-status indicator, account name
-- Search and a multi-select mode for bulk edit/delete
-
-**Accounts screen**
-- Grouped by account kind (Cash / Credit / Loan / Tracking), each group showing a subtotal
-- Each row: an icon, the account name, and its balance (colored red when negative)
-- Groups collapsible; "+" to add an account
-
-**Insights screen** (native, on-device — distinct from the AI analysis feature below; needs no API key and sends nothing off-device; last tab, after FinMan)
-- Month picker; spending breakdown for the selected month: total spent, a stacked bar by category, and a "Top categories" list with amounts
-- Category trends: a multi-line chart (react-native-svg) of the top categories' monthly spend over the last 6 months
+See [UIUX-DESIGN.md](UIUX-DESIGN.md) — screen-by-screen UI/UX spec plus the conventions it follows.
 
 ## YNAB Data Import
 One-time, manual, user-initiated — not a sync, not bank-linking. Lets someone switch from YNAB without re-entering history.

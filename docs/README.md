@@ -1,6 +1,7 @@
 # Documentation
 
 - `DESIGN.md` — design doc: what ByoBudget is and why
+- `UIUX-DESIGN.md` — UI/UX design doc: screens, layouts, interaction conventions
 - `IMPLEMENTATION_PLAN.md` — phased implementation task breakdown
 - `design/` — per-feature design docs (e.g. cloud sync)
 - `screenshots/` — images embedded in the root README

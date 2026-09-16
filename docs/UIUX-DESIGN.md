@@ -221,13 +221,32 @@ SAVINGS · INCOME · CREDIT …
 - Demo data must look lived-in: real payee names on every leg (blank ones render as "No Payee"), itemized purchases rather than only value snapshots, balances that never print negative.
 
 
-### Local backup
+### Backup destinations
 
 must natively support backup all configs and app data to mobile local storage, and can import from it.
 
+**One list of destinations, each with its own `⋯`** — not a section per kind. The on-device snapshot is a destination like any bucket, and being switched off is a state of that row ("Keep a copy here" in its own menu), not a reason for a separate section with its own switch:
+
+```
+BACKUP
+Every sync writes a full copy of this board…       ← one hint for all of them
+
+┌────────────────────────────────────────┐     ⋯  ✓ Auto-sync
+│ my-bucket                           ⋯  │        Sync Now
+│ s3://my-bucket/budget · 2 h ago         │        Restore Latest
+├────────────────────────────────────────┤        ─────────────
+│ This device                         ⋯  │        Delete Connection
+│ In the app's own files · Off            │
+└────────────────────────────────────────┘
+             + Add S3 Backup
+```
+
+- "Last synced" rides the row's own subtitle, not a line inside the menu — it answers "did that work" without a tap.
+- A manual Sync Now is scoped to its destination and ignores that destination's Auto-sync; the spinner and any error land on the row, never in an alert. It must never fail silently — "nothing configured" is itself a message.
 - State the real protection scope in the hint: an on-device snapshot survives a bad import or corruption, **not** a lost phone.
 - Say where the file lands (visible in Files app under "On My iPhone" on a real device build) so it can be copied off manually.
 - Keep a manual "Restore Latest" reachable whenever local is the only destination — auto-writing the snapshot covers the save side, but restore must never depend on a file picker.
+- Data actions that are peers (export · import a backup · import from YNAB) are chevron rows in one group, not stacked full-width buttons. Three buttons read as three competing calls to action in what is really a list; one primary button per screen, at most.
 
 
 ### Cloud Bucket Backup
@@ -291,7 +310,7 @@ Browse (tap a connection) — one level at a time, the same screen pushing itsel
   Delete Connection             (red, last)
 ```
 
-- Auto-sync is **per connection**, not one global switch — and no separate "Cloud Sync" section survives in Settings once this menu exists.
+- Auto-sync is **per destination**, not one global switch — and no separate "Cloud Sync" section survives in Settings once this menu exists. A per-destination setting falls back to the old global one when it has none of its own, so anyone who had turned sync off stays off.
 - Sync Now / Restore Latest target this connection only.
 - Restore confirms first when it creates a new board and switches to it; its result renders wherever import results already render.
 - Deleting from any depth dismisses every level of that connection's browser.

@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { DropdownField } from '../../components/ui/DropdownField';
+import { BackupSection } from './BackupSection';
+import { DataSection } from './DataSection';
 import { useBoards } from '../../hooks/useBoards';
 import { usePayees } from '../../hooks/usePayees';
 import { useLanguageSetting } from '../../hooks/useLanguage';
@@ -30,33 +24,6 @@ import {
 } from '../../ai/aiKeys';
 import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
 import { AiKeyModal } from '../../components/ui/AiKeyModal';
-import {
-  listS3Configs,
-  addS3Config,
-  removeS3Config,
-} from '../../sync/s3Provider';
-import type { S3ConfigMeta, S3ConfigInput } from '../../sync/s3Provider';
-import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
-import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
-import {
-  isLocalBackupEnabled,
-  setLocalBackupEnabled,
-} from '../../sync/localProvider';
-import {
-  syncNow,
-  isAutoSyncEnabled,
-  setAutoSyncEnabled,
-  getLastSyncedSummary,
-  downloadLatestBackup,
-  hasAnyProviderConfigured,
-} from '../../sync/cloudSync';
-import { parseBackupZip } from '../../sync/parseBackupZip';
-import { exportBoardZip } from '../../export/exportBoard';
-import { pickYnabExport } from '../../import/pickYnabExport';
-import { importYnabExport } from '../../import/ynabImporter';
-import type { YnabImportResult } from '../../import/ynabImporter';
-import { pickAppExport } from '../../import/pickAppExport';
-import { importAppExport } from '../../import/appExportImporter';
 import type { AppExportImportResult } from '../../import/appExportImporter';
 import { seedDemoBoard } from '../../db/seed/demoBoard';
 import { useAppStore } from '../../state/useAppStore';
@@ -98,27 +65,13 @@ export function SettingsScreen() {
   const [aiKeyModalOpen, setAiKeyModalOpen] = useState(false);
   const [aiKeyStrategy, setAiKeyStrategyState] =
     useState<AiKeyStrategy>('sequential');
-  const [s3Configs, setS3Configs] = useState<S3ConfigMeta[]>([]);
-  const [s3ModalOpen, setS3ModalOpen] = useState(false);
-  const [browsingS3Config, setBrowsingS3Config] = useState<S3ConfigMeta | null>(
-    null,
-  );
-  const [localBackupOn, setLocalBackupOn] = useState(false);
-  const [autoSync, setAutoSync] = useState(true);
-  const [lastSyncedAt, setLastSyncedAtState] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [restoringFromCloud, setRestoringFromCloud] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<YnabImportResult | null>(
-    null,
-  );
-  const [importError, setImportError] = useState<string | null>(null);
-  const [restoring, setRestoring] = useState(false);
+  // A restore can start from a cloud destination or from a picked file; the
+  // summary reads the same either way, so it renders once here rather than
+  // twice inside the two sections that can produce it.
   const [restoreResult, setRestoreResult] =
     useState<AppExportImportResult | null>(null);
-  const [restoreError, setRestoreError] = useState<string | null>(null);
+
+  const boardName = boards.find((b) => b.id === boardId)?.name ?? '';
 
   useEffect(() => {
     (async () => {
@@ -127,10 +80,6 @@ export function SettingsScreen() {
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
       setAiKeys(await listAiKeys(db));
       setAiKeyStrategyState(await getAiKeyStrategy(db));
-      setS3Configs(await listS3Configs(db));
-      setLocalBackupOn(await isLocalBackupEnabled(db));
-      setAutoSync(await isAutoSyncEnabled(db));
-      setLastSyncedAtState(await getLastSyncedSummary(db));
     })();
   }, []);
 
@@ -178,155 +127,12 @@ export function SettingsScreen() {
     await setAiKeyStrategy(db, strategy);
   };
 
-  const addS3Backup = async (input: S3ConfigInput) => {
-    const db = await getDb();
-    await addS3Config(db, input);
-    setS3Configs(await listS3Configs(db));
-    setS3ModalOpen(false);
-  };
-
-  const confirmRemoveS3Config = (config: S3ConfigMeta) => {
-    Alert.alert(
-      t('settings.deleteS3ConfigConfirmTitle', { name: config.bucket }),
-      t('settings.deleteS3ConfigConfirmMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const db = await getDb();
-            await removeS3Config(db, config.id);
-            setS3Configs(await listS3Configs(db));
-          },
-        },
-      ],
-    );
-  };
-
-  const toggleLocalBackup = async (value: boolean) => {
-    setLocalBackupOn(value);
-    const db = await getDb();
-    await setLocalBackupEnabled(db, value);
-  };
-
-  const toggleAutoSync = async (value: boolean) => {
-    setAutoSync(value);
-    const db = await getDb();
-    await setAutoSyncEnabled(db, value);
-  };
-
-  const runSyncNow = async () => {
-    setSyncing(true);
-    setSyncError(null);
-    try {
-      const db = await getDb();
-      const board = boards.find((b) => b.id === boardId);
-      if (!board) return;
-      // syncNow() itself skips silently when nothing is configured (correct
-      // for the debounced auto-sync path) — but a manual button press with
-      // no feedback at all looks indistinguishable from a hung sync, so
-      // check here instead of leaving the user guessing.
-      if (!(await hasAnyProviderConfigured(db))) {
-        setSyncError(t('settings.noProviderConfigured'));
-        return;
-      }
-      await syncNow(db, boardId, board.name);
-      setLastSyncedAtState(await getLastSyncedSummary(db));
-    } catch (e) {
-      setSyncError(e instanceof Error ? e.message : t('settings.syncFailed'));
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  // Same "always creates a new board" behavior as Import App Backup below —
-  // this just fetches the bytes from cloud instead of a file picker.
-  const runRestoreFromCloud = async () => {
-    setRestoringFromCloud(true);
-    setRestoreError(null);
-    setRestoreResult(null);
-    try {
-      const db = await getDb();
-      // Backup keys carry the board's slug, so restore needs the name to
-      // know which of the bucket's files are this board's.
-      const board = boards.find((b) => b.id === boardId);
-      const bytes = await downloadLatestBackup(db, boardId, board?.name ?? '');
-      if (!bytes) {
-        setRestoreError(t('settings.noCloudBackupFound'));
-        return;
-      }
-      const files = await parseBackupZip(bytes);
-      const summary = await importAppExport(db, files);
-      setRestoreResult(summary);
-      bumpDataVersion();
-      await switchBoard(summary.boardId);
-    } catch (e) {
-      setRestoreError(
-        e instanceof Error ? e.message : t('settings.restoreFailed'),
-      );
-    } finally {
-      setRestoringFromCloud(false);
-    }
-  };
-
-  const runImport = async () => {
-    setImportError(null);
-    setImportResult(null);
-    try {
-      const files = await pickYnabExport();
-      if (!files) return;
-      setImporting(true);
-      const db = await getDb();
-      const summary = await importYnabExport(db, boardId, files);
-      setImportResult(summary);
-      bumpDataVersion();
-    } catch (e) {
-      setImportError(
-        e instanceof Error ? e.message : t('settings.importFailed'),
-      );
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  // Restores this app's own export as a brand-new board and switches to it
-  // — never merged into the currently active board.
-  const runRestore = async () => {
-    setRestoreError(null);
-    setRestoreResult(null);
-    try {
-      const files = await pickAppExport();
-      if (!files) return;
-      setRestoring(true);
-      const db = await getDb();
-      const summary = await importAppExport(db, files);
-      setRestoreResult(summary);
-      bumpDataVersion();
-      await switchBoard(summary.boardId);
-    } catch (e) {
-      setRestoreError(
-        e instanceof Error ? e.message : t('settings.restoreFailed'),
-      );
-    } finally {
-      setRestoring(false);
-    }
-  };
-
-  const runExport = async () => {
-    setExporting(true);
-    try {
-      const db = await getDb();
-      const board = boards.find((b) => b.id === boardId);
-      await exportBoardZip(db, boardId, board?.name ?? 'board');
-    } catch (e) {
-      Alert.alert(
-        t('settings.exportFailedTitle'),
-        e instanceof Error ? e.message : t('settings.exportFailedFallback'),
-      );
-    } finally {
-      setExporting(false);
-    }
+  // Every restore lands as a brand-new board and switches to it — see
+  // appExportImporter. Both entry points funnel through here.
+  const handleRestored = async (summary: AppExportImportResult) => {
+    setRestoreResult(summary);
+    bumpDataVersion();
+    await switchBoard(summary.boardId);
   };
 
   const submitPrompt = async (value: string) => {
@@ -640,71 +446,76 @@ export function SettingsScreen() {
           <Text style={styles.sectionHeading}>
             {t('settings.aiKeysHeading')}
           </Text>
-          <Pressable
-            onPress={() =>
-              selectAiKeyStrategy(
-                aiKeyStrategy === 'sequential' ? 'round_robin' : 'sequential',
-              )
-            }
-          >
-            <Text style={styles.strategyLinkText}>
-              {aiKeyStrategy === 'sequential'
-                ? t('settings.aiKeyStrategySequential')
-                : t('settings.aiKeyStrategyRoundRobin')}{' '}
-              ▾
-            </Text>
-          </Pressable>
+          {/* Only meaningful once there's more than one key to fall back to. */}
+          {aiKeys.length > 1 ? (
+            <Pressable
+              onPress={() =>
+                selectAiKeyStrategy(
+                  aiKeyStrategy === 'sequential' ? 'round_robin' : 'sequential',
+                )
+              }
+            >
+              <Text style={styles.strategyLinkText}>
+                {aiKeyStrategy === 'sequential'
+                  ? t('settings.aiKeyStrategySequential')
+                  : t('settings.aiKeyStrategyRoundRobin')}{' '}
+                ▾
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
         <Text style={styles.sectionHint}>{t('settings.aiKeysHint')}</Text>
-        <View style={styles.group}>
-          {aiKeys.map((key, i) => (
-            <View key={key.id} style={styles.row}>
-              <View style={styles.s3ConfigMain}>
-                <Text style={styles.rowTitle}>{aiVendorName(key.vendor)}</Text>
-                <Text style={styles.rowValue}>
-                  {t('settings.aiKeyRequestCount', { count: key.requestCount })}
-                </Text>
+        {aiKeys.length > 0 ? (
+          <View style={styles.group}>
+            {aiKeys.map((key, i) => (
+              <View key={key.id} style={[styles.row, i > 0 && styles.rowDivider]}>
+                <View style={styles.rowMain}>
+                  <Text style={styles.rowTitle}>{aiVendorName(key.vendor)}</Text>
+                  <Text style={styles.rowValue}>
+                    {t('settings.aiKeyRequestCount', { count: key.requestCount })}
+                  </Text>
+                </View>
+                <Pressable
+                  hitSlop={8}
+                  disabled={i === 0}
+                  onPress={() => moveAiKeyRow(key.id, -1)}
+                >
+                  <Text
+                    style={[
+                      styles.reorderArrow,
+                      i === 0 && styles.reorderArrowDisabled,
+                    ]}
+                  >
+                    ↑
+                  </Text>
+                </Pressable>
+                <Pressable
+                  hitSlop={8}
+                  disabled={i === aiKeys.length - 1}
+                  onPress={() => moveAiKeyRow(key.id, 1)}
+                >
+                  <Text
+                    style={[
+                      styles.reorderArrow,
+                      i === aiKeys.length - 1 && styles.reorderArrowDisabled,
+                    ]}
+                  >
+                    ↓
+                  </Text>
+                </Pressable>
+                <RowMenuButton
+                  items={[
+                    {
+                      label: t('common.delete'),
+                      destructive: true,
+                      onPress: () => confirmRemoveAiKey(key),
+                    },
+                  ]}
+                />
               </View>
-              <Pressable
-                hitSlop={8}
-                disabled={i === 0}
-                onPress={() => moveAiKeyRow(key.id, -1)}
-              >
-                <Text
-                  style={[
-                    styles.reorderArrow,
-                    i === 0 && styles.reorderArrowDisabled,
-                  ]}
-                >
-                  ↑
-                </Text>
-              </Pressable>
-              <Pressable
-                hitSlop={8}
-                disabled={i === aiKeys.length - 1}
-                onPress={() => moveAiKeyRow(key.id, 1)}
-              >
-                <Text
-                  style={[
-                    styles.reorderArrow,
-                    i === aiKeys.length - 1 && styles.reorderArrowDisabled,
-                  ]}
-                >
-                  ↓
-                </Text>
-              </Pressable>
-              <RowMenuButton
-                items={[
-                  {
-                    label: t('common.delete'),
-                    destructive: true,
-                    onPress: () => confirmRemoveAiKey(key),
-                  },
-                ]}
-              />
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : null}
         <Pressable
           style={styles.addLink}
           onPress={() => setAiKeyModalOpen(true)}
@@ -718,181 +529,24 @@ export function SettingsScreen() {
         />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.s3Heading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.s3Hint')}</Text>
-        <View style={styles.group}>
-          {s3Configs.map((config) => (
-            <Pressable
-              key={config.id}
-              style={styles.row}
-              onPress={() => setBrowsingS3Config(config)}
-            >
-              <View style={styles.s3ConfigMain}>
-                <Text style={styles.rowTitle}>{config.bucket}</Text>
-                <Text style={styles.rowValue}>
-                  {config.keyPrefix
-                    ? `${config.region} · ${config.keyPrefix}`
-                    : config.region}
-                </Text>
-              </View>
-              <RowMenuButton
-                items={[
-                  {
-                    label: t('common.delete'),
-                    destructive: true,
-                    onPress: () => confirmRemoveS3Config(config),
-                  },
-                ]}
-              />
-            </Pressable>
-          ))}
-        </View>
-        <Pressable style={styles.addLink} onPress={() => setS3ModalOpen(true)}>
-          <Text style={styles.addLinkText}>
-            {t('settings.addS3BackupLink')}
-          </Text>
-        </Pressable>
-        <S3ConfigModal
-          visible={s3ModalOpen}
-          onCancel={() => setS3ModalOpen(false)}
-          onSaved={addS3Backup}
-        />
-        <S3BrowserModal
-          config={browsingS3Config}
-          onClose={() => setBrowsingS3Config(null)}
-        />
-      </View>
+      <BackupSection
+        boardId={boardId}
+        boardName={boardName}
+        onRestored={handleRestored}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>
-          {t('settings.localBackupHeading')}
-        </Text>
-        <Text style={styles.sectionHint}>{t('settings.localBackupHint')}</Text>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>
-            {t('settings.localBackupToggle')}
-          </Text>
-          <Switch
-            value={localBackupOn}
-            onValueChange={toggleLocalBackup}
-            trackColor={{ true: colors.accent, false: colors.border }}
-          />
-        </View>
-        {localBackupOn ? (
-          <Text style={styles.rowValue}>
-            {t('settings.localBackupSavedNote')}
-          </Text>
-        ) : null}
-      </View>
+      <DataSection
+        boardId={boardId}
+        boardName={boardName}
+        onImported={bumpDataVersion}
+        onRestored={handleRestored}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.syncHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.syncHint')}</Text>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>{t('settings.autoSyncToggle')}</Text>
-          <Switch
-            value={autoSync}
-            onValueChange={toggleAutoSync}
-            trackColor={{ true: colors.accent, false: colors.border }}
-          />
-        </View>
-        <Text style={styles.sectionHint}>
-          {lastSyncedAt
-            ? t('settings.lastSynced', {
-                time: new Date(lastSyncedAt).toLocaleString(),
-              })
-            : t('settings.lastSyncedNever')}
-        </Text>
-        {syncError ? <Text style={styles.errorText}>{syncError}</Text> : null}
-        <Pressable
-          style={styles.importButton}
-          onPress={runSyncNow}
-          disabled={syncing}
-        >
-          {syncing ? (
-            <ActivityIndicator />
-          ) : (
-            <Text style={styles.importButtonText}>{t('settings.syncNow')}</Text>
-          )}
-        </Pressable>
-        <Pressable
-          style={styles.importButton}
-          onPress={runRestoreFromCloud}
-          disabled={restoringFromCloud}
-        >
-          {restoringFromCloud ? (
-            <ActivityIndicator />
-          ) : (
-            <Text style={styles.importButtonText}>
-              {t('settings.restoreFromCloud')}
-            </Text>
-          )}
-        </Pressable>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.dataHeading')}</Text>
-        <Pressable
-          style={styles.importButton}
-          onPress={runImport}
-          disabled={importing}
-        >
-          {importing ? (
-            <ActivityIndicator />
-          ) : (
-            <Text style={styles.importButtonText}>
-              {t('settings.importYnab')}
-            </Text>
-          )}
-        </Pressable>
-        {importError ? (
-          <Text style={styles.errorText}>{importError}</Text>
-        ) : null}
-        {importResult ? (
-          <View style={styles.group}>
-            <ImportResultRow
-              label={t('settings.importResultTxnInserted')}
-              value={importResult.transactionsInserted}
-            />
-            <ImportResultRow
-              label={t('settings.importResultTxnUpdated')}
-              value={importResult.transactionsUpdated}
-            />
-            <ImportResultRow
-              label={t('settings.importResultBudgetWritten')}
-              value={importResult.budgetEntriesWritten}
-            />
-            <ImportResultRow
-              label={t('settings.importResultAccountsCreated')}
-              value={importResult.accountsCreated}
-            />
-            <ImportResultRow
-              label={t('settings.importResultCategoriesCreated')}
-              value={importResult.categoriesCreated}
-            />
-          </View>
-        ) : null}
-        <Pressable
-          style={styles.importButton}
-          onPress={runRestore}
-          disabled={restoring}
-        >
-          {restoring ? (
-            <ActivityIndicator />
-          ) : (
-            <Text style={styles.importButtonText}>
-              {t('settings.importAppBackup')}
-            </Text>
-          )}
-        </Pressable>
-        <Text style={styles.sectionHint}>
-          {t('settings.importAppBackupHint')}
-        </Text>
-        {restoreError ? (
-          <Text style={styles.errorText}>{restoreError}</Text>
-        ) : null}
-        {restoreResult ? (
+      {restoreResult ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.restoredHeading')}
+          </Text>
           <View style={styles.group}>
             <ImportResultRow
               label={t('settings.restoreResultBoard')}
@@ -911,21 +565,8 @@ export function SettingsScreen() {
               value={restoreResult.transactionsImported}
             />
           </View>
-        ) : null}
-        <Pressable
-          style={styles.exportButton}
-          onPress={runExport}
-          disabled={exporting}
-        >
-          {exporting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.exportButtonText}>
-              {t('settings.exportBoard')}
-            </Text>
-          )}
-        </Pressable>
-      </View>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.aboutHeading')}</Text>
@@ -1003,7 +644,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
   },
-  boardRowMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rowDivider: { borderTopWidth: 1, borderTopColor: colors.border },
   boardOptionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1018,7 +659,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flex: 1,
   },
-  s3ConfigMain: { flex: 1, gap: 2 },
+  rowMain: { flex: 1, gap: 2 },
   reorderArrow: {
     fontSize: 16,
     color: colors.textMuted,
@@ -1055,17 +696,6 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  switchLabel: { fontSize: 15, color: colors.text },
   payeeActions: { flexDirection: 'row', gap: spacing.sm },
   payeeActionButton: {
     flex: 1,
@@ -1077,20 +707,4 @@ const styles = StyleSheet.create({
   },
   payeeActionText: { fontWeight: '600', fontSize: 14, color: colors.text },
   deletePayeeText: { color: colors.negative },
-  errorText: { color: colors.negative, fontSize: 13 },
-  importButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  importButtonText: { color: colors.text, fontWeight: '700', fontSize: 15 },
-  exportButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  exportButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

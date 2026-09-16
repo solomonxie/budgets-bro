@@ -410,7 +410,10 @@ export function InsightsScreen() {
         )}
       </View>
 
-      <Text style={styles.label}>{t('insights.utilities')}</Text>
+      <View style={styles.utilities}>
+        <Text style={styles.sectionTitle}>{t('insights.utilities')}</Text>
+        <Text style={styles.sectionHint}>{t('insights.utilitiesHint')}</Text>
+      </View>
       <View style={styles.card}>
         {UTILITY_ROWS.map((row, i) => (
           <Pressable
@@ -447,6 +450,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   sectionHint: { fontSize: 11, color: colors.textMuted },
+  // Not another 12px uppercase label: this is a page section, not a card
+  // caption, and at the same weight as the card labels above it the list
+  // underneath read as part of the trends card.
+  utilities: { marginTop: spacing.lg, gap: 2 },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: colors.text },
   value: { fontSize: 30, fontWeight: '700', color: colors.text },
   negative: { color: colors.negative },
   stackBar: {

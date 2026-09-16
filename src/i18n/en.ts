@@ -434,6 +434,7 @@ export const en = {
   'insights.babySteps': 'Baby Steps',
   'insights.taxInsights': 'Tax Insights',
   'insights.utilities': 'Utilities',
+  'insights.utilitiesHint': 'Plans and calculators built on your own accounts.',
   'insights.mortgageInsights': 'Mortgage Insights',
   'insights.loanInsights': 'Loan Insights',
   'insights.investmentInsights': 'Investment Insights',

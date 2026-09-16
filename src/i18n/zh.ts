@@ -434,6 +434,7 @@ export const zh: Record<keyof typeof en, string> = {
   'insights.babySteps': '理财七步',
   'insights.taxInsights': '税务洞察',
   'insights.utilities': '实用工具',
+  'insights.utilitiesHint': '基于你自己账户的规划与计算器。',
   'insights.mortgageInsights': '房贷洞察',
   'insights.loanInsights': '借贷洞察',
   'insights.investmentInsights': '投资洞察',

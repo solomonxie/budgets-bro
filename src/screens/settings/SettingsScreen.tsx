@@ -248,7 +248,10 @@ export function SettingsScreen() {
     setRestoreResult(null);
     try {
       const db = await getDb();
-      const bytes = await downloadLatestBackup(db, boardId);
+      // Backup keys carry the board's slug, so restore needs the name to
+      // know which of the bucket's files are this board's.
+      const board = boards.find((b) => b.id === boardId);
+      const bytes = await downloadLatestBackup(db, boardId, board?.name ?? '');
       if (!bytes) {
         setRestoreError(t('settings.noCloudBackupFound'));
         return;

@@ -21,14 +21,28 @@ function backupDir(): Directory {
   return new Directory(Paths.document, BACKUP_DIR_NAME);
 }
 
-// fileName is `<boardId>/latest.zip` (same convention as s3Provider) — the
-// boardId segment becomes a real subdirectory here, created on demand.
-function resolveFile(fileName: string): File {
-  const parts = fileName.split('/');
+// Keys are `<YYYYMM>/<board-slug>-<YYYYMMDD>.zip` (same convention as
+// s3Provider) — the month segment becomes a real subdirectory here, created
+// on demand.
+function resolveFile(key: string): File {
+  const parts = key.split('/');
   const name = parts.pop()!;
   const dir = parts.reduce((d, part) => new Directory(d, part), backupDir());
   if (!dir.exists) dir.create({ intermediates: true });
   return new File(dir, name);
+}
+
+// One level deep is all the layout ever produces, plus the legacy
+// `<boardId>/latest.zip` from before keys were dated.
+function listBackupKeys(): string[] {
+  const root = backupDir();
+  if (!root.exists) return [];
+  const keys: string[] = [];
+  for (const entry of root.list()) {
+    if (entry instanceof File) keys.push(entry.name);
+    else for (const child of entry.list()) if (child instanceof File) keys.push(`${entry.name}/${child.name}`);
+  }
+  return keys;
 }
 
 export async function isLocalBackupEnabled(db: SQLiteDatabase): Promise<boolean> {
@@ -42,14 +56,17 @@ export async function setLocalBackupEnabled(db: SQLiteDatabase, enabled: boolean
 function toProvider(): CloudProvider {
   return {
     id: 'local',
-    async upload(bytes, fileName) {
-      const file = resolveFile(fileName);
+    async upload(bytes, key) {
+      const file = resolveFile(key);
       if (file.exists) file.delete();
       file.create();
       file.write(bytes);
     },
-    async downloadLatest(fileName) {
-      const file = resolveFile(fileName);
+    async listKeys() {
+      return listBackupKeys();
+    },
+    async download(key) {
+      const file = resolveFile(key);
       return file.exists ? file.bytes() : null;
     },
   };

@@ -3,6 +3,8 @@ import * as settingsRepo from '../db/repositories/settingsRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
 import { createLocalProviders } from './localProvider';
+import { LEGACY_BACKUP_KEY, backupKey, latestBackupKey } from './backupPath';
+import { currentDateISO } from '../domain/month';
 import type { CloudProvider } from './types';
 
 const AUTO_SYNC_KEY = 'sync_auto_enabled';
@@ -51,11 +53,12 @@ export async function syncNow(db: SQLiteDatabase, boardId: number, boardName: st
   const providers = await collectProviders(db);
   if (providers.length === 0) return;
   const bytes = await buildBackupZip(db, boardId, boardName);
-  const fileName = `${boardId}/latest.zip`;
+  // One object per board per day — syncing again the same day replaces it.
+  const key = backupKey(boardName, currentDateISO());
   await Promise.all(
     providers.map(async (provider) => {
       try {
-        await provider.upload(bytes, fileName);
+        await provider.upload(bytes, key);
         await setLastSyncedAt(db, provider.id, new Date().toISOString());
       } catch (e) {
         console.warn(`[cloudSync] ${provider.id} upload failed`, e);
@@ -66,12 +69,22 @@ export async function syncNow(db: SQLiteDatabase, boardId: number, boardName: st
 
 // For "Restore Latest from Cloud" — tries providers in order, first hit
 // wins (there's normally only one configured anyway).
-export async function downloadLatestBackup(db: SQLiteDatabase, boardId: number): Promise<Uint8Array | null> {
+export async function downloadLatestBackup(db: SQLiteDatabase, boardId: number, boardName: string): Promise<Uint8Array | null> {
   const providers = await collectProviders(db);
-  const fileName = `${boardId}/latest.zip`;
   for (const provider of providers) {
-    const bytes = await provider.downloadLatest(fileName);
-    if (bytes) return bytes;
+    try {
+      const key = latestBackupKey(await provider.listKeys(), boardName);
+      if (key) {
+        const bytes = await provider.download(key);
+        if (bytes) return bytes;
+      }
+    } catch (e) {
+      console.warn(`[cloudSync] ${provider.id} list failed`, e);
+    }
+    // Anyone who backed up before keys were dated still has exactly one file
+    // at the old path, and it may be their only copy.
+    const legacy = await provider.download(LEGACY_BACKUP_KEY(boardId));
+    if (legacy) return legacy;
   }
   return null;
 }

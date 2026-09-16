@@ -234,6 +234,7 @@ must natively support backup all configs and app data to mobile local storage, a
 
 Add connection:
 - Ask for bucket + folder + key + secret, one section. Nothing else — no endpoint/S3-compatible fields until asked for.
+- A collapsed `Paste a config block` link sits above the fields: paste the lot at once and it splits into them. Retyping a 40-character secret off a phone keyboard is where this form actually fails. Parses on every change (no Apply button — the fields filling is the confirmation), reports "{n} of 4 fields filled" so a partial paste is visible, and stays liberal about the input: `:` or `=`, `export ` prefixes, quotes, trailing commas, and every spelling of the key people actually have. Splits on the first separator only, because a base64 secret contains `/`, `+` and `=`. Unknown keys are ignored, `region` among them — it's auto-detected below, which beats whatever is in the note.
 - Relabel raw service terms: "Key Prefix" → "Folder (key prefix)".
 - Auto-detect the region; never make the user type it. Validate credentials against the real service before saving (upload + delete a marker), fail closed.
 - Every attempt (success or failure) is saved as a draft keyed by bucket+prefix+key, listed under the form: tap to refill all fields including the secret, ✕ to drop one, auto-removed once it succeeds.

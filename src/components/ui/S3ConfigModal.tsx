@@ -19,6 +19,7 @@ import {
   DEFAULT_S3_KEY_PREFIX,
 } from '../../sync/s3Provider';
 import type { S3ConfigInput, S3DraftMeta } from '../../sync/s3Provider';
+import { parseS3ConfigText, parsedFieldCount } from '../../sync/parseS3ConfigText';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -46,6 +47,11 @@ export function S3ConfigModal({
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<S3DraftMeta[]>([]);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  // null until something has been pasted — so the hint only appears once
+  // there's a result to report.
+  const [pasteFilled, setPasteFilled] = useState<number | null>(null);
 
   const refreshDrafts = async () => {
     const db = await getDb();
@@ -61,6 +67,26 @@ export function S3ConfigModal({
     setKeyPrefix(DEFAULT_S3_KEY_PREFIX);
     setAccessKeyId('');
     setSecretAccessKey('');
+    setError(null);
+    setPasteOpen(false);
+    setPasteText('');
+    setPasteFilled(null);
+  };
+
+  // Retyping a 40-character secret off a phone keyboard is where this form
+  // actually fails, so the whole block can be pasted at once and split into
+  // the fields below. Fills on every change rather than behind an "apply"
+  // button — the filled fields are the confirmation.
+  const applyPaste = (text: string) => {
+    setPasteText(text);
+    const parsed = parseS3ConfigText(text);
+    const count = parsedFieldCount(parsed);
+    setPasteFilled(text.trim() ? count : null);
+    if (count === 0) return;
+    if (parsed.bucket) setBucket(parsed.bucket);
+    if (parsed.keyPrefix) setKeyPrefix(parsed.keyPrefix);
+    if (parsed.accessKeyId) setAccessKeyId(parsed.accessKeyId);
+    if (parsed.secretAccessKey) setSecretAccessKey(parsed.secretAccessKey);
     setError(null);
   };
 
@@ -130,6 +156,31 @@ export function S3ConfigModal({
     >
       <BottomSheet title={t('s3ConfigModal.title')} onClose={cancel}>
         <View style={styles.form}>
+          <Pressable onPress={() => setPasteOpen((open) => !open)}>
+            <Text style={styles.pasteToggle}>{t('s3ConfigModal.pasteToggle')}</Text>
+          </Pressable>
+          {pasteOpen ? (
+            <>
+              <TextField
+                value={pasteText}
+                onChangeText={applyPaste}
+                placeholder={t('s3ConfigModal.pastePlaceholder')}
+                style={styles.pasteInput}
+                multiline
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {pasteFilled != null ? (
+                <Text style={pasteFilled > 0 ? styles.hint : styles.errorText}>
+                  {pasteFilled > 0
+                    ? t('s3ConfigModal.pasteFilled', { count: pasteFilled })
+                    : t('s3ConfigModal.pasteNothing')}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
           <TextField
             label={t('settings.s3BucketLabel')}
             value={bucket}
@@ -214,6 +265,10 @@ export function S3ConfigModal({
 }
 
 const styles = StyleSheet.create({
+  pasteToggle: { fontSize: 13, fontWeight: '600', color: colors.accent },
+  // Tall enough that a four-line block is visible without scrolling the
+  // field itself, which is what makes a mis-paste obvious.
+  pasteInput: { minHeight: 92, textAlignVertical: 'top' },
   form: { gap: spacing.md, paddingBottom: spacing.md },
   hint: { fontSize: 13, color: colors.textMuted },
   errorText: { fontSize: 13, color: colors.negative },

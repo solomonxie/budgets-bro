@@ -11,11 +11,8 @@ const CONFIGS_KEY = 'sync_s3_configs';
 
 // Pre-fills the config form's key-prefix field — matches app.json's slug.
 // Keeps backups namespaced if the bucket is ever shared with another app,
-// without the user having to think one up. Per-sync dated filenames were
-// considered too (a history instead of one rolling latest.zip) but that's
-// what S3 bucket versioning is for — see DESIGN.md's object-key note —
-// doing it here would mean hand-rolling ListObjectsV2 pagination just to
-// find "latest".
+// without the user having to think one up. Keys under it are dated — see
+// backupPath.ts.
 export const DEFAULT_S3_KEY_PREFIX = 'build-your-own-budget';
 
 // Bucket identifies the config (no separate display name) — region is
@@ -433,6 +430,30 @@ async function listObjectsPage(
   return { prefixes, objects, nextToken };
 }
 
+// Flat recursive list (no delimiter) of everything under the config's root —
+// the folder-style listObjects above can't see into the month folders, and
+// restore needs every dated key to pick the newest.
+async function listAllKeys(config: S3Config, root: string | undefined): Promise<string[]> {
+  const prefix = root ? `${root}/` : '';
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const query: Record<string, string> = { 'list-type': '2', 'max-keys': '1000' };
+    if (prefix) query.prefix = prefix;
+    if (token) query['continuation-token'] = token;
+    const { url, headers } = await signRequest(config, 'GET', '', null, undefined, query);
+    const res = await fetch(url, { method: 'GET', headers });
+    if (!res.ok) throw new Error(`S3 list failed: ${res.status} ${await res.text()}`);
+    const xml = await res.text();
+    for (const block of xmlBlocks(xml, 'Contents')) {
+      const key = xmlTag(block, 'Key') ?? '';
+      if (key && key !== prefix) keys.push(prefix ? key.slice(prefix.length) : key);
+    }
+    token = xmlTag(xml, 'IsTruncated') === 'true' ? xmlTag(xml, 'NextContinuationToken') : undefined;
+  } while (token);
+  return keys;
+}
+
 async function listObjects(config: S3Config, prefix: string): Promise<S3ListResult> {
   const prefixes: string[] = [];
   const objects: S3ListEntry[] = [];
@@ -465,15 +486,20 @@ export async function listS3Objects(db: SQLiteDatabase, configId: string, subPat
 function toProvider(meta: S3ConfigMeta): CloudProvider {
   return {
     id: `aws-s3:${meta.id}`,
-    async upload(bytes, fileName) {
+    async upload(bytes, key) {
       const config = await resolveConfig(meta);
       if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
-      await put(config, joinKey(meta.keyPrefix, fileName), bytes);
+      await put(config, joinKey(meta.keyPrefix, key), bytes);
     },
-    async downloadLatest(fileName) {
+    async listKeys() {
+      const config = await resolveConfig(meta);
+      if (!config) return [];
+      return listAllKeys(config, normalizePrefix(meta.keyPrefix));
+    },
+    async download(key) {
       const config = await resolveConfig(meta);
       if (!config) return null;
-      return get(config, joinKey(meta.keyPrefix, fileName));
+      return get(config, joinKey(meta.keyPrefix, key));
     },
   };
 }

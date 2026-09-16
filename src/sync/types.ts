@@ -13,6 +13,10 @@ export type CloudProviderId = string;
 // there's no separate `isConfigured()` to remember to check first.
 export interface CloudProvider {
   id: CloudProviderId;
-  upload(bytes: Uint8Array, fileName: string): Promise<void>;
-  downloadLatest(fileName: string): Promise<Uint8Array | null>;
+  upload(bytes: Uint8Array, key: string): Promise<void>;
+  // Every backup key this provider holds, relative to its own root (an S3
+  // config's keyPrefix, the local backups directory). Restore needs the list
+  // rather than a fixed name because keys are dated now — see backupPath.ts.
+  listKeys(): Promise<string[]>;
+  download(key: string): Promise<Uint8Array | null>;
 }

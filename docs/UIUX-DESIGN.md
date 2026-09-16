@@ -246,8 +246,9 @@ Browse (tap a connection) — one level at a time, the same screen pushing itsel
 ┌─────────────────────────────────────────┐
 │ ‹ Back          bucket-name         (⋯) │  Back = up one level,
 ├─────────────────────────────────────────┤  closes at root. No breadcrumb
-│ 📁  2026                            ›   │  strip, no ".." row.
-│ 📄  latest.zip        4.2 MB · Mar 3    │
+│ 📁  202609                          ›   │  strip, no ".." row.
+│ 📄  household-20260915.zip            │
+│                       4.2 MB · Sep 15   │
 ├─────────────────────────────────────────┤
 │ 3 backups · 12.4 MB          ⟳ Syncing… │  ← one-line footer, scoped to
 └─────────────────────────────────────────┘    this folder, counted

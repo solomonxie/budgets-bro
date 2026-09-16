@@ -29,8 +29,13 @@ npm start
 ```
 Opens Expo Go — quick iteration, but native modules (sqlite, secure-store, sharing) run in Expo Go's own shell, not the real app.
 
+### Local builds need Xcode 26.4+ (macOS Tahoe 26.2+)
+SDK 57 requires Xcode 26.4 / Swift 6.3. Xcode 26.3 is the last version that runs on macOS
+Sequoia, and it fails in `expo-modules-jsi` — `SWIFT_RETURNS_RETAINED` on the `RuntimeScheduler`
+constructors, then `sending '...Ptr' risks causing data races` in `JavaScriptRuntime.swift`.
+Not patchable in practice. On Sequoia, build in the cloud.
+
 ### Real app on simulator (not Expo Go)
-SDK 57 needs Swift tools 6.2 (Xcode 26+) to build locally; if your Xcode is older, build in the cloud instead:
 ```
 npx eas-cli build --profile preview --platform ios --non-interactive
 ```
@@ -39,6 +44,26 @@ Then download the `.tar.gz` from the printed artifact URL, extract, and install:
 tar -xzf app.tar.gz
 xcrun simctl install booted BYOBudget.app
 xcrun simctl launch booted com.solomonxie.buildyourownbudget
+```
+
+### Real app on an iPhone
+Needs a paid Apple Developer Program membership. Ad hoc signing: the build is locked to
+device UDIDs registered *before* the build.
+
+```
+npx eas-cli device:create          # once per phone — pick "Website", scan QR, install profile
+npx eas-cli build --profile device --platform ios
+```
+Log in with the Apple ID when prompted; EAS creates the distribution cert and provisioning
+profile. When the build finishes, open the printed URL on the phone and tap Install.
+
+New phone later → `device:create`, then `eas build:resign` (no full rebuild).
+
+For more than a handful of testers, use TestFlight instead — no UDIDs, but App Store Connect
+review/processing between each build:
+```
+npx eas-cli build --profile production --platform ios
+npx eas-cli submit --platform ios --latest
 ```
 
 ## Screenshots

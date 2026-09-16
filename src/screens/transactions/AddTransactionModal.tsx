@@ -48,8 +48,18 @@ const DEFAULT_RULE: RecurrenceRule = {
 // it never matches what the native input just showed: type "3" into "$0.05"
 // and the field momentarily holds "$0.053" (6 chars) before React Native
 // replaces it with "$0.53" (5). Every replacement resets the native
-// selection, which is the caret jumping back and forth — hence the pinned
-// `selection` on the input below.
+// selection, so the caret lands somewhere different on each digit.
+//
+// Pinning `selection` to the end was tried first and made it worse: a fresh
+// selection object every render gets re-applied *after* the text replacement,
+// which is itself a visible hop, and switching the prop between an object and
+// `undefined` on focus flips the input between controlled and uncontrolled
+// selection. The round trip can't be won from this side.
+//
+// So the caret is hidden instead (`caretHidden` below). It carries no
+// information in a field where digits accumulate right-to-left and nothing in
+// the middle is editable — the same reason a calculator display has no cursor.
+// Focus stays obvious from the keyboard and its accessory bar.
 function centsFromAmountDigits(digits: string): number {
   return digits ? parseInt(digits, 10) : 0;
 }
@@ -363,10 +373,10 @@ export function AddTransactionModal() {
                 onFocus={() => setAmountFocused(true)}
                 onBlur={() => setAmountFocused(false)}
                 value={amountDisplay}
-                // The caret can only ever belong at the end here — digits
-                // accumulate right-to-left and there is nothing to edit in
-                // the middle. Pinning it stops the bounce described above.
-                selection={amountFocused ? { start: amountDisplay.length, end: amountDisplay.length } : undefined}
+                // No caret at all, rather than a pinned one. See above: the
+                // caret has no job here, and controlling `selection` to hold
+                // it in place made the jitter worse instead of fixing it.
+                caretHidden
                 onChangeText={(text) =>
                   setAmount(
                     text

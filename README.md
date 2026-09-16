@@ -29,11 +29,12 @@ npm start
 ```
 Opens Expo Go — quick iteration, but native modules (sqlite, secure-store, sharing) run in Expo Go's own shell, not the real app.
 
-### Local builds need Xcode 26.4+ (macOS Tahoe 26.2+)
+### Local builds need Xcode 26.4+
 SDK 57 requires Xcode 26.4 / Swift 6.3. Xcode 26.3 is the last version that runs on macOS
 Sequoia, and it fails in `expo-modules-jsi` — `SWIFT_RETURNS_RETAINED` on the `RuntimeScheduler`
 constructors, then `sending '...Ptr' risks causing data races` in `JavaScriptRuntime.swift`.
-Not patchable in practice. On Sequoia, build in the cloud.
+Not patchable in practice. On Sequoia specifically, build in the cloud (EAS, below); on Tahoe
+with a current Xcode, build locally — it's faster and needs no Apple Developer membership.
 
 ### Real app on simulator (not Expo Go)
 ```
@@ -46,9 +47,24 @@ xcrun simctl install booted BYOBudget.app
 xcrun simctl launch booted com.solomonxie.buildyourownbudget
 ```
 
-### Real app on an iPhone
-Needs a paid Apple Developer Program membership. Ad hoc signing: the build is locked to
-device UDIDs registered *before* the build.
+### Real app on an iPhone (plugged in)
+The everyday path. Local Xcode build straight onto the device — no EAS, no provisioning
+profiles to register, no Apple Developer membership. Trust the Mac on the phone once, then:
+
+```
+xcrun devicectl list devices                                    # grab the UDID
+npx expo run:ios --device <udid> --configuration Release
+```
+Drop `--configuration Release` for a debug build that attaches to Metro. Release bundles the
+JS in, so the app runs standalone with no dev server.
+
+Signing is automatic from whatever team Xcode already has. First build from cold is slow
+(~5–10 min); later ones reuse DerivedData.
+
+### Real app on an iPhone (over the air)
+For a phone that isn't plugged into this Mac. Needs a paid Apple Developer Program
+membership. Ad hoc signing: the build is locked to device UDIDs registered *before* the
+build.
 
 ```
 npx eas-cli device:create          # once per phone — pick "Website", scan QR, install profile

@@ -285,7 +285,7 @@ export const en = {
   'aiAnalysis.ageLabel': 'Age',
   'aiAnalysis.familySizeLabel': 'Family size',
   'aiAnalysis.privacyModeLabel': 'Privacy Mode',
-  'aiAnalysis.privacyModeHint': 'Rounds every amount to the nearest $10 and replaces category names with generic labels before sending anything to OpenAI.',
+  'aiAnalysis.privacyModeHint': 'Rounds every amount to the nearest $10 and replaces category names with generic labels ("Category 1") before anything is sent. Turn it off to have the AI talk about your real categories by name.',
   'aiAnalysis.runButton': 'Run Analysis',
   'aiAnalysis.errorInvalidKey': 'OpenAI rejected the API key — check it in Settings.',
   'aiAnalysis.errorRateLimited': 'Rate-limited by OpenAI — try again in a moment.',

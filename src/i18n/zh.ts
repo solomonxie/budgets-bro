@@ -286,7 +286,7 @@ export const zh: Record<keyof typeof en, string> = {
   'aiAnalysis.ageLabel': '年龄',
   'aiAnalysis.familySizeLabel': '家庭人数',
   'aiAnalysis.privacyModeLabel': '隐私模式',
-  'aiAnalysis.privacyModeHint': '发送给 OpenAI 前，将所有金额四舍五入到最近的 10 元，并将分类名称替换为通用标签。',
+  'aiAnalysis.privacyModeHint': '发送前将所有金额四舍五入到最近的 10 元，并把分类名称换成通用标签（“Category 1”）。关掉它，AI 才会直呼你真实的分类名。',
   'aiAnalysis.runButton': '开始分析',
   'aiAnalysis.errorInvalidKey': 'OpenAI 拒绝了此 API 密钥——请在设置中检查。',
   'aiAnalysis.errorRateLimited': '已被 OpenAI 限流——请稍后重试。',

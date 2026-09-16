@@ -7,8 +7,10 @@ import { zh } from './zh';
 // finance-tools namespaces because the older dictionary predates this guard.
 const GUARDED = /^(financeTools|calc[A-Z])/;
 
-// Strings that are legitimately identical in both languages.
-const IDENTICAL_BY_DESIGN = new Set<string>(['%', 'LPR', 'DTI', 'PMI', 'HOA', 'RRSP']);
+// Strings that are legitimately identical in both languages — acronyms, and
+// the Chinese currency units the 提前还贷 calculator labels its amount toggle
+// with, which are already Chinese in the English dictionary.
+const IDENTICAL_BY_DESIGN = new Set<string>(['%', 'LPR', 'DTI', 'PMI', 'HOA', 'RRSP', '万', '元']);
 
 describe('translations', () => {
   it('defines the same keys in both dictionaries', () => {

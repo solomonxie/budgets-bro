@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { TextField } from './TextField';
+import { SecretField } from './SecretField';
 import { getDb } from '../../db/client';
 import {
   testS3Connection,
@@ -30,6 +31,11 @@ interface S3ConfigModalProps {
   onSaved: (input: S3ConfigInput) => Promise<void>;
 }
 
+// AWS's own lengths — used only for a hint under the field, never to block a
+// save (see SecretField).
+const ACCESS_KEY_LENGTH = 20;
+const SECRET_KEY_LENGTH = 40;
+
 // Half-height sheet, not a full page — four fields and an optional drafts
 // list still fit and scroll within it. Save runs testS3Connection first
 // (auto-detects the region, then a real upload+delete round-trip) and only
@@ -47,11 +53,13 @@ export function S3ConfigModal({
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<S3DraftMeta[]>([]);
-  const [pasteOpen, setPasteOpen] = useState(false);
+  // The paste box is a *mode* of this field group, not a second box above it:
+  // it replaces the fields while it's open. A permanent block at the top is
+  // paid for on every visit (including the retries where nobody pastes),
+  // pushes the real form below the fold, and leaves a stale secret sitting in
+  // view above the fields it already filled.
+  const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState('');
-  // null until something has been pasted — so the hint only appears once
-  // there's a result to report.
-  const [pasteFilled, setPasteFilled] = useState<number | null>(null);
 
   const refreshDrafts = async () => {
     const db = await getDb();
@@ -68,26 +76,42 @@ export function S3ConfigModal({
     setAccessKeyId('');
     setSecretAccessKey('');
     setError(null);
-    setPasteOpen(false);
+    setPasteMode(false);
     setPasteText('');
-    setPasteFilled(null);
+  };
+
+  // Cleared in both directions — a pasted secret shouldn't stay in view, or
+  // in state, once it has landed in the fields.
+  const togglePasteMode = () => {
+    setPasteText('');
+    setPasteMode((open) => !open);
   };
 
   // Retyping a 40-character secret off a phone keyboard is where this form
   // actually fails, so the whole block can be pasted at once and split into
-  // the fields below. Fills on every change rather than behind an "apply"
-  // button — the filled fields are the confirmation.
+  // the fields. Parses on every change rather than behind an "apply" button —
+  // the filled fields are the confirmation, and they say *which* four and stay
+  // editable in place, which a "3 of 4" counter never did.
   const applyPaste = (text: string) => {
+    // A real paste is a multi-character insert. Typing by hand keeps the box
+    // open, or it would close under someone entering a second line.
+    const pasted = text.length - pasteText.length > 1;
     setPasteText(text);
+
     const parsed = parseS3ConfigText(text);
-    const count = parsedFieldCount(parsed);
-    setPasteFilled(text.trim() ? count : null);
-    if (count === 0) return;
+    // Only overwrite what the block actually named: a half-filled paste must
+    // not blank a field already typed by hand.
     if (parsed.bucket) setBucket(parsed.bucket);
     if (parsed.keyPrefix) setKeyPrefix(parsed.keyPrefix);
     if (parsed.accessKeyId) setAccessKeyId(parsed.accessKeyId);
     if (parsed.secretAccessKey) setSecretAccessKey(parsed.secretAccessKey);
+    if (parsedFieldCount(parsed) === 0) return;
+
     setError(null);
+    if (pasted) {
+      setPasteText('');
+      setPasteMode(false);
+    }
   };
 
   const cancel = () => {
@@ -156,10 +180,19 @@ export function S3ConfigModal({
     >
       <BottomSheet title={t('s3ConfigModal.title')} onClose={cancel}>
         <View style={styles.form}>
-          <Pressable onPress={() => setPasteOpen((open) => !open)}>
-            <Text style={styles.pasteToggle}>{t('s3ConfigModal.pasteToggle')}</Text>
+          {/* The affordance lives in the group's own header, as a bracketed
+              text button: one line, reads as part of the heading, and names
+              what tapping it does in both directions. */}
+          <Pressable onPress={togglePasteMode} style={styles.groupHeader}>
+            <Text style={styles.groupHeading}>
+              {t('s3ConfigModal.connectionHeading')}{' '}
+              <Text style={styles.groupAction}>
+                ({pasteMode ? t('s3ConfigModal.backToFields') : t('s3ConfigModal.pasteInfo')})
+              </Text>
+            </Text>
           </Pressable>
-          {pasteOpen ? (
+
+          {pasteMode ? (
             <>
               <TextField
                 value={pasteText}
@@ -172,45 +205,42 @@ export function S3ConfigModal({
                 autoComplete="off"
                 spellCheck={false}
               />
-              {pasteFilled != null ? (
-                <Text style={pasteFilled > 0 ? styles.hint : styles.errorText}>
-                  {pasteFilled > 0
-                    ? t('s3ConfigModal.pasteFilled', { count: pasteFilled })
-                    : t('s3ConfigModal.pasteNothing')}
-                </Text>
-              ) : null}
+              <Text style={styles.hint}>{t('s3ConfigModal.pasteHint')}</Text>
             </>
-          ) : null}
-          <TextField
-            label={t('settings.s3BucketLabel')}
-            value={bucket}
-            onChangeText={setBucket}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TextField
-            label={t('s3ConfigModal.keyPrefixLabel')}
-            value={keyPrefix}
-            onChangeText={setKeyPrefix}
-            placeholder={t('s3ConfigModal.keyPrefixPlaceholder')}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TextField
-            label={t('settings.s3AccessKeyLabel')}
-            value={accessKeyId}
-            onChangeText={setAccessKeyId}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TextField
-            label={t('settings.s3SecretKeyLabel')}
-            value={secretAccessKey}
-            onChangeText={setSecretAccessKey}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-          />
+          ) : (
+            <>
+              <TextField
+                label={t('settings.s3BucketLabel')}
+                value={bucket}
+                onChangeText={setBucket}
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+              />
+              <TextField
+                label={t('s3ConfigModal.keyPrefixLabel')}
+                value={keyPrefix}
+                onChangeText={setKeyPrefix}
+                placeholder={t('s3ConfigModal.keyPrefixPlaceholder')}
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+              />
+              <SecretField
+                label={t('settings.s3AccessKeyLabel')}
+                value={accessKeyId}
+                onChangeText={setAccessKeyId}
+                expectedLength={ACCESS_KEY_LENGTH}
+              />
+              <SecretField
+                label={t('settings.s3SecretKeyLabel')}
+                value={secretAccessKey}
+                onChangeText={setSecretAccessKey}
+                expectedLength={SECRET_KEY_LENGTH}
+              />
+            </>
+          )}
+
           {testing ? (
             <Text style={styles.hint}>{t('s3ConfigModal.testing')}</Text>
           ) : null}
@@ -265,7 +295,9 @@ export function S3ConfigModal({
 }
 
 const styles = StyleSheet.create({
-  pasteToggle: { fontSize: 13, fontWeight: '600', color: colors.accent },
+  groupHeader: { paddingVertical: 2 },
+  groupHeading: { fontSize: 15, fontWeight: '700', color: colors.text },
+  groupAction: { fontWeight: '600', color: colors.accent },
   // Tall enough that a four-line block is visible without scrolling the
   // field itself, which is what makes a mis-paste obvious.
   pasteInput: { minHeight: 92, textAlignVertical: 'top' },

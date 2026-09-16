@@ -13,6 +13,13 @@
         "simulator": true
       }
     },
+    "device": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "ios": {
+        "simulator": false
+      }
+    },
     "production": {
       "autoIncrement": true
     }

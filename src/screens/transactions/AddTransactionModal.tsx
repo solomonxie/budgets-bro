@@ -44,22 +44,23 @@ const DEFAULT_RULE: RecurrenceRule = {
 // YNAB-style amount entry: `amount` holds raw digits, always read right-to-
 // left as cents — typing "4444" reads as $44.44, no decimal point needed.
 //
-// The displayed text is reformatted from those digits on every keystroke, so
-// it never matches what the native input just showed: type "3" into "$0.05"
-// and the field momentarily holds "$0.053" (6 chars) before React Native
-// replaces it with "$0.53" (5). Every replacement resets the native
-// selection, so the caret lands somewhere different on each digit.
+// A formatted value can't live in the TextInput. Reformatting on each
+// keystroke means the string React hands back never matches what the native
+// field just rendered — type "3" into "$0.05" and it holds "$0.053" for a
+// frame before React replaces it with "$0.53". That replacement is visible as
+// a flash on every digit, and it also resets the native selection, so the
+// caret hops too.
 //
-// Pinning `selection` to the end was tried first and made it worse: a fresh
-// selection object every render gets re-applied *after* the text replacement,
-// which is itself a visible hop, and switching the prop between an object and
-// `undefined` on focus flips the input between controlled and uncontrolled
-// selection. The round trip can't be won from this side.
+// Two attempts fought the round trip from the JS side and both failed.
+// Pinning `selection` to the end made it worse (a fresh selection object each
+// render is applied *after* the text replacement, so the caret moved twice per
+// keystroke), and `caretHidden` only took the cursor out of a flash that was
+// really the text.
 //
-// So the caret is hidden instead (`caretHidden` below). It carries no
-// information in a field where digits accumulate right-to-left and nothing in
-// the middle is editable — the same reason a calculator display has no cursor.
-// Focus stays obvious from the keyboard and its accessory bar.
+// So the input holds the raw digits and nothing else — exactly what the
+// keyboard produced, so there is no replacement and no flash. The formatted
+// amount is a sibling Text node that React owns outright, with the input laid
+// over it invisibly to catch focus and keystrokes. See the field below.
 function centsFromAmountDigits(digits: string): number {
   return digits ? parseInt(digits, 10) : 0;
 }
@@ -361,32 +362,47 @@ export function AddTransactionModal() {
                   </Pressable>
                 )}
               </View>
-              <TextInput
-                ref={amountInputRef}
-                style={styles.amountInput}
-                placeholder={t('spend.amountPlaceholder')}
-                keyboardType="number-pad"
-                keyboardAppearance="dark"
-                inputAccessoryViewID={
-                  Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
-                }
-                onFocus={() => setAmountFocused(true)}
-                onBlur={() => setAmountFocused(false)}
-                value={amountDisplay}
-                // No caret at all, rather than a pinned one. See above: the
-                // caret has no job here, and controlling `selection` to hold
-                // it in place made the jitter worse instead of fixing it.
-                caretHidden
-                onChangeText={(text) =>
-                  setAmount(
-                    text
-                      .replace(/\D/g, '')
-                      .replace(/^0+(?=\d)/, '')
-                      .slice(0, 9),
-                  )
-                }
-                placeholderTextColor={colors.textMuted}
-              />
+              <Pressable
+                style={styles.amountField}
+                onPress={() => amountInputRef.current?.focus()}
+              >
+                <Text
+                  style={[
+                    styles.amountInput,
+                    !amountDisplay && styles.amountPlaceholder,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {amountDisplay || t('spend.amountPlaceholder')}
+                </Text>
+                <TextInput
+                  ref={amountInputRef}
+                  style={styles.amountCapture}
+                  keyboardType="number-pad"
+                  keyboardAppearance="dark"
+                  inputAccessoryViewID={
+                    Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
+                  }
+                  onFocus={() => setAmountFocused(true)}
+                  onBlur={() => setAmountFocused(false)}
+                  // Raw digits, never the formatted string — this is exactly
+                  // what the keyboard just produced, so React hands back what
+                  // the native field already holds and there is nothing to
+                  // replace. Where the sanitizer does change it (a leading
+                  // zero, the 9-digit cap) the field is invisible, so the
+                  // correction can't be seen either.
+                  value={amount}
+                  onChangeText={(text) =>
+                    setAmount(
+                      text
+                        .replace(/\D/g, '')
+                        .replace(/^0+(?=\d)/, '')
+                        .slice(0, 9),
+                    )
+                  }
+                  caretHidden
+                />
+              </Pressable>
               <View style={styles.segmented}>
                 <Pressable
                   style={[
@@ -751,12 +767,26 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   accessoryDoneText: { fontSize: 16, fontWeight: '600', color: colors.accent },
+  amountField: { justifyContent: 'center' },
   amountInput: {
     fontSize: 40,
     fontWeight: '700',
     textAlign: 'center',
     color: colors.text,
     paddingVertical: 6,
+  },
+  amountPlaceholder: { color: colors.textMuted },
+  // Focusable but invisible — it exists only to raise the keyboard and catch
+  // digits. Laid over the Text at zero opacity rather than given no size, so
+  // it still takes focus and a tap anywhere on the number lands on it.
+  amountCapture: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0,
+    color: 'transparent',
   },
   segmented: {
     flexDirection: 'row',

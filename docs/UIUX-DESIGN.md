@@ -234,7 +234,26 @@ must natively support backup all configs and app data to mobile local storage, a
 
 Add connection:
 - Ask for bucket + folder + key + secret, one section. Nothing else — no endpoint/S3-compatible fields until asked for.
-- A collapsed `Paste a config block` link sits above the fields: paste the lot at once and it splits into them. Retyping a 40-character secret off a phone keyboard is where this form actually fails. Parses on every change (no Apply button — the fields filling is the confirmation), reports "{n} of 4 fields filled" so a partial paste is visible, and stays liberal about the input: `:` or `=`, `export ` prefixes, quotes, trailing commas, and every spelling of the key people actually have. Splits on the first separator only, because a base64 secret contains `/`, `+` and `=`. Unknown keys are ignored, `region` among them — it's auto-detected below, which beats whatever is in the note.
+- Paste-to-fill is a **mode of the field group**, not a second box above it. The affordance is a bracketed text button in the group's own header — `S3 bucket (paste info to add)` — and tapping it *replaces* the fields with a paste box (`… (back to fields)` to flip back). Retyping a 40-character secret off a phone keyboard is where this form actually fails.
+
+```
+ S3 bucket (paste info to add)          S3 bucket (back to fields)
+ ┌──────────────────────────┐           ┌──────────────────────────┐
+ │ Bucket                   │   tap ⟶   │ bucket: my-bucket        │
+ │ Folder (key prefix)      │           │ prefix: budget/          │
+ │ Access Key ID        Show│   ⟵ one   │ access_key_id: AKIA…     │
+ │ Secret Access Key    Show│    paste  │ secret_access_key: …     │
+ └──────────────────────────┘           └──────────────────────────┘
+```
+
+  - **One paste, then snap back.** Parses on every change (no Apply button) and returns to the filled fields immediately — seeing the four fields filled *is* the confirmation, and it beats a "3 of 4 filled" counter because it also shows *which* four and stays editable in place.
+  - **Typing by hand keeps the box open** — flip back only on a real paste (a multi-character insert), or the box closes under someone entering a second line.
+  - **Clear the buffer on every toggle, both directions.** A pasted secret must not sit in view, or in state, after it has landed in the fields.
+  - **Only overwrite what the block named**; an empty value fills nothing, so a half paste never blanks a field typed by hand.
+  - Stay liberal about the input: `:` or `=`, `export ` prefixes, quotes, trailing commas, and every spelling of the key people actually have. Split on the first separator only, because a base64 secret contains `/`, `+` and `=`. Unknown keys are ignored, `region` among them — it's auto-detected below, which beats whatever is in the note.
+  - A real textarea, tall enough to show four lines at once so a mis-paste is visible. It can't be masked — say so rather than pretending.
+- Why not a permanent block at the top: it's paid for on every visit including the retries where nobody pastes, it pushes the real form below the fold, two inputs for the same data invite editing the wrong one, and sitting first it reads as the intended path with the plain form as a fallback. The fields are the form; the paste is a shortcut into them.
+- Each credential field masks with a show/hide toggle, autocorrect/spellcheck/capitalization off, and carries a non-blocking character-count hint when the length doesn't match the vendor's usual ("19 characters — this key is usually 20"). iOS smart quotes turning a 20-character key into 19 plus a curly quote surfaces as a signature error that reads like bad credentials, not bad text input.
 - Relabel raw service terms: "Key Prefix" → "Folder (key prefix)".
 - Auto-detect the region; never make the user type it. Validate credentials against the real service before saving (upload + delete a marker), fail closed.
 - Every attempt (success or failure) is saved as a draft keyed by bucket+prefix+key, listed under the form: tap to refill all fields including the secret, ✕ to drop one, auto-removed once it succeeds.

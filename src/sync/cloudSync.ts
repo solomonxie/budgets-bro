@@ -5,24 +5,33 @@ import { createS3Providers } from './s3Provider';
 import { createLocalProviders } from './localProvider';
 import { LEGACY_BACKUP_KEY, backupKey, latestBackupKey } from './backupPath';
 import { currentDateISO } from '../domain/month';
-import type { CloudProvider } from './types';
+import { resolveAutoSync } from './autoSync';
+import type { CloudProvider, CloudProviderId } from './types';
 
-const AUTO_SYNC_KEY = 'sync_auto_enabled';
+// Auto-sync is per destination, not one global switch: "back up to the bucket
+// automatically, write the on-device snapshot only when I ask" is an ordinary
+// thing to want, and a single toggle can't say it.
+const AUTO_SYNC_PREFIX = 'sync_auto_';
+// The single switch this replaced — see autoSync.ts for how it's inherited.
+const LEGACY_AUTO_SYNC_KEY = 'sync_auto_enabled';
 const LAST_SYNCED_PREFIX = 'sync_last_synced_';
 
-export async function isAutoSyncEnabled(db: SQLiteDatabase): Promise<boolean> {
-  return (await settingsRepo.getSetting(db, AUTO_SYNC_KEY)) !== 'false'; // defaults on once a provider is configured
+export async function isAutoSyncEnabled(db: SQLiteDatabase, providerId: CloudProviderId): Promise<boolean> {
+  return resolveAutoSync(
+    await settingsRepo.getSetting(db, `${AUTO_SYNC_PREFIX}${providerId}`),
+    await settingsRepo.getSetting(db, LEGACY_AUTO_SYNC_KEY),
+  );
 }
 
-export async function setAutoSyncEnabled(db: SQLiteDatabase, enabled: boolean): Promise<void> {
-  await settingsRepo.setSetting(db, AUTO_SYNC_KEY, enabled ? 'true' : 'false');
+export async function setAutoSyncEnabled(db: SQLiteDatabase, providerId: CloudProviderId, enabled: boolean): Promise<void> {
+  await settingsRepo.setSetting(db, `${AUTO_SYNC_PREFIX}${providerId}`, enabled ? 'true' : 'false');
 }
 
-export async function getLastSyncedAt(db: SQLiteDatabase, providerId: string): Promise<string | null> {
+export async function getLastSyncedAt(db: SQLiteDatabase, providerId: CloudProviderId): Promise<string | null> {
   return settingsRepo.getSetting(db, `${LAST_SYNCED_PREFIX}${providerId}`);
 }
 
-async function setLastSyncedAt(db: SQLiteDatabase, providerId: string, iso: string): Promise<void> {
+async function setLastSyncedAt(db: SQLiteDatabase, providerId: CloudProviderId, iso: string): Promise<void> {
   await settingsRepo.setSetting(db, `${LAST_SYNCED_PREFIX}${providerId}`, iso);
 }
 
@@ -37,40 +46,66 @@ export async function hasAnyProviderConfigured(db: SQLiteDatabase): Promise<bool
   return (await collectProviders(db)).length > 0;
 }
 
-// One summary line for Settings — the most recent sync across every
-// currently configured provider, not a per-bucket breakdown.
-export async function getLastSyncedSummary(db: SQLiteDatabase): Promise<string | null> {
-  const providers = await collectProviders(db);
-  const timestamps = await Promise.all(providers.map((p) => getLastSyncedAt(db, p.id)));
-  const known = timestamps.filter((t): t is string => t != null).sort();
-  return known[known.length - 1] ?? null;
+export interface SyncOutcome {
+  providerId: CloudProviderId;
+  syncedAt: string | null;
+  error: string | null;
 }
 
-// One-way backup to every configured provider — not a merge (see DESIGN.md
-// Non-goals). Failures are logged, never thrown: a sync hiccup must never
-// interrupt money entry.
-export async function syncNow(db: SQLiteDatabase, boardId: number, boardName: string): Promise<void> {
-  const providers = await collectProviders(db);
-  if (providers.length === 0) return;
+export interface SyncOptions {
+  // One destination only — what a connection's own "Sync Now" targets.
+  providerId?: CloudProviderId;
+  // Skip destinations whose auto-sync is off. Set by the background/debounced
+  // path; a button press syncs regardless of the setting.
+  autoOnly?: boolean;
+}
+
+// One-way backup to the selected destinations — not a merge (see DESIGN.md
+// Non-goals). Failures are returned rather than thrown: a sync hiccup must
+// never interrupt money entry, but a button press needs something to report.
+export async function syncNow(
+  db: SQLiteDatabase,
+  boardId: number,
+  boardName: string,
+  options: SyncOptions = {},
+): Promise<SyncOutcome[]> {
+  const all = await collectProviders(db);
+  const selected = options.providerId ? all.filter((p) => p.id === options.providerId) : all;
+  const eligible = options.autoOnly
+    ? (await Promise.all(selected.map(async (p) => ((await isAutoSyncEnabled(db, p.id)) ? p : null)))).filter(
+        (p): p is CloudProvider => p != null,
+      )
+    : selected;
+  if (eligible.length === 0) return [];
+
   const bytes = await buildBackupZip(db, boardId, boardName);
   // One object per board per day — syncing again the same day replaces it.
   const key = backupKey(boardName, currentDateISO());
-  await Promise.all(
-    providers.map(async (provider) => {
+  return Promise.all(
+    eligible.map(async (provider) => {
       try {
         await provider.upload(bytes, key);
-        await setLastSyncedAt(db, provider.id, new Date().toISOString());
+        const syncedAt = new Date().toISOString();
+        await setLastSyncedAt(db, provider.id, syncedAt);
+        return { providerId: provider.id, syncedAt, error: null };
       } catch (e) {
         console.warn(`[cloudSync] ${provider.id} upload failed`, e);
+        return { providerId: provider.id, syncedAt: null, error: e instanceof Error ? e.message : String(e) };
       }
     }),
   );
 }
 
-// For "Restore Latest from Cloud" — tries providers in order, first hit
-// wins (there's normally only one configured anyway).
-export async function downloadLatestBackup(db: SQLiteDatabase, boardId: number, boardName: string): Promise<Uint8Array | null> {
-  const providers = await collectProviders(db);
+// For "Restore Latest" — scoped to one destination when a connection's own
+// menu asks, otherwise the first provider holding a backup for this board.
+export async function downloadLatestBackup(
+  db: SQLiteDatabase,
+  boardId: number,
+  boardName: string,
+  providerId?: CloudProviderId,
+): Promise<Uint8Array | null> {
+  const all = await collectProviders(db);
+  const providers = providerId ? all.filter((p) => p.id === providerId) : all;
   for (const provider of providers) {
     try {
       const key = latestBackupKey(await provider.listKeys(), boardName);

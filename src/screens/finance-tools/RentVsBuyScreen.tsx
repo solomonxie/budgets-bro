@@ -70,7 +70,10 @@ export function RentVsBuyScreen() {
     ],
   );
 
-  const final = result.rows[result.rows.length - 1] ?? null;
+  // Nothing is rendered from `result` until the inputs behind it are in — a
+  // table of zeroes for every year reads as a broken calculator.
+  const rows = ready ? result.rows : [];
+  const final = ready ? (result.rows[result.rows.length - 1] ?? null) : null;
 
   return (
     <CalcScreen>
@@ -191,7 +194,7 @@ export function RentVsBuyScreen() {
           t('financeTools.colRenter'),
           t('financeTools.colAdvantage'),
         ]}
-        rows={result.rows.map((row) => [
+        rows={rows.map((row) => [
           String(row.year),
           formatMoneyCompact(row.buyerEquityCents + row.buyerPortfolioCents),
           formatMoneyCompact(row.renterPortfolioCents),

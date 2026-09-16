@@ -41,7 +41,11 @@ export function BottomSheet({ title, onClose, stickyContent, listHeight, childre
         if (gesture.dy > 0) translateY.setValue(gesture.dy);
       },
       onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 90 || gesture.vy > 0.8) onClose();
+        // 90px was most of a thumb's travel — far enough that the sheet
+        // felt stuck. These pickers are cheap to reopen, so the threshold
+        // favours dismissing: about half the old distance, and a flick
+        // carries it on velocity alone.
+        if (gesture.dy > 48 || gesture.vy > 0.5) onClose();
         Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
       },
       onPanResponderTerminationRequest: () => false,

@@ -72,7 +72,10 @@ function formatAmountDigits(digits: string): string {
   });
 }
 
-const AMOUNT_ACCESSORY_ID = 'add-transaction-amount-accessory';
+// Shared by every keyboard field on this sheet, not just the amount — a
+// number-pad has no return key, and the memo field had no way to dismiss at
+// all except tapping a blank gap.
+const KEYBOARD_ACCESSORY_ID = 'add-transaction-keyboard-accessory';
 
 export function AddTransactionModal() {
   const t = useT();
@@ -91,9 +94,10 @@ export function AddTransactionModal() {
 
   const amountInputRef = useRef<TextInput>(null);
   // iOS leaves the InputAccessoryView floating at the bottom of the screen
-  // after the keyboard dismisses if it stays mounted — only mount it while
-  // the amount field actually has focus.
+  // after the keyboard dismisses if it stays mounted — so it's mounted only
+  // while one of the keyboard fields actually has focus.
   const [amountFocused, setAmountFocused] = useState(false);
+  const [memoFocused, setMemoFocused] = useState(false);
 
   const [amount, setAmount] = useState('');
   const amountDisplay = amount ? `$${formatAmountDigits(amount)}` : '';
@@ -311,9 +315,17 @@ export function AddTransactionModal() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* bounces={false} is what makes the sheet's own swipe-down feel
+            short. This is a pageSheet, and iOS hands a downward drag to the
+            scroll view first — with bouncing on, the drag is spent
+            rubber-banding the content before the dismiss gesture ever picks
+            it up, which reads as "I have to pull a long way". Refusing the
+            bounce at offset 0 hands the drag straight to the sheet. Costs the
+            overscroll bounce at the bottom, which nothing here relies on. */}
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          bounces={false}
         >
           {/* Tapping any blank gap between fields dismisses the keyboard —
               keyboardShouldPersistTaps="handled" above already lets taps on
@@ -381,7 +393,7 @@ export function AddTransactionModal() {
                   keyboardType="number-pad"
                   keyboardAppearance="dark"
                   inputAccessoryViewID={
-                    Platform.OS === 'ios' ? AMOUNT_ACCESSORY_ID : undefined
+                    Platform.OS === 'ios' ? KEYBOARD_ACCESSORY_ID : undefined
                   }
                   onFocus={() => setAmountFocused(true)}
                   onBlur={() => setAmountFocused(false)}
@@ -557,57 +569,59 @@ export function AddTransactionModal() {
                   </View>
                 )}
               </View>
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <Text style={styles.microLabel}>
-                    {t(
-                      isScheduled
-                        ? 'addTransactionModal.startDateLabel'
-                        : 'common.date',
-                    )}
-                  </Text>
-                  <DateField
-                    hideLabel
-                    shortFormat
-                    label={t(
-                      isScheduled
-                        ? 'addTransactionModal.startDateLabel'
-                        : 'common.date',
-                    )}
-                    value={date}
-                    onChange={setDate}
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Text style={styles.microLabel}>{t('common.account')}</Text>
-                  <DropdownField
-                    compact
-                    hideLabel
-                    label={t('common.account')}
-                    placeholder={t('common.account')}
-                    valueLabel={
-                      realAccounts.find((a) => a.account.id === accountId)
-                        ?.account.name ?? ''
-                    }
-                  >
-                    {(close) => (
-                      <>
-                        {realAccounts.map(({ account }) => (
-                          <DropdownOption
-                            key={account.id}
-                            label={account.name}
-                            selected={accountId === account.id}
-                            onPress={() => {
-                              setAccountId(account.id);
-                              if (!account.onBudget) setCategoryId(null);
-                              close();
-                            }}
-                          />
-                        ))}
-                      </>
-                    )}
-                  </DropdownField>
-                </View>
+              {/* Date and account each get a full row. Paired side by side
+                  they were half-width, which truncated real account names
+                  ("Chequing — Jo…") and left the date reading as a stub. The
+                  form grows two rows taller and Save sits lower; that's the
+                  trade that was asked for. */}
+              <View style={styles.field}>
+                <Text style={styles.microLabel}>
+                  {t(
+                    isScheduled
+                      ? 'addTransactionModal.startDateLabel'
+                      : 'common.date',
+                  )}
+                </Text>
+                <DateField
+                  hideLabel
+                  label={t(
+                    isScheduled
+                      ? 'addTransactionModal.startDateLabel'
+                      : 'common.date',
+                  )}
+                  value={date}
+                  onChange={setDate}
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.microLabel}>{t('common.account')}</Text>
+                <DropdownField
+                  compact
+                  hideLabel
+                  label={t('common.account')}
+                  placeholder={t('common.account')}
+                  valueLabel={
+                    realAccounts.find((a) => a.account.id === accountId)
+                      ?.account.name ?? ''
+                  }
+                >
+                  {(close) => (
+                    <>
+                      {realAccounts.map(({ account }) => (
+                        <DropdownOption
+                          key={account.id}
+                          label={account.name}
+                          selected={accountId === account.id}
+                          onPress={() => {
+                            setAccountId(account.id);
+                            if (!account.onBudget) setCategoryId(null);
+                            close();
+                          }}
+                        />
+                      ))}
+                    </>
+                  )}
+                </DropdownField>
               </View>
               {isScheduled ? (
                 <>
@@ -654,6 +668,13 @@ export function AddTransactionModal() {
                 onChangeText={setMemo}
                 placeholderTextColor={colors.textMuted}
                 keyboardAppearance="dark"
+                inputAccessoryViewID={
+                  Platform.OS === 'ios' ? KEYBOARD_ACCESSORY_ID : undefined
+                }
+                onFocus={() => setMemoFocused(true)}
+                onBlur={() => setMemoFocused(false)}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
               />
               <Pressable style={styles.bigSaveButton} onPress={save}>
                 <Text style={styles.bigSaveButtonText}>{t('common.save')}</Text>
@@ -668,13 +689,14 @@ export function AddTransactionModal() {
             </View>
           </TouchableWithoutFeedback>
         </ScrollView>
-        {Platform.OS === 'ios' && amountFocused ? (
-          <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
+        {/* Still gated on focus rather than always mounted: an
+            InputAccessoryView left mounted after the keyboard goes away
+            floats over the sheet on iOS (see the earlier fix). The gate just
+            covers both fields now. */}
+        {Platform.OS === 'ios' && (amountFocused || memoFocused) ? (
+          <InputAccessoryView nativeID={KEYBOARD_ACCESSORY_ID}>
             <View style={styles.accessoryBar}>
-              <Pressable
-                onPress={() => amountInputRef.current?.blur()}
-                hitSlop={10}
-              >
+              <Pressable onPress={Keyboard.dismiss} hitSlop={10}>
                 <Text style={styles.accessoryDoneText}>{t('common.done')}</Text>
               </Pressable>
             </View>

@@ -21,14 +21,16 @@ import {
   formatMonthLabel,
   formatMonthShort,
 } from '../../domain/month';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { InsightsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
-type ToolScreen = 'BabySteps' | 'TaxInsights' | 'Calculators' | 'AiAnalysis';
+// Flat, domain-shaped: each row is a hub that opens with your real
+// accounts for that domain and its own calculators underneath.
+type UtilityScreen = 'BabySteps' | 'MortgageInsights' | 'LoanInsights' | 'InvestmentInsights' | 'TaxInsights' | 'AiAnalysis';
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
 // order, never cycled.
@@ -38,21 +40,14 @@ const TOP_N = 5;
 const MONTH_WIDTH = 44;
 const Y_AXIS_WIDTH = 44;
 
-// Compact axis label — formatMoney's full "$1,234.56" is too wide for a
-// narrow trend-chart axis.
-function formatAxisValue(cents: number): string {
-  const dollars = Math.abs(cents) / 100;
-  if (dollars >= 1000)
-    return `$${(dollars / 1000).toFixed(dollars >= 10000 ? 0 : 1)}k`;
-  return `$${Math.round(dollars)}`;
-}
-
 export function InsightsScreen() {
   const { t, language } = useI18n();
-  const TOOL_ROWS: { label: string; screen: ToolScreen }[] = [
+  const UTILITY_ROWS: { label: string; screen: UtilityScreen }[] = [
     { label: t('insights.babySteps'), screen: 'BabySteps' },
+    { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
+    { label: t('insights.loanInsights'), screen: 'LoanInsights' },
+    { label: t('insights.investmentInsights'), screen: 'InvestmentInsights' },
     { label: t('insights.taxInsights'), screen: 'TaxInsights' },
-    { label: t('insights.calculators'), screen: 'Calculators' },
     { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
   ];
   const navigation = useNavigation<Nav>();
@@ -282,7 +277,7 @@ export function InsightsScreen() {
                     key={v}
                     style={[styles.yAxisLabel, { top: pointY(v) - 7 }]}
                   >
-                    {formatAxisValue(v)}
+                    {formatMoneyCompact(v)}
                   </Text>
                 ))}
                 {benchmarkCents != null ? (
@@ -415,13 +410,14 @@ export function InsightsScreen() {
         )}
       </View>
 
+      <Text style={styles.label}>{t('insights.utilities')}</Text>
       <View style={styles.card}>
-        {TOOL_ROWS.map((row, i) => (
+        {UTILITY_ROWS.map((row, i) => (
           <Pressable
             key={row.screen}
             style={[
               styles.toolRow,
-              i < TOOL_ROWS.length - 1 && styles.toolRowDivider,
+              i < UTILITY_ROWS.length - 1 && styles.toolRowDivider,
             ]}
             onPress={() => navigation.navigate(row.screen)}
           >

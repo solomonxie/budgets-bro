@@ -2,7 +2,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { InsightsScreen } from '../screens/insights/InsightsScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
-import { CalculatorsHomeScreen } from '../screens/calculators/CalculatorsHomeScreen';
+import { MortgageInsightsScreen } from '../screens/finance-tools/MortgageInsightsScreen';
+import { LoanInsightsScreen } from '../screens/finance-tools/LoanInsightsScreen';
+import { InvestmentInsightsScreen } from '../screens/finance-tools/InvestmentInsightsScreen';
+import { FinanceToolScreen } from '../screens/finance-tools/FinanceToolScreen';
+import { financeTool } from '../screens/finance-tools/registry';
 import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
 import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
@@ -26,8 +30,19 @@ export function InsightsStackNavigator() {
       />
       <Stack.Screen name="Transactions" component={TransactionsScreen} options={{ title: t('nav.transactions') }} />
       <Stack.Screen name="BabySteps" component={BabyStepsScreen} options={{ title: t('insights.babySteps') }} />
+      <Stack.Screen name="MortgageInsights" component={MortgageInsightsScreen} options={{ title: t('insights.mortgageInsights') }} />
+      <Stack.Screen name="LoanInsights" component={LoanInsightsScreen} options={{ title: t('insights.loanInsights') }} />
+      <Stack.Screen
+        name="InvestmentInsights"
+        component={InvestmentInsightsScreen}
+        options={{ title: t('insights.investmentInsights') }}
+      />
       <Stack.Screen name="TaxInsights" component={TaxInsightsScreen} options={{ title: t('insights.taxInsights') }} />
-      <Stack.Screen name="Calculators" component={CalculatorsHomeScreen} options={{ title: t('insights.calculators') }} />
+      <Stack.Screen
+        name="FinanceTool"
+        component={FinanceToolScreen}
+        options={({ route }) => ({ title: t(financeTool(route.params.tool).titleKey) })}
+      />
       <Stack.Screen name="AiAnalysis" component={AiAnalysisScreen} options={{ title: t('aiAnalysis.title') }} />
     </Stack.Navigator>
   );

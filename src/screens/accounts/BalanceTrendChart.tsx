@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-n
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
 import type { BalanceTrendPoint } from '../../domain/balanceTrend';
 import { formatMonthShort } from '../../domain/month';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag, useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -12,12 +12,6 @@ const VISIBLE_MONTHS = 12;
 const CHART_HEIGHT = 120;
 const Y_AXIS_WIDTH = 44;
 const MIN_MONTH_WIDTH = 28;
-
-function formatAxisValue(cents: number): string {
-  const dollars = Math.abs(cents) / 100;
-  if (dollars >= 1000) return `$${(dollars / 1000).toFixed(dollars >= 10000 ? 0 : 1)}k`;
-  return `$${Math.round(dollars)}`;
-}
 
 // A ledger-derived balance-over-time line (see domain/balanceTrend.ts) — no
 // manual logging involved, unlike ValueHistoryChart's tracking/asset
@@ -91,7 +85,7 @@ export function BalanceTrendChart({
         <View style={[styles.yAxis, { height: CHART_HEIGHT, width: Y_AXIS_WIDTH }]}>
           {yTicks.map((v) => (
             <Text key={v} style={[styles.yAxisLabel, { top: pointY(v) - 7 }]}>
-              {formatAxisValue(v)}
+              {formatMoneyCompact(v)}
             </Text>
           ))}
         </View>

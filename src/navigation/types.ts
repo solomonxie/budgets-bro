@@ -1,3 +1,4 @@
+import type { FinanceToolId } from '../screens/finance-tools/registry';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 // `categoryIds` is the "All Others" case (every category outside Insights'
@@ -24,9 +25,13 @@ export type InsightsStackParamList = {
   InsightsHome: undefined;
   Transactions: TransactionsFilterParams;
   BabySteps: undefined;
+  MortgageInsights: undefined;
+  LoanInsights: undefined;
+  InvestmentInsights: undefined;
   TaxInsights: undefined;
-  Calculators: undefined;
   AiAnalysis: undefined;
+  // One route for every calculator — see screens/finance-tools/registry.ts.
+  FinanceTool: { tool: FinanceToolId };
 };
 
 export type RootTabParamList = {

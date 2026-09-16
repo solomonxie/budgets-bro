@@ -13,10 +13,12 @@ InsightsScreen.tsx
 │ Category trends card            │──→ inline; hand-drawn Svg chart
 │ (stacked area chart + legend)    │    (react-native-svg, not a local component)
 ├───────────────────────────────┤
-│ Tools list (Baby Steps,         │──→ inline; row tap navigates to:
-│  Tax Insights, Calculators,      │    BabyStepsScreen.tsx (below)
-│  AI Analysis)                    │    ../tax/TaxInsightsScreen.tsx
-│                                  │    ../calculators/CalculatorsHomeScreen.tsx
+│ UTILITIES list (Baby Steps,     │──→ inline; row tap navigates to:
+│  Mortgage / Loan / Investment /  │    BabyStepsScreen.tsx (below)
+│  Tax Insights, AI Insights)      │    ../finance-tools/MortgageInsightsScreen.tsx
+│                                  │    ../finance-tools/LoanInsightsScreen.tsx
+│                                  │    ../finance-tools/InvestmentInsightsScreen.tsx
+│                                  │    ../tax/TaxInsightsScreen.tsx
 │                                  │    ../ai/AiAnalysisScreen.tsx
 └───────────────────────────────┘
 

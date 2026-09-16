@@ -85,12 +85,15 @@ global endpoint, even an unauthenticated one that 403s, so
 (store via `settingsRepo`, alongside access key ID/secret which stay in
 `secureStore`). Optional **key prefix** nests backups under a folder, for a
 bucket shared with other stuff — object key:
-`<keyPrefix>/<boardId>/latest.zip` (single rolling object, not a history —
-simplest correct thing; versioning can be a bucket setting on the user's
-side if they want history).
+`<keyPrefix>/<YYYYMM>/<board-slug>-<YYYYMMDD>.zip` — readable straight out of
+an S3 console (which board, taken when, without opening it) and browsable as
+month folders. One object per board per day: syncing repeatedly in a day
+replaces that day's file rather than piling up near-identical zips, so the
+history stays a history without becoming noise.
 
 **Local** — no credentials, no network: writes the same zip to
-`Paths.document/backups/<boardId>/latest.zip`. Not off-device protection —
+`Paths.document/backups/<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`. Not off-device
+protection —
 expo-sqlite's own database already lives at `Documents/SQLite/`, the same
 sandbox this zip sits in, so both disappear together on app deletion and
 both get restored together by a full device restore either way. Its real

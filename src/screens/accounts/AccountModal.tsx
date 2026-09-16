@@ -157,8 +157,7 @@ export function AccountModal() {
       : null;
 
   // Tools > Amortization Schedule prefill — the account's real outstanding
-  // balance (not opening balance) and current rate, same as the old
-  // per-account AmortizationScheduleScreen. `fixedPaymentCents` pins the
+  // balance (not opening balance) and current rate. `fixedPaymentCents` pins the
   // payment to whatever's currently typed in the form's own term/principal
   // fields (the "live" values being edited), not the last-saved DB record.
   const outstandingCents = Math.max(0, -loadedBalanceCents);

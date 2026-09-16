@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Line, Rect } from 'react-native-svg';
+import { formatMoneyCompact } from '../../domain/money';
 import { formatMonthShort } from '../../domain/month';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -10,12 +11,6 @@ const VISIBLE_MONTHS = 12;
 const CHART_HEIGHT = 120;
 const Y_AXIS_WIDTH = 44;
 const MIN_MONTH_WIDTH = 28;
-
-function formatAxisValue(cents: number): string {
-  const dollars = Math.abs(cents) / 100;
-  if (dollars >= 1000) return `$${(dollars / 1000).toFixed(dollars >= 10000 ? 0 : 1)}k`;
-  return `$${Math.round(dollars)}`;
-}
 
 export interface IncomeTrendPoint {
   month: string; // 'YYYY-MM'
@@ -49,7 +44,7 @@ export function IncomeTrendChart({ points }: { points: IncomeTrendPoint[] }) {
         <View style={[styles.yAxis, { height: CHART_HEIGHT, width: Y_AXIS_WIDTH }]}>
           {yTicks.map((v) => (
             <Text key={v} style={[styles.yAxisLabel, { top: pointY(v) - 7 }]}>
-              {formatAxisValue(v)}
+              {formatMoneyCompact(v)}
             </Text>
           ))}
         </View>

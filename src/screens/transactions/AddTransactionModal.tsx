@@ -43,6 +43,13 @@ const DEFAULT_RULE: RecurrenceRule = {
 
 // YNAB-style amount entry: `amount` holds raw digits, always read right-to-
 // left as cents — typing "4444" reads as $44.44, no decimal point needed.
+//
+// The displayed text is reformatted from those digits on every keystroke, so
+// it never matches what the native input just showed: type "3" into "$0.05"
+// and the field momentarily holds "$0.053" (6 chars) before React Native
+// replaces it with "$0.53" (5). Every replacement resets the native
+// selection, which is the caret jumping back and forth — hence the pinned
+// `selection` on the input below.
 function centsFromAmountDigits(digits: string): number {
   return digits ? parseInt(digits, 10) : 0;
 }
@@ -78,6 +85,7 @@ export function AddTransactionModal() {
   const [amountFocused, setAmountFocused] = useState(false);
 
   const [amount, setAmount] = useState('');
+  const amountDisplay = amount ? `$${formatAmountDigits(amount)}` : '';
   const [direction, setDirection] = useState<'out' | 'in'>('out');
   const [payee, setPayee] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -354,7 +362,11 @@ export function AddTransactionModal() {
                 }
                 onFocus={() => setAmountFocused(true)}
                 onBlur={() => setAmountFocused(false)}
-                value={amount ? `$${formatAmountDigits(amount)}` : ''}
+                value={amountDisplay}
+                // The caret can only ever belong at the end here — digits
+                // accumulate right-to-left and there is nothing to edit in
+                // the middle. Pinning it stops the bounce described above.
+                selection={amountFocused ? { start: amountDisplay.length, end: amountDisplay.length } : undefined}
                 onChangeText={(text) =>
                   setAmount(
                     text

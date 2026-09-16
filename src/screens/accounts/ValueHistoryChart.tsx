@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-n
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
 import { buildGrowthSeries, projectGrowthOntoMonths } from '../../domain/investmentGrowth';
 import { currentMonth, formatMonthShort, monthsBetween } from '../../domain/month';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -12,14 +12,6 @@ const VISIBLE_MONTHS = 12;
 const CHART_HEIGHT = 120;
 const Y_AXIS_WIDTH = 44;
 const MIN_MONTH_WIDTH = 28;
-
-// Compact axis label — formatMoney's full "$1,234.56" is too wide for a
-// narrow axis column (same helper as InsightsScreen's trend chart).
-function formatAxisValue(cents: number): string {
-  const dollars = Math.abs(cents) / 100;
-  if (dollars >= 1000) return `$${(dollars / 1000).toFixed(dollars >= 10000 ? 0 : 1)}k`;
-  return `$${Math.round(dollars)}`;
-}
 
 export type ValueHistoryChartMode = 'stacked' | 'single';
 
@@ -110,7 +102,7 @@ export function ValueHistoryChart({
         <View style={[styles.yAxis, { height: CHART_HEIGHT, width: Y_AXIS_WIDTH }]}>
           {yTicks.map((v) => (
             <Text key={v} style={[styles.yAxisLabel, { top: pointY(v) - 7 }]}>
-              {formatAxisValue(v)}
+              {formatMoneyCompact(v)}
             </Text>
           ))}
         </View>

@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountRateHistoryRow } from '../schema';
 import type { AccountRateChange } from '../../domain/types';
-import { LIST_RATE_HISTORY, CURRENT_RATE } from '../../../databases/queries/accountRateHistory';
+import { LIST_RATE_HISTORY, CURRENT_RATE, CURRENT_RATES_FOR_BOARD } from '../../../databases/queries/accountRateHistory';
 
 function mapRow(row: AccountRateHistoryRow): AccountRateChange {
   return { id: row.id, accountId: row.account_id, rateBps: row.rate_bps, effectiveDate: row.effective_date };
@@ -18,6 +18,11 @@ export async function listRateHistory(db: SQLiteDatabase, accountId: number): Pr
 export async function currentRateBps(db: SQLiteDatabase, accountId: number): Promise<number | null> {
   const row = await db.getFirstAsync<{ rate_bps: number }>(CURRENT_RATE, accountId);
   return row?.rate_bps ?? null;
+}
+
+export async function currentRatesByBoard(db: SQLiteDatabase, boardId: number): Promise<Map<number, number>> {
+  const rows = await db.getAllAsync<{ account_id: number; rate_bps: number }>(CURRENT_RATES_FOR_BOARD, boardId);
+  return new Map(rows.map((r) => [r.account_id, r.rate_bps]));
 }
 
 export async function addRateChange(db: SQLiteDatabase, accountId: number, rateBps: number, effectiveDate: string): Promise<number> {

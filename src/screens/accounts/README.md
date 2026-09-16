@@ -64,10 +64,9 @@ AccountModal.tsx  (global sheet, not routed)
 │                                 │    AmortizationCalculator.tsx (prefilled
 │                                 │    from the form's own term/principal/
 │                                 │    rate fields, payment pinned via
-│                                 │    `fixedPaymentCents`) — same shared
-│                                 │    component screens/calculators/
-│                                 │    CalculatorsHomeScreen.tsx uses for its
-│                                 │    ad-hoc "what if" case
+│                                 │    `fixedPaymentCents`). The ad-hoc
+│                                 │    "what if" case lives separately under
+│                                 │    screens/finance-tools/
 ├───────────────────────────────┤
 │ Close / Reopen account         │──→ inline
 └───────────────────────────────┘

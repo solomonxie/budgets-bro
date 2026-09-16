@@ -28,10 +28,12 @@ interface AmortizationCalculatorProps {
   fixedPaymentCents?: number | null;
 }
 
-// Shared by the per-account amortization schedule (AmortizationScheduleScreen)
-// and the standalone Calculators tool (CalculatorsHomeScreen) — same
-// inputs/result/schedule-table shape either way, see `fixedPaymentCents`
-// above for the one real difference between the two callers.
+// The account-scoped amortization schedule (AccountModal's Tools section) —
+// four fields, a result summary and the full table, with the payment pinned
+// to the account's real terms via `fixedPaymentCents`. The standalone
+// calculators under screens/finance-tools/ build their own richer forms
+// (extra payments, biweekly, linkable fields) on the shared primitives
+// instead of adding flags here.
 export function AmortizationCalculator({
   initialPrincipalCents = 0,
   initialRateBps = null,

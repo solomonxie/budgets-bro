@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { FieldRow } from './FieldCard';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -24,6 +25,8 @@ interface DateFieldProps {
   // Off by default: other callers (loan origination, house value history)
   // show multi-year-old dates where the year is exactly the point.
   shortFormat?: boolean;
+  // Renders as a row of a FieldCard — see DropdownField's `row`.
+  row?: boolean;
 }
 
 function parseDate(value: string): Date {
@@ -59,6 +62,7 @@ export function DateField({
   onChange,
   hideLabel,
   shortFormat,
+  row,
 }: DateFieldProps) {
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
@@ -80,13 +84,23 @@ export function DateField({
 
   return (
     <View>
-      {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
-      <Pressable style={styles.field} onPress={openPicker}>
-        <Text style={styles.valueText}>
-          {formatDisplay(parseDate(value), localeTag(language), shortFormat)}
-        </Text>
-        <Text style={styles.chevron}>▾</Text>
-      </Pressable>
+      {row ? (
+        <FieldRow
+          label={label}
+          value={formatDisplay(parseDate(value), localeTag(language), shortFormat)}
+          onPress={openPicker}
+        />
+      ) : (
+        <>
+          {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
+          <Pressable style={styles.field} onPress={openPicker}>
+            <Text style={styles.valueText}>
+              {formatDisplay(parseDate(value), localeTag(language), shortFormat)}
+            </Text>
+            <Text style={styles.chevron}>▾</Text>
+          </Pressable>
+        </>
+      )}
       <Modal
         visible={open}
         transparent
@@ -139,11 +153,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
+    padding: spacing.xl,
   },
   card: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 300,
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
@@ -157,11 +171,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
-  picker: { alignSelf: 'center' },
+  // A shorter wheel than the spinner's natural height: three rows is
+  // plenty to scroll with, and the card stops eating the screen.
+  picker: { alignSelf: 'center', width: '100%', height: 190 },
   confirmBtn: {
     backgroundColor: colors.accent,
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     marginTop: spacing.xs,
   },

@@ -22,10 +22,15 @@ interface AppState {
   // existing one — same sheet, same fields, prefilled. `presetAccountId` is
   // only used for "new" (opened from an account page — defaults the account
   // picker to that account instead of the first account in the list).
-  transactionModal: { open: boolean; editingTransactionId: number | null; presetAccountId: number | null };
-  openAddTransaction: (presetAccountId?: number) => void;
-  openEditTransaction: (id: number) => void;
-  closeTransactionModal: () => void;
+  // Add Transaction is a pushed page now, so its form unmounts on every
+  // exit — these carry the "same account as last time" default that used to
+  // survive in the sheet's own state.
+  lastAccountId: number | null;
+  lastIncomeAccountId: number | null;
+  rememberTransactionAccounts: (
+    accountId: number | null,
+    incomeAccountId: number | null,
+  ) => void;
 
   // Same "one sheet, create or edit" pattern as the transaction modal.
   accountModal: { open: boolean; editingAccountId: number | null };
@@ -41,9 +46,9 @@ interface AppState {
   closeSettings: () => void;
 
   // Bumped after any write (transaction, account, category, budget entry) so
-  // read hooks can refetch regardless of navigation focus — a plain Modal
-  // (the Add Transaction sheet) doesn't blur the screen behind it, so
-  // useFocusEffect alone would miss those writes.
+  // read hooks can refetch regardless of navigation focus — the account and
+  // settings modals don't blur the screen behind them, so useFocusEffect
+  // alone would miss those writes.
   dataVersion: number;
   bumpDataVersion: () => void;
 }
@@ -58,16 +63,18 @@ export const useAppStore = create<AppState>((set) => ({
   currentBoardId: 1,
   setCurrentBoardId: (id) => set({ currentBoardId: id }),
 
-  transactionModal: { open: false, editingTransactionId: null, presetAccountId: null },
-  openAddTransaction: (presetAccountId) =>
-    set({ transactionModal: { open: true, editingTransactionId: null, presetAccountId: presetAccountId ?? null } }),
-  openEditTransaction: (id) => set({ transactionModal: { open: true, editingTransactionId: id, presetAccountId: null } }),
-  closeTransactionModal: () => set({ transactionModal: { open: false, editingTransactionId: null, presetAccountId: null } }),
+  lastAccountId: null,
+  lastIncomeAccountId: null,
+  rememberTransactionAccounts: (accountId, incomeAccountId) =>
+    set({ lastAccountId: accountId, lastIncomeAccountId: incomeAccountId }),
 
   accountModal: { open: false, editingAccountId: null },
-  openAddAccount: () => set({ accountModal: { open: true, editingAccountId: null } }),
-  openEditAccount: (id) => set({ accountModal: { open: true, editingAccountId: id } }),
-  closeAccountModal: () => set({ accountModal: { open: false, editingAccountId: null } }),
+  openAddAccount: () =>
+    set({ accountModal: { open: true, editingAccountId: null } }),
+  openEditAccount: (id) =>
+    set({ accountModal: { open: true, editingAccountId: id } }),
+  closeAccountModal: () =>
+    set({ accountModal: { open: false, editingAccountId: null } }),
 
   settingsModal: { open: false },
   openSettings: () => set({ settingsModal: { open: true } }),

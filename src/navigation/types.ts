@@ -36,10 +36,23 @@ export type InsightsStackParamList = {
 
 export type RootTabParamList = {
   Budget: NavigatorScreenParams<BudgetStackParamList>;
-  // Fake tab — its tabPress listener opens the Add Transaction sheet
-  // instead of navigating; see RootNavigator's NoopScreen. Settings isn't
-  // a tab at all anymore — see SettingsModal, opened from a corner button.
-  AddTransaction: undefined;
+  // Fake tab — its tabPress listener pushes the root stack's
+  // `AddTransaction` page instead of navigating to a tab; see
+  // RootNavigator's NoopScreen. Named apart from that route on purpose: a
+  // `navigate('AddTransaction')` from inside the tabs would otherwise
+  // resolve to this empty tab. Settings isn't a tab at all anymore — see
+  // SettingsModal, opened from a corner button.
+  SpendTab: undefined;
   Accounts: NavigatorScreenParams<AccountsStackParamList>;
   Insights: NavigatorScreenParams<InsightsStackParamList>;
+};
+
+// The tabs sit inside a stack so Add Transaction can be a pushed page —
+// a full screen with a back button and the swipe-right-to-go-back gesture,
+// rather than a sheet you drag down. Every tab's own stack can reach it:
+// `navigate('AddTransaction')` bubbles up to whichever navigator owns the
+// route.
+export type RootStackParamList = {
+  Tabs: NavigatorScreenParams<RootTabParamList>;
+  AddTransaction: { transactionId?: number; presetAccountId?: number } | undefined;
 };

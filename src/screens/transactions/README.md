@@ -1,6 +1,9 @@
 # Transactions
 
-`AddTransactionModal` is a global modal (opened via `useAppStore`), not routed from `TransactionsScreen` directly.
+`AddTransactionScreen` is a page on the root stack (above the tabs), so it
+covers the tab bar, gets a back button, and closes with a swipe right from
+anywhere. Reached by `navigate('AddTransaction', { transactionId? })` — the
+Spend tab pushes it empty, a row tap pushes it with an id to edit.
 
 ```
 TransactionsScreen.tsx
@@ -10,29 +13,29 @@ TransactionsScreen.tsx
 │ Filter row (category, month)    │──→ inline; DropdownField ×2 from
 │                                  │    ../../components/ui/DropdownField.tsx
 ├───────────────────────────────┤
-│ Date-grouped transaction list   │──→ inline; row tap opens
-│ (FlatList)                      │    AddTransactionModal (edit mode)
+│ Date-grouped transaction list   │──→ inline; row tap pushes
+│ (FlatList)                      │    AddTransaction (edit mode)
 ├───────────────────────────────┤
 │ Delete-selected bar             │──→ inline (select mode only)
 │  (visible in select mode)       │
 └───────────────────────────────┘
 
-AddTransactionModal.tsx  (global sheet, not routed)
+AddTransactionScreen.tsx  (root stack route)
 ┌───────────────────────────────┐
-│ Header (Cancel)                 │──→ inline
+│ Header: ‹ Back, title,          │──→ native stack header; the pill is set
+│  "Mark to repeat" pill          │    via navigation.setOptions
 ├───────────────────────────────┤
-│ Amount input (big number pad)   │──→ inline
-│ Direction segmented (Spend/Inc) │──→ inline
-├───────────────────────────────┤
+│ Amount (pinned) + Spend/Income  │──→ inline; never scrolls, the pad below
+│                                  │    is always editing it
+├─────────── scrolls ───────────┤
 │ Payee (SearchableDropdownField) │──→ ../../components/ui/SearchableDropdownField.tsx
 │ Category (DropdownField,        │──→ ../../components/ui/DropdownField.tsx
 │  hidden for tracking accounts)   │
-├───────────────────────────────┤
 │ Date (DateField)                │──→ ../../components/ui/DateField.tsx
 │ Account (DropdownField)         │──→ ../../components/ui/DropdownField.tsx
-├───────────────────────────────┤
+│ Repeat fields (when scheduled)  │──→ ../../components/ui/RepeatField.tsx
 │ Memo input                      │──→ inline
-├───────────────────────────────┤
+│ Number pad (0-9, C, ⌫)          │──→ ../../components/ui/NumberPad.tsx
 │ Save button                     │──→ inline
 │ Delete button (editing only)    │──→ inline
 └───────────────────────────────┘

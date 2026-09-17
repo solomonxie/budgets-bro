@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { getDb } from '../db/client';
 import * as boardsRepo from '../db/repositories/boardsRepo';
-import { syncNow, hasAnyProviderConfigured } from '../sync/cloudSync';
+import { syncNow } from '../sync/cloudSync';
 import { useAppStore } from '../state/useAppStore';
 
 const DEBOUNCE_MS = 5000;
@@ -20,13 +20,12 @@ export function useAutoCloudSync() {
 
   const runSync = useCallback(async () => {
     const db = await getDb();
-    if (!(await hasAnyProviderConfigured(db))) return;
     const boards = await boardsRepo.listBoards(db);
     const board = boards.find((b) => b.id === boardId);
     if (!board) return;
-    // autoOnly — each destination decides for itself whether the background
-    // path may write to it; a button press in Settings ignores the setting.
-    await syncNow(db, boardId, board.name, { autoOnly: true });
+    // No-ops when every destination's switch is off, which is the only
+    // "should this run" question there is now.
+    await syncNow(db, boardId, board.name);
   }, [boardId]);
 
   useEffect(() => {

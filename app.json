@@ -7,12 +7,38 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      },
       "supportsTablet": true,
-      "bundleIdentifier": "com.solomonxie.buildyourownbudget"
+      "bundleIdentifier": "com.solomonxie.buildyourownbudget",
+      "entitlements": {
+        "com.apple.developer.icloud-container-identifiers": [
+          "iCloud.com.solomonxie.buildyourownbudget"
+        ],
+        "com.apple.developer.ubiquity-container-identifiers": [
+          "iCloud.com.solomonxie.buildyourownbudget"
+        ],
+        "com.apple.developer.icloud-services": [
+          "CloudDocuments"
+        ],
+        "com.apple.developer.icloud-container-environment": "Development"
+      },
+      "infoPlist": {
+        "NSUbiquitousContainers": {
+          "iCloud.com.solomonxie.buildyourownbudget": {
+            "NSUbiquitousContainerIsDocumentScopePublic": true,
+            "NSUbiquitousContainerSupportedFolderLevels": "Any",
+            "NSUbiquitousContainerName": "BYO Budget"
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0D0D0D",
+        "backgroundColor": "#85EED1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

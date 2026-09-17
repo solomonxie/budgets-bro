@@ -24,6 +24,7 @@ import {
 } from '../../ai/aiKeys';
 import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
 import { AiKeyModal } from '../../components/ui/AiKeyModal';
+import { AiKeyHistoryModal } from '../../components/ui/AiKeyHistoryModal';
 import type { AppExportImportResult } from '../../import/appExportImporter';
 import { seedDemoBoard } from '../../db/seed/demoBoard';
 import { useAppStore } from '../../state/useAppStore';
@@ -63,6 +64,7 @@ export function SettingsScreen() {
   const [theme, setTheme] = useState<ThemePreference>('dark');
   const [aiKeys, setAiKeys] = useState<AiKeyMeta[]>([]);
   const [aiKeyModalOpen, setAiKeyModalOpen] = useState(false);
+  const [aiKeyHistory, setAiKeyHistory] = useState<AiKeyMeta | null>(null);
   const [aiKeyStrategy, setAiKeyStrategyState] =
     useState<AiKeyStrategy>('sequential');
   // A restore can start from a cloud destination or from a picked file; the
@@ -472,7 +474,10 @@ export function SettingsScreen() {
                 key={key.id}
                 style={[styles.row, i > 0 && styles.rowDivider]}
               >
-                <View style={styles.rowMain}>
+                <Pressable
+                  style={styles.rowMain}
+                  onPress={() => setAiKeyHistory(key)}
+                >
                   <Text style={styles.rowTitle}>
                     {aiVendorName(key.vendor)}
                   </Text>
@@ -481,7 +486,7 @@ export function SettingsScreen() {
                       count: key.requestCount,
                     })}
                   </Text>
-                </View>
+                </Pressable>
                 <Pressable
                   hitSlop={8}
                   disabled={i === 0}
@@ -533,6 +538,10 @@ export function SettingsScreen() {
           visible={aiKeyModalOpen}
           onCancel={() => setAiKeyModalOpen(false)}
           onSaved={addAiKeyRow}
+        />
+        <AiKeyHistoryModal
+          aiKey={aiKeyHistory}
+          onClose={() => setAiKeyHistory(null)}
         />
       </View>
 

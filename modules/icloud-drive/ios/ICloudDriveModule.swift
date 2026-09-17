@@ -17,15 +17,23 @@ public class ICloudDriveModule: Module {
     // Every function is async: resolving the container touches the disk and
     // can block, and reads may wait on a download.
 
-    // A nil container means the user is signed out OR this build was signed
-    // without the entitlement, and the obvious tiebreaker doesn't work:
-    // ubiquityIdentityToken needs the entitlement too, so it reads nil in
-    // exactly the case that would distinguish them, and
-    // SecTaskCopyValueForEntitlement isn't in the iOS SDK. The provisioning
-    // profile the build carries is, though — see buildGrantsICloud().
+    // A nil container has three different causes and the UI has to tell
+    // them apart, because only one is something the user can act on.
+    //
+    // ubiquityIdentityToken is only meaningful once the entitlement is
+    // granted — without it the token reads nil too, which is why the
+    // profile is checked first. With it, the token tracks the account *and*
+    // whether documents-and-data syncing is on (the same thing
+    // NSUbiquityIdentityDidChangeNotification fires for), so a nil token
+    // means iCloud Drive is unavailable to this device — the case worth
+    // giving directions for.
     AsyncFunction("getStatus") { () -> String in
       if documentsURL() != nil { return "available" }
-      return buildGrantsICloud() ? "signedOut" : "notEntitled"
+      if !buildGrantsICloud() { return "notEntitled" }
+      if FileManager.default.ubiquityIdentityToken == nil { return "icloudOff" }
+      // Entitled, signed in, drive on, and still nothing: a container that
+      // was only just created and hasn't propagated yet.
+      return "notReady"
     }
 
     AsyncFunction("getContainerPath") { () -> String? in

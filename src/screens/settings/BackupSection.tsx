@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  AppState,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
 import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
 import { getDb } from '../../db/client';
@@ -18,6 +25,7 @@ import {
   syncNow,
 } from '../../sync/cloudSync';
 import { useT } from '../../i18n';
+import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -36,13 +44,24 @@ interface Destination {
   providerId: string;
   title: string;
   location: string;
-  // Off means the switch is disabled and `note` says why. No destination
-  // may claim a reason it can't know — see icloudProvider.isICloudAvailable.
+  // Off means the switch is disabled and `note` says why. `action` is the
+  // one sentence that fixes it, and only exists where the user can — a
+  // reason they can't act on gets no instruction pretending otherwise.
   usable: boolean;
   note: string | null;
+  action: string | null;
   // S3 only: what tapping the row browses, and what can be deleted.
   config: S3ConfigMeta | null;
 }
+
+// Every unusable state names itself in the row's subtitle. Kept beside the
+// status union so a new state can't be added without deciding what it says.
+const ICLOUD_NOTES: Record<ICloudStatus, TranslationKey | null> = {
+  available: null,
+  icloudOff: 'backup.icloudOff',
+  notEntitled: 'backup.icloudNotEntitled',
+  notReady: 'backup.icloudNotReady',
+};
 
 interface BackupSectionProps {
   boardId: number;
@@ -93,6 +112,16 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
     refresh();
   }, [refresh]);
 
+  // The fix for a switched-off iCloud Drive happens in iOS Settings, so the
+  // row has to notice on the way back rather than make them hunt for a
+  // reload.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
   // iCloud first: it's the one destination with nothing to set up, so it
   // leads, and saved buckets follow in the order they were added.
   const destinations: Destination[] = [
@@ -106,15 +135,15 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
             title: t('backup.icloud'),
             location: t('backup.icloudLocation'),
             usable: icloudStatus === 'available',
-            // Signing in is the user's to do; an unsigned build is not, and
-            // telling them to sign in there sends them somewhere that can't
-            // help. See the Swift side for how the two are told apart.
-            note:
-              icloudStatus === 'signedOut'
-                ? t('backup.icloudSignedOut')
-                : icloudStatus === 'notEntitled'
-                  ? t('backup.icloudNotEntitled')
-                  : null,
+            note: ICLOUD_NOTES[icloudStatus]
+              ? t(ICLOUD_NOTES[icloudStatus]!)
+              : null,
+            // Only the switched-off case gets directions. An unsigned build
+            // and a container still propagating are not things anyone can
+            // fix in iOS Settings, and sending them there would waste a trip
+            // — which is exactly what an earlier "Sign in to iCloud" did.
+            action:
+              icloudStatus === 'icloudOff' ? t('backup.icloudOffAction') : null,
             config: null,
           },
         ]
@@ -127,6 +156,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
         : `s3://${config.bucket}`,
       usable: true,
       note: null,
+      action: null,
       config,
     })),
   ];
@@ -188,6 +218,9 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
                     ? `${destination.location} · ${relativeTime(lastSyncedById[destination.providerId] ?? null, t)}`
                     : destination.location)}
               </Text>
+              {destination.action ? (
+                <Text style={styles.rowAction}>{destination.action}</Text>
+              ) : null}
             </Pressable>
             <Switch
               value={
@@ -250,6 +283,7 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 15, color: colors.text },
   rowTitleOff: { color: colors.textMuted },
   rowSubtitle: { fontSize: 12, color: colors.textMuted },
+  rowAction: { fontSize: 12, color: colors.accent, lineHeight: 17 },
   addLink: { alignItems: 'center', paddingVertical: spacing.sm },
   addLinkText: { color: colors.accent, fontWeight: '700' },
 });

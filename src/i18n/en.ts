@@ -3,6 +3,7 @@
 export const en = {
   'common.cancel': 'Cancel',
   'common.back': '‹ Back',
+  'common.backTitle': 'Back',
   'common.save': 'Save',
   'common.done': 'Done',
   'common.delete': 'Delete',
@@ -144,19 +145,14 @@ export const en = {
   'backup.minutesAgo': '{count} min ago',
   'backup.hoursAgo': '{count} h ago',
   'backup.daysAgo': '{count} d ago',
-  'data.exportHint':
-    'Share a .zip of this board — the same file "Import a backup" takes.',
-  'data.importYnabHint': 'Merges a YNAB export into the board you’re on.',
-  'settings.dataHeading': 'Data',
   'settings.importYnab': 'Import from YNAB',
+  'settings.importedHeading': 'Imported',
   'settings.importResultTxnInserted': 'Transactions imported',
   'settings.importResultTxnUpdated': 'Transactions updated',
   'settings.importResultBudgetWritten': 'Budgeted amounts written',
   'settings.importResultAccountsCreated': 'Accounts created',
   'settings.importResultCategoriesCreated': 'Categories created',
   'settings.importAppBackup': 'Import a backup',
-  'settings.importAppBackupHint':
-    'Restores a .zip from this app as a new board — your current one is untouched.',
   'settings.restoredHeading': 'Restored',
   'settings.restoreResultBoard': 'Restored into board',
   'settings.restoreResultAccounts': 'Accounts',
@@ -524,6 +520,8 @@ export const en = {
   'addTransactionModal.hasEndDateLabel': 'Ends on a date',
   'addTransactionModal.endDateLabel': 'End Date',
 
+  'spend.addTitle': 'Add Transaction',
+  'spend.editTitle': 'Edit Transaction',
   'spend.amountPlaceholder': '$0.00',
   'spend.spending': 'Spending',
   'spend.income': 'Income',

@@ -53,7 +53,7 @@ export function AssignedAmountModal({
       // Deferred, not `autoFocus` — focusing the field in the same tick as
       // the modal's own fade-in competes with it for the main thread and
       // reads as the popup taking a beat to appear (same fix as
-      // AddTransactionModal's amount field).
+      // AddTransactionScreen's amount field).
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [visible, initialCents]);

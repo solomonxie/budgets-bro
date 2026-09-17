@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
+import { FieldRow } from './FieldCard';
 import { BottomSheet } from './BottomSheet';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -30,9 +31,12 @@ interface DropdownFieldProps {
   // becomes the only clue to what the field is when empty, so pass a
   // meaningful one.
   hideLabel?: boolean;
+  // Renders as a row of a FieldCard — no box of its own, label above the
+  // value, chevron at the end.
+  row?: boolean;
 }
 
-export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel }: DropdownFieldProps) {
+export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const pendingRef = useRef<(() => void) | null>(null);
@@ -61,13 +65,19 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
 
   return (
     <View>
-      {label && !hideLabel ? <Text style={styles.label}>{label}</Text> : null}
-      <Pressable style={styles.field} onPress={openPicker}>
-        <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
-          {valueLabel || placeholder}
-        </Text>
-        <Text style={styles.chevron}>▾</Text>
-      </Pressable>
+      {row ? (
+        <FieldRow label={label} value={valueLabel} onPress={openPicker} />
+      ) : (
+        <>
+          {label && !hideLabel ? <Text style={styles.label}>{label}</Text> : null}
+          <Pressable style={styles.field} onPress={openPicker}>
+            <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
+              {valueLabel || placeholder}
+            </Text>
+            <Text style={styles.chevron}>▾</Text>
+          </Pressable>
+        </>
+      )}
       {compact ? (
         <Modal visible={open} transparent animationType="slide" onRequestClose={() => close()} onDismiss={runDismissed}>
           <BottomSheet title={label} onClose={close}>

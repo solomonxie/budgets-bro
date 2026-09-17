@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import * as settingsRepo from '../db/repositories/settingsRepo';
+import { recordAiRequest } from '../db/repositories/aiRequestsRepo';
 import { secureStore } from '../secure/secureStore';
 import { runChatCompletion as runOpenAi } from './openaiClient';
 import { runChatCompletion as runAnthropic } from './anthropicClient';
@@ -76,7 +77,9 @@ export function aiVendorName(vendor: AiVendor): string {
 
 // requestCount is a plain usage counter (every attempt, success or not) —
 // shown next to each key in Settings so you can see which ones are
-// actually carrying traffic. The secret itself lives in secureStore,
+// actually carrying traffic. The prompts and replies behind that number
+// are in ai_requests (db/repositories/aiRequestsRepo.ts), readable from the
+// key's own detail view. The secret itself lives in secureStore,
 // keyed by `id` (see secureStore.getAiKeySecret).
 export interface AiKeyMeta {
   id: string;
@@ -248,9 +251,33 @@ export async function runWithAiKeys(
     if (!secret) continue;
     await bumpRequestCount(db, key.id);
     try {
-      return await runChatCompletionForVendor(key.vendor, secret, messages);
+      const response = await runChatCompletionForVendor(
+        key.vendor,
+        secret,
+        messages,
+      );
+      // Recorded here rather than in each vendor client: this is the one
+      // place every call passes through, and it's the only place that knows
+      // which key a call actually went out on after fallback.
+      await recordAiRequest(db, {
+        keyId: key.id,
+        vendor: key.vendor,
+        messages,
+        response,
+        error: null,
+      });
+      return response;
     } catch (err) {
       lastError = err;
+      // Failures are kept too — a key that's rate-limited or revoked is
+      // exactly what someone opens the history to find out.
+      await recordAiRequest(db, {
+        keyId: key.id,
+        vendor: key.vendor,
+        messages,
+        response: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
       if (strategy === 'sequential')
         await setCursor(db, (startAt + i + 1) % keys.length);
     }

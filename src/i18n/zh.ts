@@ -73,7 +73,7 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.languageChinese': '简体中文',
   'settings.aiKeysHeading': 'AI 密钥',
   'settings.aiKeysHint':
-    '用于 AI 分析。仅在你运行分析时从本设备直接发送给所选服务商——我们不会存储或查看。密钥本身不会离开本设备，备份中也不包含。可添加多个密钥，一个触发速率限制或用量耗尽时自动切换到下一个。',
+    '用于 AI 分析。仅在你运行分析时从本设备直接发送给所选服务商——我们不会存储或查看。密钥本身不会离开本设备，备份中也不包含。可添加多个密钥，一个触发速率限制或用量耗尽时自动切换到下一个。点按某个密钥可查看它具体发送了什么。',
   'settings.aiKeyRequestCount': '已发送 {count} 次请求',
   'settings.addAiKeyLink': '+ 添加 AI 密钥',
   'settings.deleteAiKeyConfirmTitle': '删除此密钥？',
@@ -115,6 +115,19 @@ export const zh: Record<keyof typeof en, string> = {
   's3Browser.title': '浏览存储桶',
   's3Browser.up': '..',
   's3Browser.empty': '这里还没有内容。',
+  'aiHistory.hint':
+    '这个密钥发出的每一次请求，原样保存。只存在本机 —— 每个密钥保留最近 50 条，备份中不包含。',
+  'aiHistory.empty': '这个密钥还没有发出过请求。',
+  'aiHistory.ok': '已回复',
+  'aiHistory.failed': '失败',
+  'aiHistory.system': '系统提示',
+  'aiHistory.prompt': '提示词',
+  'aiHistory.response': '回复',
+  'aiHistory.error': '错误',
+  'aiHistory.clear': '清空历史',
+  'aiHistory.clearConfirmTitle': '清空该密钥的历史？',
+  'aiHistory.clearConfirmMessage':
+    '存在本机的提示词和回复会被删除，请求次数不受影响。',
   'backup.heading': '备份',
   'backup.hint':
     '每个开关都会在账本发生变化时自动备份一次。如果你重装应用，iCloud 还会自动把账本恢复回来。API 密钥不会离开本设备，备份中也不包含。',

@@ -72,7 +72,7 @@ export const en = {
   'settings.languageChinese': '简体中文',
   'settings.aiKeysHeading': 'AI Keys',
   'settings.aiKeysHint':
-    'Used by AI Analysis. Sent straight from this device to the chosen vendor when you run an analysis — never stored or seen by us. Keys never leave this device, including in backups. Add more than one to fall back automatically if one hits a rate limit or runs out of usage.',
+    'Used by AI Analysis. Sent straight from this device to the chosen vendor when you run an analysis — never stored or seen by us. Keys never leave this device, including in backups. Add more than one to fall back automatically if one hits a rate limit or runs out of usage. Tap a key to see exactly what it sent.',
   'settings.aiKeyRequestCount': '{count} requests sent',
   'settings.addAiKeyLink': '+ Add AI Key',
   'settings.deleteAiKeyConfirmTitle': 'Delete this key?',
@@ -116,6 +116,19 @@ export const en = {
   's3Browser.title': 'Browse Bucket',
   's3Browser.up': '..',
   's3Browser.empty': 'Nothing here yet.',
+  'aiHistory.hint':
+    'Every request this key has sent, exactly as it went out. Kept on this device only — the last 50 per key, never included in a backup.',
+  'aiHistory.empty': 'This key hasn’t sent anything yet.',
+  'aiHistory.ok': 'Answered',
+  'aiHistory.failed': 'Failed',
+  'aiHistory.system': 'System',
+  'aiHistory.prompt': 'Prompt',
+  'aiHistory.response': 'Response',
+  'aiHistory.error': 'Error',
+  'aiHistory.clear': 'Clear History',
+  'aiHistory.clearConfirmTitle': 'Clear this key’s history?',
+  'aiHistory.clearConfirmMessage':
+    'The prompts and replies stored on this device are deleted. The request count stays.',
   'backup.heading': 'Backup',
   'backup.hint':
     'Each switch backs this board up automatically, every time it changes. iCloud also brings the board back by itself if you reinstall the app. API keys never leave this device, including in backups.',

@@ -27,21 +27,31 @@ import { BalanceTrendChart } from './BalanceTrendChart';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { AccountsStackParamList } from '../../navigation/types';
+import type {
+  AccountsStackParamList,
+  RootStackParamList,
+} from '../../navigation/types';
 import type { TranslationKey } from '../../i18n';
 
 // Income transactions carry no category by design — "Uncategorized" would
 // be noise on every single one of them, so only fall back to it for an
 // outflow (spending genuinely missing a category is worth flagging).
 function categorySubLabel(
-  item: { categoryIcon: string | null; categoryName: string | null; amountCents: number },
+  item: {
+    categoryIcon: string | null;
+    categoryName: string | null;
+    amountCents: number;
+  },
   t: (key: TranslationKey) => string,
 ): string | null {
-  if (item.categoryName) return `${item.categoryIcon ? item.categoryIcon + ' ' : ''}${item.categoryName}`;
+  if (item.categoryName)
+    return `${item.categoryIcon ? item.categoryIcon + ' ' : ''}${item.categoryName}`;
   return item.amountCents < 0 ? t('common.uncategorized') : null;
 }
 
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
+// Add Transaction lives on the root stack, above this one.
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<AccountsStackParamList, 'AccountDetail'>;
 
 export function AccountDetailScreen() {
@@ -57,25 +67,33 @@ export function AccountDetailScreen() {
   const isIncome = accountWithBalance?.account.type === 'income';
   const isCreditCard = accountWithBalance?.account.type === 'credit_card';
   const isCashOrSavings =
-    accountWithBalance?.account.type === 'savings' || accountWithBalance?.account.type === 'cash';
+    accountWithBalance?.account.type === 'savings' ||
+    accountWithBalance?.account.type === 'cash';
   const { transactions } = useTransactions(accountId);
   // An Income account has no ledger rows of its own — its "transactions"
   // are a filtered view over whichever real accounts the money actually
   // landed in (see migration 021).
-  const { transactions: incomeTaggedTransactions } = useIncomeAccountTransactions(isIncome ? accountId : null);
+  const { transactions: incomeTaggedTransactions } =
+    useIncomeAccountTransactions(isIncome ? accountId : null);
   const { futureTransactions } = useFutureTransactions(accountId);
-  const { scheduledTransactions, approve: approveSchedule, cancel: cancelSchedule } = useAccountScheduledTransactions(accountId);
+  const {
+    scheduledTransactions,
+    approve: approveSchedule,
+    cancel: cancelSchedule,
+  } = useAccountScheduledTransactions(accountId);
   const today = currentDateISO();
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
   const [valueExpanded, setValueExpanded] = useState(false);
-  const openEditTransaction = useAppStore((s) => s.openEditTransaction);
+  const rootNavigation = useNavigation<RootNav>();
   const openEditAccount = useAppStore((s) => s.openEditAccount);
 
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
   // An Income account has no ledger rows of its own (see migration 021) —
   // not worth a balance number, so the balance box shows what it actually
   // earned instead.
-  const { thisMonthCents, thisYearCents, trend } = useIncomeInsights(isIncome ? accountId : null);
+  const { thisMonthCents, thisYearCents, trend } = useIncomeInsights(
+    isIncome ? accountId : null,
+  );
   const hasValueHistory = isTracking || isAsset;
   // Cash/savings/credit card balances are fully derivable from the real
   // ledger (opening balance + transactions) — no manual logging needed,
@@ -84,7 +102,8 @@ export function AccountDetailScreen() {
   // flat/near-zero and hides how much actually got charged.
   const showsBalanceTrend = isCashOrSavings || isCreditCard;
   const balanceTrend = useMemo(
-    () => (showsBalanceTrend ? monthlyBalanceTrend(transactions, balanceCents) : []),
+    () =>
+      showsBalanceTrend ? monthlyBalanceTrend(transactions, balanceCents) : [],
     [showsBalanceTrend, transactions, balanceCents],
   );
   const {
@@ -100,12 +119,12 @@ export function AccountDetailScreen() {
   const latestGrowth = useMemo(
     () =>
       isTracking
-        ? buildGrowthSeries(valueHistory, transactions).at(-1) ?? {
+        ? (buildGrowthSeries(valueHistory, transactions).at(-1) ?? {
             date: currentDateISO(),
             totalCents: 0,
             depositedCents: 0,
             gainCents: 0,
-          }
+          })
         : null,
     [isTracking, valueHistory, transactions],
   );
@@ -133,7 +152,10 @@ export function AccountDetailScreen() {
   const rows = useMemo(
     () =>
       isIncome
-        ? incomeTaggedTransactions.map((tx) => ({ ...tx, runningBalanceCents: 0 }))
+        ? incomeTaggedTransactions.map((tx) => ({
+            ...tx,
+            runningBalanceCents: 0,
+          }))
         : withRunningBalances(transactions, balanceCents),
     [isIncome, incomeTaggedTransactions, transactions, balanceCents],
   );
@@ -142,52 +164,78 @@ export function AccountDetailScreen() {
     <ScreenContainer>
       <View style={styles.summaryCard}>
         {isIncome ? (
-          <Pressable style={styles.summaryTopRow} onPress={() => setValueExpanded((v) => !v)}>
+          <Pressable
+            style={styles.summaryTopRow}
+            onPress={() => setValueExpanded((v) => !v)}
+          >
             <View style={styles.summaryLeft}>
-              <Text style={styles.summaryLabel}>{t('accountDetail.incomeThisYear')}</Text>
-              <Text style={styles.summaryValue}>{formatMoney(thisYearCents)}</Text>
-              <Text style={styles.hint}>{t('accountDetail.incomeThisMonth', { amount: formatMoney(thisMonthCents) })}</Text>
+              <Text style={styles.summaryLabel}>
+                {t('accountDetail.incomeThisYear')}
+              </Text>
+              <Text style={styles.summaryValue}>
+                {formatMoney(thisYearCents)}
+              </Text>
+              <Text style={styles.hint}>
+                {t('accountDetail.incomeThisMonth', {
+                  amount: formatMoney(thisMonthCents),
+                })}
+              </Text>
             </View>
             <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
           </Pressable>
         ) : (
-        <View style={styles.summaryTopRow}>
-          <View style={styles.summaryLeft}>
-            <Text style={styles.summaryLabel}>{t('accountDetail.balance')}</Text>
-            <Text
-              style={[styles.summaryValue, balanceCents < 0 && styles.negative]}
-            >
-              {formatMoney(balanceCents)}
-            </Text>
-            {latestGrowth ? (
-              <View style={styles.depositGainRow}>
-                <Text style={styles.depositedText}>
-                  {t('investmentGrowth.depositedLabel')} {formatMoney(latestGrowth.depositedCents)}
+          <View style={styles.summaryTopRow}>
+            <View style={styles.summaryLeft}>
+              <Text style={styles.summaryLabel}>
+                {t('accountDetail.balance')}
+              </Text>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  balanceCents < 0 && styles.negative,
+                ]}
+              >
+                {formatMoney(balanceCents)}
+              </Text>
+              {latestGrowth ? (
+                <View style={styles.depositGainRow}>
+                  <Text style={styles.depositedText}>
+                    {t('investmentGrowth.depositedLabel')}{' '}
+                    {formatMoney(latestGrowth.depositedCents)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.gainText,
+                      latestGrowth.gainCents < 0 && styles.negative,
+                    ]}
+                  >
+                    {latestGrowth.gainCents >= 0 ? '+' : ''}
+                    {formatMoney(latestGrowth.gainCents)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {isMortgage ? (
+              <Pressable
+                style={styles.summaryRight}
+                onPress={() => setValueExpanded((v) => !v)}
+              >
+                <Text style={styles.summaryLabel}>
+                  {t('houseValueCard.label')}
                 </Text>
-                <Text style={[styles.gainText, latestGrowth.gainCents < 0 && styles.negative]}>
-                  {latestGrowth.gainCents >= 0 ? '+' : ''}
-                  {formatMoney(latestGrowth.gainCents)}
-                </Text>
-              </View>
+                <View style={styles.houseValueRow}>
+                  <Text style={styles.houseValueText}>
+                    {currentValueCents == null
+                      ? t('houseValueCard.notSet')
+                      : formatMoney(currentValueCents)}
+                  </Text>
+                  <Text style={styles.chevron}>
+                    {valueExpanded ? '▾' : '›'}
+                  </Text>
+                </View>
+              </Pressable>
             ) : null}
           </View>
-          {isMortgage ? (
-            <Pressable
-              style={styles.summaryRight}
-              onPress={() => setValueExpanded((v) => !v)}
-            >
-              <Text style={styles.summaryLabel}>{t('houseValueCard.label')}</Text>
-              <View style={styles.houseValueRow}>
-                <Text style={styles.houseValueText}>
-                  {currentValueCents == null
-                    ? t('houseValueCard.notSet')
-                    : formatMoney(currentValueCents)}
-                </Text>
-                <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
-              </View>
-            </Pressable>
-          ) : null}
-        </View>
         )}
         {isIncome && valueExpanded ? <IncomeTrendChart points={trend} /> : null}
         {isMortgage && valueExpanded && accountWithBalance ? (
@@ -233,10 +281,14 @@ export function AccountDetailScreen() {
         ) : null}
         {showsBalanceTrend && valueExpanded ? (
           <View style={styles.balanceTrendCard}>
-            <BalanceTrendChart points={balanceTrend} showSpending={isCreditCard} />
+            <BalanceTrendChart
+              points={balanceTrend}
+              showSpending={isCreditCard}
+            />
           </View>
         ) : null}
-        {accountWithBalance && isLoanLikeType(accountWithBalance.account.type) ? (
+        {accountWithBalance &&
+        isLoanLikeType(accountWithBalance.account.type) ? (
           <LoanDetailsCard
             account={accountWithBalance.account}
             balanceCents={balanceCents}
@@ -270,7 +322,12 @@ export function AccountDetailScreen() {
                       {s.payeeName ?? t('common.noPayee')}
                     </Text>
                     <Text style={styles.sub}>
-                      {[categorySubLabel(s, t), t('accountDetail.nextDateLabel', { date: s.nextDate })].filter(Boolean).join(' · ')}
+                      {[
+                        categorySubLabel(s, t),
+                        t('accountDetail.nextDateLabel', { date: s.nextDate }),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </Text>
                   </View>
                   <Text
@@ -282,8 +339,13 @@ export function AccountDetailScreen() {
                     {formatMoney(s.amountCents)}
                   </Text>
                   {s.nextDate <= today ? (
-                    <Pressable style={styles.approveBtn} onPress={() => approveSchedule(s.id)}>
-                      <Text style={styles.approveBtnText}>{t('pendingScheduled.approve')}</Text>
+                    <Pressable
+                      style={styles.approveBtn}
+                      onPress={() => approveSchedule(s.id)}
+                    >
+                      <Text style={styles.approveBtnText}>
+                        {t('pendingScheduled.approve')}
+                      </Text>
                     </Pressable>
                   ) : null}
                   <RowMenuButton
@@ -301,13 +363,21 @@ export function AccountDetailScreen() {
                 <Pressable
                   key={item.id}
                   style={styles.scheduledRow}
-                  onPress={() => openEditTransaction(item.id)}
+                  onPress={() =>
+                    rootNavigation.navigate('AddTransaction', {
+                      transactionId: item.id,
+                    })
+                  }
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.payee}>
                       {item.payeeName ?? t('common.noPayee')}
                     </Text>
-                    <Text style={styles.sub}>{[categorySubLabel(item, t), item.date].filter(Boolean).join(' · ')}</Text>
+                    <Text style={styles.sub}>
+                      {[categorySubLabel(item, t), item.date]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
                   </View>
                   <Text
                     style={[
@@ -330,14 +400,24 @@ export function AccountDetailScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={styles.txnRow}
-            onPress={() => openEditTransaction(item.id)}
+            onPress={() =>
+              rootNavigation.navigate('AddTransaction', {
+                transactionId: item.id,
+              })
+            }
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.payee}>
                 {item.payeeName ?? t('common.noPayee')}
               </Text>
               <Text style={styles.sub}>
-                {[categorySubLabel(item, t), isIncome ? item.accountName : null, item.date].filter(Boolean).join(' · ')}
+                {[
+                  categorySubLabel(item, t),
+                  isIncome ? item.accountName : null,
+                  item.date,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
               {item.memo ? (
                 <Text style={styles.memo} numberOfLines={1}>
@@ -380,7 +460,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: spacing.md,
   },
-  summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  summaryTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   summaryLeft: { gap: spacing.xs },
   summaryRight: { alignItems: 'flex-end', gap: spacing.xs },
   summaryLabel: {
@@ -391,7 +475,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   summaryValue: { fontSize: 30, fontWeight: '700', color: colors.text },
-  depositGainRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  depositGainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   depositedText: { fontSize: 12, color: colors.textMuted },
   gainText: { fontSize: 12, fontWeight: '700', color: colors.positive },
   hint: { fontSize: 12, color: colors.textMuted },
@@ -406,7 +494,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
   },
-  trackingValueHeaderText: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
+  trackingValueHeaderText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
   balanceTrendCard: { marginTop: spacing.sm },
   chevron: { fontSize: 14, color: colors.textMuted },
   scheduledCard: {
@@ -441,7 +533,12 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     opacity: 0.7,
   },
-  approveBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10 },
+  approveBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
   approveBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   txnRow: {
     flexDirection: 'row',
@@ -452,7 +549,12 @@ const styles = StyleSheet.create({
   },
   payee: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  memo: { fontSize: 12, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
+  memo: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
   amount: { fontSize: 15, fontWeight: '700' },
   running: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   negative: { color: colors.negative },

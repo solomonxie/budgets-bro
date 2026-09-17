@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
+import { FieldRow } from './FieldCard';
 import { BottomSheet } from './BottomSheet';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -55,6 +56,8 @@ interface SearchableDropdownFieldProps {
   // becomes the only clue to what the field is when empty, so pass a
   // meaningful one.
   hideLabel?: boolean;
+  // Renders as a row of a FieldCard — see DropdownField's `row`.
+  row?: boolean;
 }
 
 export function SearchableDropdownField({
@@ -67,6 +70,7 @@ export function SearchableDropdownField({
   onUseText,
   compact,
   hideLabel,
+  row,
 }: SearchableDropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -142,13 +146,19 @@ export function SearchableDropdownField({
 
   return (
     <View>
-      {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
-      <Pressable style={styles.field} onPress={openPicker}>
-        <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
-          {valueLabel || placeholder}
-        </Text>
-        <Text style={styles.chevron}>▾</Text>
-      </Pressable>
+      {row ? (
+        <FieldRow label={label} value={valueLabel} onPress={openPicker} />
+      ) : (
+        <>
+          {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
+          <Pressable style={styles.field} onPress={openPicker}>
+            <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
+              {valueLabel || placeholder}
+            </Text>
+            <Text style={styles.chevron}>▾</Text>
+          </Pressable>
+        </>
+      )}
       {compact ? (
         <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
           {/* Keeps the sheet from shrink-wrapping to a sliver — and sliding

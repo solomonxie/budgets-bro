@@ -131,8 +131,10 @@ export const zh: Record<keyof typeof en, string> = {
   'backup.heading': '备份',
   'backup.hint':
     '每个开关都会在账本发生变化时自动备份一次。如果你重装应用，iCloud 还会自动把账本恢复回来。API 密钥不会离开本设备，备份中也不包含。',
-  'backup.icloudSignedOut': '请先在本机登录 iCloud',
+  'backup.icloudOff': '本机的 iCloud 云盘已关闭',
+  'backup.icloudOffAction': '设置 → 你的名字 → iCloud → 云盘 → 打开',
   'backup.icloudNotEntitled': '此版本的应用没有 iCloud 签名权限',
+  'backup.icloudNotReady': 'iCloud 还没准备好 —— 请稍后再试',
   'backup.icloud': 'iCloud 云盘',
   'backup.icloudLocation': '在「文件」→ iCloud 云盘 → BYO Budget',
   'backup.deleteConnection': '删除该连接',

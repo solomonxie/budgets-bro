@@ -1,0 +1,23 @@
+import { requireOptionalNativeModule } from 'expo';
+
+// Keys are the same `<YYYYMM>/<board-slug>-<YYYYMMDD>.zip` paths every other
+// backup destination uses (src/sync/backupPath.ts), relative to the app's own
+// folder in iCloud Drive.
+// `notEntitled` is the build's doing, not the user's — it can only happen in
+// a build signed without the iCloud capability, and no action in iOS Settings
+// changes it.
+export type ICloudStatus = 'available' | 'signedOut' | 'notEntitled';
+
+export interface ICloudDriveModule {
+  // Asked, not caught: none of these are errors.
+  getStatus(): Promise<ICloudStatus>;
+  getContainerPath(): Promise<string | null>;
+  write(key: string, data: Uint8Array): Promise<void>;
+  list(): Promise<string[]>;
+  read(key: string): Promise<Uint8Array | null>;
+}
+
+// Optional, not required: this module is Apple-only and exists only in a real
+// build carrying the iCloud entitlement, so Android, web and Expo Go get null
+// instead of a crash at import time.
+export default requireOptionalNativeModule<ICloudDriveModule>('ICloudDrive');

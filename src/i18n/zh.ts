@@ -25,7 +25,8 @@ export const zh: Record<keyof typeof en, string> = {
   'common.amountPlaceholder': '0.00',
   'common.show': '显示',
   'common.hide': '隐藏',
-  'common.secretLengthHint': '共 {count} 个字符 —— 这类密钥通常是 {expected} 个。',
+  'common.secretLengthHint':
+    '共 {count} 个字符 —— 这类密钥通常是 {expected} 个。',
   'common.termMonthsLabel': '期限（月）',
   'common.effectiveDateLabel': '生效日期',
 
@@ -45,7 +46,8 @@ export const zh: Record<keyof typeof en, string> = {
   'stubScreen.comingSoon': '即将上线——该页面仍在设计中。',
 
   'assignedAmountModal.assignedThisMonth': '本月已分配',
-  'assignedAmountModal.unassignedHint': '未分配：{unassigned}   ·   上月：{lastMonth}',
+  'assignedAmountModal.unassignedHint':
+    '未分配：{unassigned}   ·   上月：{lastMonth}',
   'assignedAmountModal.rolloverHint': '结转：{amount}',
   'assignedAmountModal.exceedsError': '超出可分配金额 {amount}',
   'assignedAmountModal.history': '历史记录',
@@ -59,16 +61,19 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.payeesHeading': '管理收款方',
   'settings.payeeSelectPlaceholder': '选择或创建…',
   'settings.payeeSearchPlaceholder': '搜索或输入新的收款方',
-  'settings.payeeLinkedHint': '已关联到某个账户——由系统自动管理，无法在此重命名或删除。',
+  'settings.payeeLinkedHint':
+    '已关联到某个账户——由系统自动管理，无法在此重命名或删除。',
   'settings.appearanceHeading': '外观',
   'settings.themeDark': '深色',
   'settings.themeLight': '浅色',
-  'settings.themeLightHint': '浅色主题即将推出——你的选择已保存，上线后自动生效。',
+  'settings.themeLightHint':
+    '浅色主题即将推出——你的选择已保存，上线后自动生效。',
   'settings.languageHeading': '语言',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
   'settings.aiKeysHeading': 'AI 密钥',
-  'settings.aiKeysHint': '用于 AI 分析。仅在你运行分析时从本设备直接发送给所选服务商——我们不会存储或查看。密钥本身不会离开本设备，备份中也不包含。可添加多个密钥，一个触发速率限制或用量耗尽时自动切换到下一个。',
+  'settings.aiKeysHint':
+    '用于 AI 分析。仅在你运行分析时从本设备直接发送给所选服务商——我们不会存储或查看。密钥本身不会离开本设备，备份中也不包含。可添加多个密钥，一个触发速率限制或用量耗尽时自动切换到下一个。',
   'settings.aiKeyRequestCount': '已发送 {count} 次请求',
   'settings.addAiKeyLink': '+ 添加 AI 密钥',
   'settings.deleteAiKeyConfirmTitle': '删除此密钥？',
@@ -80,15 +85,19 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.s3BucketLabel': '存储桶（Bucket）',
   'settings.addS3BackupLink': '+ 添加 S3 备份',
   'settings.deleteS3ConfigConfirmTitle': '删除"{name}"？',
-  'settings.deleteS3ConfigConfirmMessage': '存储桶中已有的备份不受影响——仅移除已保存的连接信息。',
+  'settings.deleteS3ConfigConfirmMessage':
+    '存储桶中已有的备份不受影响——仅移除已保存的连接信息。',
   's3ConfigModal.title': '添加 S3 备份',
   's3ConfigModal.connectionHeading': 'S3 存储桶',
   's3ConfigModal.pasteInfo': '粘贴信息添加',
   's3ConfigModal.backToFields': '返回逐项填写',
-  's3ConfigModal.pastePlaceholder': 'bucket: my-bucket\nprefix: budget/\naccess_key_id: AKIA…\nsecret_access_key: …',
-  's3ConfigModal.pasteHint': '各种写法都认，按第一个 `:` 或 `=` 拆分。粘贴一次即自动填好并返回字段。这里不做遮挡 —— 贴完就走，别让密钥停留在这。',
+  's3ConfigModal.pastePlaceholder':
+    'bucket: my-bucket\nprefix: budget/\naccess_key_id: AKIA…\nsecret_access_key: …',
+  's3ConfigModal.pasteHint':
+    '各种写法都认，按第一个 `:` 或 `=` 拆分。粘贴一次即自动填好并返回字段。这里不做遮挡 —— 贴完就走，别让密钥停留在这。',
   's3ConfigModal.keyPrefixLabel': '文件夹（键前缀，可选）',
-  's3ConfigModal.keyPrefixPlaceholder': '例如：backups —— 用于与其他内容共用同一存储桶时',
+  's3ConfigModal.keyPrefixPlaceholder':
+    '例如：backups —— 用于与其他内容共用同一存储桶时',
   's3ConfigModal.missingFields': '请填写存储桶以及两个密钥。',
   's3ConfigModal.testing': '正在检测区域并测试连接…',
   's3ConfigModal.testFailed': '无法连接：{error}',
@@ -106,21 +115,14 @@ export const zh: Record<keyof typeof en, string> = {
   's3Browser.title': '浏览存储桶',
   's3Browser.up': '..',
   's3Browser.empty': '这里还没有内容。',
-  'settings.syncNow': '立即同步',
-  'settings.noCloudBackupFound': '云端尚未找到备份。',
   'backup.heading': '备份',
-  'backup.hint': '每次同步都会把当前账本完整写入下面的每个目的地。数据永远不会被合并回来 —— 恢复一定是新建一个账本。API 密钥不会离开本设备，备份中也不包含。',
-  'backup.thisDevice': '本机',
-  'backup.thisDeviceLocation': '存在应用自己的文件里',
-  'backup.autoSync': '自动同步',
-  'backup.keepCopyHere': '在这里留一份',
-  'backup.restoreLatest': '恢复最新备份',
-  'backup.restore': '恢复',
+  'backup.hint':
+    '每个开关都会在账本发生变化时自动备份一次。如果你重装应用，iCloud 还会自动把账本恢复回来。API 密钥不会离开本设备，备份中也不包含。',
+  'backup.icloudSignedOut': '请先在本机登录 iCloud',
+  'backup.icloudNotEntitled': '此版本的应用没有 iCloud 签名权限',
+  'backup.icloud': 'iCloud 云盘',
+  'backup.icloudLocation': '在「文件」→ iCloud 云盘 → BYO Budget',
   'backup.deleteConnection': '删除该连接',
-  'backup.restoreConfirmTitle': '从“{name}”恢复？',
-  'backup.restoreConfirmMessage': '最新备份会作为一个新账本恢复并自动切换过去。当前账本不受影响。',
-  'backup.notEnabled': '请先打开“在这里留一份”。',
-  'backup.off': '已关闭',
   'backup.never': '从未同步',
   'backup.justNow': '刚刚',
   'backup.minutesAgo': '{count} 分钟前',
@@ -136,7 +138,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.importResultAccountsCreated': '已创建账户',
   'settings.importResultCategoriesCreated': '已创建分类',
   'settings.importAppBackup': '导入备份',
-  'settings.importAppBackupHint': '把本应用导出的 .zip 还原成一个新账本 —— 当前账本不受影响。',
+  'settings.importAppBackupHint':
+    '把本应用导出的 .zip 还原成一个新账本 —— 当前账本不受影响。',
   'settings.restoredHeading': '已恢复',
   'settings.restoreResultBoard': '已还原至账本',
   'settings.restoreResultAccounts': '账户',
@@ -151,12 +154,14 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.payeeNamePlaceholder': '收款方名称',
   'settings.boardNamePlaceholder': '例如 个人预算',
   'settings.deleteBoardConfirmTitle': '删除「{name}」？',
-  'settings.deleteBoardConfirmMessage': '其中的所有账户、分类和交易也将一并删除。此操作无法撤销。',
+  'settings.deleteBoardConfirmMessage':
+    '其中的所有账户、分类和交易也将一并删除。此操作无法撤销。',
   'settings.cantDeleteOnlyBoardTitle': '无法删除唯一的账本',
   'settings.cantDeleteOnlyBoardMessage': '请先创建另一个账本。',
   'settings.deleteBoardFailed': '无法删除账本。',
   'settings.deletePayeeConfirmTitle': '删除「{name}」？',
-  'settings.deletePayeeConfirmMessage': '以往交易会保留金额，但会失去此收款方信息。此操作无法撤销。',
+  'settings.deletePayeeConfirmMessage':
+    '以往交易会保留金额，但会失去此收款方信息。此操作无法撤销。',
   'settings.importFailed': '导入失败。',
   'settings.restoreFailed': '还原失败。',
   'settings.exportFailedTitle': '导出失败',
@@ -213,7 +218,8 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.loanTermsHeading': '贷款条款（用于账户页面的还清预测）',
   'accountModal.toolsHeading': '工具',
   'accountModal.incomeDetailsHeading': '薪资历史',
-  'accountModal.incomeDetailsHint': '可选——记录薪资变动、时薪或每次发薪的金额。仅作参考，不影响实际记录的存入金额。',
+  'accountModal.incomeDetailsHint':
+    '可选——记录薪资变动、时薪或每次发薪的金额。仅作参考，不影响实际记录的存入金额。',
   'accountModal.addIncomeDetail': '+ 添加记录',
   'accountModal.noIncomeDetails': '尚未记录薪资历史。',
 
@@ -235,7 +241,8 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.reopenAccount': '重新开启账户',
   'accountModal.closeAccount': '关闭账户',
   'accountModal.closeAccountConfirmTitle': '关闭「{name}」？',
-  'accountModal.closeAccountConfirmMessage': '将从账户列表中隐藏。其交易记录会保留，不会被删除。',
+  'accountModal.closeAccountConfirmMessage':
+    '将从账户列表中隐藏。其交易记录会保留，不会被删除。',
 
   'closedAccounts.empty': '没有已关闭的账户。',
   'closedAccounts.tapToReopen': '点击以重新开启',
@@ -272,7 +279,8 @@ export const zh: Record<keyof typeof en, string> = {
   'loanDetailsCard.summary': '{rate}% · 每月 {payment}',
 
   'aiAnalysis.title': 'AI 洞察',
-  'aiAnalysis.noKeyHint': '请先在设置中添加 OpenAI API 密钥，才能分析你的预算数据。',
+  'aiAnalysis.noKeyHint':
+    '请先在设置中添加 OpenAI API 密钥，才能分析你的预算数据。',
   'aiAnalysis.openSettings': '打开设置',
   'aiAnalysis.kindSpending': '支出',
   'aiAnalysis.kindVariance': '差异',
@@ -280,13 +288,15 @@ export const zh: Record<keyof typeof en, string> = {
   'aiAnalysis.kindHealth': '财务健康',
   'aiAnalysis.kindComparison': '对比',
   'aiAnalysis.profileHeading': '关于你（可选）',
-  'aiAnalysis.profileHint': '用于下方的"财务健康"与"对比"报告——保存在本设备，仅在运行这两项分析时发送给 OpenAI。留空即可跳过某一项。',
+  'aiAnalysis.profileHint':
+    '用于下方的"财务健康"与"对比"报告——保存在本设备，仅在运行这两项分析时发送给 OpenAI。留空即可跳过某一项。',
   'aiAnalysis.cityLabel': '城市',
   'aiAnalysis.countryLabel': '国家',
   'aiAnalysis.ageLabel': '年龄',
   'aiAnalysis.familySizeLabel': '家庭人数',
   'aiAnalysis.privacyModeLabel': '隐私模式',
-  'aiAnalysis.privacyModeHint': '发送前将所有金额四舍五入到最近的 10 元，并把分类名称换成通用标签（“Category 1”）。关掉它，AI 才会直呼你真实的分类名。',
+  'aiAnalysis.privacyModeHint':
+    '发送前将所有金额四舍五入到最近的 10 元，并把分类名称换成通用标签（“Category 1”）。关掉它，AI 才会直呼你真实的分类名。',
   'aiAnalysis.runButton': '开始分析',
   'aiAnalysis.errorInvalidKey': 'OpenAI 拒绝了此 API 密钥——请在设置中检查。',
   'aiAnalysis.errorRateLimited': '已被 OpenAI 限流——请稍后重试。',
@@ -299,7 +309,6 @@ export const zh: Record<keyof typeof en, string> = {
   'calculators.monthlyPaymentLabel': '每月还款',
   'calculators.totalInterestLabel': '总利息支出',
   'calculators.payoffDateLabel': '还清日期（从今天起算）',
-
 
   'amortizationSchedule.title': '还款计划表',
   'amortizationSchedule.inputsTitle': '贷款参数',
@@ -314,7 +323,8 @@ export const zh: Record<keyof typeof en, string> = {
   'investmentGrowth.gainLabel': '盈亏',
   'investmentGrowth.totalLabel': '总额',
   'investmentGrowth.notEnoughHistory': '记录至少两次余额更新即可查看趋势。',
-  'investmentGrowth.noDepositsHint': '此账户还没有记录任何交易，因此全部余额都显示为盈利。将存入/取出记为交易即可区分两者。',
+  'investmentGrowth.noDepositsHint':
+    '此账户还没有记录任何交易，因此全部余额都显示为盈利。将存入/取出记为交易即可区分两者。',
 
   'babySteps.step1Title': '1,000 美元启动应急基金',
   'babySteps.step2Title': '还清所有债务（房贷除外）',
@@ -345,9 +355,11 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.noAccountsAvailable': '没有可用账户',
   'babySteps.noCategoriesAvailable': '没有可用分类',
   'babySteps.goalsHeading': '我的目标',
-  'babySteps.goalsHint': '这是你自己设定的目标——与上面的 7 个理财步骤无关，也不计入它们的进度。可以手动跟踪，也可以关联某个账户的余额。',
+  'babySteps.goalsHint':
+    '这是你自己设定的目标——与上面的 7 个理财步骤无关，也不计入它们的进度。可以手动跟踪，也可以关联某个账户的余额。',
   'babySteps.addGoal': '+ 添加目标',
-  'babySteps.goalsEmpty': '还没有自定义目标——在上面设定你自己的目标，手动或通过关联账户跟踪进度。',
+  'babySteps.goalsEmpty':
+    '还没有自定义目标——在上面设定你自己的目标，手动或通过关联账户跟踪进度。',
 
   'customGoalModal.nameLabel': '名称',
   'customGoalModal.namePlaceholder': '例如 购车首付',
@@ -356,7 +368,8 @@ export const zh: Record<keyof typeof en, string> = {
   'customGoalModal.progressLabel': '当前进度',
 
   'taxInsights.title': '税务洞察 — {year}',
-  'taxInsights.disclaimer': '基于你的账本数据得出的初步估算，仅供规划参考。不构成税务建议。',
+  'taxInsights.disclaimer':
+    '基于你的账本数据得出的初步估算，仅供规划参考。不构成税务建议。',
   'taxInsights.countryLabel': '国家',
   'taxInsights.provinceLabel': '省份',
   'taxInsights.selectProvince': '选择省份',
@@ -367,14 +380,16 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.otherUntaggedIncome': '其他/未标记',
   'taxInsights.noIncomeAccounts': '还没有标记收入账户',
   'taxInsights.interestLabel': '利息',
-  'taxInsights.interestHint': '选择你用于利息交易的分类（如有）——存入的（如储蓄利息）算作所得，扣除的（如贷款利息）算作支付。',
+  'taxInsights.interestHint':
+    '选择你用于利息交易的分类（如有）——存入的（如储蓄利息）算作所得，扣除的（如贷款利息）算作支付。',
   'taxInsights.interestEarned': '所得（应税）',
   'taxInsights.interestPaid': '支付（通常不可抵扣）',
   'taxInsights.interestCategoriesLabel': '利息相关分类',
   'taxInsights.categoriesCount': '{count} 个分类',
   'taxInsights.noCategoriesAvailable': '没有可用分类',
   'taxInsights.investmentGainsLabel': '投资账户收益（{year}）',
-  'taxInsights.investmentGainsHint': '仅为追踪账户的原始价值变化——实际应税资本收益取决于纳入率和调整后成本基础，此处未计算。',
+  'taxInsights.investmentGainsHint':
+    '仅为追踪账户的原始价值变化——实际应税资本收益取决于纳入率和调整后成本基础，此处未计算。',
   'taxInsights.noTrackingAccounts': '还没有追踪类账户',
   'taxInsights.totalGains': '总计',
   'taxInsights.gainSince': '自 {date} 起',
@@ -385,12 +400,15 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.additionalIncomeLabel': '其他应税收入',
   'taxInsights.deductionsLabel': '预计抵扣额',
   'taxInsights.estimatedTaxableIncomeLabel': '预计应税收入',
-  'taxInsights.estimatedTaxableIncomeHint': '账本收入 + 其他收入 − 抵扣额。上方的利息、收益和捐赠仅供参考，未重复计入此处。',
+  'taxInsights.estimatedTaxableIncomeHint':
+    '账本收入 + 其他收入 − 抵扣额。上方的利息、收益和捐赠仅供参考，未重复计入此处。',
   'taxInsights.timelineLabel': '申报时间线（{province}）',
   'taxInsights.timelineNoProvince': '申报时间线',
-  'taxInsights.slipsReadyBy': '税单（T4/T4A/T5）通常在 {date} 前备齐——到时开始收集',
+  'taxInsights.slipsReadyBy':
+    '税单（T4/T4A/T5）通常在 {date} 前备齐——到时开始收集',
   'taxInsights.rrspDeadline': 'RRSP 供款截止日期（{year} 年报税用）：{date}',
-  'taxInsights.filingDeadline': '申报截止日期：{date}（如你或配偶为自雇人士则为 6 月 15 日——但欠税仍须在 {date} 前缴清）',
+  'taxInsights.filingDeadline':
+    '申报截止日期：{date}（如你或配偶为自雇人士则为 6 月 15 日——但欠税仍须在 {date} 前缴清）',
   'taxInsights.formsChecklistLabel': '需要收集的表格',
   'taxInsights.formT4': 'T4 — 雇佣收入',
   'taxInsights.formT5': 'T5 — 投资收入（利息/股息）',
@@ -399,7 +417,8 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.formTP1': 'TP1 — 魁北克省税表',
   'taxInsights.askAi': '让 AI 生成摘要 →',
   'taxInsights.aiSummaryTitle': 'AI 摘要',
-  'taxInsights.aiSummaryMessage': 'AI 分析需要配置 API 密钥和服务商——将在未来版本中推出。',
+  'taxInsights.aiSummaryMessage':
+    'AI 分析需要配置 API 密钥和服务商——将在未来版本中推出。',
 
   'transactions.searchPlaceholder': '搜索收款方或备注',
   'transactions.select': '选择',
@@ -426,7 +445,8 @@ export const zh: Record<keyof typeof en, string> = {
   'budget.groupNamePlaceholder': '例如 账单',
   'budget.categoryNamePlaceholder': '例如 🛒 日用百货',
   'budget.deleteGroupConfirmTitle': '删除「{name}」？',
-  'budget.deleteGroupConfirmMessage': '其下的分类将移至「未分组」——不会被删除。',
+  'budget.deleteGroupConfirmMessage':
+    '其下的分类将移至「未分组」——不会被删除。',
   'budget.deleteCategoryConfirmTitle': '删除「{name}」？',
   'budget.pendingApprovals': '{count} 笔定期交易待批准',
 
@@ -438,7 +458,8 @@ export const zh: Record<keyof typeof en, string> = {
   'insights.topCategories': '主要分类',
   'insights.noSpending': '本月暂无支出记录。',
   'insights.categoryTrends': '分类趋势',
-  'insights.trendHint': '全部历史——拖动可滚动，点击图标可隐藏／显示该分类。虚线为 12 个月平均值。',
+  'insights.trendHint':
+    '全部历史——拖动可滚动，点击图标可隐藏／显示该分类。虚线为 12 个月平均值。',
   'insights.notEnoughHistory': '历史数据不足。',
   'insights.avgAxisLabel': '平均',
   'insights.babySteps': '理财七步',
@@ -524,7 +545,8 @@ export const zh: Record<keyof typeof en, string> = {
 
   'financeTools.linkAccount': '关联账户',
   'financeTools.enterManually': '手动输入',
-  'financeTools.accountMissingValue': '该账户尚未设置这一项 —— 先去账户里补上才能带入。',
+  'financeTools.accountMissingValue':
+    '该账户尚未设置这一项 —— 先去账户里补上才能带入。',
 
   // --- calculator screens (shared labels across every tool) ---
   'financeTools.inputs': '输入',
@@ -551,7 +573,8 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.hoaMonthly': '物业费（每月）',
   'financeTools.maintenance': '维护保养',
   'financeTools.maintenanceRate': '维护保养（每年，占房价 %）',
-  'financeTools.maintenanceNote': '维护费按房价每年 1.5% 估算，仅供你规划——放贷机构从不计入。',
+  'financeTools.maintenanceNote':
+    '维护费按房价每年 1.5% 估算，仅供你规划——放贷机构从不计入。',
   'financeTools.closingCosts': '交易费用',
   'financeTools.closingCostRate': '交易费用（占房价 %）',
   'financeTools.cashAtClosing': '过户时要准备的现金',
@@ -579,7 +602,8 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.oneTimePayment': '一次性大额还款',
   'financeTools.oneTimeOn': '还款日',
   'financeTools.biweeklyEquivalent': '相当于每月还',
-  'financeTools.biweeklyNote': '每两周还半期，一年 26 个半期 —— 等于还 13 期，不是 12 期。',
+  'financeTools.biweeklyNote':
+    '每两周还半期，一年 26 个半期 —— 等于还 13 期，不是 12 期。',
   'financeTools.interestSaved': '节省利息',
   'financeTools.percentLessInterest': '少付 {percent}% 的利息',
   'financeTools.timeSaved': '提前还清',
@@ -599,10 +623,13 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.rule3143': '宽松 31/43',
   'financeTools.maxHousePrice': '最多能买到',
   'financeTools.frontEndRatio': '房贷收入比',
-  'financeTools.frontEndHint': '住房支出占税前收入的比例 —— 放贷机构一般卡在 28% 左右。',
+  'financeTools.frontEndHint':
+    '住房支出占税前收入的比例 —— 放贷机构一般卡在 28% 左右。',
   'financeTools.backEndRatio': '总负债收入比',
-  'financeTools.backEndHint': '全部债务支出占税前收入的比例 —— 一般卡在 36%，有时放宽到 43%。',
-  'financeTools.affordabilityNote': '这是放贷机构的上限，不是建议。维护费和物业费还要另算在外。',
+  'financeTools.backEndHint':
+    '全部债务支出占税前收入的比例 —— 一般卡在 36%，有时放宽到 43%。',
+  'financeTools.affordabilityNote':
+    '这是放贷机构的上限，不是建议。维护费和物业费还要另算在外。',
   'financeTools.grossMonthlyIncome': '税前月收入',
   'financeTools.housingPayment': '每月住房支出',
   'financeTools.otherDebtPayments': '其他每月还款',
@@ -629,8 +656,10 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.lifetimeInterestSaved': '整个贷款期共省',
   'financeTools.lifetimeInterestHint': '省下的利息，已扣掉过户时付的费用。',
   'financeTools.keepPayingToday': '若继续按现在的月供还',
-  'financeTools.keepPayingHint': '把省下的钱全部还进本金，而不是留在每月开销里。',
-  'financeTools.refinanceNote': '回本只算过户时真金白银付出去的钱。费用并入贷款就等于没付 —— 代价体现在整个贷款期的那一行。',
+  'financeTools.keepPayingHint':
+    '把省下的钱全部还进本金，而不是留在每月开销里。',
+  'financeTools.refinanceNote':
+    '回本只算过户时真金白银付出去的钱。费用并入贷款就等于没付 —— 代价体现在整个贷款期的那一行。',
 
   // Auto loan
   'financeTools.vehiclePrice': '车辆价格',
@@ -669,7 +698,8 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.colBuyer': '买',
   'financeTools.colRenter': '租',
   'financeTools.colAdvantage': '差额',
-  'financeTools.rentVsBuyNote': '两边每月花的钱一样多：谁更省，差额就按这个收益率投出去。改这个数，结论就会变。',
+  'financeTools.rentVsBuyNote':
+    '两边每月花的钱一样多：谁更省，差额就按这个收益率投出去。改这个数，结论就会变。',
 
   // Investment & compound interest
   'financeTools.solveFor': '要算的是',
@@ -713,7 +743,8 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.marginalRate': '边际税率（%）',
   'financeTools.taxableIncome': '应税收入',
   'financeTools.bracketTable': '你的税率表',
-  'financeTools.bracketHint': '填你自己的综合税率（联邦＋省/州）。最高一档的上限留空。应用不内置任何税率 —— 每年都在变，各地也不一样。',
+  'financeTools.bracketHint':
+    '填你自己的综合税率（联邦＋省/州）。最高一档的上限留空。应用不内置任何税率 —— 每年都在变，各地也不一样。',
   'financeTools.bracketUpTo': '上限',
   'financeTools.bracketTopBand': '最高档',
   'financeTools.bracketRate': '税率（%）',
@@ -725,8 +756,10 @@ export const zh: Record<keyof typeof en, string> = {
   'financeTools.taxAfter': '抵扣后的税',
   'financeTools.marginalRateAtIncome': '你的边际税率',
   'financeTools.flatRateWouldSay': '只按单一税率算会得出',
-  'financeTools.straddlesBracket': '这笔抵扣把你拉到了更低一档，所以并非全额按最高税率退回。',
-  'financeTools.taxNote': '仅供规划，不构成税务建议。税收抵免（比如捐赠）与税前扣除的算法不同。',
+  'financeTools.straddlesBracket':
+    '这笔抵扣把你拉到了更低一档，所以并非全额按最高税率退回。',
+  'financeTools.taxNote':
+    '仅供规划，不构成税务建议。税收抵免（比如捐赠）与税前扣除的算法不同。',
 
   // Early repayment (China)
   'financeTools.loanContract': '贷款合同',

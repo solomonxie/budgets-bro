@@ -1,20 +1,22 @@
-import { resolveAutoSync } from './autoSync';
+import { resolveSyncEnabled } from './autoSync';
 
-// Auto-sync moved from one global switch to a setting per destination. The
-// rule that matters is what happens to someone who had already turned the old
-// switch off — they must not silently start syncing again.
-describe('resolveAutoSync', () => {
-  it('defaults to on when nothing was ever set', () => {
-    expect(resolveAutoSync(null, null)).toBe(true);
+describe('resolveSyncEnabled', () => {
+  it('uses the destination switch once it has been touched', () => {
+    expect(resolveSyncEnabled('true', null, 'false', false)).toBe(true);
+    expect(resolveSyncEnabled('false', 'true', 'true', true)).toBe(false);
   });
 
-  it('inherits the retired global switch when the destination has no setting', () => {
-    expect(resolveAutoSync(null, 'false')).toBe(false);
-    expect(resolveAutoSync(null, 'true')).toBe(true);
+  it('keeps anyone who turned the old global switch off turned off', () => {
+    expect(resolveSyncEnabled(null, 'true', 'false', true)).toBe(false);
   });
 
-  it('lets a destination override the global one in both directions', () => {
-    expect(resolveAutoSync('true', 'false')).toBe(true);
-    expect(resolveAutoSync('false', 'true')).toBe(false);
+  it('inherits the old per-destination flag before the fallback', () => {
+    expect(resolveSyncEnabled(null, 'false', null, true)).toBe(false);
+    expect(resolveSyncEnabled(null, 'true', null, false)).toBe(true);
+  });
+
+  it('falls back per destination when nothing was ever stored', () => {
+    expect(resolveSyncEnabled(null, null, null, true)).toBe(true);
+    expect(resolveSyncEnabled(null, null, null, false)).toBe(false);
   });
 });

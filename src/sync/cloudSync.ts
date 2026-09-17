@@ -2,48 +2,74 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
-import { createLocalProviders } from './localProvider';
+import { createICloudProviders } from './icloudProvider';
 import { LEGACY_BACKUP_KEY, backupKey, latestBackupKey } from './backupPath';
 import { currentDateISO } from '../domain/month';
-import { resolveAutoSync } from './autoSync';
+import { resolveSyncEnabled } from './autoSync';
 import type { CloudProvider, CloudProviderId } from './types';
 
-// Auto-sync is per destination, not one global switch: "back up to the bucket
-// automatically, write the on-device snapshot only when I ask" is an ordinary
-// thing to want, and a single toggle can't say it.
-const AUTO_SYNC_PREFIX = 'sync_auto_';
-// The single switch this replaced — see autoSync.ts for how it's inherited.
-const LEGACY_AUTO_SYNC_KEY = 'sync_auto_enabled';
+const SYNC_PREFIX = 'sync_auto_';
+// The two settings this one switch replaced — see autoSync.ts.
+const LEGACY_GLOBAL_KEY = 'sync_auto_enabled';
 const LAST_SYNCED_PREFIX = 'sync_last_synced_';
 
-export async function isAutoSyncEnabled(db: SQLiteDatabase, providerId: CloudProviderId): Promise<boolean> {
-  return resolveAutoSync(
-    await settingsRepo.getSetting(db, `${AUTO_SYNC_PREFIX}${providerId}`),
-    await settingsRepo.getSetting(db, LEGACY_AUTO_SYNC_KEY),
+// Adding an S3 connection is itself the opt-in, so it starts on. iCloud has
+// no such moment, so it starts off: installing an update shouldn't begin
+// writing into someone's iCloud uninvited.
+function startsOn(providerId: CloudProviderId): boolean {
+  return providerId.startsWith('aws-s3:');
+}
+
+export async function isSyncEnabled(
+  db: SQLiteDatabase,
+  providerId: CloudProviderId,
+): Promise<boolean> {
+  return resolveSyncEnabled(
+    await settingsRepo.getSetting(db, `${SYNC_PREFIX}${providerId}`),
+    null,
+    await settingsRepo.getSetting(db, LEGACY_GLOBAL_KEY),
+    startsOn(providerId),
   );
 }
 
-export async function setAutoSyncEnabled(db: SQLiteDatabase, providerId: CloudProviderId, enabled: boolean): Promise<void> {
-  await settingsRepo.setSetting(db, `${AUTO_SYNC_PREFIX}${providerId}`, enabled ? 'true' : 'false');
+export async function setSyncEnabled(
+  db: SQLiteDatabase,
+  providerId: CloudProviderId,
+  enabled: boolean,
+): Promise<void> {
+  await settingsRepo.setSetting(
+    db,
+    `${SYNC_PREFIX}${providerId}`,
+    enabled ? 'true' : 'false',
+  );
 }
 
-export async function getLastSyncedAt(db: SQLiteDatabase, providerId: CloudProviderId): Promise<string | null> {
+export async function getLastSyncedAt(
+  db: SQLiteDatabase,
+  providerId: CloudProviderId,
+): Promise<string | null> {
   return settingsRepo.getSetting(db, `${LAST_SYNCED_PREFIX}${providerId}`);
 }
 
-async function setLastSyncedAt(db: SQLiteDatabase, providerId: CloudProviderId, iso: string): Promise<void> {
+async function setLastSyncedAt(
+  db: SQLiteDatabase,
+  providerId: CloudProviderId,
+  iso: string,
+): Promise<void> {
   await settingsRepo.setSetting(db, `${LAST_SYNCED_PREFIX}${providerId}`, iso);
 }
 
+// Every destination that physically exists, switched on or not — restore
+// reads through here too, and a destination you stopped syncing to still
+// holds the backups it already took.
 // New providers (Google Drive, etc.) just add another `create*Providers(db)`
-// call here — see docs/design/cloud-sync/DESIGN.md.
+// call — see docs/design/cloud-sync/DESIGN.md.
 async function collectProviders(db: SQLiteDatabase): Promise<CloudProvider[]> {
-  const [s3, local] = await Promise.all([createS3Providers(db), createLocalProviders(db)]);
-  return [...s3, ...local];
-}
-
-export async function hasAnyProviderConfigured(db: SQLiteDatabase): Promise<boolean> {
-  return (await collectProviders(db)).length > 0;
+  const [s3, icloud] = await Promise.all([
+    createS3Providers(db),
+    createICloudProviders(),
+  ]);
+  return [...s3, ...icloud];
 }
 
 export interface SyncOutcome {
@@ -52,30 +78,22 @@ export interface SyncOutcome {
   error: string | null;
 }
 
-export interface SyncOptions {
-  // One destination only — what a connection's own "Sync Now" targets.
-  providerId?: CloudProviderId;
-  // Skip destinations whose auto-sync is off. Set by the background/debounced
-  // path; a button press syncs regardless of the setting.
-  autoOnly?: boolean;
-}
-
-// One-way backup to the selected destinations — not a merge (see DESIGN.md
-// Non-goals). Failures are returned rather than thrown: a sync hiccup must
-// never interrupt money entry, but a button press needs something to report.
+// One-way backup to every destination whose switch is on — not a merge (see
+// DESIGN.md Non-goals). There is no manual trigger and no per-destination
+// call: a switch that's on means "every change", which is the whole of what
+// the setting promises. Failures are returned rather than thrown — a sync
+// hiccup must never interrupt money entry.
 export async function syncNow(
   db: SQLiteDatabase,
   boardId: number,
   boardName: string,
-  options: SyncOptions = {},
 ): Promise<SyncOutcome[]> {
   const all = await collectProviders(db);
-  const selected = options.providerId ? all.filter((p) => p.id === options.providerId) : all;
-  const eligible = options.autoOnly
-    ? (await Promise.all(selected.map(async (p) => ((await isAutoSyncEnabled(db, p.id)) ? p : null)))).filter(
-        (p): p is CloudProvider => p != null,
-      )
-    : selected;
+  const eligible = (
+    await Promise.all(
+      all.map(async (p) => ((await isSyncEnabled(db, p.id)) ? p : null)),
+    )
+  ).filter((p): p is CloudProvider => p != null);
   if (eligible.length === 0) return [];
 
   const bytes = await buildBackupZip(db, boardId, boardName);
@@ -90,36 +108,39 @@ export async function syncNow(
         return { providerId: provider.id, syncedAt, error: null };
       } catch (e) {
         console.warn(`[cloudSync] ${provider.id} upload failed`, e);
-        return { providerId: provider.id, syncedAt: null, error: e instanceof Error ? e.message : String(e) };
+        return {
+          providerId: provider.id,
+          syncedAt: null,
+          error: e instanceof Error ? e.message : String(e),
+        };
       }
     }),
   );
 }
 
-// For "Restore Latest" — scoped to one destination when a connection's own
-// menu asks, otherwise the first provider holding a backup for this board.
+// Used by the automatic post-reinstall restore (sync/autoRestore.ts), which
+// is the only restore path that reads a destination — everything manual goes
+// through "Import a backup" and a file the user picked.
 export async function downloadLatestBackup(
   db: SQLiteDatabase,
   boardId: number,
   boardName: string,
-  providerId?: CloudProviderId,
+  providerId: CloudProviderId,
 ): Promise<Uint8Array | null> {
-  const all = await collectProviders(db);
-  const providers = providerId ? all.filter((p) => p.id === providerId) : all;
-  for (const provider of providers) {
-    try {
-      const key = latestBackupKey(await provider.listKeys(), boardName);
-      if (key) {
-        const bytes = await provider.download(key);
-        if (bytes) return bytes;
-      }
-    } catch (e) {
-      console.warn(`[cloudSync] ${provider.id} list failed`, e);
+  const provider = (await collectProviders(db)).find(
+    (p) => p.id === providerId,
+  );
+  if (!provider) return null;
+  try {
+    const key = latestBackupKey(await provider.listKeys(), boardName);
+    if (key) {
+      const bytes = await provider.download(key);
+      if (bytes) return bytes;
     }
-    // Anyone who backed up before keys were dated still has exactly one file
-    // at the old path, and it may be their only copy.
-    const legacy = await provider.download(LEGACY_BACKUP_KEY(boardId));
-    if (legacy) return legacy;
+  } catch (e) {
+    console.warn(`[cloudSync] ${provider.id} list failed`, e);
   }
-  return null;
+  // Anyone who backed up before keys were dated still has exactly one file
+  // at the old path, and it may be their only copy.
+  return provider.download(LEGACY_BACKUP_KEY(boardId));
 }

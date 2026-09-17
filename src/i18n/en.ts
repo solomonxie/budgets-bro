@@ -132,8 +132,10 @@ export const en = {
   'backup.heading': 'Backup',
   'backup.hint':
     'Each switch backs this board up automatically, every time it changes. iCloud also brings the board back by itself if you reinstall the app. API keys never leave this device, including in backups.',
-  'backup.icloudSignedOut': 'Sign in to iCloud on this device',
+  'backup.icloudOff': 'iCloud Drive is off on this device',
+  'backup.icloudOffAction': 'Settings → your name → iCloud → Drive → turn on',
   'backup.icloudNotEntitled': 'This build of the app isn’t signed for iCloud',
+  'backup.icloudNotReady': 'iCloud isn’t ready yet — try again shortly',
   'backup.icloud': 'iCloud Drive',
   'backup.icloudLocation': 'In Files → iCloud Drive → BYO Budget',
   'backup.deleteConnection': 'Delete Connection',

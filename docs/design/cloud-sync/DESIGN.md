@@ -122,17 +122,30 @@ lands. `app.json` carries the entitlement
 Container id is never repeated in Swift; the native side passes `nil` and gets
 the first container from the entitlement.
 
-Three states: **unsupported** (Expo Go, Android — the native module is absent,
-so the row is hidden entirely), **unavailable**, and on/off. "Unavailable"
-deliberately does not say why. A nil ubiquity container means either the user
-is signed out or the build was signed without the entitlement, and iOS offers
-no public way to tell those apart: `ubiquityIdentityToken` needs the
-entitlement too, so it reads nil in exactly the case that would distinguish
-them, and `SecTaskCopyValueForEntitlement` is not in the iOS SDK. An earlier
-cut of this guessed "signed out" and told a signed-in user to sign in, which
-is worse than saying nothing. Unavailable is not a failed sync —
-`createICloudProviders` returns nothing and `syncNow` skips the destination,
-same as an unconfigured bucket.
+A nil ubiquity container has several unrelated causes, and the row separates
+them because only one is the user's to fix. The checks are **ordered**, and the
+order matters: `ubiquityIdentityToken` needs the entitlement itself, so in an
+unentitled build it reads nil and looks exactly like a signed-out user.
+
+| Status | Test | Row says |
+|---|---|---|
+| `available` | container resolves | location + last sync |
+| `notEntitled` | embedded profile grants no ubiquity container | blames the build, no instruction |
+| `icloudOff` | token is nil (covers signed out *and* file syncing off) | the state, plus the Settings path |
+| `notReady` | entitled, signed in, still nil | try again shortly |
+
+`SecTaskCopyValueForEntitlement` is not in the iOS SDK, so `notEntitled` is
+read out of `Bundle.main`'s `embedded.mobileprovision`. Only `icloudOff` gets
+a second line telling the user what to do — an earlier cut guessed "signed
+out" for everything and told an already-signed-in user to sign in, which sent
+them somewhere that could not help. The section re-checks on AppState
+`active`, since the fix happens in iOS Settings and the user comes back
+expecting the row to know.
+
+Unsupported (Expo Go, Android — the native module is absent) hides the row
+entirely. None of the blocked states is a failed sync: `createICloudProviders`
+returns nothing and `syncNow` skips the destination, same as an unconfigured
+bucket.
 
 Needs a **paid** Apple Developer Program membership (Individual is enough — no
 company entity, no D-U-N-S, no entitlement request form). A free personal team

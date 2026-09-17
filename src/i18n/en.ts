@@ -22,7 +22,8 @@ export const en = {
   'common.amountPlaceholder': '0.00',
   'common.show': 'Show',
   'common.hide': 'Hide',
-  'common.secretLengthHint': '{count} characters — this key is usually {expected}.',
+  'common.secretLengthHint':
+    '{count} characters — this key is usually {expected}.',
   'common.termMonthsLabel': 'Term (months)',
   'common.effectiveDateLabel': 'Effective Date',
 
@@ -42,25 +43,30 @@ export const en = {
   'stubScreen.comingSoon': 'Coming soon — this screen is still being designed.',
 
   'assignedAmountModal.assignedThisMonth': 'Assigned this month',
-  'assignedAmountModal.unassignedHint': 'Unassigned: {unassigned}   ·   Last month: {lastMonth}',
+  'assignedAmountModal.unassignedHint':
+    'Unassigned: {unassigned}   ·   Last month: {lastMonth}',
   'assignedAmountModal.rolloverHint': 'Carried over: {amount}',
   'assignedAmountModal.exceedsError': 'Exceeds unassigned cash by {amount}',
   'assignedAmountModal.history': 'History',
 
   'settings.boardsHeading': 'Budget Boards',
-  'settings.boardsHint': 'A board is a self-contained budget you can switch between.',
+  'settings.boardsHint':
+    'A board is a self-contained budget you can switch between.',
   'settings.newBoardLink': '+ New Board',
   'settings.createDemoBoard': 'Create Demo Board',
-  'settings.creatingDemoBoard': 'Creating demo board — this takes a few seconds…',
+  'settings.creatingDemoBoard':
+    'Creating demo board — this takes a few seconds…',
   'settings.createDemoBoardFailed': 'Could not create the demo board.',
   'settings.payeesHeading': 'Manage Payees',
   'settings.payeeSelectPlaceholder': 'Select or create…',
   'settings.payeeSearchPlaceholder': 'Search or type a new payee',
-  'settings.payeeLinkedHint': 'Linked to an account — managed automatically, can’t be renamed or deleted here.',
+  'settings.payeeLinkedHint':
+    'Linked to an account — managed automatically, can’t be renamed or deleted here.',
   'settings.appearanceHeading': 'Appearance',
   'settings.themeDark': 'Dark',
   'settings.themeLight': 'Light',
-  'settings.themeLightHint': 'Light theme is coming soon — your preference is saved for when it ships.',
+  'settings.themeLightHint':
+    'Light theme is coming soon — your preference is saved for when it ships.',
   'settings.languageHeading': 'Language',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
@@ -70,7 +76,8 @@ export const en = {
   'settings.aiKeyRequestCount': '{count} requests sent',
   'settings.addAiKeyLink': '+ Add AI Key',
   'settings.deleteAiKeyConfirmTitle': 'Delete this key?',
-  'settings.deleteAiKeyConfirmMessage': 'AI Analysis will stop using it immediately.',
+  'settings.deleteAiKeyConfirmMessage':
+    'AI Analysis will stop using it immediately.',
   'settings.aiKeyStrategySequential': 'Sequential',
   'settings.aiKeyStrategyRoundRobin': 'Round robin',
   'settings.s3AccessKeyLabel': 'Access Key ID',
@@ -78,20 +85,25 @@ export const en = {
   'settings.s3BucketLabel': 'Bucket',
   'settings.addS3BackupLink': '+ Add S3 Backup',
   'settings.deleteS3ConfigConfirmTitle': 'Delete "{name}"?',
-  'settings.deleteS3ConfigConfirmMessage': 'Backups already in this bucket are left alone — only the saved connection is removed.',
+  'settings.deleteS3ConfigConfirmMessage':
+    'Backups already in this bucket are left alone — only the saved connection is removed.',
   's3ConfigModal.title': 'Add S3 Backup',
   's3ConfigModal.connectionHeading': 'S3 bucket',
   's3ConfigModal.pasteInfo': 'paste info to add',
   's3ConfigModal.backToFields': 'back to fields',
-  's3ConfigModal.pastePlaceholder': 'bucket: my-bucket\nprefix: budget/\naccess_key_id: AKIA…\nsecret_access_key: …',
-  's3ConfigModal.pasteHint': 'Any spelling, split on `:` or `=`. One paste fills the fields and takes you back to them. Not masked — paste, don’t leave it sitting here.',
+  's3ConfigModal.pastePlaceholder':
+    'bucket: my-bucket\nprefix: budget/\naccess_key_id: AKIA…\nsecret_access_key: …',
+  's3ConfigModal.pasteHint':
+    'Any spelling, split on `:` or `=`. One paste fills the fields and takes you back to them. Not masked — paste, don’t leave it sitting here.',
   's3ConfigModal.keyPrefixLabel': 'Folder (key prefix, optional)',
-  's3ConfigModal.keyPrefixPlaceholder': 'e.g. backups — for a bucket shared with other stuff',
+  's3ConfigModal.keyPrefixPlaceholder':
+    'e.g. backups — for a bucket shared with other stuff',
   's3ConfigModal.missingFields': 'Fill in the bucket and both keys.',
   's3ConfigModal.testing': 'Detecting region & testing connection…',
   's3ConfigModal.testFailed': 'Could not connect: {error}',
   's3ConfigModal.draftsHeading': 'Drafts',
-  's3ConfigModal.draftsHint': 'From past attempts — tap to refill, ✕ to remove.',
+  's3ConfigModal.draftsHint':
+    'From past attempts — tap to refill, ✕ to remove.',
 
   'aiKeyModal.title': 'Add AI Key',
   'aiKeyModal.vendorLabel': 'Vendor',
@@ -104,28 +116,21 @@ export const en = {
   's3Browser.title': 'Browse Bucket',
   's3Browser.up': '..',
   's3Browser.empty': 'Nothing here yet.',
-  'settings.syncNow': 'Sync Now',
-  'settings.noCloudBackupFound': 'No backup found in the cloud yet.',
   'backup.heading': 'Backup',
   'backup.hint':
-    'Every sync writes a full copy of this board to each destination below. Nothing is ever merged back — restoring always creates a new board. API keys never leave this device, including in backups.',
-  'backup.thisDevice': 'This device',
-  'backup.thisDeviceLocation': 'In the app’s own files',
-  'backup.autoSync': 'Auto-sync',
-  'backup.keepCopyHere': 'Keep a copy here',
-  'backup.restoreLatest': 'Restore Latest',
-  'backup.restore': 'Restore',
+    'Each switch backs this board up automatically, every time it changes. iCloud also brings the board back by itself if you reinstall the app. API keys never leave this device, including in backups.',
+  'backup.icloudSignedOut': 'Sign in to iCloud on this device',
+  'backup.icloudNotEntitled': 'This build of the app isn’t signed for iCloud',
+  'backup.icloud': 'iCloud Drive',
+  'backup.icloudLocation': 'In Files → iCloud Drive → BYO Budget',
   'backup.deleteConnection': 'Delete Connection',
-  'backup.restoreConfirmTitle': 'Restore from "{name}"?',
-  'backup.restoreConfirmMessage': 'The latest backup comes back as a new board and you’ll be switched to it. Nothing on your current board changes.',
-  'backup.notEnabled': 'Switch "Keep a copy here" on first.',
-  'backup.off': 'Off',
   'backup.never': 'never synced',
   'backup.justNow': 'just now',
   'backup.minutesAgo': '{count} min ago',
   'backup.hoursAgo': '{count} h ago',
   'backup.daysAgo': '{count} d ago',
-  'data.exportHint': 'Share a .zip of this board — the same file "Import a backup" takes.',
+  'data.exportHint':
+    'Share a .zip of this board — the same file "Import a backup" takes.',
   'data.importYnabHint': 'Merges a YNAB export into the board you’re on.',
   'settings.dataHeading': 'Data',
   'settings.importYnab': 'Import from YNAB',
@@ -135,7 +140,8 @@ export const en = {
   'settings.importResultAccountsCreated': 'Accounts created',
   'settings.importResultCategoriesCreated': 'Categories created',
   'settings.importAppBackup': 'Import a backup',
-  'settings.importAppBackupHint': 'Restores a .zip from this app as a new board — your current one is untouched.',
+  'settings.importAppBackupHint':
+    'Restores a .zip from this app as a new board — your current one is untouched.',
   'settings.restoredHeading': 'Restored',
   'settings.restoreResultBoard': 'Restored into board',
   'settings.restoreResultAccounts': 'Accounts',
@@ -150,12 +156,14 @@ export const en = {
   'settings.payeeNamePlaceholder': 'Payee name',
   'settings.boardNamePlaceholder': 'e.g. Personal Budget',
   'settings.deleteBoardConfirmTitle': 'Delete "{name}"?',
-  'settings.deleteBoardConfirmMessage': 'Every account, category, and transaction in it is deleted too. This cannot be undone.',
+  'settings.deleteBoardConfirmMessage':
+    'Every account, category, and transaction in it is deleted too. This cannot be undone.',
   'settings.cantDeleteOnlyBoardTitle': 'Can’t delete your only board',
   'settings.cantDeleteOnlyBoardMessage': 'Create another board first.',
   'settings.deleteBoardFailed': 'Could not delete the board.',
   'settings.deletePayeeConfirmTitle': 'Delete "{name}"?',
-  'settings.deletePayeeConfirmMessage': 'Past transactions keep their amounts but lose this payee. This cannot be undone.',
+  'settings.deletePayeeConfirmMessage':
+    'Past transactions keep their amounts but lose this payee. This cannot be undone.',
   'settings.importFailed': 'Import failed.',
   'settings.restoreFailed': 'Restore failed.',
   'settings.exportFailedTitle': 'Export failed',
@@ -184,7 +192,8 @@ export const en = {
   'accountDetail.incomeThisYear': 'Income This Year',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
   'accountDetail.scheduledHeading': 'Scheduled ({count})',
-  'accountDetail.scheduledHint': "Dated in the future — doesn't affect balance or budget until its date arrives.",
+  'accountDetail.scheduledHint':
+    "Dated in the future — doesn't affect balance or budget until its date arrives.",
   'accountDetail.nextDateLabel': 'Next: {date}',
   'accountDetail.cancelSchedule': 'Cancel Schedule',
 
@@ -209,10 +218,12 @@ export const en = {
   'accountModal.addRateChange': '+ Add Rate Change',
   'accountModal.interestRateAnnualLabel': 'Interest Rate (annual %)',
   'accountModal.interestRatePlaceholder': 'e.g. 6.25 (optional)',
-  'accountModal.loanTermsHeading': 'Loan Terms (for the payoff projection on the account page)',
+  'accountModal.loanTermsHeading':
+    'Loan Terms (for the payoff projection on the account page)',
   'accountModal.toolsHeading': 'Tools',
   'accountModal.incomeDetailsHeading': 'Pay Rate History',
-  'accountModal.incomeDetailsHint': 'Optional — track salary changes, an hourly rate, or per-paycheck amount over time. Purely informational; doesn\'t affect the actual logged deposits.',
+  'accountModal.incomeDetailsHint':
+    "Optional — track salary changes, an hourly rate, or per-paycheck amount over time. Purely informational; doesn't affect the actual logged deposits.",
   'accountModal.addIncomeDetail': '+ Add Entry',
   'accountModal.noIncomeDetails': 'No pay rate history recorded.',
 
@@ -234,7 +245,8 @@ export const en = {
   'accountModal.reopenAccount': 'Reopen Account',
   'accountModal.closeAccount': 'Close Account',
   'accountModal.closeAccountConfirmTitle': 'Close "{name}"?',
-  'accountModal.closeAccountConfirmMessage': 'Hides it from your accounts list. Its transactions are kept, not deleted.',
+  'accountModal.closeAccountConfirmMessage':
+    'Hides it from your accounts list. Its transactions are kept, not deleted.',
 
   'closedAccounts.empty': 'No closed accounts.',
   'closedAccounts.tapToReopen': 'Tap to reopen',
@@ -258,7 +270,8 @@ export const en = {
   'trackingValueModal.resultHint': 'New value: {amount}',
 
   'loanDetailsCard.label': 'Loan Details',
-  'loanDetailsCard.addHint': 'Add the interest rate, term, and original principal to see a payoff projection.',
+  'loanDetailsCard.addHint':
+    'Add the interest rate, term, and original principal to see a payoff projection.',
   'loanDetailsCard.addTerms': 'Add Loan Terms',
   'loanDetailsCard.editTerms': 'Edit Loan Terms',
   'loanDetailsCard.rateLabel': 'Rate',
@@ -271,7 +284,8 @@ export const en = {
   'loanDetailsCard.summary': '{rate}% · {payment}/mo',
 
   'aiAnalysis.title': 'AI Insights',
-  'aiAnalysis.noKeyHint': 'Add an OpenAI API key in Settings to run an analysis of your budget data.',
+  'aiAnalysis.noKeyHint':
+    'Add an OpenAI API key in Settings to run an analysis of your budget data.',
   'aiAnalysis.openSettings': 'Open Settings',
   'aiAnalysis.kindSpending': 'Spending',
   'aiAnalysis.kindVariance': 'Variance',
@@ -279,16 +293,20 @@ export const en = {
   'aiAnalysis.kindHealth': 'Health',
   'aiAnalysis.kindComparison': 'Comparison',
   'aiAnalysis.profileHeading': 'About You (optional)',
-  'aiAnalysis.profileHint': "Feeds the Health and Comparison reports below — saved on this device, only sent to OpenAI as part of those two. Leave any field blank to skip it.",
+  'aiAnalysis.profileHint':
+    'Feeds the Health and Comparison reports below — saved on this device, only sent to OpenAI as part of those two. Leave any field blank to skip it.',
   'aiAnalysis.cityLabel': 'City',
   'aiAnalysis.countryLabel': 'Country',
   'aiAnalysis.ageLabel': 'Age',
   'aiAnalysis.familySizeLabel': 'Family size',
   'aiAnalysis.privacyModeLabel': 'Privacy Mode',
-  'aiAnalysis.privacyModeHint': 'Rounds every amount to the nearest $10 and replaces category names with generic labels ("Category 1") before anything is sent. Turn it off to have the AI talk about your real categories by name.',
+  'aiAnalysis.privacyModeHint':
+    'Rounds every amount to the nearest $10 and replaces category names with generic labels ("Category 1") before anything is sent. Turn it off to have the AI talk about your real categories by name.',
   'aiAnalysis.runButton': 'Run Analysis',
-  'aiAnalysis.errorInvalidKey': 'OpenAI rejected the API key — check it in Settings.',
-  'aiAnalysis.errorRateLimited': 'Rate-limited by OpenAI — try again in a moment.',
+  'aiAnalysis.errorInvalidKey':
+    'OpenAI rejected the API key — check it in Settings.',
+  'aiAnalysis.errorRateLimited':
+    'Rate-limited by OpenAI — try again in a moment.',
   'aiAnalysis.errorNetwork': 'Couldn’t reach OpenAI — check your connection.',
   'aiAnalysis.errorUnknown': 'Something went wrong running the analysis.',
 
@@ -299,7 +317,6 @@ export const en = {
   'calculators.totalInterestLabel': 'Total interest paid',
   'calculators.payoffDateLabel': 'Payoff date (from today)',
 
-
   'amortizationSchedule.title': 'Amortization Schedule',
   'amortizationSchedule.inputsTitle': 'Loan inputs',
   'amortizationSchedule.scheduleTitle': 'Payment-by-payment schedule',
@@ -307,13 +324,16 @@ export const en = {
   'amortizationSchedule.colPrincipal': 'Principal',
   'amortizationSchedule.colInterest': 'Interest',
   'amortizationSchedule.colBalance': 'Balance',
-  'amortizationSchedule.empty': 'Enter a loan amount, rate, and term to see the schedule.',
+  'amortizationSchedule.empty':
+    'Enter a loan amount, rate, and term to see the schedule.',
 
   'investmentGrowth.depositedLabel': 'Deposited',
   'investmentGrowth.gainLabel': 'Gain/Loss',
   'investmentGrowth.totalLabel': 'Total',
-  'investmentGrowth.notEnoughHistory': 'Log at least two value updates to see a trend.',
-  'investmentGrowth.noDepositsHint': "No transactions logged on this account yet, so the whole balance shows as gain. Record deposits/withdrawals as transactions to split the two.",
+  'investmentGrowth.notEnoughHistory':
+    'Log at least two value updates to see a trend.',
+  'investmentGrowth.noDepositsHint':
+    'No transactions logged on this account yet, so the whole balance shows as gain. Record deposits/withdrawals as transactions to split the two.',
 
   'babySteps.step1Title': '$1,000 starter emergency fund',
   'babySteps.step2Title': 'Pay off all debt (except the mortgage)',
@@ -344,9 +364,11 @@ export const en = {
   'babySteps.noAccountsAvailable': 'No accounts available',
   'babySteps.noCategoriesAvailable': 'No categories available',
   'babySteps.goalsHeading': 'Your Goals',
-  'babySteps.goalsHint': "Your own targets — separate from the 7 Baby Steps above, and not counted in any of their progress. Track anything (a car, a trip) either manually or against a linked account's balance.",
+  'babySteps.goalsHint':
+    "Your own targets — separate from the 7 Baby Steps above, and not counted in any of their progress. Track anything (a car, a trip) either manually or against a linked account's balance.",
   'babySteps.addGoal': '+ Add Goal',
-  'babySteps.goalsEmpty': 'No custom goals yet — set your own target above and track it manually or from a linked account.',
+  'babySteps.goalsEmpty':
+    'No custom goals yet — set your own target above and track it manually or from a linked account.',
 
   'customGoalModal.nameLabel': 'Name',
   'customGoalModal.namePlaceholder': 'e.g. New car down payment',
@@ -355,41 +377,50 @@ export const en = {
   'customGoalModal.progressLabel': 'Progress so far',
 
   'taxInsights.title': 'Tax Insights — {year}',
-  'taxInsights.disclaimer': 'Preliminary numbers from your ledger, for planning only. Not tax advice.',
+  'taxInsights.disclaimer':
+    'Preliminary numbers from your ledger, for planning only. Not tax advice.',
   'taxInsights.countryLabel': 'Country',
   'taxInsights.provinceLabel': 'Province',
   'taxInsights.selectProvince': 'Select province',
-  'taxInsights.countryComingSoon': 'More countries coming later — only Canada is supported for now.',
+  'taxInsights.countryComingSoon':
+    'More countries coming later — only Canada is supported for now.',
   'taxInsights.totalIncomeLabel': 'Total income ({year})',
   'taxInsights.totalSpendingLabel': 'Total spending ({year})',
   'taxInsights.incomeBySourceLabel': 'Income by source',
   'taxInsights.otherUntaggedIncome': 'Other / untagged',
   'taxInsights.noIncomeAccounts': 'No income accounts tagged yet',
   'taxInsights.interestLabel': 'Interest',
-  'taxInsights.interestHint': 'Pick the category you tag interest transactions with, if any — deposits (e.g. savings interest) count as earned, charges (e.g. loan interest) count as paid.',
+  'taxInsights.interestHint':
+    'Pick the category you tag interest transactions with, if any — deposits (e.g. savings interest) count as earned, charges (e.g. loan interest) count as paid.',
   'taxInsights.interestEarned': 'Earned (taxable)',
   'taxInsights.interestPaid': 'Paid (usually not deductible)',
   'taxInsights.interestCategoriesLabel': 'Categories for interest',
   'taxInsights.categoriesCount': '{count} categories',
   'taxInsights.noCategoriesAvailable': 'No categories available',
   'taxInsights.investmentGainsLabel': 'Investment account gains ({year})',
-  'taxInsights.investmentGainsHint': 'Raw value change on tracking accounts — actual taxable capital gain depends on the inclusion rate and adjusted cost base, not calculated here.',
+  'taxInsights.investmentGainsHint':
+    'Raw value change on tracking accounts — actual taxable capital gain depends on the inclusion rate and adjusted cost base, not calculated here.',
   'taxInsights.noTrackingAccounts': 'No tracking accounts yet',
   'taxInsights.totalGains': 'Total',
   'taxInsights.gainSince': 'since {date}',
   'taxInsights.donationsLabel': 'Donations ({year})',
-  'taxInsights.donationsHint': 'Eligible for the charitable donation tax credit, not a straight income deduction.',
+  'taxInsights.donationsHint':
+    'Eligible for the charitable donation tax credit, not a straight income deduction.',
   'taxInsights.donationCategoriesLabel': 'Categories for giving',
   'taxInsights.additionalInfoLabel': 'Anything else?',
   'taxInsights.additionalIncomeLabel': 'Additional taxable income',
   'taxInsights.deductionsLabel': 'Estimated deductions',
   'taxInsights.estimatedTaxableIncomeLabel': 'Estimated taxable income',
-  'taxInsights.estimatedTaxableIncomeHint': 'Ledger income + additional income − deductions. Interest, gains and donations above are shown for context and not double-counted here.',
+  'taxInsights.estimatedTaxableIncomeHint':
+    'Ledger income + additional income − deductions. Interest, gains and donations above are shown for context and not double-counted here.',
   'taxInsights.timelineLabel': 'Filing timeline ({province})',
   'taxInsights.timelineNoProvince': 'Filing timeline',
-  'taxInsights.slipsReadyBy': 'Slips (T4/T4A/T5) usually ready by {date} — start collecting then',
-  'taxInsights.rrspDeadline': 'RRSP contribution deadline (for {year} taxes): {date}',
-  'taxInsights.filingDeadline': 'Filing deadline: {date} (Jun 15 if you or your spouse are self-employed — balance owing is still due {date})',
+  'taxInsights.slipsReadyBy':
+    'Slips (T4/T4A/T5) usually ready by {date} — start collecting then',
+  'taxInsights.rrspDeadline':
+    'RRSP contribution deadline (for {year} taxes): {date}',
+  'taxInsights.filingDeadline':
+    'Filing deadline: {date} (Jun 15 if you or your spouse are self-employed — balance owing is still due {date})',
   'taxInsights.formsChecklistLabel': 'Forms to collect',
   'taxInsights.formT4': 'T4 — employment income',
   'taxInsights.formT5': 'T5 — investment income (interest/dividends)',
@@ -398,7 +429,8 @@ export const en = {
   'taxInsights.formTP1': 'TP1 — Revenu Québec provincial return',
   'taxInsights.askAi': 'Ask AI to summarize →',
   'taxInsights.aiSummaryTitle': 'AI summary',
-  'taxInsights.aiSummaryMessage': 'AI analysis needs an API key and provider setup — coming in a future update.',
+  'taxInsights.aiSummaryMessage':
+    'AI analysis needs an API key and provider setup — coming in a future update.',
 
   'transactions.searchPlaceholder': 'Search payee or memo',
   'transactions.select': 'Select',
@@ -425,7 +457,8 @@ export const en = {
   'budget.groupNamePlaceholder': 'e.g. Bills',
   'budget.categoryNamePlaceholder': 'e.g. 🛒 Groceries',
   'budget.deleteGroupConfirmTitle': 'Delete "{name}"?',
-  'budget.deleteGroupConfirmMessage': 'Its categories move to "Ungrouped" — they aren’t deleted.',
+  'budget.deleteGroupConfirmMessage':
+    'Its categories move to "Ungrouped" — they aren’t deleted.',
   'budget.deleteCategoryConfirmTitle': 'Delete "{name}"?',
   'budget.pendingApprovals': '{count} scheduled pending approval',
 
@@ -437,7 +470,8 @@ export const en = {
   'insights.topCategories': 'Top Categories',
   'insights.noSpending': 'No spending recorded this month.',
   'insights.categoryTrends': 'Category Trends',
-  'insights.trendHint': 'All time — drag to scroll, tap an icon to hide/show that category. Dashed line is your 12-month average.',
+  'insights.trendHint':
+    'All time — drag to scroll, tap an icon to hide/show that category. Dashed line is your 12-month average.',
   'insights.notEnoughHistory': 'Not enough history yet.',
   'insights.avgAxisLabel': 'avg',
   'insights.babySteps': 'Baby Steps',
@@ -502,29 +536,35 @@ export const en = {
   'calcAffordability.title': 'House Affordability',
   'calcAffordability.subtitle': 'How much house your income supports',
   'calcPrepay.title': 'Early Repayment (China)',
-  'calcPrepay.subtitle': 'Equal installment or equal principal, shorten the term or cut the payment',
+  'calcPrepay.subtitle':
+    'Equal installment or equal principal, shorten the term or cut the payment',
   'calcRefinance.title': 'Refinance',
   'calcRefinance.subtitle': 'Break-even on a new rate and term',
   'calcRentVsBuy.title': 'Rent vs Buy',
-  'calcRentVsBuy.subtitle': 'Net position year by year, including what the down payment could earn',
+  'calcRentVsBuy.subtitle':
+    'Net position year by year, including what the down payment could earn',
   'calcAmortization.title': 'Amortization',
   'calcAmortization.subtitle': 'Payment, interest and balance for any loan',
   'calcLoanPayoff.title': 'Loan Payoff',
   'calcLoanPayoff.subtitle': 'Clearing a credit card or student loan early',
   'calcAutoLoan.title': 'Auto Loan',
-  'calcAutoLoan.subtitle': 'Trade-in, sales tax and fees rolled into the payment',
+  'calcAutoLoan.subtitle':
+    'Trade-in, sales tax and fees rolled into the payment',
   'calcDti.title': 'Debt-to-Income',
   'calcDti.subtitle': 'The ratio lenders check before approving you',
   'calcInvestment.title': 'Investment',
-  'calcInvestment.subtitle': 'Growth from a starting sum and regular contributions',
+  'calcInvestment.subtitle':
+    'Growth from a starting sum and regular contributions',
   'calcCompound.title': 'Compound Interest',
   'calcCompound.subtitle': 'What a rate does to a balance over time',
   'calcTaxSavings.title': 'Tax Deduction Savings',
-  'calcTaxSavings.subtitle': 'What a deductible contribution is worth at your tax rate',
+  'calcTaxSavings.subtitle':
+    'What a deductible contribution is worth at your tax rate',
 
   'financeTools.linkAccount': 'Link account',
   'financeTools.enterManually': 'Enter manually',
-  'financeTools.accountMissingValue': "This account doesn't have that set yet — add it on the account to pull it in.",
+  'financeTools.accountMissingValue':
+    "This account doesn't have that set yet — add it on the account to pull it in.",
 
   // --- calculator screens (shared labels across every tool) ---
   'financeTools.inputs': 'Inputs',
@@ -551,7 +591,8 @@ export const en = {
   'financeTools.hoaMonthly': 'HOA / strata (per month)',
   'financeTools.maintenance': 'Upkeep',
   'financeTools.maintenanceRate': 'Upkeep (% of value per year)',
-  'financeTools.maintenanceNote': 'Upkeep is estimated at 1.5% of the price a year and shown for planning — lenders never count it.',
+  'financeTools.maintenanceNote':
+    'Upkeep is estimated at 1.5% of the price a year and shown for planning — lenders never count it.',
   'financeTools.closingCosts': 'Closing costs',
   'financeTools.closingCostRate': 'Closing costs (% of price)',
   'financeTools.cashAtClosing': 'Cash needed at closing',
@@ -579,7 +620,8 @@ export const en = {
   'financeTools.oneTimePayment': 'One-off lump sum',
   'financeTools.oneTimeOn': 'Paid on',
   'financeTools.biweeklyEquivalent': 'Same as paying',
-  'financeTools.biweeklyNote': 'Half the payment every two weeks is 26 half-payments a year — 13 monthly payments, not 12.',
+  'financeTools.biweeklyNote':
+    'Half the payment every two weeks is 26 half-payments a year — 13 monthly payments, not 12.',
   'financeTools.interestSaved': 'Interest saved',
   'financeTools.percentLessInterest': '{percent}% less interest',
   'financeTools.timeSaved': 'Paid off sooner by',
@@ -599,16 +641,20 @@ export const en = {
   'financeTools.rule3143': 'Lenient 31/43',
   'financeTools.maxHousePrice': 'Most you can buy',
   'financeTools.frontEndRatio': 'Housing ratio',
-  'financeTools.frontEndHint': 'Housing cost against gross income — lenders cap this around 28%.',
+  'financeTools.frontEndHint':
+    'Housing cost against gross income — lenders cap this around 28%.',
   'financeTools.backEndRatio': 'Total debt ratio',
-  'financeTools.backEndHint': 'All debt payments against gross income — lenders cap this around 36%, sometimes 43%.',
-  'financeTools.affordabilityNote': 'A lender’s ceiling, not a recommendation. Upkeep and any HOA are on top of what they count.',
+  'financeTools.backEndHint':
+    'All debt payments against gross income — lenders cap this around 36%, sometimes 43%.',
+  'financeTools.affordabilityNote':
+    'A lender’s ceiling, not a recommendation. Upkeep and any HOA are on top of what they count.',
   'financeTools.grossMonthlyIncome': 'Gross income (per month)',
   'financeTools.housingPayment': 'Housing payment (per month)',
   'financeTools.otherDebtPayments': 'Other debt payments (per month)',
   'financeTools.roomForMoreDebt': 'Room for more debt',
   'financeTools.overTheCap': 'Already past the 36% cap.',
-  'financeTools.dtiNote': 'Measured against the conventional 28/36 pair. Lenders differ, and a few go to 43%.',
+  'financeTools.dtiNote':
+    'Measured against the conventional 28/36 pair. Lenders differ, and a few go to 43%.',
 
   // Refinance
   'financeTools.currentLoan': 'The loan you have',
@@ -627,10 +673,13 @@ export const en = {
   'financeTools.newPayment': 'New payment',
   'financeTools.newLoanAmount': 'New loan amount',
   'financeTools.lifetimeInterestSaved': 'Saved over the life of the loan',
-  'financeTools.lifetimeInterestHint': 'Interest saved, less whatever you pay at closing.',
+  'financeTools.lifetimeInterestHint':
+    'Interest saved, less whatever you pay at closing.',
   'financeTools.keepPayingToday': 'If you keep today’s payment',
-  'financeTools.keepPayingHint': 'Put the whole saving back into the loan instead of into your month.',
-  'financeTools.refinanceNote': 'Break-even counts only cash handed over at closing. Rolling the costs in makes that nothing — and shows up in the lifetime figure instead.',
+  'financeTools.keepPayingHint':
+    'Put the whole saving back into the loan instead of into your month.',
+  'financeTools.refinanceNote':
+    'Break-even counts only cash handed over at closing. Rolling the costs in makes that nothing — and shows up in the lifetime figure instead.',
 
   // Auto loan
   'financeTools.vehiclePrice': 'Vehicle price',
@@ -669,7 +718,8 @@ export const en = {
   'financeTools.colBuyer': 'Buy',
   'financeTools.colRenter': 'Rent',
   'financeTools.colAdvantage': 'Difference',
-  'financeTools.rentVsBuyNote': 'Both sides spend the same each month: whichever is cheaper invests the difference at this return. Change it and the answer changes.',
+  'financeTools.rentVsBuyNote':
+    'Both sides spend the same each month: whichever is cheaper invests the difference at this return. Change it and the answer changes.',
 
   // Investment & compound interest
   'financeTools.solveFor': 'Work out',
@@ -688,10 +738,13 @@ export const en = {
   'financeTools.totalContributions': 'Total contributed',
   'financeTools.totalInterestEarned': 'Interest earned',
   'financeTools.effectiveAnnualRate': 'Effective annual rate',
-  'financeTools.effectiveAnnualHint': 'What the stated rate actually works out to once it compounds.',
+  'financeTools.effectiveAnnualHint':
+    'What the stated rate actually works out to once it compounds.',
   'financeTools.compoundingBonus': 'Earned by compounding',
-  'financeTools.compoundingBonusHint': 'Simple interest would have paid {amount}.',
-  'financeTools.compoundNote': 'No contributions here — for a plan with regular deposits, use the Investment tool.',
+  'financeTools.compoundingBonusHint':
+    'Simple interest would have paid {amount}.',
+  'financeTools.compoundNote':
+    'No contributions here — for a plan with regular deposits, use the Investment tool.',
   'compound.annually': 'Annually',
   'compound.semiannually': 'Every six months',
   'compound.quarterly': 'Quarterly',
@@ -713,7 +766,8 @@ export const en = {
   'financeTools.marginalRate': 'Marginal tax rate (%)',
   'financeTools.taxableIncome': 'Taxable income',
   'financeTools.bracketTable': 'Your brackets',
-  'financeTools.bracketHint': 'Type your own combined federal + provincial/state rates. Leave the ceiling blank on the top band. No rates ship with the app — they change every year and differ everywhere.',
+  'financeTools.bracketHint':
+    'Type your own combined federal + provincial/state rates. Leave the ceiling blank on the top band. No rates ship with the app — they change every year and differ everywhere.',
   'financeTools.bracketUpTo': 'Up to',
   'financeTools.bracketTopBand': 'top band',
   'financeTools.bracketRate': 'Rate (%)',
@@ -725,8 +779,10 @@ export const en = {
   'financeTools.taxAfter': 'Tax after',
   'financeTools.marginalRateAtIncome': 'Your marginal rate',
   'financeTools.flatRateWouldSay': 'A flat-rate guess would say',
-  'financeTools.straddlesBracket': 'The deduction drops you into a lower bracket, so not all of it comes back at the top rate.',
-  'financeTools.taxNote': 'Planning only, not tax advice. Credits (donations, for one) work differently from deductions.',
+  'financeTools.straddlesBracket':
+    'The deduction drops you into a lower bracket, so not all of it comes back at the top rate.',
+  'financeTools.taxNote':
+    'Planning only, not tax advice. Credits (donations, for one) work differently from deductions.',
 
   // Early repayment (China)
   'financeTools.loanContract': 'Loan contract',
@@ -744,7 +800,8 @@ export const en = {
   'financeTools.reducePayment': 'Cut the payment',
   'financeTools.newRateOptional': 'New rate (if it was repriced)',
   'financeTools.sameAsContract': 'same as the contract',
-  'financeTools.savedFromPrepaymentOnly': '{amount} of it from the repayment alone',
+  'financeTools.savedFromPrepaymentOnly':
+    '{amount} of it from the repayment alone',
   'financeTools.periodsPaid': 'Installments paid',
   'financeTools.paidSoFar': '{principal} principal · {interest} interest',
   'financeTools.remainingPrincipal': 'Principal left',

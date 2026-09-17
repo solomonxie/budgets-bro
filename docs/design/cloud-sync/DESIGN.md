@@ -10,7 +10,9 @@ without remembering to export by hand.
 - Auto-backup the current board to cloud storage: on every data change
   (debounced) and whenever the app returns to the foreground.
 - Support AWS S3 first (finishes the existing stub), then Google Drive.
-- Manual "Sync Now" and "Restore Latest from Cloud" actions in Settings.
+- No manual sync actions at all: one switch per destination means "every
+  change", and off means nothing. See Settings UI below for why the menu
+  this replaced was unusable.
 - Provider-agnostic core so a third provider is a new file, not a rewrite.
 
 ## Non-goals
@@ -23,22 +25,11 @@ without remembering to export by hand.
   don't run in Expo Go (confirmed against the v57 docs) and this app has no
   custom dev client. "Auto" here means triggered while the app is open
   (foreground + on-save), not while closed or killed.
-- Real iCloud Drive integration, either flavor:
-  - A visible iCloud folder via native ubiquity-container APIs: no
-    first-party Expo module; needs a native module, a dev-client build, and
-    a paid Apple Developer account. Out of scope until the user decides to
-    take on that infra.
-  - A user-picked iCloud Drive folder via `Directory.pickDirectoryAsync()`
-    (no native module needed for this one — Expo Go compatible): rejected
-    anyway, because iOS only grants that folder access for the current app
-    session (no persisted security-scoped bookmark in Expo's JS API), so it
-    could only ever be a manual "pick folder, sync now" action re-prompted
-    every cold start — not real auto-sync, and not worth the UI over just
-    dragging the Local Backup file into iCloud Drive by hand. See Backlog
-    in `docs/IMPLEMENTATION_PLAN.md`.
-  - What's shipped instead (`sync/localProvider.ts`) piggybacks on the OS's
-    own device backup — see Providers → Local below — which covers "back
-    this up somewhere iCloud-ish" without any of that native infra.
+- **Not a user-picked iCloud Drive folder** (`Directory.pickDirectoryAsync()`):
+  iOS grants that folder only for the current app session — Expo's JS API
+  persists no security-scoped bookmark — so it could only ever be a manual
+  "pick folder, sync now" re-prompted every cold start. The app's own
+  ubiquity container (Providers → iCloud Drive below) needs no picker.
 - Encrypting the backup blob itself (S3/Drive both support transport TLS;
   provider credentials already never leave the device — see secureStore.ts).
 
@@ -48,7 +39,9 @@ src/sync/
   types.ts             CloudProvider interface + SyncSettings shape
   buildBackup.ts        zip-bytes builder, extracted from export/exportBoard.ts
   s3Provider.ts          SigV4-signed fetch, no AWS SDK
-  localProvider.ts       writes to Paths.document — rides the OS device backup, no infra
+  localProvider.ts       writes to Paths.document — rollback snapshot, dies with the app
+  icloudProvider.ts      the app's own iCloud Drive folder, via modules/icloud-drive
+  autoRestore.ts         pulls the board back from iCloud once, on a fresh install
   googleDriveProvider.ts expo-auth-session (PKCE) + Drive REST v3, appDataFolder scope
   cloudSync.ts            orchestrator: debounce + AppState trigger, calls each enabled provider
 ```
@@ -106,6 +99,46 @@ to copy elsewhere by hand — that flag only takes effect in a built
 app/dev-client, not Expo Go. One toggle in Settings (no bucket/account
 concept to manage, unlike S3/Drive).
 
+**iCloud Drive** — the same zip written into the app's own ubiquity
+container at `Documents/<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`. No credentials,
+no account setup, no third party: the user is already signed in, and the
+folder shows up in Files under iCloud Drive → BYO Budget, where they can drag
+a backup out or an old one back. This is the destination that closes
+localProvider's gap — it survives losing the phone and it reaches their other
+devices — without S3's provisioning.
+
+Costs real infra, which is why it took a native module:
+`modules/icloud-drive` (local Expo module, Apple-only) wraps
+`NSFileManager.url(forUbiquityContainerIdentifier:)` plus `NSFileCoordinator`
+reads/writes. Coordinated, not bare `Data.write` — another device's sync
+daemon can be touching the same file. Reads first wait on
+`startDownloadingUbiquitousItem`: a file can be listed in the container
+without its bytes being on this device, and the listing itself has to turn
+`.<name>.icloud` placeholders back into the name the file will have once it
+lands. `app.json` carries the entitlement
+(`com.apple.developer.ubiquity-container-identifiers`) and the
+`NSUbiquitousContainers` key with `NSUbiquitousContainerIsDocumentScopePublic`
+— without that last flag the container syncs but stays invisible in Files.
+Container id is never repeated in Swift; the native side passes `nil` and gets
+the first container from the entitlement.
+
+Three states: **unsupported** (Expo Go, Android — the native module is absent,
+so the row is hidden entirely), **unavailable**, and on/off. "Unavailable"
+deliberately does not say why. A nil ubiquity container means either the user
+is signed out or the build was signed without the entitlement, and iOS offers
+no public way to tell those apart: `ubiquityIdentityToken` needs the
+entitlement too, so it reads nil in exactly the case that would distinguish
+them, and `SecTaskCopyValueForEntitlement` is not in the iOS SDK. An earlier
+cut of this guessed "signed out" and told a signed-in user to sign in, which
+is worse than saying nothing. Unavailable is not a failed sync —
+`createICloudProviders` returns nothing and `syncNow` skips the destination,
+same as an unconfigured bucket.
+
+Needs a **paid** Apple Developer Program membership (Individual is enough — no
+company entity, no D-U-N-S, no entitlement request form). A free personal team
+cannot sign the iCloud capability at all, so the entitlement in `app.json` now
+gates every local device build too, not just EAS ones.
+
 **Google Drive** — OAuth via `expo-auth-session`'s PKCE flow (Expo Go
 compatible, no native module) against scope **`drive.appdata`** specifically
 (not full `drive` scope): stores the backup in the user's hidden per-app
@@ -132,8 +165,36 @@ a custom URL scheme for the redirect. Hand the Client ID back for
 - Failures are non-blocking (toast/inline Settings status only) — never
   interrupt the money-entry flow for a sync problem.
 
-## Settings UI additions
-- S3 section: add Bucket, Region fields next to the existing keys.
+## Settings UI
+**One switch per destination row, and nothing else.** The row menu this
+replaced held four items — a "keep a copy here" toggle, an "auto-sync"
+toggle, "Sync Now" and "Restore Latest" — and no user could predict what any
+combination of the first two did. The switch now *is* the feature: on means
+every change is backed up there, off means nothing is. Flipping one on syncs
+immediately rather than waiting for the next edit, so "did that work" has an
+answer.
+
+Two settings collapsed into that one switch ("is this destination on" and
+"auto-sync to it", plus a global auto-sync switch above both) — see
+`autoSync.ts` for how an existing install's stored pair resolves, so nobody's
+choice flips on upgrade.
+
+- Tapping an S3 row opens its browser, which also owns "Delete Connection" —
+  rare and destructive, so one level down behind a deliberate tap.
+- iCloud and This device rows aren't tappable; there's nothing under them.
+
+## Restore
+**There is no manual restore from a destination.** Two paths cover it:
+
+- **iCloud, automatic** (`autoRestore.ts`): deleting the app takes the
+  database with it, and `localProvider`'s zip sits in the same sandbox and
+  dies alongside it — iCloud is the only destination that outlives a
+  reinstall. So a fresh install pulls its board back by itself, once, before
+  the demo board seeds. No prompt: on first launch the user has no context
+  for the question, and getting their data back is the entire point of
+  having backed it up.
+- **Everything else, by hand**: "Import a backup" in the Data section takes
+  a zip the user picked and overrides anything.
 - New Google Drive section: "Connect"/"Disconnect", shows connected
   account email once linked.
 - Per-provider: "Auto-sync" toggle (default on once configured), "Last

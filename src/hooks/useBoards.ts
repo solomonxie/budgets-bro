@@ -4,6 +4,7 @@ import * as boardsRepo from '../db/repositories/boardsRepo';
 import * as accountsRepo from '../db/repositories/accountsRepo';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { seedDemoBoard } from '../db/seed/demoBoard';
+import { restoreFromICloudIfFirstRun } from '../sync/autoRestore';
 import type { Board } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
 
@@ -24,7 +25,9 @@ export function useBootstrapActiveBoard() {
   }, [setCurrentBoardId]);
 }
 
-// Gives every install a "Show Others" demo board (fake, higher-end finances)
+// First-launch board setup: pulls this board back from iCloud if a previous
+// install left one there (sync/autoRestore.ts), then gives every install a
+// "Show Others" demo board (fake, higher-end finances)
 // to switch to before showing someone the app — once only, ever, tracked by
 // a settings flag rather than re-checked by name so deleting it doesn't
 // bring it back uninvited. Settings' "Create Demo Board" button reuses
@@ -36,6 +39,12 @@ export function useEnsureDemoBoard() {
       const db = await getDb();
       const seeded = await settingsRepo.getSetting(db, DEMO_BOARD_SEEDED_KEY);
       if (seeded) return;
+      // Before seeding, not after, and in the same sequence rather than its
+      // own hook: a reinstall's board comes back from iCloud first so the
+      // demo board lands beside it instead of racing it.
+      const boards = await boardsRepo.listBoards(db);
+      const first = boards[0];
+      if (first) await restoreFromICloudIfFirstRun(db, first.id, first.name);
       await seedDemoBoard(db);
       await settingsRepo.setSetting(db, DEMO_BOARD_SEEDED_KEY, '1');
       bumpDataVersion();
@@ -76,9 +85,21 @@ export function useBoards() {
       // income (see migration 021) — seed the common starting set so a
       // brand-new board isn't unusable until the user manually adds
       // accounts.
-      await accountsRepo.createAccount(db, id, { name: 'Cash', type: 'cash', openingBalanceCents: 0 });
-      await accountsRepo.createAccount(db, id, { name: 'Savings', type: 'savings', openingBalanceCents: 0 });
-      await accountsRepo.createAccount(db, id, { name: 'Income', type: 'income', openingBalanceCents: 0 });
+      await accountsRepo.createAccount(db, id, {
+        name: 'Cash',
+        type: 'cash',
+        openingBalanceCents: 0,
+      });
+      await accountsRepo.createAccount(db, id, {
+        name: 'Savings',
+        type: 'savings',
+        openingBalanceCents: 0,
+      });
+      await accountsRepo.createAccount(db, id, {
+        name: 'Income',
+        type: 'income',
+        openingBalanceCents: 0,
+      });
       bumpDataVersion();
       return id;
     },
@@ -109,5 +130,13 @@ export function useBoards() {
     [currentBoardId, boards, switchBoard, bumpDataVersion],
   );
 
-  return { boards, currentBoardId, switchBoard, addBoard, renameBoard, removeBoard, refresh };
+  return {
+    boards,
+    currentBoardId,
+    switchBoard,
+    addBoard,
+    renameBoard,
+    removeBoard,
+    refresh,
+  };
 }

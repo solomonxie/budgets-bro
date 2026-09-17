@@ -468,11 +468,18 @@ export function SettingsScreen() {
         {aiKeys.length > 0 ? (
           <View style={styles.group}>
             {aiKeys.map((key, i) => (
-              <View key={key.id} style={[styles.row, i > 0 && styles.rowDivider]}>
+              <View
+                key={key.id}
+                style={[styles.row, i > 0 && styles.rowDivider]}
+              >
                 <View style={styles.rowMain}>
-                  <Text style={styles.rowTitle}>{aiVendorName(key.vendor)}</Text>
+                  <Text style={styles.rowTitle}>
+                    {aiVendorName(key.vendor)}
+                  </Text>
                   <Text style={styles.rowValue}>
-                    {t('settings.aiKeyRequestCount', { count: key.requestCount })}
+                    {t('settings.aiKeyRequestCount', {
+                      count: key.requestCount,
+                    })}
                   </Text>
                 </View>
                 <Pressable
@@ -529,11 +536,7 @@ export function SettingsScreen() {
         />
       </View>
 
-      <BackupSection
-        boardId={boardId}
-        boardName={boardName}
-        onRestored={handleRestored}
-      />
+      <BackupSection boardId={boardId} boardName={boardName} />
 
       <DataSection
         boardId={boardId}

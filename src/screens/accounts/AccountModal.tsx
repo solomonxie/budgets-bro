@@ -15,8 +15,11 @@ import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import * as accountRateHistoryRepo from '../../db/repositories/accountRateHistoryRepo';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import * as incomeDetailHistoryRepo from '../../db/repositories/incomeDetailHistoryRepo';
+import { LoggedValueModal } from '../../components/ui/LoggedValueModal';
+import type { LoggedValueChange } from '../../components/ui/LoggedValueModal';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
+import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType, usesLoggedValue } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
@@ -27,7 +30,7 @@ import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountRateChange, AccountType, IncomeDetail } from '../../domain/types';
+import type { Account, AccountRateChange, AccountType, AccountValueChange, AccountValueKind, IncomeDetail } from '../../domain/types';
 
 const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
   income: 'accountModal.typeIncome',
@@ -57,6 +60,11 @@ export function AccountModal() {
   const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
   const { history: rateHistory, currentRateBps } = useAccountRateHistory(editingAccountId);
+  // Only ever the readings the user typed — an estimate between them is
+  // derived on read and never written (see finance-tools/remainingPrincipal),
+  // so these lists are exactly the manual history with nothing to filter out.
+  const { history: houseValueHistory, refresh: refreshHouseValues } = useAccountValueHistory(editingAccountId, 'value');
+  const { history: principalHistory, refresh: refreshPrincipals } = useAccountValueHistory(editingAccountId, 'principal');
   const isEditing = editingAccountId != null;
 
   const [name, setName] = useState('');
@@ -85,6 +93,7 @@ export function AccountModal() {
   const [loadedPrincipalCents, setLoadedPrincipalCents] = useState<number | null>(null);
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
   const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
+  const [readingModal, setReadingModal] = useState<{ kind: AccountValueKind; editing: AccountValueChange | null } | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [incomeHistory, setIncomeHistory] = useState<IncomeDetail[]>([]);
   const [incomeDetailModal, setIncomeDetailModal] = useState<{ editing: IncomeDetail | null } | null>(null);
@@ -108,6 +117,7 @@ export function AccountModal() {
     setLoadedPrincipalCents(null);
     setArchivedAt(null);
     setRateModal(null);
+    setReadingModal(null);
     setToolsOpen(false);
     setIncomeHistory([]);
     setIncomeDetailModal(null);
@@ -311,6 +321,36 @@ export function AccountModal() {
     reset();
   };
 
+  const refreshReadings = async (kind: AccountValueKind) => {
+    if (kind === 'principal') await refreshPrincipals();
+    else await refreshHouseValues();
+  };
+
+  const submitReading = async (value: LoggedValueChange) => {
+    if (editingAccountId == null || readingModal == null) return;
+    const valueCents = parseCents(value.value);
+    if (valueCents == null) return;
+    const db = await getDb();
+    const note = value.note.trim() || null;
+    if (readingModal.editing) {
+      await accountValueHistoryRepo.updateValueChange(db, readingModal.editing.id, valueCents, value.effectiveDate, note);
+    } else {
+      await accountValueHistoryRepo.addValueChange(db, editingAccountId, valueCents, value.effectiveDate, note, readingModal.kind);
+    }
+    bumpDataVersion();
+    await refreshReadings(readingModal.kind);
+    setReadingModal(null);
+  };
+
+  const deleteReading = async () => {
+    if (readingModal?.editing == null) return;
+    const db = await getDb();
+    await accountValueHistoryRepo.deleteValueChange(db, readingModal.editing.id);
+    bumpDataVersion();
+    await refreshReadings(readingModal.kind);
+    setReadingModal(null);
+  };
+
   const submitRateChange = async (value: RateChangeValue) => {
     if (editingAccountId == null) return;
     const rateBps = Math.round(parseFloat(value.ratePercent) * 100);
@@ -368,23 +408,47 @@ export function AccountModal() {
           {isLoanLike ? (
             <>
               {isMortgage ? (
+                <View style={styles.field}>
+                  <TextField
+                    label={t('accountModal.currentHouseValueLabel')}
+                    value={currentHouseValue}
+                    onChangeText={setCurrentHouseValue}
+                    keyboardType="decimal-pad"
+                    placeholder={t('common.amountPlaceholder')}
+                    hint={t('accountModal.currentHouseValueHint')}
+                  />
+                  {isEditing ? (
+                    <ReadingList
+                      label={t('accountModal.houseValueHistoryLabel')}
+                      emptyLabel={t('accountModal.noReadings')}
+                      addLabel={t('accountModal.addHouseValue')}
+                      readings={houseValueHistory}
+                      onOpen={(editing) => setReadingModal({ kind: 'value', editing })}
+                      t={t}
+                    />
+                  ) : null}
+                </View>
+              ) : null}
+              <View style={styles.field}>
                 <TextField
-                  label={t('accountModal.currentHouseValueLabel')}
-                  value={currentHouseValue}
-                  onChangeText={setCurrentHouseValue}
+                  label={t('accountModal.currentPrincipalLabel')}
+                  value={currentPrincipal}
+                  onChangeText={setCurrentPrincipal}
                   keyboardType="decimal-pad"
                   placeholder={t('common.amountPlaceholder')}
-                  hint={t('accountModal.currentHouseValueHint')}
+                  hint={t('accountModal.currentPrincipalHint')}
                 />
-              ) : null}
-              <TextField
-                label={t('accountModal.currentPrincipalLabel')}
-                value={currentPrincipal}
-                onChangeText={setCurrentPrincipal}
-                keyboardType="decimal-pad"
-                placeholder={t('common.amountPlaceholder')}
-                hint={t('accountModal.currentPrincipalHint')}
-              />
+                {isEditing ? (
+                  <ReadingList
+                    label={t('accountModal.principalHistoryLabel')}
+                    emptyLabel={t('accountModal.noReadings')}
+                    addLabel={t('accountModal.addPrincipal')}
+                    readings={principalHistory}
+                    onOpen={(editing) => setReadingModal({ kind: 'principal', editing })}
+                    t={t}
+                  />
+                ) : null}
+              </View>
             </>
           ) : (
             <>
@@ -561,6 +625,20 @@ export function AccountModal() {
         onSubmit={submitRateChange}
         onDelete={rateModal?.editing ? deleteRateChange : undefined}
       />
+      <LoggedValueModal
+        visible={readingModal != null}
+        title={t(readingModal?.kind === 'principal' ? 'principalModal.title' : 'houseValueModal.title')}
+        valueLabel={t(readingModal?.kind === 'principal' ? 'principalModal.valueLabel' : 'houseValueModal.valueLabel')}
+        notePlaceholder={t(readingModal?.kind === 'principal' ? 'principalModal.notePlaceholder' : 'houseValueModal.notePlaceholder')}
+        initial={{
+          value: readingModal?.editing ? (readingModal.editing.valueCents / 100).toString() : '',
+          effectiveDate: readingModal?.editing?.effectiveDate ?? currentDateISO(),
+          note: readingModal?.editing?.note ?? '',
+        }}
+        onCancel={() => setReadingModal(null)}
+        onSubmit={submitReading}
+        onDelete={readingModal?.editing ? deleteReading : undefined}
+      />
       <IncomeDetailModal
         visible={incomeDetailModal != null}
         initial={{
@@ -591,6 +669,48 @@ export function AccountModal() {
         </ScreenContainer>
       </Modal>
     </Modal>
+  );
+}
+
+// Both of a loan's reading histories look the same — a figure, whatever note
+// explains where it came from, and the date it applies to — so they share one
+// list rather than two near-identical blocks of JSX.
+function ReadingList({
+  label,
+  emptyLabel,
+  addLabel,
+  readings,
+  onOpen,
+  t,
+}: {
+  label: string;
+  emptyLabel: string;
+  addLabel: string;
+  readings: AccountValueChange[];
+  onOpen: (editing: AccountValueChange | null) => void;
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      {readings.length === 0 ? <Text style={styles.hint}>{emptyLabel}</Text> : null}
+      {readings.map((reading) => (
+        <Pressable key={reading.id} style={styles.rateRow} onPress={() => onOpen(reading)}>
+          <View style={styles.readingLeft}>
+            <Text style={styles.rateRowText}>{formatMoney(reading.valueCents)}</Text>
+            {reading.note ? (
+              <Text style={styles.rateRowDate} numberOfLines={1}>
+                {reading.note}
+              </Text>
+            ) : null}
+          </View>
+          <Text style={styles.rateRowDate}>{t('common.effectivePrefix', { date: reading.effectiveDate })}</Text>
+        </Pressable>
+      ))}
+      <Pressable style={styles.addRateBtn} onPress={() => onOpen(null)}>
+        <Text style={styles.addRateBtnText}>{addLabel}</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -631,6 +751,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: colors.surface,
   },
+  readingLeft: { flex: 1, gap: 2 },
   rateRowText: { fontSize: 15, fontWeight: '700', color: colors.text },
   rateRowDate: { fontSize: 12, color: colors.textMuted },
   addRateBtn: { alignItems: 'center', paddingVertical: 8 },

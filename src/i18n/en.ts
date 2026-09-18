@@ -237,6 +237,11 @@ export const en = {
   'accountModal.currentPrincipalHint':
     'What you still owe today, straight off a statement. Between figures like this one, each payment you log covers its interest first and only the rest comes off the principal — so this stays close on its own. Recording it never creates a transaction.',
   'accountModal.purchaseDateLabel': 'Purchase Date',
+  'accountModal.houseValueHistoryLabel': 'House Value History',
+  'accountModal.principalHistoryLabel': 'Remaining Principal History',
+  'accountModal.noReadings': 'Nothing recorded yet.',
+  'accountModal.addHouseValue': '+ Add House Value',
+  'accountModal.addPrincipal': '+ Add Remaining Principal',
   'accountModal.latestBalanceLabel': 'Current Balance',
   'accountModal.latestBalanceHint':
     'What the account really says today. Saving a different number logs one adjustment transaction to close the gap.',

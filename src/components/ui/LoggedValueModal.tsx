@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
 import { DateField } from './DateField';
 import { useT } from '../../i18n';
+import { CardModal } from './CardModal';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -68,75 +69,52 @@ export function LoggedValueModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.backdrop} onPress={onCancel}>
-        {/* Stops the tap reaching the backdrop (which cancels), and puts
-            the keyboard away — tapping off a field inside the card used to
-            do nothing at all, leaving the pad covering the buttons. */}
-        <Pressable
-          style={styles.card}
-          onPress={(e) => {
-            e.stopPropagation();
-            Keyboard.dismiss();
-          }}
-        >
-          <Text style={styles.title}>{title}</Text>
-          <View style={styles.valueRow}>
-            <Pressable style={styles.signToggle} onPress={() => setNegative((v) => !v)}>
-              <Text style={styles.signToggleText}>{negative ? '−' : '+'}</Text>
-            </Pressable>
-            <View style={styles.valueInput}>
-              <TextField
-                label={valueLabel}
-                value={magnitude}
-                onChangeText={setMagnitude}
-                keyboardType="decimal-pad"
-                placeholder={t('common.amountPlaceholder')}
-                autoFocus
-              />
-            </View>
-          </View>
-          <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
-          <TextField
-            label={t('loggedValueModal.noteLabel')}
-            value={note}
-            onChangeText={setNote}
-            placeholder={notePlaceholder}
-          />
-          <View style={styles.actions}>
-            {onDelete ? (
-              <Pressable onPress={onDelete}>
-                <Text style={styles.deleteText}>{t('common.delete')}</Text>
-              </Pressable>
-            ) : (
-              <View />
-            )}
-            <View style={styles.rightActions}>
-              <Pressable onPress={onCancel}>
-                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable style={styles.saveButton} onPress={submit}>
-                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-              </Pressable>
-            </View>
-          </View>
+    <CardModal visible={visible} onCancel={onCancel}>
+      <Text style={styles.title}>{title}</Text>
+      <View style={styles.valueRow}>
+        <Pressable style={styles.signToggle} onPress={() => setNegative((v) => !v)}>
+          <Text style={styles.signToggleText}>{negative ? '−' : '+'}</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+        <View style={styles.valueInput}>
+          <TextField
+            label={valueLabel}
+            value={magnitude}
+            onChangeText={setMagnitude}
+            keyboardType="decimal-pad"
+            placeholder={t('common.amountPlaceholder')}
+            autoFocus
+          />
+        </View>
+      </View>
+      <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+      <TextField
+        label={t('loggedValueModal.noteLabel')}
+        value={note}
+        onChangeText={setNote}
+        placeholder={notePlaceholder}
+      />
+      <View style={styles.actions}>
+        {onDelete ? (
+          <Pressable onPress={onDelete}>
+            <Text style={styles.deleteText}>{t('common.delete')}</Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
+        <View style={styles.rightActions}>
+          <Pressable onPress={onCancel}>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+          </Pressable>
+          <Pressable style={styles.saveButton} onPress={submit}>
+            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </CardModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  card: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
   valueInput: { flex: 1 },

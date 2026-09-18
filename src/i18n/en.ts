@@ -491,6 +491,7 @@ export const en = {
 
   'transactions.searchPlaceholder': 'Search payee or memo',
   'transactions.selectedCount': '{count} selected',
+  'transactions.deleteSelectedConfirmTitle': 'Delete {count} transactions?',
   'transactions.selectAll': 'Select all',
   'transactions.selectNone': 'Select none',
   'transactions.editPayee': 'Edit Payee',

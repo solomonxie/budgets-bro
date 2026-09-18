@@ -115,3 +115,11 @@ export async function pruneChangeLog(db: SQLiteDatabase, keep = 20000): Promise<
     keep,
   );
 }
+
+// The high-water mark of the log — a single number that says "this is what
+// the data looked like". Comparing it against the one stored at the last
+// backup answers "has anything changed since?" without diffing anything.
+export async function latestChangeSeq(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ seq: number | null }>('SELECT MAX(seq) as seq FROM change_log');
+  return row?.seq ?? 0;
+}

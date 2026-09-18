@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
 import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
+import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
 import { addS3Config, listS3Configs } from '../../sync/s3Provider';
 import type { S3ConfigInput, S3ConfigMeta } from '../../sync/s3Provider';
@@ -82,6 +83,9 @@ function relativeTime(iso: string | null, t: ReturnType<typeof useT>): string {
 }
 
 export function BackupSection({ boardId, boardName }: BackupSectionProps) {
+  // A restore writes rows straight into the database, so every screen
+  // reading it has to be told.
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const t = useT();
   const [configs, setConfigs] = useState<S3ConfigMeta[]>([]);
   const [icloudStatus, setICloudStatus] = useState<ICloudStatus>('available');
@@ -249,6 +253,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
           setBrowsing(null);
           refresh();
         }}
+        onRestored={bumpDataVersion}
       />
     </View>
   );

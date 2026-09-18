@@ -32,9 +32,12 @@ interface FieldRowProps {
   // Omitted for a row whose value isn't the user's to change — it reads the
   // same but doesn't invite a tap that would do nothing.
   onPress?: () => void;
+  // The row's picker is unfolded right below it (see ExpandingField) — the
+  // chevron turns to point at it instead of off to the right.
+  expanded?: boolean;
 }
 
-export function FieldRow({ label, value, onPress }: FieldRowProps) {
+export function FieldRow({ label, value, onPress, expanded }: FieldRowProps) {
   if (!onPress) {
     return (
       <View style={styles.row}>
@@ -66,7 +69,7 @@ export function FieldRow({ label, value, onPress }: FieldRowProps) {
           </Text>
         )}
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={[styles.chevron, expanded && styles.chevronExpanded]}>›</Text>
     </Pressable>
   );
 }
@@ -77,8 +80,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
   },
-  cardGrow: { flex: 1 },
-  growRow: { flex: 1 },
+  // Grows into leftover space but never shrinks below its content: a row with
+  // a picker unfolded inside it makes the card taller than the screen, and
+  // `flex: 1` would have the card clip it against its own overflow: 'hidden'
+  // instead of letting the page scroll.
+  cardGrow: { flexGrow: 1, flexShrink: 0 },
+  growRow: { flexGrow: 1, flexShrink: 0 },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
@@ -99,4 +106,5 @@ const styles = StyleSheet.create({
   rowValueLocked: { color: colors.textMuted },
   rowPlaceholder: { fontSize: 16, color: colors.textMuted },
   chevron: { fontSize: 22, color: colors.textMuted },
+  chevronExpanded: { transform: [{ rotate: '90deg' }], color: colors.accent },
 });

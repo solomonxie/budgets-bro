@@ -3,6 +3,7 @@ import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { ScreenContainer } from './ScreenContainer';
 import { FieldRow } from './FieldCard';
 import { BottomSheet } from './BottomSheet';
+import { ExpandedPanel, useExpandingField } from './ExpandingField';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -79,7 +80,11 @@ export function SearchableDropdownField({
   const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  // Non-null inside an ExpandingFieldGroup: the list unfolds under this row
+  // instead of in a sheet (see ExpandingField).
+  const inline = useExpandingField();
   const close = () => {
+    inline?.close();
     setOpen(false);
     setQuery('');
   };
@@ -90,6 +95,11 @@ export function SearchableDropdownField({
   // popping its keyboard back up regardless of what was actually picked.
   const openPicker = () => {
     Keyboard.dismiss();
+    if (inline) {
+      setQuery('');
+      inline.toggle();
+      return;
+    }
     setOpen(true);
   };
 
@@ -158,7 +168,7 @@ export function SearchableDropdownField({
   return (
     <View>
       {row ? (
-        <FieldRow label={label} value={valueLabel} onPress={openPicker} />
+        <FieldRow label={label} value={valueLabel} onPress={openPicker} expanded={inline?.expanded} />
       ) : (
         <>
           {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
@@ -170,7 +180,9 @@ export function SearchableDropdownField({
           </Pressable>
         </>
       )}
-      {compact ? (
+      {inline ? (
+        inline.expanded ? <ExpandedPanel sticky={searchBox}>{optionRows}</ExpandedPanel> : null
+      ) : compact ? (
         <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
           {/* Keeps the sheet from shrink-wrapping to a sliver — and sliding
               down behind the keyboard — once typing narrows the results to

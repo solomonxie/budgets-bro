@@ -36,6 +36,8 @@ AddTransactionScreen.tsx  (root stack route)
 │  hidden for tracking accounts)   │
 │ Date (DateField)                │──→ ../../components/ui/DateField.tsx
 │ Account (DropdownField)         │──→ ../../components/ui/DropdownField.tsx
+│  ↳ all four unfold in place,     │──→ ../../components/ui/ExpandingField.tsx
+│    pushing the pad down          │    (ExpandingFieldGroup wraps the form)
 │ Repeat fields (when scheduled)  │──→ ../../components/ui/RepeatField.tsx
 │ Memo input                      │──→ inline
 │ Number pad (0-9, C, ⌫)          │──→ ../../components/ui/NumberPad.tsx

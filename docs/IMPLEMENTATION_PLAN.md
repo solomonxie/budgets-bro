@@ -128,6 +128,48 @@ Design captured in [`DESIGN.md`](DESIGN.md#income-accounts-shipped). Replaces th
 - [x] T11.7 Settings' old "Default Cash Account" (board-wide sweep target) section removed — superseded by the per-transaction Income Account tag
 - [x] T11.8 Demo board updated to post tagged transactions directly on checking instead of the entry-plus-sweep-transfer pair
 
+## Phase 12: Off Expo — bare React Native
+
+Rationale in [`DESIGN.md`](DESIGN.md#no-expo-go-no-dev-server). Removes the
+`expo` dependency outright, not just the dev-server workflow: every `expo-*`
+package swapped for a community library, `ios/` hand-owned and committed
+instead of regenerated from `app.json`, and `modules/icloud-drive` rewritten as
+a plain RN native module.
+
+Ordered by dependency: leaves first, tooling next, then the three storage
+surfaces behind adapters, then the native module, and only then does the
+`expo` package itself come out.
+
+| Expo | Replaced by |
+|---|---|
+| `expo-status-bar` | RN core `StatusBar` |
+| `expo-sharing` | RN core `Share` |
+| `expo-splash-screen` | the generated `LaunchScreen.storyboard`, kept |
+| `expo` (`registerRootComponent`) | `AppRegistry.registerComponent` |
+| `expo` (`requireOptionalNativeModule`) | `TurboModuleRegistry.get` |
+| `expo/metro-config` | `@react-native/metro-config` |
+| `jest-expo` | `react-native/jest-preset` |
+| `eslint-config-expo` | `@react-native/eslint-config` |
+| `expo-sqlite` | `@op-engineering/op-sqlite` behind `src/db/driver.ts` |
+| `expo-file-system` | `react-native-blob-util` behind `src/platform/fs.ts` |
+| `expo-file-system`'s `File.pickFileAsync` | `@react-native-documents/picker` |
+| `expo-secure-store` | `react-native-keychain` |
+| `expo prebuild` | `ios/` committed, edited by hand |
+
+- [ ] T12.1 Leaf swaps — `expo-status-bar` → RN `StatusBar`, `expo-sharing` → RN `Share` (iOS shares a file by `url`), `registerRootComponent` → `AppRegistry`. No native deps touched, no data at risk.
+- [ ] T12.2 Tooling off Expo presets — `metro.config.js`, jest preset (all 363 tests must stay green), eslint config. Lands before any library swap so the next phases are verified by the same toolchain they'll ship on.
+- [ ] T12.3 `src/db/driver.ts` — own `SQLiteDatabase` interface (`runAsync`/`getAllAsync`/`getFirstAsync`/`execAsync`/`withTransactionAsync`, the only five methods actually used) and re-point all 28 files' type imports at it. Still expo-sqlite underneath: a pure indirection step, so the driver swap that follows touches one file.
+- [ ] T12.4 op-sqlite under the driver — same on-disk path (`<documents>/SQLite/budgetsbro.db`) so nothing has to migrate. Re-run the full migration chain (001→030) against a fresh DB and against a restored backup.
+- [ ] T12.5 `src/platform/fs.ts` adapter over `react-native-blob-util`, replacing `Directory`/`File`/`Paths` in the six call sites. Must keep the Files-app-visible document folder working (`UIFileSharingEnabled`).
+- [ ] T12.6 Document picking — `@react-native-documents/picker` for the YNAB import.
+- [ ] T12.7 `react-native-keychain` for the AI key and S3 credentials. **Breaking:** different keychain items, so existing secrets are not readable — Settings must prompt for re-entry rather than silently showing an empty field.
+- [ ] T12.8 `modules/icloud-drive` as a plain TurboModule — codegen spec + Swift, dropping `ExpoModulesCore` from the podspec. The Swift body (ubiquity container, coordinated read/write) is unchanged; only the module registration is.
+- [ ] T12.9 Own `ios/` — stop gitignoring it, commit the current generated project, and move what `app.json` was configuring (bundle id, entitlements, iCloud containers, `NSUbiquitousContainers`, icons, splash, file sharing) into `Info.plist`/`.entitlements`/asset catalogs. After this there is no prebuild to re-run.
+- [ ] T12.10 Remove `expo`, every `expo-*` dependency and `app.json`'s expo block; update README, AGENTS.md (v57 docs no longer the reference) and the tech-stack table.
+
+Done when `grep -ri expo` over tracked files returns nothing but history, and a
+device build from a clean checkout still installs and runs.
+
 ## Backlog
 Not sequenced against the phases above — pick up opportunistically.
 

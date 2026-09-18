@@ -104,10 +104,14 @@ export function AddTransactionScreen() {
   const selectedAccount = accounts.find((a) => a.account.id === accountId)?.account;
   const isLoanAccount = selectedAccount != null && isLoanLikeType(selectedAccount.type);
   const payeeLocked = isLoanAccount;
-  const accountLocked = isLoanAccount && isEditing;
   const presetIsIncomeAccount =
     presetAccountId != null &&
     incomeAccounts.some((a) => a.account.id === presetAccountId);
+  // Opened from an account's page, the account is the context you came from,
+  // not a field — and an existing loan row cannot move accounts at all
+  // without orphaning its mirror. (An Income preset fills the stream tag
+  // instead, so the real account stays a choice there.)
+  const accountLocked = (isLoanAccount && isEditing) || (presetAccountId != null && !presetIsIncomeAccount);
   const [incomeAccountId, setIncomeAccountId] = useState<number | null>(null);
   const selectIncomeAccount = (id: number | null) => {
     Keyboard.dismiss();

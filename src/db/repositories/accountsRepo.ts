@@ -5,6 +5,7 @@ import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES, LOAN_P
 import { currentDateISO } from '../../domain/month';
 import { isLoanLikeType, usesLoggedValue } from '../../domain/accountKind';
 import { remainingPrincipal } from '../../finance-tools/remainingPrincipal';
+import { planAbsorb } from '../../domain/absorbAccount';
 import type { ActualPayment } from '../../finance-tools/paymentSplit';
 import * as payeesRepo from './payeesRepo';
 import * as accountRateHistoryRepo from './accountRateHistoryRepo';
@@ -262,4 +263,84 @@ export async function unassignedImpactOfDeleting(db: SQLiteDatabase, accountId: 
   // Removing activity of -X raises the category sum by X, which lowers
   // Unassigned by X — so the delta is the activity itself.
   return row?.total ?? 0;
+}
+
+// Which account paid this one off — the other side of its transfers, by
+// weight, so the obvious answer wins when there are a few stray ones. Null
+// when the account never transferred with anything, in which case there is
+// nothing to absorb into and deleting is the only option.
+export async function likelyAbsorbingAccountId(db: SQLiteDatabase, accountId: number): Promise<number | null> {
+  const row = await db.getFirstAsync<{ transfer_account_id: number }>(
+    `SELECT transfer_account_id, COUNT(*) as n FROM transactions
+     WHERE account_id = ? AND transfer_account_id IS NOT NULL
+     GROUP BY transfer_account_id ORDER BY n DESC LIMIT 1`,
+    accountId,
+  );
+  return row?.transfer_account_id ?? null;
+}
+
+export interface AbsorbOutcome {
+  moved: number;
+  collapsed: number;
+  balanceDeltaCents: number;
+}
+
+// Deletes an account by moving its history onto the account that paid it,
+// rather than throwing the history away. See domain/absorbAccount for why
+// the transfers between the two have to go with it — without that the
+// absorbing account ends up holding both the spending and the payments for
+// it, which is the same money twice.
+export async function absorbAccountInto(
+  db: SQLiteDatabase,
+  accountId: number,
+  intoAccountId: number,
+): Promise<AbsorbOutcome> {
+  const rows = await db.getAllAsync<{
+    id: number;
+    account_id: number;
+    transfer_account_id: number | null;
+    category_id: number | null;
+    amount_cents: number;
+  }>(
+    `SELECT id, account_id, transfer_account_id, category_id, amount_cents FROM transactions
+     WHERE account_id IN (?, ?) OR transfer_account_id IN (?, ?)`,
+    accountId,
+    intoAccountId,
+    accountId,
+    intoAccountId,
+  );
+  const plan = planAbsorb(
+    rows.map((r) => ({
+      id: r.id,
+      accountId: r.account_id,
+      transferAccountId: r.transfer_account_id,
+      categoryId: r.category_id,
+      amountCents: r.amount_cents,
+    })),
+    accountId,
+    intoAccountId,
+  );
+
+  await db.withTransactionAsync(async () => {
+    if (plan.deleteIds.length > 0) {
+      await db.runAsync(`DELETE FROM transactions WHERE id IN (${plan.deleteIds.map(() => '?').join(', ')})`, ...plan.deleteIds);
+    }
+    if (plan.moveIds.length > 0) {
+      await db.runAsync(
+        `UPDATE transactions SET account_id = ?, transfer_account_id = NULL, updated_at = datetime('now')
+         WHERE id IN (${plan.moveIds.map(() => '?').join(', ')})`,
+        intoAccountId,
+        ...plan.moveIds,
+      );
+    }
+    await db.runAsync('UPDATE transactions SET transfer_account_id = NULL WHERE transfer_account_id = ?', accountId);
+    await db.runAsync('DELETE FROM scheduled_transactions WHERE account_id = ?', accountId);
+    await db.runAsync('DELETE FROM account_rate_history WHERE account_id = ?', accountId);
+    await db.runAsync('DELETE FROM account_value_history WHERE account_id = ?', accountId);
+    await db.runAsync('UPDATE custom_goals SET linked_account_id = NULL WHERE linked_account_id = ?', accountId);
+    await db.runAsync('DELETE FROM payees WHERE linked_account_id = ?', accountId);
+    await db.runAsync('DELETE FROM accounts WHERE id = ?', accountId);
+  });
+
+  return { moved: plan.moveIds.length, collapsed: plan.deleteIds.length, balanceDeltaCents: plan.balanceDeltaCents };
 }

@@ -23,28 +23,60 @@ export function ClosedAccountsScreen() {
   // while its balance is dropped from the cash side — so spending on a card
   // closed years ago keeps dragging Unassigned Cash down. Deleting is the
   // way out when the history isn't wanted.
+  // Two ways out, and which one is offered depends on whether the account
+  // has categorised history worth keeping. Absorbing moves that history onto
+  // the account that paid this one off and collapses the transfers between
+  // them, which leaves every total exactly where it was (see
+  // domain/absorbAccount). Deleting outright is only harmless when there is
+  // no categorised history to lose.
   const confirmDelete = async (accountId: number, name: string) => {
     const db = await getDb();
-    // Worked out before asking, because the number is the whole decision: a
-    // card's own spending is what offsets the cash that later paid it off,
-    // so deleting it drops Unassigned by everything ever spent on it.
     const impactCents = await accountsRepo.unassignedImpactOfDeleting(db, accountId);
-    const message =
-      impactCents === 0
-        ? t('closedAccounts.deleteConfirmMessage')
-        : t('closedAccounts.deleteImpactMessage', { amount: formatMoney(impactCents) });
-    Alert.alert(t('closedAccounts.deleteConfirmTitle', { name }), message, [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
+    if (impactCents === 0) {
+      Alert.alert(t('closedAccounts.deleteConfirmTitle', { name }), t('closedAccounts.deleteConfirmMessage'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            await accountsRepo.deleteAccountPermanently(db, accountId);
+            bumpDataVersion();
+            refresh();
+          },
+        },
+      ]);
+      return;
+    }
+
+    const intoId = await accountsRepo.likelyAbsorbingAccountId(db, accountId);
+    const into = intoId != null ? await accountsRepo.getAccount(db, intoId) : null;
+    const buttons: Parameters<typeof Alert.alert>[2] = [{ text: t('common.cancel'), style: 'cancel' }];
+    if (into) {
+      buttons.push({
+        text: t('closedAccounts.absorbAction', { name: into.name }),
         onPress: async () => {
-          await accountsRepo.deleteAccountPermanently(db, accountId);
+          await accountsRepo.absorbAccountInto(db, accountId, into.id);
           bumpDataVersion();
           refresh();
         },
+      });
+    }
+    buttons.push({
+      text: t('closedAccounts.deleteAnyway'),
+      style: 'destructive',
+      onPress: async () => {
+        await accountsRepo.deleteAccountPermanently(db, accountId);
+        bumpDataVersion();
+        refresh();
       },
-    ]);
+    });
+    Alert.alert(
+      t('closedAccounts.deleteConfirmTitle', { name }),
+      into
+        ? t('closedAccounts.absorbMessage', { amount: formatMoney(impactCents), into: into.name })
+        : t('closedAccounts.deleteImpactMessage', { amount: formatMoney(impactCents) }),
+      buttons,
+    );
   };
 
   const refresh = useCallback(async () => {

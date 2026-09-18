@@ -31,6 +31,7 @@ import {
 } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
+import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import { isLoanLikeType, isSpendingAccountType } from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
@@ -63,6 +64,17 @@ type Route = RouteProp<RootStackParamList, 'AddTransaction'>;
 // to be a pageSheet you dismissed by dragging down, which fought the
 // scrolling form underneath it.
 export function AddTransactionScreen() {
+  // Every picker below opens in place: its options unfold in the row's own
+  // space and push the pad down, rather than a sheet covering the amount and
+  // the fields already filled in (see ExpandingField).
+  return (
+    <ExpandingFieldGroup>
+      <AddTransactionForm />
+    </ExpandingFieldGroup>
+  );
+}
+
+function AddTransactionForm() {
   const t = useT();
   const navigation = useNavigation<Nav>();
   const params = useRoute<Route>().params;
@@ -569,7 +581,10 @@ const styles = StyleSheet.create({
   },
   amountPlaceholder: { color: colors.textMuted },
   scrollContent: { flexGrow: 1 },
-  form: { flex: 1, padding: spacing.md, gap: spacing.md },
+  // Grows into leftover space but never shrinks below its content — same as
+  // FieldCard's `grow`: an unfolded picker pushes the pad past the bottom of
+  // the screen and the page scrolls to it.
+  form: { flexGrow: 1, flexShrink: 0, padding: spacing.md, gap: spacing.md },
   scheduledPill: {
     borderWidth: 1,
     borderColor: colors.border,

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FieldRow } from './FieldCard';
+import { ExpandedPanel, useExpandingField } from './ExpandingField';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -67,12 +68,21 @@ export function DateField({
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseDate(value));
+  // Non-null inside an ExpandingFieldGroup: the wheels unfold under this row
+  // instead of in a card over the page (see ExpandingField). With nothing
+  // covering the form there's nothing to confirm — each scroll commits, and
+  // tapping the row again folds it away.
+  const inline = useExpandingField();
 
   const openPicker = () => {
     // Same reasoning as DropdownField/SearchableDropdownField's own
     // dismiss-before-open — a still-focused text input's keyboard shouldn't
     // linger once a picker sheet is up.
     Keyboard.dismiss();
+    if (inline) {
+      inline.toggle();
+      return;
+    }
     setDraft(parseDate(value));
     setOpen(true);
   };
@@ -89,6 +99,7 @@ export function DateField({
           label={label}
           value={formatDisplay(parseDate(value), localeTag(language), shortFormat)}
           onPress={openPicker}
+          expanded={inline?.expanded}
         />
       ) : (
         <>
@@ -101,29 +112,44 @@ export function DateField({
           </Pressable>
         </>
       )}
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.title}>{label}</Text>
+      {inline ? (
+        inline.expanded ? (
+          <ExpandedPanel scroll={false}>
             <DateTimePicker
-              value={draft}
+              value={parseDate(value)}
               mode="date"
               display="spinner"
-              onValueChange={(_, d) => setDraft(d)}
+              onValueChange={(_, d) => onChange(formatDate(d))}
               textColor={colors.text}
               style={styles.picker}
             />
-            <Pressable style={styles.confirmBtn} onPress={confirm}>
-              <Text style={styles.confirmBtnText}>{t('common.done')}</Text>
+          </ExpandedPanel>
+        ) : null
+      ) : (
+        <Modal
+          visible={open}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setOpen(false)}
+        >
+          <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+            <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+              <Text style={styles.title}>{label}</Text>
+              <DateTimePicker
+                value={draft}
+                mode="date"
+                display="spinner"
+                onValueChange={(_, d) => setDraft(d)}
+                textColor={colors.text}
+                style={styles.picker}
+              />
+              <Pressable style={styles.confirmBtn} onPress={confirm}>
+                <Text style={styles.confirmBtnText}>{t('common.done')}</Text>
+              </Pressable>
             </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }

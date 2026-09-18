@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { BottomSheet } from './BottomSheet';
+import { ExpandedPanel, useExpandingField } from './ExpandingField';
 import { NumberWheel } from './NumberWheel';
 import { useI18n } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
@@ -94,19 +95,32 @@ export function RepeatField({
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   // Local draft so edits only commit on "Done" — cancelling (backdrop tap)
-  // leaves the caller's rule untouched.
+  // leaves the caller's rule untouched. Unfolded in place there is nothing
+  // to cancel and no Done to press, so edits go straight through.
   const [draft, setDraft] = useState<RecurrenceRule>(rule);
+  const inline = useExpandingField();
+  const edited = inline ? rule : draft;
 
   const openPicker = () => {
     // Same reasoning as DropdownField/DateField's own dismiss-before-open.
     Keyboard.dismiss();
+    if (inline) {
+      inline.toggle();
+      return;
+    }
     setDraft(rule);
     setOpen(true);
   };
   const close = () => setOpen(false);
 
+  const update = (patch: (d: RecurrenceRule) => RecurrenceRule) => {
+    const next = patch(edited);
+    if (inline) onChange(next);
+    else setDraft(next);
+  };
+
   const setFrequency = (frequency: ScheduleFrequency) => {
-    setDraft((d) => ({
+    update((d) => ({
       ...d,
       frequency,
       daysOfWeekMask:
@@ -117,10 +131,10 @@ export function RepeatField({
   };
 
   const toggleWeekday = (i: number) => {
-    setDraft((d) => {
-      const current = d.daysOfWeekMask ?? 1 << weekdayOfDate(startDate);
-      const next = current ^ (1 << i);
-      return { ...d, daysOfWeekMask: next === 0 ? current : next }; // never let every day be unchecked
+    update((d) => {
+      const mask = d.daysOfWeekMask ?? 1 << weekdayOfDate(startDate);
+      const next = mask ^ (1 << i);
+      return { ...d, daysOfWeekMask: next === 0 ? mask : next }; // never let every day be unchecked
     });
   };
 
@@ -129,102 +143,111 @@ export function RepeatField({
     close();
   };
 
+  const editor = (
+    <>
+      <Text style={styles.sectionLabel}>{t('repeatField.frequencyLabel')}</Text>
+      <View style={styles.segmented}>
+        {FREQUENCIES.map((f) => (
+          <Pressable
+            key={f}
+            style={[
+              styles.segment,
+              edited.frequency === f && styles.segmentActive,
+            ]}
+            onPress={() => setFrequency(f)}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                edited.frequency === f && styles.segmentTextActive,
+              ]}
+            >
+              {t(FREQUENCY_LABEL_KEY[f])}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Text style={styles.sectionLabel}>{t('repeatField.everyLabel')}</Text>
+      <View style={styles.everyRow}>
+        <NumberWheel
+          label={t('repeatField.everyLabel')}
+          value={edited.intervalN}
+          onChange={(n) => update((d) => ({ ...d, intervalN: n }))}
+          min={1}
+          max={MAX_INTERVAL}
+        />
+        <Text style={styles.everyUnit}>
+          {t(
+            edited.intervalN === 1
+              ? UNIT_LABEL_KEY[edited.frequency].one
+              : UNIT_LABEL_KEY[edited.frequency].many,
+          )}
+        </Text>
+      </View>
+
+      {edited.frequency === 'weekly' ? (
+        <>
+          <Text style={styles.sectionLabel}>
+            {t('repeatField.onDaysLabel')}
+          </Text>
+          <View style={styles.weekdayRow}>
+            {WEEKDAY_INDICES.map((i) => {
+              const mask =
+                edited.daysOfWeekMask ?? 1 << weekdayOfDate(startDate);
+              const selected = (mask & (1 << i)) !== 0;
+              return (
+                <Pressable
+                  key={i}
+                  style={[
+                    styles.weekdayChip,
+                    selected && styles.weekdayChipSelected,
+                  ]}
+                  onPress={() => toggleWeekday(i)}
+                >
+                  <Text
+                    style={[
+                      styles.weekdayChipText,
+                      selected && styles.weekdayChipTextSelected,
+                    ]}
+                  >
+                    {formatWeekdayShort(i, language)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+    </>
+  );
+
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
       <Pressable style={styles.field} onPress={openPicker}>
         <Text style={styles.valueText}>{describeRule(rule, t, language)}</Text>
-        <Text style={styles.chevron}>▾</Text>
+        <Text style={styles.chevron}>{inline?.expanded ? '▴' : '▾'}</Text>
       </Pressable>
-      <Modal
-        visible={open}
-        transparent
-        animationType="slide"
-        onRequestClose={close}
-      >
-        <BottomSheet title={t('repeatField.title')} onClose={close}>
-          <Text style={styles.sectionLabel}>
-            {t('repeatField.frequencyLabel')}
-          </Text>
-          <View style={styles.segmented}>
-            {FREQUENCIES.map((f) => (
-              <Pressable
-                key={f}
-                style={[
-                  styles.segment,
-                  draft.frequency === f && styles.segmentActive,
-                ]}
-                onPress={() => setFrequency(f)}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    draft.frequency === f && styles.segmentTextActive,
-                  ]}
-                >
-                  {t(FREQUENCY_LABEL_KEY[f])}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={styles.sectionLabel}>{t('repeatField.everyLabel')}</Text>
-          <View style={styles.everyRow}>
-            <NumberWheel
-              label={t('repeatField.everyLabel')}
-              value={draft.intervalN}
-              onChange={(n) => setDraft((d) => ({ ...d, intervalN: n }))}
-              min={1}
-              max={MAX_INTERVAL}
-            />
-            <Text style={styles.everyUnit}>
-              {t(
-                draft.intervalN === 1
-                  ? UNIT_LABEL_KEY[draft.frequency].one
-                  : UNIT_LABEL_KEY[draft.frequency].many,
-              )}
-            </Text>
-          </View>
-
-          {draft.frequency === 'weekly' ? (
-            <>
-              <Text style={styles.sectionLabel}>
-                {t('repeatField.onDaysLabel')}
-              </Text>
-              <View style={styles.weekdayRow}>
-                {WEEKDAY_INDICES.map((i) => {
-                  const mask =
-                    draft.daysOfWeekMask ?? 1 << weekdayOfDate(startDate);
-                  const selected = (mask & (1 << i)) !== 0;
-                  return (
-                    <Pressable
-                      key={i}
-                      style={[
-                        styles.weekdayChip,
-                        selected && styles.weekdayChipSelected,
-                      ]}
-                      onPress={() => toggleWeekday(i)}
-                    >
-                      <Text
-                        style={[
-                          styles.weekdayChipText,
-                          selected && styles.weekdayChipTextSelected,
-                        ]}
-                      >
-                        {formatWeekdayShort(i, language)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </>
-          ) : null}
-
-          <Pressable style={styles.doneButton} onPress={confirm}>
-            <Text style={styles.doneButtonText}>{t('common.done')}</Text>
-          </Pressable>
-        </BottomSheet>
-      </Modal>
+      {inline ? (
+        inline.expanded ? (
+          <ExpandedPanel scroll={false}>{editor}</ExpandedPanel>
+        ) : null
+      ) : (
+        <Modal
+          visible={open}
+          transparent
+          animationType="slide"
+          onRequestClose={close}
+        >
+          <BottomSheet title={t('repeatField.title')} onClose={close}>
+            {editor}
+            <Pressable style={styles.doneButton} onPress={confirm}>
+              <Text style={styles.doneButtonText}>{t('common.done')}</Text>
+            </Pressable>
+          </BottomSheet>
+        </Modal>
+      )}
     </View>
   );
 }

@@ -4,6 +4,7 @@ import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, Vie
 import { ScreenContainer } from './ScreenContainer';
 import { FieldRow } from './FieldCard';
 import { BottomSheet } from './BottomSheet';
+import { ExpandedPanel, useExpandingField } from './ExpandingField';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -49,6 +50,10 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
   const t = useT();
   const [open, setOpen] = useState(false);
   const pendingRef = useRef<(() => void) | null>(null);
+  // Non-null inside an ExpandingFieldGroup: the options unfold under this row
+  // instead of in a sheet, and no Modal is rendered at all — so `after` runs
+  // straight away, there being no dismissal to wait for.
+  const inline = useExpandingField();
 
   const runDismissed = () => {
     const fn = pendingRef.current;
@@ -57,6 +62,11 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
   };
 
   const close = (after?: () => void) => {
+    if (inline) {
+      inline.close();
+      after?.();
+      return;
+    }
     pendingRef.current = after ?? null;
     setOpen(false);
     if (Platform.OS !== 'ios') runDismissed();
@@ -69,7 +79,8 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
   // picker closes, regardless of what was actually picked.
   const openPicker = () => {
     Keyboard.dismiss();
-    setOpen(true);
+    if (inline) inline.toggle();
+    else setOpen(true);
   };
 
   return (
@@ -81,7 +92,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
           </Text>
         </Pressable>
       ) : row ? (
-        <FieldRow label={label} value={valueLabel} onPress={openPicker} />
+        <FieldRow label={label} value={valueLabel} onPress={openPicker} expanded={inline?.expanded} />
       ) : (
         <>
           {label && !hideLabel ? <Text style={styles.label}>{label}</Text> : null}
@@ -93,7 +104,9 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
           </Pressable>
         </>
       )}
-      {compact ? (
+      {inline ? (
+        inline.expanded ? <ExpandedPanel>{children(close)}</ExpandedPanel> : null
+      ) : compact ? (
         <Modal visible={open} transparent animationType="slide" onRequestClose={() => close()} onDismiss={runDismissed}>
           <BottomSheet title={label} onClose={close} listMaxHeight={COMPACT_LIST_MAX_HEIGHT}>
             {children(close)}

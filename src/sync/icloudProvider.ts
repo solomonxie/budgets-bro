@@ -21,7 +21,7 @@ const ICLOUD_KEEP_LATEST = 10;
 // user can actually open in Files.
 //
 // Needs the iCloud entitlement from app.json and therefore a real build: the
-// native module is absent in Expo Go, where `ICloudDrive` is null.
+// native module is absent (Android, web), where `ICloudDrive` is null.
 export function isICloudSupported(): boolean {
   return ICloudDrive != null;
 }

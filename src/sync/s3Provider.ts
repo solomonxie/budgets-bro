@@ -150,7 +150,7 @@ async function resolveConfig(meta: S3ConfigMeta): Promise<S3Config | null> {
 // AWS Signature Version 4 — signed via AWS's own @smithy/signature-v4 (the
 // same signer every AWS SDK uses internally) instead of a hand-rolled HMAC
 // chain, using @aws-crypto/sha256-js (pure JS, no Node/Web Crypto) so it
-// still runs inside Expo Go. `uriEscapePath: false` matches what the real
+// runs on Hermes. `uriEscapePath: false` matches what the real
 // S3 client does — S3's virtual-hosted-style paths aren't re-escaped.
 function signerFor(config: S3Config): SignatureV4 {
   return new SignatureV4({
@@ -374,7 +374,7 @@ export interface S3ListResult {
 // Minimal, targeted parser for ListObjectsV2's fixed XML shape — pulling in
 // a general XML library (fast-xml-parser, xml2js, …) just for this one
 // well-known, attribute-free response isn't worth the added bundle weight
-// or the risk of it not running under Expo Go/Hermes.
+// or the risk of it not running under Hermes.
 function xmlUnescape(s: string): string {
   return s
     .replace(/&lt;/g, '<')

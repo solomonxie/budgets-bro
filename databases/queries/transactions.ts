@@ -1,5 +1,5 @@
 export const SELECT_WITH_LABELS = `
-  SELECT t.*, p.name as payee_name, c.name as category_name, c.icon as category_icon, a.name as account_name
+  SELECT t.*, p.name as payee_name, c.name as category_name, c.icon as category_icon, a.name as account_name, a.type as account_type
   FROM transactions t
   LEFT JOIN payees p ON p.id = t.payee_id
   LEFT JOIN categories c ON c.id = t.category_id

@@ -69,18 +69,12 @@ export function AccountModal() {
 
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('cash');
-  const [openingBalance, setOpeningBalance] = useState('0');
   const [latestBalance, setLatestBalance] = useState('0');
   const [loadedBalanceCents, setLoadedBalanceCents] = useState(0);
   const [initialInterestRate, setInitialInterestRate] = useState('');
   const [termMonths, setTermMonths] = useState('');
   const [originalPrincipal, setOriginalPrincipal] = useState('');
   const [originalHousePrice, setOriginalHousePrice] = useState('');
-  // A brand-new loan's starting balance IS what was borrowed, negated — so
-  // auto-fill it rather than make the same number get typed twice. Stops
-  // the moment the field is edited by hand: someone adding a loan they had
-  // already been paying owes less now than they borrowed.
-  const [openingBalanceEdited, setOpeningBalanceEdited] = useState(false);
   const [originationDate, setOriginationDate] = useState(currentDateISO());
   const [note, setNote] = useState('');
   // A loan's two readings, edited here as plain numbers and saved as
@@ -101,14 +95,12 @@ export function AccountModal() {
   const reset = () => {
     setName('');
     setType('cash');
-    setOpeningBalance('0');
     setLatestBalance('0');
     setLoadedBalanceCents(0);
     setInitialInterestRate('');
     setTermMonths('');
     setOriginalPrincipal('');
     setOriginalHousePrice('');
-    setOpeningBalanceEdited(false);
     setOriginationDate(currentDateISO());
     setNote('');
     setCurrentHouseValue('');
@@ -133,7 +125,6 @@ export function AccountModal() {
       const balanceCents = accounts.find((a) => a.account.id === editingAccountId)?.balanceCents ?? account.openingBalanceCents;
       setName(account.name);
       setType(account.type);
-      setOpeningBalance((account.openingBalanceCents / 100).toString());
       setLatestBalance((balanceCents / 100).toString());
       setLoadedBalanceCents(balanceCents);
       setTermMonths(account.termMonths != null ? String(account.termMonths) : '');
@@ -167,17 +158,6 @@ export function AccountModal() {
   const isLoanLike = isLoanLikeType(type);
   const isMortgage = type === 'mortgage';
 
-  const editOpeningBalance = (text: string) => {
-    setOpeningBalanceEdited(true);
-    setOpeningBalance(text);
-  };
-
-  const editAmountBorrowed = (text: string) => {
-    setOriginalPrincipal(text);
-    if (isEditing || openingBalanceEdited) return;
-    const cents = parseCents(text);
-    setOpeningBalance(cents == null ? '' : String(-cents / 100));
-  };
   const isIncomeType = type === 'income';
 
   const refreshIncomeHistory = async () => {
@@ -231,16 +211,18 @@ export function AccountModal() {
       return;
     }
     const db = await getDb();
-    const typedOpeningCents = parseCents(openingBalance) ?? 0;
     const borrowedAtSigningCents = isLoanLike ? parseCents(originalPrincipal) : null;
     const input = {
       name: name.trim(),
       type,
-      // A loan has no opening-balance field of its own any more: what it owes
-      // is a reading. The column still holds the amount borrowed, negated, as
-      // the last-resort anchor for a loan with no reading and no terms — and
-      // negative either way, so nothing reads a debt as an asset.
-      openingBalanceCents: isLoanLike ? -Math.abs(borrowedAtSigningCents ?? typedOpeningCents) : typedOpeningCents,
+      // Every account starts at zero — an account's history is its
+      // transactions, and a balance to "start" from is one more number to
+      // keep true with no ledger row behind it. Money that was already there
+      // goes in as a real transaction (or, on an existing account, via
+      // Current Balance below, which posts one). A loan keeps the amount
+      // borrowed here, negated, purely as the last-resort anchor for one with
+      // neither a principal reading nor terms — see remainingPrincipal.
+      openingBalanceCents: isLoanLike ? -Math.abs(borrowedAtSigningCents ?? 0) : 0,
       termMonths: isLoanLike && termMonths ? Math.round(parseFloat(termMonths)) : null,
       originalPrincipalCents: borrowedAtSigningCents,
       originationDate: isLoanLike ? originationDate : null,
@@ -450,28 +432,16 @@ export function AccountModal() {
                 ) : null}
               </View>
             </>
-          ) : (
-            <>
-              <TextField
-                label={t('accountModal.openingBalanceLabel')}
-                value={openingBalance}
-                onChangeText={editOpeningBalance}
-                keyboardType="decimal-pad"
-                placeholder={t('common.amountPlaceholder')}
-                hint={t('accountModal.openingBalanceHint')}
-              />
-              {isEditing && !usesLoggedValue(type) ? (
-                <TextField
-                  label={t('accountModal.latestBalanceLabel')}
-                  value={latestBalance}
-                  onChangeText={setLatestBalance}
-                  keyboardType="decimal-pad"
-                  placeholder={t('common.amountPlaceholder')}
-                  hint={t('accountModal.latestBalanceHint')}
-                />
-              ) : null}
-            </>
-          )}
+          ) : isEditing && !usesLoggedValue(type) ? (
+            <TextField
+              label={t('accountModal.latestBalanceLabel')}
+              value={latestBalance}
+              onChangeText={setLatestBalance}
+              keyboardType="decimal-pad"
+              placeholder={t('common.amountPlaceholder')}
+              hint={t('accountModal.latestBalanceHint')}
+            />
+          ) : null}
           <Text style={styles.sectionLabel}>{t('accountModal.interestRateHeading')}</Text>
           {isEditing ? (
             <View style={styles.field}>
@@ -528,7 +498,7 @@ export function AccountModal() {
               <TextField
                 label={isMortgage ? t('accountModal.mortgageAmountLabel') : t('accountModal.originalPrincipalLabel')}
                 value={originalPrincipal}
-                onChangeText={editAmountBorrowed}
+                onChangeText={setOriginalPrincipal}
                 keyboardType="decimal-pad"
                 placeholder={t('common.amountPlaceholder')}
                 hint={t('accountModal.originalPrincipalHint')}

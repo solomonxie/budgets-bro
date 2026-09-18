@@ -191,8 +191,6 @@ export const en = {
 
   'accounts.netWorth': 'Net Worth',
   'accounts.customize': 'Customize',
-  'accounts.showTrend': 'Show trend',
-  'accounts.hideTrend': 'Hide trend',
   'accounts.assets': 'Assets {amount}',
   'accounts.debts': 'Debts {amount}',
   'accounts.includeInNetWorth': 'Include in Net Worth',

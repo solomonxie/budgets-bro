@@ -82,7 +82,6 @@ export function AccountDetailScreen() {
   } = useAccountScheduledTransactions(accountId);
   const today = currentDateISO();
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
-  const [valueExpanded, setValueExpanded] = useState(false);
   const rootNavigation = useNavigation<RootNav>();
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -218,27 +217,19 @@ export function AccountDetailScreen() {
                   ) : null}
                 </View>
                 {isMortgage ? (
-                  <Pressable
-                    style={styles.summaryRight}
-                    onPress={() => setValueExpanded((v) => !v)}
-                  >
+                  <View style={styles.summaryRight}>
                     <Text style={styles.summaryLabel}>
                       {t('houseValueCard.label')}
                     </Text>
-                    <View style={styles.houseValueRow}>
-                      <Text style={styles.houseValueText}>
-                        {currentValueCents == null
-                          ? t('houseValueCard.notSet')
-                          : formatMoney(currentValueCents)}
-                      </Text>
-                      <Text style={styles.chevron}>
-                        {valueExpanded ? '▾' : '›'}
-                      </Text>
-                    </View>
-                  </Pressable>
+                    <Text style={styles.houseValueText}>
+                      {currentValueCents == null
+                        ? t('houseValueCard.notSet')
+                        : formatMoney(currentValueCents)}
+                    </Text>
+                  </View>
                 ) : null}
               </View>
-              {isMortgage && valueExpanded && accountWithBalance ? (
+              {isMortgage && accountWithBalance ? (
                 <HouseValueDetails
                   account={accountWithBalance.account}
                   balanceCents={balanceCents}
@@ -248,19 +239,13 @@ export function AccountDetailScreen() {
                 />
               ) : null}
               {hasValueHistory && accountWithBalance ? (
-                <Pressable
-                  style={styles.trackingValueHeader}
-                  onPress={() => setValueExpanded((v) => !v)}
-                >
+                <View style={styles.trackingValueHeader}>
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
-                  <Text style={styles.chevron}>
-                    {valueExpanded ? '▾' : '›'}
-                  </Text>
-                </Pressable>
+                </View>
               ) : null}
-              {hasValueHistory && valueExpanded && accountWithBalance ? (
+              {hasValueHistory && accountWithBalance ? (
                 <TrackingValueDetails
                   account={accountWithBalance.account}
                   history={valueHistory}
@@ -271,19 +256,13 @@ export function AccountDetailScreen() {
                 />
               ) : null}
               {showsBalanceTrend && accountWithBalance ? (
-                <Pressable
-                  style={styles.trackingValueHeader}
-                  onPress={() => setValueExpanded((v) => !v)}
-                >
+                <View style={styles.trackingValueHeader}>
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
-                  <Text style={styles.chevron}>
-                    {valueExpanded ? '▾' : '›'}
-                  </Text>
-                </Pressable>
+                </View>
               ) : null}
-              {showsBalanceTrend && valueExpanded ? (
+              {showsBalanceTrend ? (
                 <View style={styles.balanceTrendCard}>
                   <BalanceTrendChart
                     points={balanceTrend}
@@ -534,7 +513,6 @@ const styles = StyleSheet.create({
   depositedText: { fontSize: 12, color: colors.textMuted },
   gainText: { fontSize: 12, fontWeight: '700', color: colors.positive },
   hint: { fontSize: 12, color: colors.textMuted },
-  houseValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   houseValueText: { fontSize: 15, fontWeight: '700', color: colors.text },
   trackingValueHeader: {
     flexDirection: 'row',
@@ -551,7 +529,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   balanceTrendCard: { marginTop: spacing.sm },
-  chevron: { fontSize: 14, color: colors.textMuted },
   scheduledCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,

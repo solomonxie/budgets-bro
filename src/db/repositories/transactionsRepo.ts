@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { TransactionJoinRow } from '../schema';
-import type { TransactionWithLabels } from '../../domain/types';
+import type { AccountType, TransactionWithLabels } from '../../domain/types';
 import { currentDateISO } from '../../domain/month';
 import { findOrCreatePayee, getPayee } from './payeesRepo';
 import {
@@ -27,6 +27,7 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
     categoryName: row.category_name,
     categoryIcon: row.category_icon,
     accountName: row.account_name,
+    accountType: row.account_type as AccountType,
   };
 }
 

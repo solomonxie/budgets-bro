@@ -98,6 +98,7 @@ export interface TransactionJoinRow extends TransactionRow {
   category_name: string | null;
   category_icon: string | null;
   account_name: string;
+  account_type: string;
 }
 
 export interface ScheduledTransactionRow {

@@ -8,13 +8,13 @@ export const colors = {
   tint: '#123632',
   accent: '#2DD4BF',
   positive: '#4ADE80',
+  // The spent share of a budget bar: the same green at half strength, so the
+  // bar is one colour in two weights — solid for what is left, faded for
+  // what has gone. A second hue made it look like two unrelated things.
+  positiveFaded: 'rgba(74, 222, 128, 0.45)',
   positiveTint: '#132B1C',
   negative: '#F87171',
   negativeTint: '#331616',
   amber: '#FBBF24',
-  // The spent share of a budget bar. Quieter than `amber` next to the green,
-  // but by dropping saturation rather than brightness — going darker on a
-  // near-black background just reads as muddy.
-  amberMuted: '#C9B072',
   amberTint: '#332B0F',
 };

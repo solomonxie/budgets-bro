@@ -1,16 +1,27 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { SearchableDropdownField } from './SearchableDropdownField';
+import { RowMenuButton } from './RowMenuButton';
 import { usePayees } from '../../hooks/usePayees';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-// The bar a transaction list shows while in select mode (see
-// useTransactionSelection): how many are picked, select-all/none, and the
-// actions. Shared by the account page and the all-transactions page so both
-// offer the same set — a batch relabel used to be possible on neither.
+// The toolbar a transaction list shows while in select mode (see
+// useTransactionSelection).
+//
+// One row, the height of a toolbar: the actions live behind a "⋯" at the far
+// left, the count sits next to it, and Select all / Done stay on the right
+// where a list's own controls are. It used to be a block of two full-width
+// buttons under a header row, with Delete sized like a primary action and
+// sharing an edge with Done — a mis-tap away from destroying a selection you
+// had just finished making.
+//
+// Delete is two taps now (menu, then the sheet's destructive row) and a
+// confirm, at the opposite end of the bar from Done. RowMenuButton is what
+// makes that safe: it waits for its own sheet to finish dismissing before
+// running an action that opens an Alert.
 export function TransactionSelectionBar({
   selectedCount,
   allSelected,
@@ -35,27 +46,34 @@ export function TransactionSelectionBar({
     if (payeeName.trim()) onSetPayee(payeeName.trim());
   };
 
+  const confirmDelete = () => {
+    Alert.alert(t('transactions.deleteSelectedConfirmTitle', { count: selectedCount }), t('common.cannotBeUndone'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: onDelete },
+    ]);
+  };
+
   return (
     <View style={styles.bar}>
-      <View style={styles.topRow}>
-        <Text style={styles.count}>{t('transactions.selectedCount', { count: selectedCount })}</Text>
-        <Pressable onPress={onToggleAll}>
-          <Text style={styles.link}>{allSelected ? t('transactions.selectNone') : t('transactions.selectAll')}</Text>
-        </Pressable>
-        <Pressable onPress={onDone}>
-          <Text style={styles.link}>{t('common.done')}</Text>
-        </Pressable>
-      </View>
       {selectedCount > 0 ? (
-        <View style={styles.actionRow}>
-          <Pressable style={styles.action} onPress={() => setPayeePickerOpen(true)}>
-            <Text style={styles.actionText}>{t('transactions.editPayee')}</Text>
-          </Pressable>
-          <Pressable style={[styles.action, styles.destructive]} onPress={onDelete}>
-            <Text style={[styles.actionText, styles.destructiveText]}>{t('transactions.deleteSelected', { count: selectedCount })}</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        <RowMenuButton
+          items={[
+            { label: t('transactions.editPayee'), onPress: () => setPayeePickerOpen(true) },
+            { label: t('transactions.deleteSelected', { count: selectedCount }), destructive: true, onPress: confirmDelete },
+          ]}
+        />
+      ) : (
+        // Keeps the row from reflowing as the selection empties and fills.
+        <View style={styles.menuPlaceholder} />
+      )}
+      <Text style={styles.count}>{t('transactions.selectedCount', { count: selectedCount })}</Text>
+      <Pressable onPress={onToggleAll} hitSlop={8}>
+        <Text style={styles.link}>{allSelected ? t('transactions.selectNone') : t('transactions.selectAll')}</Text>
+      </Pressable>
+      <Pressable onPress={onDone} hitSlop={8}>
+        <Text style={[styles.link, styles.done]}>{t('common.done')}</Text>
+      </Pressable>
+
       <Modal visible={payeePickerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPayeePickerOpen(false)}>
         <ScreenContainer modal>
           <View style={styles.header}>
@@ -86,27 +104,18 @@ export function TransactionSelectionBar({
 
 const styles = StyleSheet.create({
   bar: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingTop: spacing.sm,
-    gap: spacing.sm,
-  },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  count: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.text },
-  link: { color: colors.accent, fontWeight: '600', fontSize: 13 },
-  actionRow: { flexDirection: 'row', gap: spacing.sm },
-  action: {
-    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingVertical: 10,
+    gap: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
   },
-  actionText: { fontSize: 14, fontWeight: '700', color: colors.text },
-  destructive: { borderColor: colors.negative },
-  destructiveText: { color: colors.negative },
+  menuPlaceholder: { width: 24 },
+  // Takes the slack, so the links stay pinned right however long the count is.
+  count: { flex: 1, fontSize: 13, color: colors.textMuted },
+  link: { color: colors.accent, fontSize: 14 },
+  done: { fontWeight: '700' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },

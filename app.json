@@ -58,7 +58,6 @@
     "plugins": [
       "expo-sqlite",
       "expo-secure-store",
-      "expo-sharing",
       [
         "expo-file-system",
         {

@@ -292,3 +292,20 @@ export async function importTransaction(db: SQLiteDatabase, boardId: number, inp
   );
   return existing ? 'updated' : 'inserted';
 }
+
+// Batch payee reassignment from a transaction list's select mode. Creates the
+// payee if the typed name is new, same as saving one transaction would, and
+// deliberately leaves everything else on each row alone — this is a relabel,
+// not an edit. A mirrored loan leg (see postLinkedAccountLeg) keeps its own
+// payee: that name is what links it to its account.
+export async function setPayeeForTransactions(
+  db: SQLiteDatabase,
+  boardId: number,
+  ids: number[],
+  payeeName: string,
+): Promise<void> {
+  if (ids.length === 0) return;
+  const payeeId = await findOrCreatePayee(db, boardId, payeeName);
+  const placeholders = ids.map(() => '?').join(', ');
+  await db.runAsync(`UPDATE transactions SET payee_id = ? WHERE id IN (${placeholders})`, payeeId, ...ids);
+}

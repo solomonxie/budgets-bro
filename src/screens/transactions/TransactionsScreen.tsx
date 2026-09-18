@@ -16,7 +16,9 @@ import {
   DropdownGroupLabel,
   DropdownOption,
 } from '../../components/ui/DropdownField';
+import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { useCategories } from '../../hooks/useCategories';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
@@ -57,6 +59,7 @@ export function TransactionsScreen() {
   const { transactions, refresh } = useTransactions();
   const { groups, categories } = useCategories();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
   const navigation = useNavigation<RootNav>();
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
@@ -67,8 +70,7 @@ export function TransactionsScreen() {
     null,
   );
   const [monthFilter, setMonthFilter] = useState<string | null>(null);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const { selectMode, selectedIds, beginWith, toggle, toggleAll, exit, setSelectMode } = useTransactionSelection();
 
   // Arriving from the Budget screen's "Details" button or Insights presets filters.
   useEffect(() => {
@@ -109,17 +111,22 @@ export function TransactionsScreen() {
     return byDate;
   }, [filtered]);
 
-  const toggleSelected = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
+  // Select-all covers what the filters currently show, not the whole ledger —
+  // the visible list is what the user is reasoning about.
+  const visibleIds = useMemo(() => filtered.map((txn) => txn.id), [filtered]);
 
   const deleteSelected = async () => {
     const db = await getDb();
     await transactionsRepo.deleteTransactions(db, selectedIds);
-    setSelectedIds([]);
-    setSelectMode(false);
+    exit();
+    bumpDataVersion();
+    refresh();
+  };
+
+  const setPayeeForSelected = async (payeeName: string) => {
+    const db = await getDb();
+    await transactionsRepo.setPayeeForTransactions(db, boardId, selectedIds, payeeName);
+    exit();
     bumpDataVersion();
     refresh();
   };
@@ -149,12 +156,7 @@ export function TransactionsScreen() {
           placeholderTextColor={colors.textMuted}
           keyboardAppearance="dark"
         />
-        <Pressable
-          onPress={() => {
-            setSelectMode((v) => !v);
-            setSelectedIds([]);
-          }}
-        >
+        <Pressable onPress={() => (selectMode ? exit() : setSelectMode(true))}>
           <Text style={styles.selectLink}>
             {selectMode ? t('common.done') : t('transactions.select')}
           </Text>
@@ -253,11 +255,12 @@ export function TransactionsScreen() {
                 style={styles.row}
                 onPress={() =>
                   selectMode
-                    ? toggleSelected(txn.id)
+                    ? toggle(txn.id)
                     : navigation.navigate('AddTransaction', {
                         transactionId: txn.id,
                       })
                 }
+                onLongPress={() => beginWith(txn.id)}
               >
                 {selectMode ? (
                   <View
@@ -303,12 +306,15 @@ export function TransactionsScreen() {
           <Text style={styles.empty}>{t('transactions.noMatch')}</Text>
         }
       />
-      {selectMode && selectedIds.length > 0 ? (
-        <Pressable style={styles.deleteBar} onPress={deleteSelected}>
-          <Text style={styles.deleteBarText}>
-            {t('transactions.deleteSelected', { count: selectedIds.length })}
-          </Text>
-        </Pressable>
+      {selectMode ? (
+        <TransactionSelectionBar
+          selectedCount={selectedIds.length}
+          allSelected={selectedIds.length >= visibleIds.length && visibleIds.length > 0}
+          onToggleAll={() => toggleAll(visibleIds)}
+          onSetPayee={setPayeeForSelected}
+          onDelete={deleteSelected}
+          onDone={exit}
+        />
       ) : null}
     </ScreenContainer>
   );

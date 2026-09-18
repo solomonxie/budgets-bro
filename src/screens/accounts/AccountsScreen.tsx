@@ -118,10 +118,12 @@ export function AccountsScreen() {
         <View key={group.kind} style={styles.group}>
           <View style={styles.groupHeader}>
             <Text style={styles.groupLabel}>{t(KIND_LABEL_KEY[group.kind])}</Text>
-            <View style={styles.valueStack}>
-              <Text style={styles.groupSub}>{formatMoney(group.subtotalCents)}</Text>
-              {group.kind === 'Income' ? <Text style={styles.thisYearHint}>{t('accounts.thisYear')}</Text> : null}
-            </View>
+            {/* Income totals are this year's tagged inflow, not a balance —
+                said once on the group's own subtotal, inline, rather than as
+                a second line under every row as well. */}
+            <Text style={styles.groupSub}>
+              {group.kind === 'Income' ? t('accounts.thisYearAmount', { amount: formatMoney(group.subtotalCents) }) : formatMoney(group.subtotalCents)}
+            </Text>
           </View>
           {group.accounts.map(({ account, displayCents }) => (
             <Pressable
@@ -132,10 +134,7 @@ export function AccountsScreen() {
               <Text style={styles.rowTitle} numberOfLines={1} ellipsizeMode="tail">
                 {account.name}
               </Text>
-              <View style={styles.valueStack}>
-                <Text style={[styles.rowValue, displayCents < 0 && styles.negative]}>{formatMoney(displayCents)}</Text>
-                {group.kind === 'Income' ? <Text style={styles.thisYearHint}>{t('accounts.thisYear')}</Text> : null}
-              </View>
+              <Text style={[styles.rowValue, displayCents < 0 && styles.negative]}>{formatMoney(displayCents)}</Text>
             </Pressable>
           ))}
         </View>
@@ -217,9 +216,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   rowTitle: { flex: 1, marginRight: spacing.sm, fontSize: 15, fontWeight: '600', color: colors.text },
-  valueStack: { alignItems: 'flex-end' },
   rowValue: { fontSize: 15, fontWeight: '700', color: colors.text },
-  thisYearHint: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
   negative: { color: colors.negative },
   addButton: { alignItems: 'center', paddingVertical: spacing.sm },
   addButtonText: { color: colors.accent, fontWeight: '700' },

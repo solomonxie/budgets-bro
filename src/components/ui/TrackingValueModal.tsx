@@ -12,6 +12,7 @@ export type TrackingValueMode = 'gain' | 'total';
 export interface TrackingValueSubmit {
   valueCents: number;
   effectiveDate: string;
+  note: string | null;
 }
 
 interface TrackingValueModalProps {
@@ -19,6 +20,7 @@ interface TrackingValueModalProps {
   previousValueCents: number | null;
   initialValueCents: number | null;
   initialEffectiveDate: string;
+  initialNote: string;
   onCancel: () => void;
   onSubmit: (value: TrackingValueSubmit) => void;
   onDelete?: () => void;
@@ -35,6 +37,7 @@ export function TrackingValueModal({
   previousValueCents,
   initialValueCents,
   initialEffectiveDate,
+  initialNote,
   onCancel,
   onSubmit,
   onDelete,
@@ -43,12 +46,14 @@ export function TrackingValueModal({
   const [mode, setMode] = useState<TrackingValueMode>('total');
   const [amount, setAmount] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(initialEffectiveDate);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (visible) {
       setMode('total');
       setAmount(initialValueCents != null ? (initialValueCents / 100).toString() : '');
       setEffectiveDate(initialEffectiveDate);
+      setNote(initialNote);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
@@ -63,7 +68,7 @@ export function TrackingValueModal({
 
   const submit = () => {
     if (!amount.trim() || !effectiveDate.trim()) return;
-    onSubmit({ valueCents: resultCents, effectiveDate: effectiveDate.trim() });
+    onSubmit({ valueCents: resultCents, effectiveDate: effectiveDate.trim(), note: note.trim() || null });
   };
 
   return (
@@ -95,6 +100,12 @@ export function TrackingValueModal({
             <Text style={styles.hint}>{t('trackingValueModal.resultHint', { amount: formatMoney(resultCents) })}</Text>
           ) : null}
           <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+          <TextField
+            label={t('loggedValueModal.noteLabel')}
+            value={note}
+            onChangeText={setNote}
+            placeholder={t('trackingValueModal.notePlaceholder')}
+          />
           <View style={styles.actions}>
             {onDelete ? (
               <Pressable onPress={onDelete}>

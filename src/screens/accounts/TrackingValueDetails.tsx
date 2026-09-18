@@ -8,6 +8,7 @@ import type { TrackingValueSubmit } from '../../components/ui/TrackingValueModal
 import { ValueHistoryChart } from './ValueHistoryChart';
 import type { ValueHistoryChartMode } from './ValueHistoryChart';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
+import { usesLoggedValue } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
@@ -50,8 +51,11 @@ export function TrackingValueDetails({
 
   const submit = async (value: TrackingValueSubmit) => {
     const db = await getDb();
-    if (modal?.editing) await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, value.valueCents, value.effectiveDate);
-    else await accountValueHistoryRepo.addValueChange(db, account.id, value.valueCents, value.effectiveDate);
+    if (modal?.editing) {
+      await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, value.valueCents, value.effectiveDate, value.note);
+    } else {
+      await accountValueHistoryRepo.addValueChange(db, account.id, value.valueCents, value.effectiveDate, value.note);
+    }
     bumpDataVersion();
     refresh();
     setModal(null);
@@ -88,18 +92,28 @@ export function TrackingValueDetails({
       <ValueHistoryChart history={history} transactions={transactions} mode={mode} />
       {history.map((h) => (
         <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
-          <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
+          <View style={styles.rowLeft}>
+            <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
+            {h.note ? (
+              <Text style={styles.rowNote} numberOfLines={2}>
+                {h.note}
+              </Text>
+            ) : null}
+          </View>
           <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: h.effectiveDate })}</Text>
         </Pressable>
       ))}
       <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
-        <Text style={styles.addBtnText}>{t('trackingValueCard.updateButton')}</Text>
+        <Text style={styles.addBtnText}>
+          {t(usesLoggedValue(account.type) ? 'trackingValueCard.logValueUpdate' : 'trackingValueCard.logBalanceUpdate')}
+        </Text>
       </Pressable>
       <TrackingValueModal
         visible={modal != null}
         previousValueCents={previousValueCents}
         initialValueCents={modal?.editing?.valueCents ?? null}
         initialEffectiveDate={modal?.editing?.effectiveDate ?? currentDateISO()}
+        initialNote={modal?.editing?.note ?? ''}
         onCancel={() => setModal(null)}
         onSubmit={submit}
         onDelete={modal?.editing ? deleteEntry : undefined}
@@ -128,7 +142,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 4,
   },
+  rowLeft: { flex: 1, gap: 2 },
   rowText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  rowNote: { fontSize: 12, color: colors.textMuted, lineHeight: 16 },
   rowDate: { fontSize: 12, color: colors.textMuted },
   addBtn: { alignItems: 'center', paddingVertical: 8, marginTop: 4 },
   addBtnText: { color: colors.accent, fontWeight: '700', fontSize: 13 },

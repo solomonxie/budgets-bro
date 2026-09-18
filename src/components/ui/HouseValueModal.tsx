@@ -9,6 +9,7 @@ import { spacing } from '../../theme/spacing';
 export interface HouseValueChangeValue {
   value: string;
   effectiveDate: string;
+  note: string;
 }
 
 interface HouseValueModalProps {
@@ -24,8 +25,9 @@ function splitSign(value: string): { negative: boolean; magnitude: string } {
   return trimmed.startsWith('-') ? { negative: true, magnitude: trimmed.slice(1) } : { negative: false, magnitude: trimmed };
 }
 
-// Add/edit one row of a mortgage's home-value history (value + the date it
-// took effect) — same small-card modal shell as RateChangeModal. The sign
+// Add/edit one row of a mortgage's home-value history (value, the date it
+// took effect, and where the number came from) — same small-card modal
+// shell as RateChangeModal. The sign
 // toggle exists because decimal-pad has no minus key on iOS, and a home
 // value can go negative (underwater on the loan).
 export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete }: HouseValueModalProps) {
@@ -33,6 +35,7 @@ export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete
   const [negative, setNegative] = useState(false);
   const [magnitude, setMagnitude] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(initial.effectiveDate);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -40,13 +43,14 @@ export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete
       setNegative(split.negative);
       setMagnitude(split.magnitude);
       setEffectiveDate(initial.effectiveDate);
+      setNote(initial.note);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const submit = () => {
     if (!magnitude.trim() || !effectiveDate.trim()) return;
-    onSubmit({ value: `${negative ? '-' : ''}${magnitude.trim()}`, effectiveDate: effectiveDate.trim() });
+    onSubmit({ value: `${negative ? '-' : ''}${magnitude.trim()}`, effectiveDate: effectiveDate.trim(), note: note.trim() });
   };
 
   return (
@@ -70,6 +74,12 @@ export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete
             </View>
           </View>
           <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+          <TextField
+            label={t('houseValueModal.noteLabel')}
+            value={note}
+            onChangeText={setNote}
+            placeholder={t('houseValueModal.notePlaceholder')}
+          />
           <View style={styles.actions}>
             {onDelete ? (
               <Pressable onPress={onDelete}>

@@ -62,15 +62,17 @@ export function buildGrowthSeries(
 }
 
 // Resamples a (sparse, irregularly-dated) growth series onto a fixed list
-// of 'YYYY-MM' months for charting — carries each month forward from the
-// latest snapshot logged on or before it (a step function, since a logged
-// value stays true until superseded), `null` for any month before the
-// first snapshot exists. `series` must already be chronological (as
-// `buildGrowthSeries` returns it) and `months` ascending.
-export function projectGrowthOntoMonths(series: GrowthPoint[], months: string[]): (GrowthPoint | null)[] {
+// of periods for charting — carries each period forward from the latest
+// snapshot logged on or before it (a step function, since a logged value
+// stays true until superseded), `null` for any period before the first
+// snapshot exists. Periods are date-string prefixes, so the same sweep
+// buckets by month ('YYYY-MM') or by year ('YYYY') with no other change.
+// `series` must already be chronological (as `buildGrowthSeries` returns
+// it) and `periods` ascending.
+export function projectGrowthOntoPeriods(series: GrowthPoint[], periods: string[]): (GrowthPoint | null)[] {
   let seriesIndex = -1;
-  return months.map((month) => {
-    while (seriesIndex + 1 < series.length && series[seriesIndex + 1].date.slice(0, 7) <= month) seriesIndex++;
+  return periods.map((period) => {
+    while (seriesIndex + 1 < series.length && series[seriesIndex + 1].date.slice(0, period.length) <= period) seriesIndex++;
     return seriesIndex >= 0 ? series[seriesIndex] : null;
   });
 }

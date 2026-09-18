@@ -38,8 +38,9 @@ export function HouseValueDetails({
   const submit = async (value: HouseValueChangeValue) => {
     const valueCents = Math.round(parseFloat(value.value) * 100);
     const db = await getDb();
-    if (modal?.editing) await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, valueCents, value.effectiveDate);
-    else await accountValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate);
+    const note = value.note.trim() || null;
+    if (modal?.editing) await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, valueCents, value.effectiveDate, note);
+    else await accountValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate, note);
     bumpDataVersion();
     refresh();
     setModal(null);
@@ -64,10 +65,17 @@ export function HouseValueDetails({
       ) : equityCents != null ? (
         <Text style={styles.hint}>{t('houseValueCard.equity', { amount: formatMoney(equityCents) })}</Text>
       ) : null}
-      <ValueHistoryChart history={history} mode="single" />
+      <ValueHistoryChart history={history} mode="single" interval="year" />
       {history.map((h) => (
         <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
-          <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
+          <View style={styles.rowLeft}>
+            <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
+            {h.note ? (
+              <Text style={styles.rowNote} numberOfLines={1}>
+                {h.note}
+              </Text>
+            ) : null}
+          </View>
           <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: h.effectiveDate })}</Text>
         </Pressable>
       ))}
@@ -79,6 +87,7 @@ export function HouseValueDetails({
         initial={{
           value: modal?.editing ? (modal.editing.valueCents / 100).toString() : '',
           effectiveDate: modal?.editing?.effectiveDate ?? currentDateISO(),
+          note: modal?.editing?.note ?? '',
         }}
         onCancel={() => setModal(null)}
         onSubmit={submit}
@@ -108,7 +117,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 4,
   },
+  rowLeft: { flex: 1, gap: 2 },
   rowText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  rowNote: { fontSize: 12, color: colors.textMuted },
   rowDate: { fontSize: 12, color: colors.textMuted },
   addBtn: { alignItems: 'center', paddingVertical: 8, marginTop: 4 },
   addBtnText: { color: colors.accent, fontWeight: '700', fontSize: 13 },

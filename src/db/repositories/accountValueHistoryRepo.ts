@@ -8,7 +8,7 @@ import {
 } from '../../../databases/queries/accountValueHistory';
 
 function mapRow(row: AccountValueHistoryRow): AccountValueChange {
-  return { id: row.id, accountId: row.account_id, valueCents: row.value_cents, effectiveDate: row.effective_date };
+  return { id: row.id, accountId: row.account_id, valueCents: row.value_cents, effectiveDate: row.effective_date, note: row.note };
 }
 
 export async function listValueHistory(db: SQLiteDatabase, accountId: number): Promise<AccountValueChange[]> {
@@ -31,18 +31,37 @@ export async function currentValuesByBoard(db: SQLiteDatabase, boardId: number):
   return new Map(rows.map((r) => [r.account_id, r.value_cents]));
 }
 
-export async function addValueChange(db: SQLiteDatabase, accountId: number, valueCents: number, effectiveDate: string): Promise<number> {
+export async function addValueChange(
+  db: SQLiteDatabase,
+  accountId: number,
+  valueCents: number,
+  effectiveDate: string,
+  note: string | null = null,
+): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO account_value_history (account_id, value_cents, effective_date) VALUES (?, ?, ?)',
+    'INSERT INTO account_value_history (account_id, value_cents, effective_date, note) VALUES (?, ?, ?, ?)',
     accountId,
     valueCents,
     effectiveDate,
+    note,
   );
   return result.lastInsertRowId;
 }
 
-export async function updateValueChange(db: SQLiteDatabase, id: number, valueCents: number, effectiveDate: string): Promise<void> {
-  await db.runAsync('UPDATE account_value_history SET value_cents = ?, effective_date = ? WHERE id = ?', valueCents, effectiveDate, id);
+export async function updateValueChange(
+  db: SQLiteDatabase,
+  id: number,
+  valueCents: number,
+  effectiveDate: string,
+  note: string | null = null,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE account_value_history SET value_cents = ?, effective_date = ?, note = ? WHERE id = ?',
+    valueCents,
+    effectiveDate,
+    note,
+    id,
+  );
 }
 
 export async function deleteValueChange(db: SQLiteDatabase, id: number): Promise<void> {

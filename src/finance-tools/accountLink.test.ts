@@ -18,6 +18,7 @@ function mortgage(overrides: Partial<AccountWithBalance['account']> = {}, balanc
       originalPrincipalCents: 30_000_000,
       originationDate: '2020-03-15',
       originalHousePriceCents: 37_500_000,
+      note: null,
       ...overrides,
     },
   };

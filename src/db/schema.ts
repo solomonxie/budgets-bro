@@ -38,6 +38,7 @@ export interface AccountValueHistoryRow {
   account_id: number;
   value_cents: number;
   effective_date: string;
+  kind: string;
   note: string | null;
   created_at: string;
 }

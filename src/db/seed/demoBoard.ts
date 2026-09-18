@@ -137,6 +137,10 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     originalHousePriceCents: cents(980000),
   });
   await accountRateHistoryRepo.addRateChange(db, houseId, 575, day(months[0], 1));
+  // A statement figure, a year in — the anchor every later payment is
+  // measured from, the same thing the account page's "Update Remaining
+  // Principal" writes.
+  await accountValueHistoryRepo.addValueChange(db, houseId, -houseOpeningCents, day(months[12], 1), 'Annual statement', 'principal');
   await accountValueHistoryRepo.addValueChange(db, houseId, cents(980000), day(months[0], 1));
   await accountValueHistoryRepo.addValueChange(db, houseId, cents(1010000), day(months[11], 1));
   await accountValueHistoryRepo.addValueChange(db, houseId, cents(1040000), day(months[23], 15));
@@ -385,26 +389,21 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       await postIncome(freelanceIncomeId, 'Freelance Design Gigs', cents(rand(400, 1200) * inflation), day(month, pick([8, 22])));
     }
 
-    // Mortgage — principal (transfer, moves the loan balance) + interest
-    // (plain expense) on the same category, same day. The cabin has no
-    // payment of its own — it's paid off, just a logged value.
+    // One payment per loan, for the whole amount, exactly as a bank statement
+    // shows it — the payeeName match mirrors it onto the loan account (see
+    // transactionsRepo.postLinkedAccountLeg) and that account splits it
+    // interest-first when it derives what is still owed (see
+    // finance-tools/remainingPrincipal). Posting the principal and interest
+    // as two transactions would make the split happen twice. The cabin has
+    // no payment of its own — it's paid off, just a logged value.
     const house = housePayments[i];
-    await postChecking(catHouse, 'Maple Street House Mortgage', -house.principalCents, day(month, 1));
-    await postChecking(catHouse, 'Mortgage Interest', -house.interestCents, day(month, 1));
-
-    // Car loan, lease, student loan — same principal/interest split as the
-    // mortgage above (the payeeName match on each principal leg is what
-    // mirrors it onto that loan account and pays it down, see
-    // transactionsRepo.postLinkedAccountLeg). The lease has no interest
-    // leg — nothing to break out at 0%.
+    await postChecking(catHouse, 'Maple Street House Mortgage', -(house.principalCents + house.interestCents), day(month, 1));
     const carLoan = carLoanPayments[i];
-    await postChecking(catCarLoan, 'Highlander Auto Loan', -carLoan.principalCents, day(month, 4));
-    await postChecking(catCarLoan, 'Auto Loan Interest', -carLoan.interestCents, day(month, 4));
+    await postChecking(catCarLoan, 'Highlander Auto Loan', -(carLoan.principalCents + carLoan.interestCents), day(month, 4));
     const carLease = carLeaseSchedule[i];
     await postChecking(catCarLease, 'CR-V Lease', -carLease.principalCents, day(month, 4));
     const studentLoan = studentLoanPayments[i];
-    await postChecking(catStudentLoan, 'Student Loan', -studentLoan.principalCents, day(month, 20));
-    await postChecking(catStudentLoan, 'Student Loan Interest', -studentLoan.interestCents, day(month, 20));
+    await postChecking(catStudentLoan, 'Student Loan', -(studentLoan.principalCents + studentLoan.interestCents), day(month, 20));
 
     // Line of credit — revolving, not installment: an occasional draw
     // spends directly from the account (like a card purchase, no transfer

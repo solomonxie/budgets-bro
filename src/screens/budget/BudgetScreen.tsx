@@ -33,7 +33,10 @@ type Nav = NativeStackNavigationProp<BudgetStackParamList, 'BudgetHome'>;
 
 const STATUS_COLORS: Record<CategoryStatus, { bg: string; fg: string }> = {
   overspent: { bg: colors.negativeTint, fg: colors.negative },
-  'fully-spent': { bg: colors.amberTint, fg: colors.amber },
+  // Nothing left is not a warning — the envelope did its job. It reads
+  // neutral, the same as one with nothing budgeted, leaving red for
+  // overspent and green for money still there.
+  'fully-spent': { bg: colors.border, fg: colors.textMuted },
   funded: { bg: colors.positiveTint, fg: colors.positive },
   unbudgeted: { bg: colors.border, fg: colors.textMuted },
 };

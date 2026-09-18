@@ -6,6 +6,7 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { secureStore } from '../secure/secureStore';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import type { CloudProvider } from './types';
+import { backupKey } from './backupPath';
 
 const CONFIGS_KEY = 'sync_s3_configs';
 
@@ -486,6 +487,7 @@ export async function listS3Objects(db: SQLiteDatabase, configId: string, subPat
 function toProvider(meta: S3ConfigMeta): CloudProvider {
   return {
     id: `aws-s3:${meta.id}`,
+    keyFor: backupKey,
     async upload(bytes, key) {
       const config = await resolveConfig(meta);
       if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
@@ -509,4 +511,19 @@ function toProvider(meta: S3ConfigMeta): CloudProvider {
 export async function createS3Providers(db: SQLiteDatabase): Promise<CloudProvider[]> {
   const configs = await listS3Configs(db);
   return configs.map(toProvider);
+}
+
+// Fetches one object from a saved bucket by the key the browser listed —
+// already relative to that bucket's configured keyPrefix, so it goes through
+// the same joinKey the upload side uses and can't reach outside it.
+//
+// Separate from the CloudProvider's own `download`, which takes a key the
+// sync layer made up; this one takes a key the user picked off a listing.
+export async function downloadS3Object(db: SQLiteDatabase, configId: string, key: string): Promise<Uint8Array | null> {
+  const configs = await listS3Configs(db);
+  const meta = configs.find((c) => c.id === configId);
+  if (!meta) throw new Error('S3 config not found');
+  const config = await resolveConfig(meta);
+  if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
+  return get(config, joinKey(meta.keyPrefix, key));
 }

@@ -95,6 +95,9 @@ export function AddTransactionScreen() {
   // Account tag below.
   const realAccounts = accounts.filter((a) => a.account.type !== 'income');
   const incomeAccounts = accounts.filter((a) => a.account.type === 'income');
+  const presetIsIncomeAccount =
+    presetAccountId != null &&
+    incomeAccounts.some((a) => a.account.id === presetAccountId);
   const [incomeAccountId, setIncomeAccountId] = useState<number | null>(null);
   const selectIncomeAccount = (id: number | null) => {
     Keyboard.dismiss();
@@ -154,11 +157,17 @@ export function AddTransactionScreen() {
     // account last saved to, which the store remembers across visits now
     // that this form unmounts when you leave it.
     if (editingTransactionId != null || realAccounts.length === 0) return;
+    const preset = presetIsIncomeAccount ? null : presetAccountId;
     setAccountId(
-      (prev) =>
-        presetAccountId ?? prev ?? lastAccountId ?? realAccounts[0].account.id,
+      (prev) => preset ?? prev ?? lastAccountId ?? realAccounts[0].account.id,
     );
-  }, [editingTransactionId, presetAccountId, realAccounts, lastAccountId]);
+  }, [
+    editingTransactionId,
+    presetAccountId,
+    presetIsIncomeAccount,
+    realAccounts,
+    lastAccountId,
+  ]);
 
   useEffect(() => {
     // An income transaction must be tagged to a stream — default to
@@ -169,6 +178,15 @@ export function AddTransactionScreen() {
       (prev) => prev ?? lastIncomeAccountId ?? incomeAccounts[0].account.id,
     );
   }, [incomeAccounts, lastIncomeAccountId]);
+
+  useEffect(() => {
+    // Opened from an Income account's page: money never sits in one (see
+    // migration 021), so preselect it as the stream tag and flip to inflow
+    // instead of trying to use it as the account.
+    if (editingTransactionId != null || !presetIsIncomeAccount) return;
+    setIncomeAccountId(presetAccountId);
+    setDirection('in');
+  }, [editingTransactionId, presetIsIncomeAccount, presetAccountId]);
 
   // The "repeating" toggle lives in the header rather than costing the form
   // a whole row of its own. Hidden for income: paychecks are logged after

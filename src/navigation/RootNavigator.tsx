@@ -14,6 +14,8 @@ import { AddTransactionScreen } from '../screens/transactions/AddTransactionScre
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { SettingsModal } from '../screens/settings/SettingsModal';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
+import { focusedAccountId } from './focusedAccount';
+import type { TabNavState } from './focusedAccount';
 import type { TabIconName } from '../components/ui/TabBarIcon';
 import {
   useBootstrapActiveBoard,
@@ -93,12 +95,18 @@ function Tabs() {
         name="SpendTab"
         component={NoopScreen}
         options={{ tabBarLabel: t('nav.spend') }}
-        listeners={{
+        listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            rootNavigation.navigate('AddTransaction');
+            const presetAccountId = focusedAccountId(
+              navigation.getState() as unknown as TabNavState,
+            );
+            rootNavigation.navigate(
+              'AddTransaction',
+              presetAccountId != null ? { presetAccountId } : undefined,
+            );
           },
-        }}
+        })}
       />
       <Tab.Screen
         name="Accounts"

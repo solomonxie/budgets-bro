@@ -40,8 +40,8 @@ export type RootTabParamList = {
   // `AddTransaction` page instead of navigating to a tab; see
   // RootNavigator's NoopScreen. Named apart from that route on purpose: a
   // `navigate('AddTransaction')` from inside the tabs would otherwise
-  // resolve to this empty tab. Settings isn't a tab at all anymore — see
-  // SettingsModal, opened from a corner button.
+  // resolve to this empty tab. Settings isn't a tab at all anymore — it's a
+  // pushed page on the root stack, opened from a corner button.
   SpendTab: undefined;
   Accounts: NavigatorScreenParams<AccountsStackParamList>;
   Insights: NavigatorScreenParams<InsightsStackParamList>;
@@ -55,4 +55,8 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   Tabs: NavigatorScreenParams<RootTabParamList>;
   AddTransaction: { transactionId?: number; presetAccountId?: number } | undefined;
+  // Settings is a page you go to and come back from, not a sheet you
+  // dismiss: a route here gives it the native header's back button and the
+  // swipe-back gesture, and lets anything it opens push on top of it.
+  Settings: undefined;
 };

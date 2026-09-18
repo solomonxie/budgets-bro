@@ -1,8 +1,7 @@
 import { requireOptionalNativeModule } from 'expo';
 
-// Keys are the same `<YYYYMM>/<board-slug>-<YYYYMMDD>.zip` paths every other
-// backup destination uses (src/sync/backupPath.ts), relative to the app's own
-// folder in iCloud Drive.
+// Keys are relative paths inside the app's own folder in iCloud Drive — one
+// `<board-slug>-latest.zip` per board, overwritten (src/sync/backupPath.ts).
 // Only `icloudOff` is the user's to fix. `notEntitled` is the build's doing
 // and no action in iOS Settings changes it; `notReady` is a container Apple
 // hasn't finished provisioning, which fixes itself.

@@ -13,10 +13,15 @@ export type CloudProviderId = string;
 // there's no separate `isConfigured()` to remember to check first.
 export interface CloudProvider {
   id: CloudProviderId;
+  // Where this destination wants today's backup written — a dated key for a
+  // bucket that keeps history, a single overwritten one for iCloud. See
+  // backupPath.ts.
+  keyFor(boardName: string, dateIso: string): string;
   upload(bytes: Uint8Array, key: string): Promise<void>;
   // Every backup key this provider holds, relative to its own root (an S3
-  // config's keyPrefix, the local backups directory). Restore needs the list
-  // rather than a fixed name because keys are dated now — see backupPath.ts.
+  // config's keyPrefix, the iCloud container's Documents folder). Restore
+  // reads the list rather than a fixed name because a destination's keys may
+  // be dated, and may be left over from an older key layout.
   listKeys(): Promise<string[]>;
   download(key: string): Promise<Uint8Array | null>;
 }

@@ -3,7 +3,25 @@ import JSZip from 'jszip';
 
 // Raw table dumps (not the mapped camelCase domain types) — a lossless
 // backup is more useful here than a "clean" export.
-const TABLES = ['accounts', 'category_groups', 'categories', 'budget_entries', 'payees', 'transactions'] as const;
+const TABLES = [
+  'accounts',
+  'category_groups',
+  'categories',
+  'budget_entries',
+  'payees',
+  'transactions',
+  // Both board-scoped like the rest, and both left out for no reason other
+  // than nobody adding them: every recurring transaction set up, and every
+  // Baby Steps goal and its progress.
+  'scheduled_transactions',
+  'custom_goals',
+] as const;
+
+// Deliberately not backed up: app_settings holds cloud credentials and sync
+// bookkeeping that belong to this install rather than to the board, and
+// ai_requests holds prompts and responses that should not leave the device
+// in a file the user might share. income_detail_history is dead (migration
+// 028) and carries nothing anything reads.
 
 // These hang off an account rather than a board, which is why they were
 // missing from backups entirely: a house's value log, a loan's principal

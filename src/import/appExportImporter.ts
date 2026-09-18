@@ -148,6 +148,38 @@ export async function importAppExport(db: SQLiteDatabase, files: PickedAppExport
       );
     }
 
+    for (const st of files.scheduledTransactions) {
+      const newAccountId = accountIdMap.get(st.account_id);
+      if (newAccountId == null) continue;
+      await db.runAsync(
+        `INSERT INTO scheduled_transactions
+           (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, days_of_week_mask)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        boardId,
+        newAccountId,
+        st.category_id != null ? (categoryIdMap.get(st.category_id) ?? null) : null,
+        st.payee_id != null ? (payeeIdMap.get(st.payee_id) ?? null) : null,
+        st.memo,
+        st.amount_cents,
+        st.frequency,
+        st.interval_n,
+        st.next_date,
+        st.end_date,
+        st.days_of_week_mask ?? null,
+      );
+    }
+    for (const g of files.customGoals) {
+      await db.runAsync(
+        'INSERT INTO custom_goals (board_id, name, target_cents, linked_account_id, manual_progress_cents, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+        boardId,
+        g.name,
+        g.target_cents,
+        g.linked_account_id != null ? (accountIdMap.get(g.linked_account_id) ?? null) : null,
+        g.manual_progress_cents,
+        g.sort_order,
+      );
+    }
+
     result = {
       boardId,
       boardName,

@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import * as settingsRepo from '../db/repositories/settingsRepo';
+import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
 import { createICloudProviders } from './icloudProvider';
@@ -83,6 +84,45 @@ export interface SyncOutcome {
 // call: a switch that's on means "every change", which is the whole of what
 // the setting promises. Failures are returned rather than thrown — a sync
 // hiccup must never interrupt money entry.
+// A day, and only if something actually changed since the last one.
+//
+// Every edit used to push a whole zip, which is a lot of upload for moving a
+// transaction between categories, and on a destination keeping a file per
+// month it rewrote the same object dozens of times a day. The change log's
+// high-water mark makes "has anything changed" a single integer comparison
+// (see changeLogRepo.latestChangeSeq) rather than a diff.
+const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const LAST_SEQ_PREFIX = 'cloud_last_seq_';
+
+async function isBackupDue(db: SQLiteDatabase, providerId: string, currentSeq: number): Promise<boolean> {
+  const storedSeq = await settingsRepo.getSetting(db, `${LAST_SEQ_PREFIX}${providerId}`);
+  if (storedSeq != null && Number(storedSeq) === currentSeq) return false;
+  const lastSyncedAt = await getLastSyncedAt(db, providerId);
+  if (lastSyncedAt == null) return true;
+  return Date.now() - new Date(lastSyncedAt).getTime() >= BACKUP_INTERVAL_MS;
+}
+
+// Runs a backup only where one is due — what the automatic sync calls on
+// every change. `syncNow` itself stays unconditional, because a user tapping
+// Back Up Now means now.
+export async function syncIfDue(
+  db: SQLiteDatabase,
+  boardId: number,
+  boardName: string,
+): Promise<SyncOutcome[]> {
+  const currentSeq = await changeLogRepo.latestChangeSeq(db);
+  const all = await collectProviders(db);
+  const due = (
+    await Promise.all(
+      all.map(async (p) =>
+        (await isSyncEnabled(db, p.id)) && (await isBackupDue(db, p.id, currentSeq)) ? p : null,
+      ),
+    )
+  ).filter((p): p is CloudProvider => p != null);
+  if (due.length === 0) return [];
+  return upload(db, boardId, boardName, due, currentSeq);
+}
+
 export async function syncNow(
   db: SQLiteDatabase,
   boardId: number,
@@ -95,17 +135,29 @@ export async function syncNow(
     )
   ).filter((p): p is CloudProvider => p != null);
   if (eligible.length === 0) return [];
+  return upload(db, boardId, boardName, eligible, await changeLogRepo.latestChangeSeq(db));
+}
 
+async function upload(
+  db: SQLiteDatabase,
+  boardId: number,
+  boardName: string,
+  providers: CloudProvider[],
+  atSeq: number,
+): Promise<SyncOutcome[]> {
   const bytes = await buildBackupZip(db, boardId, boardName);
   // Built once, but keyed per destination: a bucket keeps one object per
   // board per month, iCloud overwrites its single file — see backupPath.ts.
   const today = currentDateISO();
   return Promise.all(
-    eligible.map(async (provider) => {
+    providers.map(async (provider) => {
       try {
         await provider.upload(bytes, provider.keyFor(boardName, today));
         const syncedAt = new Date().toISOString();
         await setLastSyncedAt(db, provider.id, syncedAt);
+        // Recorded only on success, so a failed upload leaves the next
+        // change still looking overdue rather than silently skipped.
+        await settingsRepo.setSetting(db, `${LAST_SEQ_PREFIX}${provider.id}`, String(atSeq));
         return { providerId: provider.id, syncedAt, error: null };
       } catch (e) {
         console.warn(`[cloudSync] ${provider.id} upload failed`, e);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { getDb } from '../db/client';
 import * as boardsRepo from '../db/repositories/boardsRepo';
-import { syncNow } from '../sync/cloudSync';
+import { syncIfDue } from '../sync/cloudSync';
 import { useAppStore } from '../state/useAppStore';
 
 const DEBOUNCE_MS = 5000;
@@ -23,9 +23,11 @@ export function useAutoCloudSync() {
     const boards = await boardsRepo.listBoards(db);
     const board = boards.find((b) => b.id === boardId);
     if (!board) return;
-    // No-ops when every destination's switch is off, which is the only
-    // "should this run" question there is now.
-    await syncNow(db, boardId, board.name);
+    // No-ops when every destination's switch is off, and now also when a
+    // destination was backed up within the day and nothing has changed since
+    // (see cloudSync.syncIfDue). Tapping Back Up Now still goes straight
+    // through syncNow — asking for it means now.
+    await syncIfDue(db, boardId, board.name);
   }, [boardId]);
 
   useEffect(() => {

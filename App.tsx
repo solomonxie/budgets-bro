@@ -1,11 +1,11 @@
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from 'react-native';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 export default function App() {
   return (
     <>
       <RootNavigator />
-      <StatusBar style="light" />
+      <StatusBar barStyle="light-content" />
     </>
   );
 }

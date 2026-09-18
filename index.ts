@@ -1,7 +1,8 @@
-import { registerRootComponent } from 'expo';
+import { AppRegistry } from 'react-native';
 
 import App from './App';
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App)
-// and sets up the environment the native build expects.
-registerRootComponent(App);
+// "main" is the module name iOS asks for — see `startReactNative(
+// withModuleName:)` in ios/BudgetsBro/AppDelegate.swift. Expo's
+// registerRootComponent used to do this registration for us.
+AppRegistry.registerComponent('main', () => App);

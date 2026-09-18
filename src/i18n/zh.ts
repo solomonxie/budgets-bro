@@ -285,6 +285,9 @@ export const zh: Record<keyof typeof en, string> = {
 
   'closedAccounts.empty': '没有已关闭的账户。',
   'closedAccounts.tapToReopen': '点击以重新开启',
+  'closedAccounts.deleteForever': '彻底删除',
+  'closedAccounts.deleteConfirmTitle': '删除「{name}」及其全部流水？',
+  'closedAccounts.deleteConfirmMessage': '其流水会一并删除，不再计入分类活动和未分配现金。转账另一侧的记录会保留。此操作无法撤销。',
 
   'houseValueCard.label': '房屋价值',
   'houseValueCard.notSet': '未设置',

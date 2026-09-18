@@ -201,3 +201,42 @@ export async function reopenAccount(db: SQLiteDatabase, boardId: number, id: num
   const account = await getAccount(db, id);
   if (account) await payeesRepo.ensureAccountPayee(db, boardId, id, account.name);
 }
+
+// Removes a closed account and everything that only existed because of it.
+// Archiving hides an account but keeps its transactions, and those keep
+// counting: a categorised transaction on an archived account still counts as
+// category activity (databases/queries/budgets.ts filters on on_budget, not
+// on archived_at) while the account's own balance is dropped from the cash
+// side. An account closed with categorised spending on it therefore drags
+// category balances — and so Unassigned Cash — down for good.
+//
+// Deleting is the honest way out when the account's history isn't wanted.
+// Everything that points at it is dealt with rather than left dangling:
+//   - its own transactions go;
+//   - the other half of any transfer keeps its row but loses the link, since
+//     that money really did leave the other account;
+//   - its rate and value history go, its payee is unlinked and removed, and
+//     any goal pointing at it loses the link.
+//
+// Irreversible, which is why it is offered only for an already-closed
+// account and behind a confirmation that says what it takes with it.
+export async function deleteAccountPermanently(db: SQLiteDatabase, accountId: number): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM transactions WHERE account_id = ?',
+    accountId,
+  );
+  const transactionCount = row?.count ?? 0;
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE transactions SET transfer_account_id = NULL WHERE transfer_account_id = ?', accountId);
+    await db.runAsync('DELETE FROM transactions WHERE account_id = ?', accountId);
+    await db.runAsync('DELETE FROM scheduled_transactions WHERE account_id = ?', accountId);
+    await db.runAsync('DELETE FROM account_rate_history WHERE account_id = ?', accountId);
+    await db.runAsync('DELETE FROM account_value_history WHERE account_id = ?', accountId);
+    await db.runAsync('UPDATE custom_goals SET linked_account_id = NULL WHERE linked_account_id = ?', accountId);
+    await db.runAsync('UPDATE transactions SET payee_id = NULL WHERE payee_id IN (SELECT id FROM payees WHERE linked_account_id = ?)', accountId);
+    await db.runAsync('DELETE FROM payees WHERE linked_account_id = ?', accountId);
+    await db.runAsync('DELETE FROM accounts WHERE id = ?', accountId);
+  });
+  return transactionCount;
+}

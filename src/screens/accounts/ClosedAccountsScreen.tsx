@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
@@ -16,6 +16,28 @@ export function ClosedAccountsScreen() {
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const dataVersion = useAppStore((s) => s.dataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+
+  // A closed account still counts: its categorised transactions are still
+  // category activity (budgets.ts filters on on_budget, not archived_at)
+  // while its balance is dropped from the cash side — so spending on a card
+  // closed years ago keeps dragging Unassigned Cash down. Deleting is the
+  // way out when the history isn't wanted.
+  const confirmDelete = (accountId: number, name: string) => {
+    Alert.alert(t('closedAccounts.deleteConfirmTitle', { name }), t('closedAccounts.deleteConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await accountsRepo.deleteAccountPermanently(db, accountId);
+          bumpDataVersion();
+          refresh();
+        },
+      },
+    ]);
+  };
 
   const refresh = useCallback(async () => {
     const db = await getDb();
@@ -32,13 +54,18 @@ export function ClosedAccountsScreen() {
         <Text style={styles.empty}>{t('closedAccounts.empty')}</Text>
       ) : (
         accounts.map(({ account, balanceCents }) => (
-          <Pressable key={account.id} style={styles.row} onPress={() => openEditAccount(account.id)}>
-            <View>
-              <Text style={styles.rowTitle}>{account.name}</Text>
-              <Text style={styles.rowSub}>{t('closedAccounts.tapToReopen')}</Text>
-            </View>
-            <Text style={styles.rowValue}>{formatMoney(balanceCents)}</Text>
-          </Pressable>
+          <View key={account.id} style={styles.row}>
+            <Pressable style={styles.rowMain} onPress={() => openEditAccount(account.id)}>
+              <View>
+                <Text style={styles.rowTitle}>{account.name}</Text>
+                <Text style={styles.rowSub}>{t('closedAccounts.tapToReopen')}</Text>
+              </View>
+              <Text style={styles.rowValue}>{formatMoney(balanceCents)}</Text>
+            </Pressable>
+            <Pressable hitSlop={8} onPress={() => confirmDelete(account.id, account.name)}>
+              <Text style={styles.deleteLink}>{t('closedAccounts.deleteForever')}</Text>
+            </Pressable>
+          </View>
         ))
       )}
     </ScreenContainer>
@@ -47,9 +74,6 @@ export function ClosedAccountsScreen() {
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -57,6 +81,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.xs,
   },
+  rowMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  deleteLink: { color: colors.negative, fontWeight: '600', fontSize: 13, marginTop: spacing.sm },
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   rowValue: { fontSize: 15, fontWeight: '700', color: colors.textMuted },

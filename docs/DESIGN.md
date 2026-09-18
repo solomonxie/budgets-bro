@@ -77,12 +77,12 @@ Today, a mortgage is two unrelated accounts if the user wants to track both the 
 - **Account page** becomes the "intelligence" surface: current debt, current value, equity, rate history list (shipped), payoff projection card, value history log/chart — all local, no network. Revised: the account page reports actuals only, no what-if inputs — the page answers "where does this loan stand", the calculators answer "what if I paid more".
 - **Migration**: existing split accounts (debt + tracking) aren't auto-merged — a "Merge into one mortgage account" action folds a tracking account's value into a mortgage account's new value log and archives the tracking account, but the tool itself isn't built yet.
 
-## Tracking/investment accounts (designed, not yet built)
-Non-cash accounts (RRSP/TFSA-style investments, or any `tracking` account) get the same `account_value_entries` log as the mortgage's value side. Logging a new snapshot supports two entry modes, since users track this two different ways:
-1. **Exact gain since last track** — user types the period's $ gain/loss directly; new value = old value + entered gain.
-2. **Latest total balance** — user types the current total; gain since last track = new value − old value, computed automatically.
+## Tracking/investment accounts (shipped)
+Non-cash accounts (RRSP/TFSA-style investments, or any `tracking` account) share the `account_value_history` log with a mortgage's value side. A snapshot is one figure: **the total value now**, with a date and a note.
 
-Both modes store the same row shape (`value_cents` absolute, `gain_cents` delta, `as_of_date`, `mode`) — the UI difference is only which field the user fills in. Account "balance" for a tracking account becomes the latest `account_value_entries.value_cents` instead of opening_balance + transactions (transactions still exist for any real cash movement in/out, e.g. a contribution, but growth/decline is tracked separately from cash flow).
+Gain/loss is never entered, only derived. It shipped as a second entry mode — type the period's gain and the new value is the old one plus it — and came back out: a real gain moves every day, so a number typed as "the gain" is only true for the instant it was read, while a total is a fact you can copy off a statement. Subtracting two totals recovers the gain exactly, and the chart already does that against real transactions (`domain/investmentGrowth.ts` splits deposited vs gain).
+
+A tracking account's "balance" is its latest logged value rather than opening_balance + transactions. Transactions still exist for real cash moving in and out (a contribution), but growth is logged, not summed.
 
 ## Income accounts (removed)
 Shipped as an `income`-typed account plus a `transactions.income_account_id` tag; removed again in migration 028.

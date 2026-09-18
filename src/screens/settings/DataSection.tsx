@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ResultToast } from '../../components/ui/ResultToast';
 import { getDb } from '../../db/client';
 import { exportBoardZip } from '../../export/exportBoard';
 import { pickYnabExport } from '../../import/pickYnabExport';
 import { importYnabExport } from '../../import/ynabImporter';
+import { restoreCategoriesFromYnab } from '../../import/restoreCategoriesFromYnab';
+import type { CategoryRestoreResult } from '../../import/restoreCategoriesFromYnab';
 import type { YnabImportResult } from '../../import/ynabImporter';
 import { pickAppExport } from '../../import/pickAppExport';
 import { importAppExport } from '../../import/appExportImporter';
@@ -12,7 +15,7 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-type Action = 'export' | 'importBackup' | 'importYnab';
+type Action = 'export' | 'importBackup' | 'importYnab' | 'restoreCategories';
 
 interface DataSectionProps {
   boardId: number;
@@ -21,15 +24,16 @@ interface DataSectionProps {
   onRestored: (summary: AppExportImportResult) => void;
 }
 
-// Three chevron rows in one group, not three full-width buttons stacked with
-// their hints and result tables between them. They're peers — none of them is
-// the primary action of this screen — and as buttons they read as three
-// competing calls to action in a section that's really just a list.
+// Three text links under the backup destinations, not three rows with
+// headings, hints and result tables. Each one is a one-off that opens a
+// picker or a share sheet and then is over — the labels already say what
+// they do, and anything more turned a three-item list into half a screen.
 export function DataSection({ boardId, boardName, onImported, onRestored }: DataSectionProps) {
   const t = useT();
   const [busy, setBusy] = useState<Action | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ynabResult, setYnabResult] = useState<YnabImportResult | null>(null);
+  const [restoreResult, setRestoreResult] = useState<CategoryRestoreResult | null>(null);
 
   const runExport = async () => {
     setBusy('export');
@@ -78,71 +82,94 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
     }
   };
 
-  const rows: { action: Action; title: string; subtitle: string; onPress: () => void }[] = [
-    { action: 'export', title: t('settings.exportBoard'), subtitle: t('data.exportHint'), onPress: runExport },
-    { action: 'importBackup', title: t('settings.importAppBackup'), subtitle: t('settings.importAppBackupHint'), onPress: runImportBackup },
-    { action: 'importYnab', title: t('settings.importYnab'), subtitle: t('data.importYnabHint'), onPress: runImportYnab },
+  // Repairs categories from the same export without re-importing it —
+  // re-importing upserts, which would bring back transactions deleted since
+  // and overwrite edits. This only fills in a category where there is none.
+  const runRestoreCategories = async () => {
+    setError(null);
+    setRestoreResult(null);
+    try {
+      const files = await pickYnabExport();
+      if (!files) return;
+      setBusy('restoreCategories');
+      const db = await getDb();
+      setRestoreResult(await restoreCategoriesFromYnab(db, boardId, files.registerCsv));
+      onImported();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('settings.importFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const links: { action: Action; label: string; onPress: () => void }[] = [
+    { action: 'export', label: t('settings.exportBoard'), onPress: runExport },
+    { action: 'importBackup', label: t('settings.importAppBackup'), onPress: runImportBackup },
+    { action: 'importYnab', label: t('settings.importYnab'), onPress: runImportYnab },
+    { action: 'restoreCategories', label: t('settings.restoreCategories'), onPress: runRestoreCategories },
   ];
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionHeading}>{t('settings.dataHeading')}</Text>
-      <View style={styles.group}>
-        {rows.map((row, i) => (
-          <Pressable key={row.action} style={[styles.row, i > 0 && styles.rowDivider]} onPress={row.onPress} disabled={busy != null}>
-            <View style={styles.rowMain}>
-              <Text style={styles.rowTitle}>{row.title}</Text>
-              <Text style={styles.rowSubtitle}>{row.subtitle}</Text>
-            </View>
-            {busy === row.action ? <ActivityIndicator /> : <Text style={styles.chevron}>›</Text>}
+      <View style={styles.links}>
+        {links.map((link) => (
+          <Pressable key={link.action} onPress={link.onPress} disabled={busy != null} hitSlop={8}>
+            {busy === link.action ? (
+              <ActivityIndicator size="small" />
+            ) : (
+              <Text style={[styles.linkText, busy != null && styles.linkTextDisabled]}>{link.label}</Text>
+            )}
           </Pressable>
         ))}
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {ynabResult ? (
-        <View style={styles.group}>
-          <ResultRow label={t('settings.importResultTxnInserted')} value={ynabResult.transactionsInserted} />
-          <ResultRow label={t('settings.importResultTxnUpdated')} value={ynabResult.transactionsUpdated} />
-          <ResultRow label={t('settings.importResultBudgetWritten')} value={ynabResult.budgetEntriesWritten} />
-          <ResultRow label={t('settings.importResultAccountsCreated')} value={ynabResult.accountsCreated} />
-          <ResultRow label={t('settings.importResultCategoriesCreated')} value={ynabResult.categoriesCreated} />
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-function ResultRow({ label, value }: { label: string; value: number | string }) {
-  return (
-    <View style={styles.resultRow}>
-      <Text style={styles.rowTitle}>{label}</Text>
-      <Text style={styles.rowSubtitle}>{value}</Text>
+      <ResultToast
+        visible={ynabResult != null}
+        title={t('settings.importedHeading')}
+        lines={
+          ynabResult
+            ? [
+                { label: t('settings.importResultTxnInserted'), value: String(ynabResult.transactionsInserted) },
+                { label: t('settings.importResultTxnUpdated'), value: String(ynabResult.transactionsUpdated) },
+                { label: t('settings.importResultBudgetWritten'), value: String(ynabResult.budgetEntriesWritten) },
+                { label: t('settings.importResultAccountsCreated'), value: String(ynabResult.accountsCreated) },
+                { label: t('settings.importResultCategoriesCreated'), value: String(ynabResult.categoriesCreated) },
+              ]
+            : []
+        }
+        onDismiss={() => setYnabResult(null)}
+      />
+      <ResultToast
+        visible={restoreResult != null}
+        title={t('settings.restoreCategoriesHeading')}
+        lines={
+          restoreResult
+            ? [
+                { label: t('settings.restoreResultRestored'), value: String(restoreResult.restored) },
+                { label: t('settings.restoreResultAlreadySet'), value: String(restoreResult.alreadySet) },
+                { label: t('settings.restoreResultNotFound'), value: String(restoreResult.notFound) },
+                { label: t('settings.restoreResultCategoryMissing'), value: String(restoreResult.categoryMissing) },
+              ]
+            : []
+        }
+        onDismiss={() => setRestoreResult(null)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   section: { gap: spacing.xs, marginBottom: spacing.md },
-  sectionHeading: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: colors.textMuted,
+  links: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    columnGap: spacing.md,
+    rowGap: spacing.xs,
+    paddingVertical: spacing.sm,
   },
-  group: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12, paddingHorizontal: spacing.md },
-  rowDivider: { borderTopWidth: 1, borderTopColor: colors.border },
-  rowMain: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 15, color: colors.text },
-  rowSubtitle: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
-  chevron: { fontSize: 18, color: colors.textMuted },
-  resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
-  errorText: { color: colors.negative, fontSize: 13 },
+  linkText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
+  linkTextDisabled: { opacity: 0.4 },
+  errorText: { color: colors.negative, fontSize: 13, textAlign: 'center' },
 });

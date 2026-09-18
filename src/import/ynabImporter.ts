@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { parseCsv, parseMoneyToCents, parseYnabDate, parseYnabMonth } from './csv';
+import { makeOccurrenceCounter, ynabImportId } from './ynabImportId';
 import * as accountsRepo from '../db/repositories/accountsRepo';
 import * as categoriesRepo from '../db/repositories/categoriesRepo';
 import * as budgetsRepo from '../db/repositories/budgetsRepo';
@@ -141,9 +142,9 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
   const offBudgetNames = findOffBudgetAccountNames(registerRows);
   // Row position in the export isn't stable across re-exports (rows shift
   // when older transactions are edited or new ones inserted), so identity
-  // instead comes from the row's own fields — with an occurrence counter to
-  // tell apart genuine duplicates (e.g. two identical same-day purchases).
-  const occurrenceCounts = new Map<string, number>();
+  // instead comes from the row's own fields — see ynabImportId, which the
+  // category repair reads back with.
+  const nextOccurrence = makeOccurrenceCounter();
 
   await db.withTransactionAsync(async () => {
     for (let i = 0; i < registerRows.length; i++) {
@@ -174,12 +175,7 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
       const memo = (row['Memo'] ?? '').trim() || null;
       const date = parseYnabDate(row['Date']);
 
-      // Account + date + payee is the natural key: YNAB already combines
-      // same-day, same-payee transactions on export, so this alone
-      // identifies a row without being brittle to a later memo/category edit.
-      const contentKey = `${accountName}|${date}|${payeeName}`;
-      const occurrence = occurrenceCounts.get(contentKey) ?? 0;
-      occurrenceCounts.set(contentKey, occurrence + 1);
+      const occurrence = nextOccurrence(accountName, date, payeeName);
 
       const outcome = await transactionsRepo.importTransaction(db, boardId, {
         accountId,
@@ -189,7 +185,7 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
         amountCents,
         date,
         transferAccountId,
-        importId: `ynab:${contentKey}|#${occurrence}`,
+        importId: ynabImportId(accountName, date, payeeName, occurrence),
       });
       if (outcome === 'inserted') result.transactionsInserted++;
       else result.transactionsUpdated++;

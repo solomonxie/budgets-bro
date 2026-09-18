@@ -165,6 +165,8 @@ export function TransactionsScreen() {
       <View style={styles.filterRow}>
         <View style={styles.filterField}>
           <DropdownField
+            compact
+            link
             label={t('common.category')}
             valueLabel={categoryFilterLabel}
             placeholder={t('transactions.allCategories')}
@@ -212,6 +214,7 @@ export function TransactionsScreen() {
         <View style={styles.filterField}>
           <DropdownField
             compact
+            link
             label={t('common.month')}
             valueLabel={monthFilterLabel}
             placeholder={t('transactions.allMonths')}
@@ -334,8 +337,10 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   selectLink: { color: colors.accent, fontWeight: '600' },
-  filterRow: { flexDirection: 'row', gap: spacing.sm },
-  filterField: { flex: 1 },
+  // Links, not fields — they sit next to each other and take the width
+  // of their own text rather than splitting the row in half.
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  filterField: { flexShrink: 1 },
   dateGroup: { marginBottom: spacing.sm },
   dateHeader: {
     fontSize: 12,

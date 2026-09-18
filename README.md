@@ -1,4 +1,4 @@
-# ByoBudget — Build Your Own Budget
+# Budgets Bro
 
 > 🚧 Work in progress.
 
@@ -45,8 +45,8 @@ npx eas-cli build --profile preview --platform ios --non-interactive
 Then download the `.tar.gz` from the printed artifact URL, extract, and install:
 ```
 tar -xzf app.tar.gz
-xcrun simctl install booted BYOBudget.app
-xcrun simctl launch booted com.solomonxie.buildyourownbudget
+xcrun simctl install booted BudgetsBro.app
+xcrun simctl launch booted com.solomonxie.budgetsbro
 ```
 
 ### Real app on an iPhone (plugged in)

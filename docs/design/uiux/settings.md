@@ -36,7 +36,7 @@ link.
  iCloud also brings the board back by itself if you reinstall the app.
  API keys never leave this device, including in backups.
  iCloud Drive                                        ─●
- In Files → iCloud Drive → BYO Budget · 2 h ago
+ In Files → iCloud Drive → Budgets Bro · 2 h ago
  my-bucket                                           ─●
  s3://my-bucket/byo-budget/ · never synced
                   ( + Add S3 Backup )

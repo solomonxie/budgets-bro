@@ -4,7 +4,7 @@
 rules and the reasoning behind those drawings; where the two disagree,
 `design/uiux/` is current.
 
-Screen-by-screen spec for ByoBudget (Expo/React Native, dark-only, YNAB-style envelope budgeting), plus the conventions behind it. Product/domain decisions live in `DESIGN.md`; task breakdown in `IMPLEMENTATION_PLAN.md`.
+Screen-by-screen spec for Budgets Bro (Expo/React Native, dark-only, YNAB-style envelope budgeting), plus the conventions behind it. Product/domain decisions live in `DESIGN.md`; task breakdown in `IMPLEMENTATION_PLAN.md`.
 
 Every rule here was paid for by something that shipped wrong first — the reasons are kept in place, not trimmed.
 

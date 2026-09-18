@@ -50,7 +50,7 @@ export function useAutoSnapshot(): void {
         // Without this the copy can be missing the newest commits, which sit
         // in the -wal sidecar until a checkpoint folds them in.
         await db.execAsync('PRAGMA wal_checkpoint(FULL)');
-        takeSnapshot('byobudget.db', 0, 0);
+        takeSnapshot('budgetsbro.db', 0, 0);
 
         // After the checkpoint, so the zip and the .db copy describe the same
         // moment. A board that has gone missing skips the zip and still gets

@@ -148,7 +148,7 @@ export const zh: Record<keyof typeof en, string> = {
   'backup.icloudNotEntitled': '此版本的应用没有 iCloud 签名权限',
   'backup.icloudNotReady': 'iCloud 还没准备好 —— 请稍后再试',
   'backup.icloud': 'iCloud 云盘',
-  'backup.icloudLocation': '在「文件」→ iCloud 云盘 → BYO Budget',
+  'backup.icloudLocation': '在「文件」→ iCloud 云盘 → Budgets Bro',
   'backup.deleteConnection': '删除该连接',
   'backup.never': '从未同步',
   'backup.justNow': '刚刚',

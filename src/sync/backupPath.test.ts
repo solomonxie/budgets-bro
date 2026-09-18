@@ -54,7 +54,7 @@ describe('isBackupKeyForBoard', () => {
   });
 
   it('tolerates a configured key prefix in front of it', () => {
-    expect(isBackupKeyForBoard('byobudget/20260915-main.zip', 'Main')).toBe(true);
+    expect(isBackupKeyForBoard('budgetsbro/20260915-main.zip', 'Main')).toBe(true);
   });
 });
 

@@ -1,4 +1,4 @@
-# ByoBudget MVP — Design Doc
+# Budgets Bro MVP — Design Doc
 
 ## Problem
 Existing YNAB-style budgeting apps are subscription-based, cloud-backend-dependent, and require trusting a third party with financial data. There's no free, privacy-first alternative that does zero-based/envelope budgeting well, includes basic financial calculators, and offers AI-assisted analysis without routing data through a vendor-run server.
@@ -10,7 +10,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 - Self-contained financial calculators module (mortgage, loan/interest, amortization).
 - AI analysis using the user's own API key, called directly from device to provider.
 - SQLite as the single on-device source of truth; iCloud and S3 as optional backup targets.
-- Zero backend servers operated by ByoBudget — client-only app, for both cost and privacy.
+- Zero backend servers operated by Budgets Bro — client-only app, for both cost and privacy.
 
 ## Non-goals (MVP cut lines)
 - Multi-device real-time sync (backups are point-in-time export/restore, not live sync)
@@ -45,7 +45,7 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 
 Balances are computed, not stored, to avoid drift bugs.
 
-**Correcting a balance**: no reconciliation UI/terminology — if an account's real-world balance drifts from what ByoBudget computes, the user enters the actual balance and ByoBudget creates one uncategorized adjustment transaction for the difference (payee "Balance Adjustment"). It flows through the same Unassigned Cash math as any other uncategorized transaction, positive or negative — no special-cased reconciliation logic needed. Reachable from the Edit Account sheet — a "Current Balance" field right under Starting Balance; changing it and saving posts the adjustment. Both fields carry a hint saying which balance they mean.
+**Correcting a balance**: no reconciliation UI/terminology — if an account's real-world balance drifts from what Budgets Bro computes, the user enters the actual balance and Budgets Bro creates one uncategorized adjustment transaction for the difference (payee "Balance Adjustment"). It flows through the same Unassigned Cash math as any other uncategorized transaction, positive or negative — no special-cased reconciliation logic needed. Reachable from the Edit Account sheet — a "Current Balance" field right under Starting Balance; changing it and saving posts the adjustment. Both fields carry a hint saying which balance they mean.
 
 ## Loan/mortgage payments today (shipped)
 A loan/mortgage-*typed* account (`accounts.type IN ('loan','mortgage')`) owns exactly one auto-generated, auto-renamed **payee** named after it (`payees.linked_account_id`) — not a category. Selecting that payee on *any* transaction, regardless of category, posts a second, mirrored transaction into the linked account for the same amount (opposite sign), paired via `transfer_account_id` — so an $800 outflow with payee "Dachang House debt" both spends from whatever category it's budgeted under *and* reduces that loan account's balance by $800, automatically. (An earlier version of this linked a category instead — payee turned out to be the right unit, since a debt payment isn't inherently one category, and category-linking collided with the auto-generated category taking the "one link per account" slot.)
@@ -138,8 +138,8 @@ Self-contained pure-function module, no DB/React dependency (`src/finance-tools/
 **Flow:**
 1. User enters an API key (Anthropic/OpenAI) in Settings → stored via `expo-secure-store` (iOS Keychain).
 2. User taps "Analyze" → app builds a payload from local SQLite (aggregated category totals by default; raw transactions only in opt-in "detailed mode").
-3. App calls the provider's REST API directly from the device — no ByoBudget server in the path.
-4. Response renders in-app; nothing is persisted or transmitted to ByoBudget infrastructure (there is none).
+3. App calls the provider's REST API directly from the device — no Budgets Bro server in the path.
+4. Response renders in-app; nothing is persisted or transmitted to Budgets Bro infrastructure (there is none).
 
 **Privacy tradeoff:** invoking analysis sends financial data to a third-party AI provider chosen by the user. Default mode sends aggregated totals only; detailed mode (explicit opt-in) sends raw payee/memo/amount data. Because the user supplies their own key, usage/cost is auditable in that provider's dashboard — but data still leaves the device to that provider. This must be surfaced in the UI, not just documented here.
 
@@ -162,7 +162,7 @@ The AI API key and S3 credentials are provider credentials, not money data, and 
 - **Restore**: pick a backup source → download → validate schema-version tag → full replace of local DB (destructive-and-confirmed, no merge/dedupe for MVP).
 - **S3 credential validation, on save, before the key is accepted** (fail closed — reject and explain, don't silently store an unusable/unsafe credential):
   1. **Reachable**: sign and send a lightweight request (e.g. `HEAD` the bucket) — confirms the endpoint/region/bucket name resolve at all.
-  2. **Read/write**: write a small marker object (e.g. `.byobudget/write-test`) and read it back, then delete it — confirms the credential can actually do both, not just list.
+  2. **Read/write**: write a small marker object (e.g. `.budgetsbro/write-test`) and read it back, then delete it — confirms the credential can actually do both, not just list.
   3. **Not public**: check the bucket's Public Access Block config / ACL — reject if the bucket is publicly readable or writable; this is a personal finance backup target, not a public one.
   4. **No anonymous access**: repeat the reachability check with no credentials — must fail. If an unauthenticated request succeeds, the bucket policy is too permissive regardless of what this app's own IAM user can do.
   - Any step failing shows a specific, actionable error (which check failed and why) instead of a generic "invalid credentials" — the user provisioned this bucket themselves and needs to know what to fix in AWS.

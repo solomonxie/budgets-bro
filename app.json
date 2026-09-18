@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "BYO Budget",
-    "slug": "build-your-own-budget",
+    "name": "Budgets Bro",
+    "slug": "budgets-bro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,14 +13,14 @@
         "tinted": "./assets/icon-tinted.png"
       },
       "supportsTablet": true,
-      "bundleIdentifier": "com.solomonxie.buildyourownbudget",
+      "bundleIdentifier": "com.solomonxie.budgetsbro",
       "appleTeamId": "Z3VPHM3BJL",
       "entitlements": {
         "com.apple.developer.icloud-container-identifiers": [
-          "iCloud.com.solomonxie.buildyourownbudget"
+          "iCloud.com.solomonxie.budgetsbro"
         ],
         "com.apple.developer.ubiquity-container-identifiers": [
-          "iCloud.com.solomonxie.buildyourownbudget"
+          "iCloud.com.solomonxie.budgetsbro"
         ],
         "com.apple.developer.icloud-services": [
           "CloudDocuments"
@@ -29,10 +29,10 @@
       },
       "infoPlist": {
         "NSUbiquitousContainers": {
-          "iCloud.com.solomonxie.buildyourownbudget": {
+          "iCloud.com.solomonxie.budgetsbro": {
             "NSUbiquitousContainerIsDocumentScopePublic": true,
             "NSUbiquitousContainerSupportedFolderLevels": "Any",
-            "NSUbiquitousContainerName": "BYO Budget"
+            "NSUbiquitousContainerName": "Budgets Bro"
           }
         }
       }

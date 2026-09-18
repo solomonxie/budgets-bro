@@ -104,7 +104,7 @@ concept to manage, unlike S3/Drive).
 **iCloud Drive** — the same zip written into the app's own ubiquity
 container at `Documents/<board-slug>-latest.zip`. No credentials, no account
 setup, no third party: the user is already signed in, and the folder shows up
-in Files under iCloud Drive → BYO Budget, where they can drag a backup out or
+in Files under iCloud Drive → Budgets Bro, where they can drag a backup out or
 one back in.
 
 One file per board, overwritten every sync — no dates, no history. iCloud's
@@ -172,7 +172,7 @@ needed for personal use. Refresh token stored in `secureStore`; access
 token refreshed on demand.
 
 User-side setup (Google Cloud Console, one-time): create an OAuth 2.0
-Client ID (type: iOS), add the app's bundle ID (`com.solomonxie.buildyourownbudget`) and
+Client ID (type: iOS), add the app's bundle ID (`com.solomonxie.budgetsbro`) and
 a custom URL scheme for the redirect. Hand the Client ID back for
 `app.json`'s scheme config — no client secret needed for the PKCE/installed
 -app flow.

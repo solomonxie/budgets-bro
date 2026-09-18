@@ -23,14 +23,22 @@ export function ClosedAccountsScreen() {
   // while its balance is dropped from the cash side — so spending on a card
   // closed years ago keeps dragging Unassigned Cash down. Deleting is the
   // way out when the history isn't wanted.
-  const confirmDelete = (accountId: number, name: string) => {
-    Alert.alert(t('closedAccounts.deleteConfirmTitle', { name }), t('closedAccounts.deleteConfirmMessage'), [
+  const confirmDelete = async (accountId: number, name: string) => {
+    const db = await getDb();
+    // Worked out before asking, because the number is the whole decision: a
+    // card's own spending is what offsets the cash that later paid it off,
+    // so deleting it drops Unassigned by everything ever spent on it.
+    const impactCents = await accountsRepo.unassignedImpactOfDeleting(db, accountId);
+    const message =
+      impactCents === 0
+        ? t('closedAccounts.deleteConfirmMessage')
+        : t('closedAccounts.deleteImpactMessage', { amount: formatMoney(impactCents) });
+    Alert.alert(t('closedAccounts.deleteConfirmTitle', { name }), message, [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
-          const db = await getDb();
           await accountsRepo.deleteAccountPermanently(db, accountId);
           bumpDataVersion();
           refresh();

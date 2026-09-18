@@ -190,6 +190,8 @@ export const zh: Record<keyof typeof en, string> = {
 
   'accounts.netWorth': '净资产',
   'accounts.customize': '自定义',
+  'accounts.showTrend': '查看趋势',
+  'accounts.hideTrend': '收起趋势',
   'accounts.assets': '资产 {amount}',
   'accounts.debts': '负债 {amount}',
   'accounts.includeInNetWorth': '计入净资产',

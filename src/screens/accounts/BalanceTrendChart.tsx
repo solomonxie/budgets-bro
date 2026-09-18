@@ -22,9 +22,13 @@ const MIN_MONTH_WIDTH = 28;
 export function BalanceTrendChart({
   points,
   showSpending = false,
+  valueLabel,
 }: {
   points: BalanceTrendPoint[];
   showSpending?: boolean;
+  // What the line is of — "Balance" on an account, "Net Worth" on the
+  // accounts list. Same shape either way: one level over months.
+  valueLabel?: string;
 }) {
   const t = useT();
   const { language } = useI18n();
@@ -64,7 +68,7 @@ export function BalanceTrendChart({
     <View style={styles.container}>
       <View style={styles.summaryRow}>
         <SummaryStat
-          label={t('balanceTrendChart.balanceLabel')}
+          label={valueLabel ?? t('balanceTrendChart.balanceLabel')}
           value={latest ? formatMoney(latest.balanceCents) : '—'}
         />
         {showSpending ? (

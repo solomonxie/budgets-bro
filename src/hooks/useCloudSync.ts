@@ -9,7 +9,7 @@ const DEBOUNCE_MS = 5000;
 
 // Fires an automatic one-way backup (see sync/cloudSync.ts) on data changes
 // (debounced) and whenever the app returns to the foreground — not true OS
-// background execution (Expo Go can't do that; see
+// background execution (this app ships no background task; see
 // docs/design/cloud-sync/DESIGN.md Non-goals), just "while the app happens
 // to be open". Mounted once near the app root, same as
 // useBootstrapActiveBoard/useBootstrapLanguage.

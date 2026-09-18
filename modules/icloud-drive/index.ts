@@ -20,6 +20,6 @@ export interface ICloudDriveModule {
 }
 
 // Optional, not required: this module is Apple-only and exists only in a real
-// build carrying the iCloud entitlement, so Android, web and Expo Go get null
+// build carrying the iCloud entitlement, so Android and web get null
 // instead of a crash at import time.
 export default requireOptionalNativeModule<ICloudDriveModule>('ICloudDrive');

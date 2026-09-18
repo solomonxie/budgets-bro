@@ -133,7 +133,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
   // iCloud first: it's the one destination with nothing to set up, so it
   // leads, and saved buckets follow in the order they were added.
   const destinations: Destination[] = [
-    // Hidden entirely in Expo Go and on Android, where the native module the
+    // Hidden entirely on Android, where the native module the
     // iCloud entitlement ships with doesn't exist — a row that could never
     // work is worse than no row.
     ...(isICloudSupported()

@@ -29,3 +29,25 @@ export const LOAN_PAYMENTS_FOR_BOARD = `
   WHERE a.board_id = ? AND a.type IN ('loan', 'mortgage') AND t.date <= ?
   ORDER BY t.date
 `;
+
+// Monthly net movement per account, for rebuilding what each was worth in a
+// past month (domain/netWorthTrend). Aggregated in SQL so the trend doesn't
+// have to carry every transaction across the bridge.
+export const MONTHLY_ACTIVITY_BY_ACCOUNT = `
+  SELECT t.account_id, substr(t.date, 1, 7) as month, COALESCE(SUM(t.amount_cents), 0) as total
+  FROM transactions t JOIN accounts a ON a.id = t.account_id
+  WHERE a.board_id = ? AND t.date <= ?
+  GROUP BY t.account_id, month
+  ORDER BY month
+`;
+
+// The earliest month the board has any history in — where the trend starts.
+export const EARLIEST_ACTIVITY_MONTH = `
+  SELECT MIN(month) as month FROM (
+    SELECT MIN(substr(t.date, 1, 7)) as month FROM transactions t
+      JOIN accounts a ON a.id = t.account_id WHERE a.board_id = ?
+    UNION ALL
+    SELECT MIN(substr(h.effective_date, 1, 7)) as month FROM account_value_history h
+      JOIN accounts a ON a.id = h.account_id WHERE a.board_id = ?
+  )
+`;

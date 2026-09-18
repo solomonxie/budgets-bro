@@ -7,15 +7,21 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 // Settings moved out of the bottom tabs (opened from a corner button
-// instead) — a plain full-screen Modal, since SettingsScreen has no
+// instead) — a Modal rather than a route, since SettingsScreen has no
 // navigation dependency of its own to preserve.
+//
+// fullScreen, not pageSheet: settings is a place you go and work in — every
+// destination, every board, the whole history — and a card inset from the
+// edges with the app showing behind it reads as something you glanced at and
+// will dismiss. Done is the way out; there is no swipe-down to lose a
+// half-finished field to.
 export function SettingsModal() {
   const t = useT();
   const open = useAppStore((s) => s.settingsModal.open);
   const close = useAppStore((s) => s.closeSettings);
 
   return (
-    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
+    <Modal visible={open} animationType="slide" presentationStyle="fullScreen" onRequestClose={close}>
       <SafeAreaView style={styles.headerSafeArea} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.title}>{t('settingsModal.title')}</Text>

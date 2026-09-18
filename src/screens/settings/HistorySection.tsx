@@ -73,6 +73,31 @@ export function HistorySection() {
     );
   };
 
+  // An import is one action that happens to be written a row at a time over
+  // several seconds, so undoing it means undoing everything from where it
+  // started, not the last second of it.
+  const confirmRewind = async (group: ChangeGroup) => {
+    const db = await getDb();
+    const rows = await changeLogRepo.countSince(db, group.firstSeq);
+    Alert.alert(t('history.rewindConfirmTitle', { count: rows }), t('history.rewindConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('history.rewind'),
+        style: 'destructive',
+        onPress: async () => {
+          setBusy(true);
+          try {
+            await changeLogRepo.undoSince(db, group.firstSeq);
+            bumpDataVersion();
+            await refresh();
+          } finally {
+            setBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const confirmRestoreSnapshot = (snapshot: DbSnapshot) => {
     Alert.alert(t('history.restoreSnapshotTitle'), t('history.restoreSnapshotMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -160,6 +185,9 @@ export function HistorySection() {
                 </View>
                 <Pressable onPress={() => confirmUndo(group)} hitSlop={8} disabled={busy}>
                   <Text style={styles.action}>{t('history.undo')}</Text>
+                </Pressable>
+                <Pressable onPress={() => confirmRewind(group)} hitSlop={8} disabled={busy}>
+                  <Text style={styles.action}>{t('history.rewind')}</Text>
                 </Pressable>
               </View>
             ))}

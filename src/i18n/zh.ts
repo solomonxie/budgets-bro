@@ -288,6 +288,7 @@ export const zh: Record<keyof typeof en, string> = {
   'closedAccounts.deleteForever': '彻底删除',
   'closedAccounts.deleteConfirmTitle': '删除「{name}」及其全部流水？',
   'closedAccounts.deleteConfirmMessage': '其流水会一并删除，不再计入分类活动和未分配现金。转账另一侧的记录会保留。此操作无法撤销。',
+  'closedAccounts.deleteImpactMessage': '流水会一并删除——其中包含 {amount} 的已分类支出，正是它抵消了后来还款用掉的现金。删除后还款记录仍在，未分配现金会因此减少同样的金额。通常保持“已关闭”即可。此操作无法撤销。',
 
   'houseValueCard.label': '房屋价值',
   'houseValueCard.notSet': '未设置',

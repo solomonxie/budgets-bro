@@ -240,3 +240,26 @@ export async function deleteAccountPermanently(db: SQLiteDatabase, accountId: nu
   });
   return transactionCount;
 }
+
+// What deleting this account would do to Unassigned Cash, before doing it.
+//
+// Unassigned is cash minus the sum of category balances, so removing a row
+// that carried a category removes its amount from activity and moves
+// Unassigned the opposite way. For a credit card that matters enormously and
+// counter-intuitively: card spending is what offsets the cash that later
+// paid the card off, so deleting the card takes the spending away and leaves
+// the payments behind, and Unassigned falls by everything ever spent on it.
+//
+// Returned as the delta Unassigned would move by, so the confirmation can
+// show it rather than let the user find out afterwards.
+export async function unassignedImpactOfDeleting(db: SQLiteDatabase, accountId: number): Promise<number> {
+  const row = await db.getFirstAsync<{ total: number }>(
+    `SELECT COALESCE(SUM(t.amount_cents), 0) as total FROM transactions t
+     JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+     WHERE t.account_id = ? AND t.category_id IS NOT NULL`,
+    accountId,
+  );
+  // Removing activity of -X raises the category sum by X, which lowers
+  // Unassigned by X — so the delta is the activity itself.
+  return row?.total ?? 0;
+}

@@ -21,6 +21,7 @@ import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import { isLoanLikeType } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
+import { InterestRateDetails } from './InterestRateDetails';
 import { HouseValueDetails } from './HouseValueDetails';
 import { TrackingValueDetails } from './TrackingValueDetails';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
@@ -330,6 +331,7 @@ export function AccountDetailScreen() {
                   />
                 </View>
               ) : null}
+              {isCashOrSavings ? <InterestRateDetails accountId={accountId} /> : null}
               {accountWithBalance && isLoanLike ? (
                 <LoanDetailsCard
                   account={accountWithBalance.account}

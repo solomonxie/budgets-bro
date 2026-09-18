@@ -25,10 +25,24 @@ interface FieldRowProps {
   // Empty means nothing picked yet: the row shows its label alone, the way
   // a placeholder would, rather than a caption over a blank line.
   value: string;
-  onPress: () => void;
+  // Omitted for a row whose value isn't the user's to change — it reads the
+  // same but doesn't invite a tap that would do nothing.
+  onPress?: () => void;
 }
 
 export function FieldRow({ label, value, onPress }: FieldRowProps) {
+  if (!onPress) {
+    return (
+      <View style={styles.row}>
+        <View style={styles.rowText}>
+          <Text style={styles.rowLabel}>{label}</Text>
+          <Text style={[styles.rowValue, styles.rowValueLocked]} numberOfLines={1}>
+            {value}
+          </Text>
+        </View>
+      </View>
+    );
+  }
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -76,6 +90,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },
   rowValue: { fontSize: 16, color: colors.text },
+  rowValueLocked: { color: colors.textMuted },
   rowPlaceholder: { fontSize: 16, color: colors.textMuted },
   chevron: { fontSize: 22, color: colors.textMuted },
 });

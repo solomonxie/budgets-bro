@@ -30,7 +30,8 @@ import {
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
-import { FieldCard } from '../../components/ui/FieldCard';
+import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
+import { isLoanLikeType } from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
 import { RepeatField } from '../../components/ui/RepeatField';
@@ -95,6 +96,15 @@ export function AddTransactionScreen() {
   // Account tag below.
   const realAccounts = accounts.filter((a) => a.account.type !== 'income');
   const incomeAccounts = accounts.filter((a) => a.account.type === 'income');
+  // A loan/mortgage account's rows are its own payment mirror legs: the payee
+  // is the auto-managed one named after the account (payeesRepo's
+  // ensureAccountPayee — that name is the link), and an existing row cannot be
+  // moved to another account without orphaning the pair. Both read out,
+  // neither invites an edit that would break the link.
+  const selectedAccount = accounts.find((a) => a.account.id === accountId)?.account;
+  const isLoanAccount = selectedAccount != null && isLoanLikeType(selectedAccount.type);
+  const payeeLocked = isLoanAccount;
+  const accountLocked = isLoanAccount && isEditing;
   const presetIsIncomeAccount =
     presetAccountId != null &&
     incomeAccounts.some((a) => a.account.id === presetAccountId);
@@ -252,11 +262,14 @@ export function AddTransactionScreen() {
     // stale categoryId slip through regardless.
     const categoryIdToSave =
       isTrackingAccount || direction === 'in' ? null : categoryId;
+    // A loan account's payee is the one named after it — the link itself, not
+    // a label. The field reads out rather than picks, so pin it here too.
+    const payeeToSave = payeeLocked ? selectedAccount!.name : payee;
     if (isScheduled && editingTransactionId == null) {
       await scheduledTransactionsRepo.createScheduledTransaction(db, boardId, {
         accountId,
         categoryId: categoryIdToSave,
-        payeeName: payee,
+        payeeName: payeeToSave,
         memo: memo || null,
         amountCents: signedCents,
         frequency: rule.frequency,
@@ -270,7 +283,7 @@ export function AddTransactionScreen() {
       const input = {
         accountId,
         categoryId: categoryIdToSave,
-        payeeName: payee,
+        payeeName: payeeToSave,
         memo: memo || null,
         amountCents: signedCents,
         date,
@@ -391,17 +404,21 @@ export function AddTransactionScreen() {
             {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
             <FieldCard>
-              <SearchableDropdownField
-                compact
-                row
-                label={t('common.payee')}
-                valueLabel={payee}
-                placeholder={t('spend.payeePlaceholder')}
-                searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                options={payees.map((p) => ({ id: p.id, label: p.name }))}
-                onSelect={(o) => selectPayee(o.label, o.id)}
-                onUseText={setPayee}
-              />
+              {payeeLocked ? (
+                <FieldRow label={t('common.payee')} value={selectedAccount!.name} />
+              ) : (
+                <SearchableDropdownField
+                  compact
+                  row
+                  label={t('common.payee')}
+                  valueLabel={payee}
+                  placeholder={t('spend.payeePlaceholder')}
+                  searchPlaceholder={t('spend.payeeSearchPlaceholder')}
+                  options={payees.map((p) => ({ id: p.id, label: p.name }))}
+                  onSelect={(o) => selectPayee(o.label, o.id)}
+                  onUseText={setPayee}
+                />
+              )}
               {direction === 'in' ? (
                 incomeAccounts.length > 0 ? (
                   <DropdownField
@@ -485,6 +502,9 @@ export function AddTransactionScreen() {
                   )}
                 </DropdownField>
               )}
+              {accountLocked ? (
+                <FieldRow label={t('common.account')} value={selectedAccount!.name} />
+              ) : (
               <DropdownField
                 compact
                 row
@@ -511,6 +531,7 @@ export function AddTransactionScreen() {
                   </>
                 )}
               </DropdownField>
+              )}
               <DateField
                 row
                 label={dateLabel}

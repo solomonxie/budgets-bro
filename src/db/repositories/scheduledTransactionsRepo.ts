@@ -30,7 +30,6 @@ function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabel
     daysOfWeekMask: row.days_of_week_mask,
     nextDate: row.next_date,
     endDate: row.end_date,
-    incomeAccountId: row.income_account_id,
     createdAt: row.created_at,
     payeeName: row.payee_name,
     categoryName: row.category_name,
@@ -88,7 +87,6 @@ export async function approveOccurrence(db: SQLiteDatabase, boardId: number, id:
       memo: s.memo,
       amountCents: s.amountCents,
       date: nextDate,
-      incomeAccountId: s.incomeAccountId,
     });
     posted = true;
     nextDate = nextOccurrenceDate(nextDate, s.frequency, s.intervalN, s.daysOfWeekMask, s.createdAt.slice(0, 10));
@@ -110,7 +108,6 @@ export interface ScheduledTransactionInput {
   daysOfWeekMask: number | null;
   nextDate: string;
   endDate: string | null;
-  incomeAccountId: number | null;
 }
 
 export async function createScheduledTransaction(db: SQLiteDatabase, boardId: number, input: ScheduledTransactionInput): Promise<number> {
@@ -128,7 +125,6 @@ export async function createScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.nextDate,
     input.endDate,
     input.daysOfWeekMask,
-    input.incomeAccountId,
   );
   return result.lastInsertRowId;
 }
@@ -151,7 +147,6 @@ export async function updateScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.nextDate,
     input.endDate,
     input.daysOfWeekMask,
-    input.incomeAccountId,
     input.id,
   );
 }

@@ -172,7 +172,7 @@ export function BabyStepsScreen() {
   const cashLikeAccounts = accounts.filter((a) => ['Cash', 'Savings'].includes(accountKind(a.account.type)));
   // Broader pool for retirement/college funds — tracking/asset accounts
   // (brokerage, 529, etc.) count too, just not debt or the Income tag.
-  const investableAccounts = accounts.filter((a) => !['credit_card', 'loan', 'mortgage', 'income'].includes(a.account.type));
+  const investableAccounts = accounts.filter((a) => !['credit_card', 'loan', 'mortgage'].includes(a.account.type));
 
   const sumBalances = (ids: number[]) =>
     accounts.filter((a) => ids.includes(a.account.id)).reduce((sum, a) => sum + a.balanceCents, 0);

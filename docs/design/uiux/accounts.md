@@ -22,15 +22,13 @@
  House                                     $295,000.00
  Tracking                                    $2,196.00
  401(k)                                      $2,196.00
- Income                       $42,000.00   this year    ← never a ledger
- Salary                       $42,000.00   this year       balance near zero
                    ( + Add Account )
                    ( Closed Accounts )
 ```
 
 Groups in a fixed order — Cash · Savings · Tracking · Loan · Asset ·
-Credit · Income **last** — with a subtotal each and extra space between
-groups. A loan/mortgage row is negative: what's still owed.
+Credit — with a subtotal each and extra space between groups. A
+loan/mortgage row is negative: what's still owed.
 
 ```
  ( Customize ) ⇒ bottom sheet
@@ -84,7 +82,7 @@ One screen, everything inline — no separate cards page.
  New Account                              ( Cancel )
  Name          e.g. Wallet
  Type          [ CASH | Savings | Credit Card | Loan |
-                 Mortgage | Tracking | Asset | Income ]
+                 Mortgage | Tracking | Asset ]
  Starting Balance  $0.00
    hint  Balance the day this account starts here; debts negative.
    loan/mortgage: labelled "Balance When Tracking Started" and

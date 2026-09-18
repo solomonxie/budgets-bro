@@ -88,7 +88,6 @@ export interface TransactionRow {
   amount_cents: number;
   date: string;
   transfer_account_id: number | null;
-  income_account_id: number | null;
   import_id: string | null;
   created_at: string;
   updated_at: string;
@@ -115,7 +114,6 @@ export interface ScheduledTransactionRow {
   end_date: string | null;
   created_at: string;
   days_of_week_mask: number | null;
-  income_account_id: number | null;
 }
 
 export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {
@@ -138,14 +136,4 @@ export interface CustomGoalRow {
 
 export interface CustomGoalJoinRow extends CustomGoalRow {
   linked_balance_cents: number | null;
-}
-
-export interface IncomeDetailHistoryRow {
-  id: number;
-  account_id: number;
-  amount_cents: number;
-  unit: string;
-  effective_date: string;
-  note: string | null;
-  created_at: string;
 }

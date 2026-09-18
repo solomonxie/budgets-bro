@@ -84,15 +84,23 @@ Non-cash accounts (RRSP/TFSA-style investments, or any `tracking` account) get t
 
 Both modes store the same row shape (`value_cents` absolute, `gain_cents` delta, `as_of_date`, `mode`) — the UI difference is only which field the user fills in. Account "balance" for a tracking account becomes the latest `account_value_entries.value_cents` instead of opening_balance + transactions (transactions still exist for any real cash movement in/out, e.g. a contribution, but growth/decline is tracked separately from cash flow).
 
-## Income accounts (shipped)
-An `income`-typed account is a saved filter/tag, not a place money sits — no transaction ever targets it directly (`transactions.account_id` never equals it), so it never carries a ledger balance and is excluded from Net Worth by kind, not by coincidence.
+## Income accounts (removed)
+Shipped as an `income`-typed account plus a `transactions.income_account_id` tag; removed again in migration 028.
 
-- `transactions.income_account_id` (nullable FK → accounts, app-enforced `type = 'income'`, same as `type` itself has no DB-level enum) tags any transaction as income received, independent of which real account (cash, savings, tracking/investment, etc.) the money actually landed in — covers salary, freelance, and non-cash comp like RSU vesting into a Tracking account.
-- The tag is offered only for positive-amount, non-transfer entries — receiving value, not moving your own money between your own accounts.
-- An Income account's "balance" (Accounts list row/subtotal, detail page) is `SUM(amount_cents) WHERE income_account_id = X` for the period (this year / this month), never a ledger balance.
-- Replaces an earlier create-then-sweep model (a real entry on the Income account + a generated mirror transfer into a board-wide default cash account): that was two independently-editable rows that could desync on edit/delete since only creation kept them in sync. One real row now, tagged, not paired.
-- Every new board seeds one default Cash, Savings, and Income account, since at least one Income account must exist to tag anything as income.
-- Accounts list orders the Income group last (`ACCOUNT_KIND_ORDER`: Cash · Savings · Tracking · Loan · Asset · Credit · Income) — Income is a tag over the other accounts' transactions, not a place money sits. Loan sits ahead of Asset so a mortgage's debt reads near the cash it is paid from.
+The tag was a third field for a fact the first two already carried. Worse, the spend form defaulted it — every inflow got stamped with the first Income account whether or not the user chose one — so a deposit read "Account: RRSP, Payee: Chequing, Income account: Income" and meant nothing by it.
+
+**An inflow's source is its payee.** That is what a payee is for, it needs no second field, and it needs no account that money never sits in. Income reporting groups inflows by payee (`reportsRepo.incomeByPayeeInRange`), using the same definition of income the totals already used — positive, non-transfer, on-budget — so the parts add up to the whole.
+
+- Migration 028 drops both `income_account_id` columns, and converts income-typed accounts to archived `tracking` ones rather than deleting them: they hold no transactions of their own, and archiving keeps their names recoverable from Closed Accounts.
+- `income_detail_history` (pay-rate history) is left in place, unread. Dropping a table the user typed into isn't a migration's call to make.
+- Gone with it: the Income account kind and group, `useIncomeInsights`, `useIncomeAccountTransactions`, `useIncomeAccountYearTotals`, `IncomeTrendChart`, `IncomeDetailModal`, `incomeRepo`, `incomeDetailHistoryRepo`.
+- Accounts list order is now `ACCOUNT_KIND_ORDER`: Cash · Savings · Tracking · Loan · Asset · Credit — Loan ahead of Asset so a mortgage's debt reads near the cash it is paid from.
+
+## Inter-account transfers (shipped)
+A transfer is two rows, and each names the account across from it: the payer's row names where the money went and is negative, the receiver's names where it came from and is positive. Both are created from one entry — post a transaction whose payee is an account-linked payee (`payeesRepo.ensureAccountPayee`) and `transactionsRepo.postLinkedAccountLeg` mirrors it.
+
+- The mirror used to carry the *same* payee through, labelling the receiving row with its own account name ("Maple Street Mortgage" on the mortgage's own page). Migration 027 relabels the ones already posted.
+- `createTransfer` posted both legs with no payee at all, which read as "(No payee)" everywhere; migration 026 backfilled those. It has no callers — every real transfer goes through the linked payee.
 
 ## Recurring/scheduled transactions (designed, not yet built)
 New table `scheduled_transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents, frequency, interval_n, next_date, end_date nullable, auto_post boolean, is_interest, created_at) mirroring a real transaction's shape. Two posting modes, chosen per schedule:

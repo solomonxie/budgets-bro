@@ -125,7 +125,7 @@ export const zh: Record<keyof typeof en, string> = {
   's3Browser.empty': '这里还没有内容。',
   'backup.restore': '恢复',
   's3Browser.restoreConfirmTitle': '从 {name} 恢复？',
-  's3Browser.restoreConfirmMessage': '其中的账户、分类和流水会合并进当前账本。备份之后新增的内容会保留。',
+  's3Browser.restoreConfirmMessage': '它会作为一个新账本恢复，当前账本保持不变——可在设置中切换。',
   's3Browser.restoreNotFound': '该文件已不在存储桶中。',
   'aiHistory.hint':
     '这个密钥发出的每一次请求，原样保存。只存在本机 —— 每个密钥保留最近 50 条，备份中不包含。',

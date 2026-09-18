@@ -3,11 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getDb } from '../../db/client';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { useAppStore } from '../../state/useAppStore';
-import { TrackingValueModal } from '../../components/ui/TrackingValueModal';
-import type { TrackingValueSubmit } from '../../components/ui/TrackingValueModal';
+import { LoggedValueModal } from '../../components/ui/LoggedValueModal';
+import type { LoggedValueChange } from '../../components/ui/LoggedValueModal';
 import { ValueHistoryChart } from './ValueHistoryChart';
 import type { ValueHistoryChartMode } from './ValueHistoryChart';
-import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { usesLoggedValue } from '../../domain/accountKind';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
@@ -49,12 +48,15 @@ export function TrackingValueDetails({
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const [modal, setModal] = useState<{ editing: AccountValueChange | null } | null>(null);
 
-  const submit = async (value: TrackingValueSubmit) => {
+  const submit = async (value: LoggedValueChange) => {
+    const valueCents = Math.round(parseFloat(value.value) * 100);
+    if (!Number.isFinite(valueCents)) return;
     const db = await getDb();
+    const note = value.note.trim() || null;
     if (modal?.editing) {
-      await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, value.valueCents, value.effectiveDate, value.note);
+      await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, valueCents, value.effectiveDate, note);
     } else {
-      await accountValueHistoryRepo.addValueChange(db, account.id, value.valueCents, value.effectiveDate, value.note);
+      await accountValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate, note);
     }
     bumpDataVersion();
     refresh();
@@ -70,21 +72,6 @@ export function TrackingValueDetails({
     setModal(null);
   };
 
-  // Before any real log entry exists, "previous" falls back to the
-  // deposits-implied current value (see domain/investmentGrowth.ts) rather
-  // than null — so logging "+$10 interest" on a $500-deposited account
-  // with no prior log produces $510, not $10.
-  const impliedCurrentValueCents = buildGrowthSeries(history, transactions).at(-1)?.totalCents ?? null;
-
-  // Editing an existing entry re-derives its "previous" value from the row
-  // right before it in history, not the account's current latest value —
-  // otherwise gain-mode math would be wrong when editing anything but the
-  // most recent entry.
-  const previousValueCents = (() => {
-    if (!modal?.editing) return currentValueCents ?? impliedCurrentValueCents;
-    const idx = history.findIndex((h) => h.id === modal.editing!.id);
-    return idx >= 0 && idx + 1 < history.length ? history[idx + 1].valueCents : null;
-  })();
 
   return (
     <View style={styles.card}>
@@ -108,12 +95,16 @@ export function TrackingValueDetails({
           {t(usesLoggedValue(account.type) ? 'trackingValueCard.logValueUpdate' : 'trackingValueCard.logBalanceUpdate')}
         </Text>
       </Pressable>
-      <TrackingValueModal
+      <LoggedValueModal
         visible={modal != null}
-        previousValueCents={previousValueCents}
-        initialValueCents={modal?.editing?.valueCents ?? null}
-        initialEffectiveDate={modal?.editing?.effectiveDate ?? currentDateISO()}
-        initialNote={modal?.editing?.note ?? ''}
+        title={t('trackingValueModal.title')}
+        valueLabel={t('trackingValueModal.totalLabel')}
+        notePlaceholder={t('trackingValueModal.notePlaceholder')}
+        initial={{
+          value: modal?.editing ? (modal.editing.valueCents / 100).toString() : '',
+          effectiveDate: modal?.editing?.effectiveDate ?? currentDateISO(),
+          note: modal?.editing?.note ?? '',
+        }}
         onCancel={() => setModal(null)}
         onSubmit={submit}
         onDelete={modal?.editing ? deleteEntry : undefined}

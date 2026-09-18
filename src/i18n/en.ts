@@ -298,11 +298,7 @@ export const en = {
   'balanceTrendChart.balanceLabel': 'Balance',
   'balanceTrendChart.spendingLabel': 'Spending',
   'trackingValueModal.title': 'Log Value',
-  'trackingValueModal.modeTotal': 'Total Balance',
-  'trackingValueModal.modeGain': 'Gain/Loss',
-  'trackingValueModal.totalLabel': 'Current total balance',
-  'trackingValueModal.gainLabel': 'Interest or gain/loss since last log',
-  'trackingValueModal.resultHint': 'New value: {amount}',
+  'trackingValueModal.totalLabel': 'Total value now',
 
   'loanDetailsCard.label': 'Loan Details',
   'loanDetailsCard.addHint':

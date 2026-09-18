@@ -276,6 +276,33 @@ export function AccountModal() {
     reset();
   };
 
+  // A 'value' reading means something different per account — a home is
+  // worth X, an investment totals X — so the dialog takes its wording from
+  // the account, not just from the kind of reading. Heading an RRSP's dialog
+  // "Home Value" is how this went wrong the first time.
+  const readingWording: {
+    title: TranslationKey;
+    valueLabel: TranslationKey;
+    notePlaceholder: TranslationKey;
+  } =
+    readingModal?.kind === 'principal'
+      ? {
+          title: 'principalModal.title',
+          valueLabel: 'principalModal.valueLabel',
+          notePlaceholder: 'principalModal.notePlaceholder',
+        }
+      : isMortgage
+        ? {
+            title: 'houseValueModal.title',
+            valueLabel: 'houseValueModal.valueLabel',
+            notePlaceholder: 'houseValueModal.notePlaceholder',
+          }
+        : {
+            title: 'trackingValueModal.title',
+            valueLabel: 'trackingValueModal.totalLabel',
+            notePlaceholder: 'trackingValueModal.notePlaceholder',
+          };
+
   const refreshReadings = async (kind: AccountValueKind) => {
     if (kind === 'principal') await refreshPrincipals();
     else await refreshHouseValues();
@@ -585,9 +612,9 @@ export function AccountModal() {
       />
       <LoggedValueModal
         visible={readingModal != null}
-        title={t(readingModal?.kind === 'principal' ? 'principalModal.title' : 'houseValueModal.title')}
-        valueLabel={t(readingModal?.kind === 'principal' ? 'principalModal.valueLabel' : 'houseValueModal.valueLabel')}
-        notePlaceholder={t(readingModal?.kind === 'principal' ? 'principalModal.notePlaceholder' : 'houseValueModal.notePlaceholder')}
+        title={t(readingWording.title)}
+        valueLabel={t(readingWording.valueLabel)}
+        notePlaceholder={t(readingWording.notePlaceholder)}
         initial={{
           value: readingModal?.editing ? (readingModal.editing.valueCents / 100).toString() : '',
           effectiveDate: readingModal?.editing?.effectiveDate ?? currentDateISO(),

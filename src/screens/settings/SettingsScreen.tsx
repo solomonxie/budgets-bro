@@ -7,6 +7,7 @@ import { SearchableDropdownField } from '../../components/ui/SearchableDropdownF
 import { DropdownField } from '../../components/ui/DropdownField';
 import { BackupSection } from './BackupSection';
 import { DataSection } from './DataSection';
+import { HistorySection } from './HistorySection';
 import { useBoards } from '../../hooks/useBoards';
 import { usePayees } from '../../hooks/usePayees';
 import { useLanguageSetting } from '../../hooks/useLanguage';
@@ -25,6 +26,7 @@ import {
 import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
 import { AiKeyModal } from '../../components/ui/AiKeyModal';
 import { AiKeyHistoryModal } from '../../components/ui/AiKeyHistoryModal';
+import { ResultToast } from '../../components/ui/ResultToast';
 import type { AppExportImportResult } from '../../import/appExportImporter';
 import { seedDemoBoard } from '../../db/seed/demoBoard';
 import { useAppStore } from '../../state/useAppStore';
@@ -67,9 +69,8 @@ export function SettingsScreen() {
   const [aiKeyHistory, setAiKeyHistory] = useState<AiKeyMeta | null>(null);
   const [aiKeyStrategy, setAiKeyStrategyState] =
     useState<AiKeyStrategy>('sequential');
-  // A restore can start from a cloud destination or from a picked file; the
-  // summary reads the same either way, so it renders once here rather than
-  // twice inside the two sections that can produce it.
+  // What the last restore brought in, shown once and then gone: the numbers
+  // are worth confirming the moment they land and worth nothing afterwards.
   const [restoreResult, setRestoreResult] =
     useState<AppExportImportResult | null>(null);
 
@@ -554,31 +555,7 @@ export function SettingsScreen() {
         onRestored={handleRestored}
       />
 
-      {restoreResult ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>
-            {t('settings.restoredHeading')}
-          </Text>
-          <View style={styles.group}>
-            <ImportResultRow
-              label={t('settings.restoreResultBoard')}
-              value={restoreResult.boardName}
-            />
-            <ImportResultRow
-              label={t('settings.restoreResultAccounts')}
-              value={restoreResult.accountsImported}
-            />
-            <ImportResultRow
-              label={t('settings.restoreResultCategories')}
-              value={restoreResult.categoriesImported}
-            />
-            <ImportResultRow
-              label={t('settings.restoreResultTransactions')}
-              value={restoreResult.transactionsImported}
-            />
-          </View>
-        </View>
-      ) : null}
+      <HistorySection />
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>{t('settings.aboutHeading')}</Text>
@@ -589,6 +566,22 @@ export function SettingsScreen() {
           </View>
         </View>
       </View>
+
+      <ResultToast
+        visible={restoreResult != null}
+        title={t('settings.restoredHeading')}
+        lines={
+          restoreResult
+            ? [
+                { label: t('settings.restoreResultBoard'), value: restoreResult.boardName },
+                { label: t('settings.restoreResultAccounts'), value: String(restoreResult.accountsImported) },
+                { label: t('settings.restoreResultCategories'), value: String(restoreResult.categoriesImported) },
+                { label: t('settings.restoreResultTransactions'), value: String(restoreResult.transactionsImported) },
+              ]
+            : []
+        }
+        onDismiss={() => setRestoreResult(null)}
+      />
 
       <PromptModal
         visible={prompt != null}
@@ -609,21 +602,6 @@ export function SettingsScreen() {
         onSubmit={submitPrompt}
       />
     </ScreenContainer>
-  );
-}
-
-function ImportResultRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowTitle}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
-    </View>
   );
 }
 

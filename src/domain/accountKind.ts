@@ -64,3 +64,13 @@ export function isLoanLikeType(type: AccountType): boolean {
 export function usesLoggedValue(type: AccountType): boolean {
   return type === 'tracking' || type === 'asset';
 }
+
+// Accounts you actually pay things out of, where a category means something:
+// cash, savings, a credit card. Excludes off-budget accounts (tracking,
+// asset — no assigned money for a category to come out of) and loan
+// accounts, whose rows are mirrored payment legs rather than spending.
+// Used to pick the spend form's default account, so opening it from the
+// budget lands on somewhere you can actually spend from.
+export function isSpendingAccountType(type: AccountType): boolean {
+  return !usesLoggedValue(type) && !isLoanLikeType(type);
+}

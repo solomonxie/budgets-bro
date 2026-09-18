@@ -1,4 +1,4 @@
-import { ACCOUNT_KIND_ORDER, netWorth } from './accountKind';
+import { ACCOUNT_KIND_ORDER, isSpendingAccountType, netWorth } from './accountKind';
 
 describe('netWorth', () => {
   it('nets a mortgage to home equity: value minus what is still owed', () => {
@@ -28,5 +28,24 @@ describe('ACCOUNT_KIND_ORDER', () => {
 
   it('covers every account kind exactly once', () => {
     expect([...ACCOUNT_KIND_ORDER].sort()).toEqual(['Asset', 'Cash', 'Credit', 'Loan', 'Savings', 'Tracking']);
+  });
+});
+
+describe('isSpendingAccountType', () => {
+  it('covers the accounts that spend assigned money', () => {
+    expect(isSpendingAccountType('cash')).toBe(true);
+    expect(isSpendingAccountType('savings')).toBe(true);
+    // A card purchase still spends out of a category — that is the envelope
+    // system's whole point.
+    expect(isSpendingAccountType('credit_card')).toBe(true);
+  });
+
+  it('excludes accounts where a category would mean nothing', () => {
+    // No assigned cash behind them at all.
+    expect(isSpendingAccountType('tracking')).toBe(false);
+    expect(isSpendingAccountType('asset')).toBe(false);
+    // Rows here are mirrored payment legs; the category is on the paying side.
+    expect(isSpendingAccountType('loan')).toBe(false);
+    expect(isSpendingAccountType('mortgage')).toBe(false);
   });
 });

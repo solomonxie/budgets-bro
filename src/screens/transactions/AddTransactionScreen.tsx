@@ -31,7 +31,7 @@ import {
 } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
-import { isLoanLikeType } from '../../domain/accountKind';
+import { isLoanLikeType, isSpendingAccountType } from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
 import { RepeatField } from '../../components/ui/RepeatField';
@@ -101,17 +101,18 @@ export function AddTransactionScreen() {
   // Opened from an account's page, the account is the context you came from,
   // not a field — and an existing loan row cannot move accounts at all
   // without orphaning its mirror.
-  const accountLocked = (isLoanAccount && isEditing) || presetAccountId != null;
-  // Off-budget accounts (Tracking, Asset) sit outside the envelope system
-  // entirely (net-worth-only, never assigned money — see accountsRepo's
-  // on_budget derivation), so a category there wouldn't mean anything:
-  // there's no assigned cash for it to be spent out of. Budget activity
-  // queries already guard against this server-side (see
-  // databases/queries/budgets.ts), but the field shouldn't even be offered
-  // here.
-  const isTrackingAccount =
-    accounts.find((a) => a.account.id === accountId)?.account.onBudget ===
-    false;
+  // Both locks render the account's name, so neither can engage before the
+  // account is resolved: `accounts` loads async and `accountId` is set by an
+  // effect, so the first render of a preset-opened form has neither yet.
+  const accountLocked = selectedAccount != null && ((isLoanAccount && isEditing) || presetAccountId != null);
+  // A category only means something where money is actually spent out of
+  // assigned cash — a cash account, savings, a credit card. Off-budget
+  // accounts (Tracking, Asset) have no assigned cash for it to come out of,
+  // and a loan account's rows are mirrored payment legs whose category lives
+  // on the paying side. Budget activity queries already guard against this
+  // (see databases/queries/budgets.ts); the field shouldn't be offered
+  // either.
+  const takesCategory = selectedAccount != null && isSpendingAccountType(selectedAccount.type);
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no
@@ -147,16 +148,21 @@ export function AddTransactionScreen() {
     // account last saved to, which the store remembers across visits now
     // that this form unmounts when you leave it.
     if (editingTransactionId != null || realAccounts.length === 0) return;
-    const preset = presetAccountId;
+    // Opened from the budget rather than an account, the sensible default is
+    // the last account actually spent from — one where a category means
+    // something. Falling back to whatever was saved last would land on a
+    // mortgage or a tracking account, which take no category at all.
+    const spendable = realAccounts.filter((a) => isSpendingAccountType(a.account.type));
+    const lastSpendable = spendable.some((a) => a.account.id === lastAccountId) ? lastAccountId : null;
     setAccountId(
-      (prev) => preset ?? prev ?? lastAccountId ?? realAccounts[0].account.id,
+      (prev) =>
+        presetAccountId ??
+        prev ??
+        lastSpendable ??
+        spendable[0]?.account.id ??
+        realAccounts[0].account.id,
     );
-  }, [
-    editingTransactionId,
-    presetAccountId,
-    realAccounts,
-    lastAccountId,
-  ]);
+  }, [editingTransactionId, presetAccountId, realAccounts, lastAccountId]);
 
   // The "repeating" toggle lives in the header rather than costing the form
   // a whole row of its own. Hidden on an inflow: money coming in is logged
@@ -213,14 +219,13 @@ export function AddTransactionScreen() {
     }
     const signedCents = enteredCents * (direction === 'out' ? -1 : 1);
     const db = await getDb();
-    // Defense in depth — the field's already hidden for a tracking account
-    // or an income transaction (income needs no category), but never let a
-    // stale categoryId slip through regardless.
-    const categoryIdToSave =
-      isTrackingAccount || direction === 'in' ? null : categoryId;
+    // Defense in depth — the field is already hidden where a category means
+    // nothing, but never let a stale categoryId slip through after the
+    // account or the direction changed under it.
+    const categoryIdToSave = takesCategory && direction === 'out' ? categoryId : null;
     // A loan account's payee is the one named after it — the link itself, not
     // a label. The field reads out rather than picks, so pin it here too.
-    const payeeToSave = payeeLocked ? selectedAccount!.name : payee;
+    const payeeToSave = payeeLocked && selectedAccount != null ? selectedAccount.name : payee;
     if (isScheduled && editingTransactionId == null) {
       await scheduledTransactionsRepo.createScheduledTransaction(db, boardId, {
         accountId,
@@ -252,7 +257,9 @@ export function AddTransactionScreen() {
         await transactionsRepo.createTransaction(db, boardId, input);
       }
     }
-    rememberAccounts(accountId);
+    // Only remember somewhere you'd spend from — paying a mortgage or logging
+    // a tracking entry shouldn't become the next spend's default.
+    if (selectedAccount != null && isSpendingAccountType(selectedAccount.type)) rememberAccounts(accountId);
     bumpDataVersion();
     navigation.goBack();
   };
@@ -359,7 +366,7 @@ export function AddTransactionScreen() {
                 above an outlined pad was all border and no form. */}
             <FieldCard>
               {payeeLocked ? (
-                <FieldRow label={t('common.payee')} value={selectedAccount!.name} />
+                <FieldRow label={t('common.payee')} value={selectedAccount?.name ?? ''} />
               ) : (
                 <SearchableDropdownField
                   compact
@@ -375,7 +382,7 @@ export function AddTransactionScreen() {
               )}
               {/* An inflow's source is its payee, so it needs no category and
                   no second field naming where it came from. */}
-              {direction === 'in' || isTrackingAccount ? null : (
+              {direction === 'in' || !takesCategory ? null : (
                 <DropdownField
                   compact
                   row
@@ -430,7 +437,7 @@ export function AddTransactionScreen() {
                 </DropdownField>
               )}
               {accountLocked ? (
-                <FieldRow label={t('common.account')} value={selectedAccount!.name} />
+                <FieldRow label={t('common.account')} value={selectedAccount?.name ?? ''} />
               ) : (
               <DropdownField
                 compact

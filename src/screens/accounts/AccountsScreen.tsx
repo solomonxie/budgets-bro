@@ -5,6 +5,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountValues } from '../../hooks/useAccountValues';
+import { useNetWorthTrend } from '../../hooks/useNetWorthTrend';
+import { BalanceTrendChart } from './BalanceTrendChart';
 import { useAppStore } from '../../state/useAppStore';
 import { ACCOUNT_KIND_ORDER, accountKind, netWorth as computeNetWorth } from '../../domain/accountKind';
 import type { AccountKind } from '../../domain/types';
@@ -34,6 +36,7 @@ export function AccountsScreen() {
   const { valuesByAccountId: houseValues } = useAccountValues();
   const [excludedAccountIds, setExcludedAccountIds] = useState<Set<number>>(new Set());
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+  const [trendExpanded, setTrendExpanded] = useState(false);
 
   const toggleAccountIncluded = (accountId: number) => {
     setExcludedAccountIds((prev) => {
@@ -43,6 +46,14 @@ export function AccountsScreen() {
       return next;
     });
   };
+
+  // The trend reads the same account list and the same exclusions, so its
+  // last point is the number printed above it.
+  const trend = useNetWorthTrend(excludedAccountIds);
+  const trendPoints = useMemo(
+    () => trend.map((p) => ({ month: p.month, balanceCents: p.netWorthCents, spendingCents: 0 })),
+    [trend],
+  );
 
   const netWorth = useMemo(
     () =>
@@ -82,6 +93,18 @@ export function AccountsScreen() {
           <Text style={styles.netWorthPart}>{t('accounts.assets', { amount: formatMoney(netWorth.assetsCents) })}</Text>
           <Text style={styles.netWorthPart}>{t('accounts.debts', { amount: formatMoney(netWorth.debtsCents) })}</Text>
         </View>
+        {/* Needs two points to be a line — a board opened today is just the
+            number above. */}
+        {trendPoints.length > 1 ? (
+          <Pressable onPress={() => setTrendExpanded((v) => !v)}>
+            <Text style={styles.customizeLink}>
+              {trendExpanded ? t('accounts.hideTrend') : t('accounts.showTrend')}
+            </Text>
+          </Pressable>
+        ) : null}
+        {trendExpanded && trendPoints.length > 1 ? (
+          <BalanceTrendChart points={trendPoints} valueLabel={t('accounts.netWorth')} />
+        ) : null}
       </View>
 
       <Modal visible={accountPickerOpen} transparent animationType="fade" onRequestClose={() => setAccountPickerOpen(false)}>

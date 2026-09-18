@@ -21,3 +21,12 @@ export const CURRENT_VALUES_FOR_BOARD = `
       LIMIT 1
     )
 `;
+
+// Every reading on the board, both kinds, for the net-worth trend — which
+// needs the value as it stood in each past month, not just the latest.
+export const ALL_READINGS_FOR_BOARD = `
+  SELECT h.account_id, h.kind, h.value_cents, h.effective_date
+  FROM account_value_history h JOIN accounts a ON a.id = h.account_id
+  WHERE a.board_id = ?
+  ORDER BY h.effective_date
+`;

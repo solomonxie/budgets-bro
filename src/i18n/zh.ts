@@ -476,7 +476,13 @@ export const zh: Record<keyof typeof en, string> = {
     'AI 分析需要配置 API 密钥和服务商——将在未来版本中推出。',
 
   'transactions.searchPlaceholder': '搜索收款方或备注',
-  'transactions.select': '选择',
+  'transactions.selectedCount': '已选 {count} 条',
+  'transactions.selectAll': '全选',
+  'transactions.selectNone': '取消全选',
+  'transactions.editPayee': '修改收款方',
+  'transactions.editPayeeTitle': '为 {count} 条流水设置收款方',
+  'transactions.select': 
+'选择',
   'transactions.allCategories': '所有分类',
   'transactions.allOthers': '其他全部',
   'transactions.allMonths': '所有月份',

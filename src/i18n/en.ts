@@ -489,7 +489,13 @@ export const en = {
     'AI analysis needs an API key and provider setup — coming in a future update.',
 
   'transactions.searchPlaceholder': 'Search payee or memo',
-  'transactions.select': 'Select',
+  'transactions.selectedCount': '{count} selected',
+  'transactions.selectAll': 'Select all',
+  'transactions.selectNone': 'Select none',
+  'transactions.editPayee': 'Edit Payee',
+  'transactions.editPayeeTitle': 'Payee for {count} transactions',
+  'transactions.select': 
+'Select',
   'transactions.allCategories': 'All Categories',
   'transactions.allOthers': 'All Others',
   'transactions.allMonths': 'All Months',

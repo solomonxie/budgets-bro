@@ -12,5 +12,9 @@ export const colors = {
   negative: '#F87171',
   negativeTint: '#331616',
   amber: '#FBBF24',
+  // The spent share of a budget bar — present, but not competing with the
+  // green next to it for attention. Money already gone is the part you look
+  // at second.
+  amberMuted: '#7A6428',
   amberTint: '#332B0F',
 };

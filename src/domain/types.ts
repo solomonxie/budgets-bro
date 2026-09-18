@@ -118,6 +118,7 @@ export interface TransactionWithLabels extends Transaction {
   categoryName: string | null;
   categoryIcon: string | null;
   accountName: string;
+  accountType: AccountType;
 }
 
 export interface ScheduledTransaction {

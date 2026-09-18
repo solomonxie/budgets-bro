@@ -294,6 +294,9 @@ export const en = {
   'closedAccounts.deleteConfirmTitle': 'Delete \'{name}\' and its transactions?',
   'closedAccounts.deleteConfirmMessage': 'Its transactions are deleted too, and stop counting toward category activity and Unassigned Cash. The other side of any transfer keeps its own entry. This cannot be undone.',
   'closedAccounts.deleteImpactMessage': 'Its transactions go too — including {amount} of categorised spending, which is what offset the cash that paid this account off. Deleting it leaves those payments behind, so Unassigned Cash drops by that much. Usually you want to keep the account closed instead. This cannot be undone.',
+  'closedAccounts.absorbAction': 'Move to {name}',
+  'closedAccounts.deleteAnyway': 'Delete anyway',
+  'closedAccounts.absorbMessage': 'This account holds {amount} of categorised spending. Moving it to {into} keeps that history and collapses the payments between the two, so every balance and Unassigned Cash stay exactly where they are. Deleting instead drops Unassigned by that amount.',
 
   'houseValueCard.label': 'Home Value',
   'houseValueCard.notSet': 'Not set',

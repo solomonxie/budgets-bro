@@ -16,6 +16,10 @@ interface BottomSheetProps {
   // content — so a search that narrows the results to one or two rows
   // doesn't shrink the sheet down to a sliver behind the keyboard.
   listHeight?: number;
+  // Caps the list instead of pinning it: a picker still shrink-wraps to
+  // two options, but a long one stops at this many pixels rather than
+  // running to the card's own 65%-of-screen ceiling.
+  listMaxHeight?: number;
   children: ReactNode;
 }
 
@@ -28,7 +32,7 @@ interface BottomSheetProps {
 // scrolled to its top (scrollY <= 0) so it never fights the list's own
 // scroll — dragging down mid-list just scrolls back up like normal; once
 // you're at the top, the same drag starts pulling the sheet down instead.
-export function BottomSheet({ title, onClose, stickyContent, listHeight, children }: BottomSheetProps) {
+export function BottomSheet({ title, onClose, stickyContent, listHeight, listMaxHeight, children }: BottomSheetProps) {
   const t = useT();
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
@@ -73,7 +77,11 @@ export function BottomSheet({ title, onClose, stickyContent, listHeight, childre
             </View>
             {stickyContent}
             <ScrollView
-              style={[styles.list, listHeight != null && { height: listHeight, flexShrink: 0 }]}
+              style={[
+                styles.list,
+                listMaxHeight != null && { maxHeight: listMaxHeight },
+                listHeight != null && { height: listHeight, flexShrink: 0 },
+              ]}
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
               scrollEventThrottle={16}

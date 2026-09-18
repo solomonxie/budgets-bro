@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
 import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
+import { ICloudBrowserModal } from '../../components/ui/ICloudBrowserModal';
 import { useAppStore } from '../../state/useAppStore';
 import { getDb } from '../../db/client';
 import { addS3Config, listS3Configs } from '../../sync/s3Provider';
@@ -51,8 +52,10 @@ interface Destination {
   usable: boolean;
   note: string | null;
   action: string | null;
-  // S3 only: what tapping the row browses, and what can be deleted.
-  config: S3ConfigMeta | null;
+  // What tapping the row opens. Every usable destination has one: "what is
+  // actually up there" is the same question wherever the files live, and the
+  // iCloud row used to answer it by doing nothing at all.
+  browse: (() => void) | null;
 }
 
 // Every unusable state names itself in the row's subtitle. Kept beside the
@@ -95,6 +98,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
   >({});
   const [addOpen, setAddOpen] = useState(false);
   const [browsing, setBrowsing] = useState<S3ConfigMeta | null>(null);
+  const [browsingICloud, setBrowsingICloud] = useState(false);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
@@ -148,7 +152,8 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
             // — which is exactly what an earlier "Sign in to iCloud" did.
             action:
               icloudStatus === 'icloudOff' ? t('backup.icloudOffAction') : null,
-            config: null,
+            browse:
+              icloudStatus === 'available' ? () => setBrowsingICloud(true) : null,
           },
         ]
       : []),
@@ -161,7 +166,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
       usable: true,
       note: null,
       action: null,
-      config,
+      browse: () => setBrowsing(config),
     })),
   ];
 
@@ -203,10 +208,8 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
           >
             <Pressable
               style={styles.rowMain}
-              disabled={destination.config == null}
-              onPress={() =>
-                destination.config && setBrowsing(destination.config)
-              }
+              disabled={destination.browse == null}
+              onPress={() => destination.browse?.()}
             >
               <Text
                 style={[
@@ -253,6 +256,11 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
           setBrowsing(null);
           refresh();
         }}
+        onRestored={bumpDataVersion}
+      />
+      <ICloudBrowserModal
+        visible={browsingICloud}
+        onClose={() => setBrowsingICloud(false)}
         onRestored={bumpDataVersion}
       />
     </View>

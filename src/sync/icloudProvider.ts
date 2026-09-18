@@ -1,14 +1,21 @@
 import ICloudDrive from '../../modules/icloud-drive';
 import type { ICloudStatus } from '../../modules/icloud-drive';
 import type { CloudProvider } from './types';
+import { rollingBackupKey } from './backupPath';
 
 export const ICLOUD_PROVIDER_ID = 'icloud';
 
-// The destination that survives deleting the app: the same zip every other
-// provider gets, written into the app's own iCloud Drive folder (visible in
-// Files, syncs to their other devices, outlives the phone). An on-device
-// copy used to sit beside it and was removed — it shared the database's
-// sandbox, so it protected against nothing a reinstall could do.
+// The destination that survives deleting the app: the board's zip written
+// into the app's own iCloud Drive folder (visible in Files, syncs to their
+// other devices, outlives the phone). An on-device copy used to sit beside
+// it and was removed — it shared the database's sandbox, so it protected
+// against nothing a reinstall could do.
+//
+// One file per board, `<board-slug>-latest.zip`, overwritten every sync.
+// Surviving a reinstall is the whole job here, and only the current copy
+// does that job — a history would be someone's iCloud storage spent on
+// backups they'll never open. Buckets, which are cheap and browsable, keep
+// the dated history instead (backupPath.ts).
 //
 // Needs the iCloud entitlement from app.json and therefore a real build: the
 // native module is absent in Expo Go, where `ICloudDrive` is null.
@@ -29,6 +36,7 @@ export async function getICloudPath(): Promise<string | null> {
 function toProvider(drive: NonNullable<typeof ICloudDrive>): CloudProvider {
   return {
     id: ICLOUD_PROVIDER_ID,
+    keyFor: rollingBackupKey,
     upload: (bytes, key) => drive.write(key, bytes),
     listKeys: () => drive.list(),
     download: (key) => drive.read(key),

@@ -8,6 +8,9 @@ import {
 } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 import { useAppStore } from '../../state/useAppStore';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountValues } from '../../hooks/useAccountValues';
@@ -61,7 +64,7 @@ const ERROR_MESSAGE_KEY: Record<AiClientErrorCode, TranslationKey> = {
 // section); nothing is proxied through or stored by this app.
 export function AiAnalysisScreen() {
   const t = useT();
-  const openSettings = useAppStore((s) => s.openSettings);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const boardId = useAppStore((s) => s.currentBoardId);
   const month = useAppStore((s) => s.currentMonth);
   const { accounts } = useAccounts();
@@ -173,7 +176,7 @@ export function AiAnalysisScreen() {
       <ScreenContainer>
         <View style={styles.card}>
           <Text style={styles.hint}>{t('aiAnalysis.noKeyHint')}</Text>
-          <Pressable style={styles.settingsLink} onPress={openSettings}>
+          <Pressable style={styles.settingsLink} onPress={() => navigation.navigate('Settings')}>
             <Text style={styles.settingsLinkText}>
               {t('aiAnalysis.openSettings')}
             </Text>

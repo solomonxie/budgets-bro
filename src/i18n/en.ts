@@ -190,14 +190,11 @@ export const en = {
 
   'accounts.netWorth': 'Net Worth',
   'accounts.customize': 'Customize',
-  'accounts.thisYear': 'this year',
-  'accounts.thisYearAmount': 'This year: {amount}',
   'accounts.assets': 'Assets {amount}',
   'accounts.debts': 'Debts {amount}',
   'accounts.includeInNetWorth': 'Include in Net Worth',
   'accounts.addAccount': '+ Add Account',
   'accounts.closedAccounts': 'Closed Accounts',
-  'accounts.kindIncome': 'Income',
   'accounts.kindCash': 'Cash',
   'accounts.kindSavings': 'Savings',
   'accounts.kindCredit': 'Credit',
@@ -207,8 +204,6 @@ export const en = {
 
   'accountDetail.balance': 'Balance',
   'accountDetail.remainingPrincipal': 'Remaining Principal',
-  'accountDetail.incomeThisMonth': '{amount} this month',
-  'accountDetail.incomeThisYear': 'Income This Year',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
   'accountDetail.scheduledHeading': 'Scheduled ({count})',
   'accountDetail.scheduledHint':
@@ -222,7 +217,6 @@ export const en = {
   'accountModal.namePlaceholder': 'e.g. Wallet',
   'accountModal.typeLabel': 'Type',
   'accountModal.typeSavings': 'Savings',
-  'accountModal.typeIncome': 'Income',
   'accountModal.typeCash': 'Cash',
   'accountModal.typeCreditCard': 'Credit Card',
   'accountModal.typeLoan': 'Loan',
@@ -264,20 +258,7 @@ export const en = {
   'accountModal.loanTermsHeading':
     'Loan Terms (for the payoff projection on the account page)',
   'accountModal.toolsHeading': 'Tools',
-  'accountModal.incomeDetailsHeading': 'Pay Rate History',
-  'accountModal.incomeDetailsHint':
-    "Optional — track salary changes, an hourly rate, or per-paycheck amount over time. Purely informational; doesn't affect the actual logged deposits.",
-  'accountModal.addIncomeDetail': '+ Add Entry',
-  'accountModal.noIncomeDetails': 'No pay rate history recorded.',
 
-  'incomeDetailModal.title': 'Pay Rate',
-  'incomeDetailModal.amountLabel': 'Amount',
-  'incomeDetailModal.unitYear': '/year',
-  'incomeDetailModal.unitMonth': '/month',
-  'incomeDetailModal.unitHour': '/hour',
-  'incomeDetailModal.unitPaycheck': '/paycheck',
-  'incomeDetailModal.noteLabel': 'Note (optional)',
-  'incomeDetailModal.notePlaceholder': 'e.g. Annual raise',
   'accountModal.termMonthsPlaceholder': 'e.g. 360',
   'accountModal.termMonthsHint': 'How long the loan runs: 360 = 30 years, 240 = 20 years.',
   'accountModal.originalPrincipalLabel': 'Amount Borrowed',
@@ -454,8 +435,7 @@ export const en = {
   'taxInsights.totalIncomeLabel': 'Total income ({year})',
   'taxInsights.totalSpendingLabel': 'Total spending ({year})',
   'taxInsights.incomeBySourceLabel': 'Income by source',
-  'taxInsights.otherUntaggedIncome': 'Other / untagged',
-  'taxInsights.noIncomeAccounts': 'No income accounts tagged yet',
+  'taxInsights.noIncomeYet': 'No money in yet this year',
   'taxInsights.interestLabel': 'Interest',
   'taxInsights.interestHint':
     'Pick the category you tag interest transactions with, if any — deposits (e.g. savings interest) count as earned, charges (e.g. loan interest) count as paid.',
@@ -574,7 +554,6 @@ export const en = {
   'repeatField.every': 'Every {n} {unit}',
   'repeatField.everyWithDays': 'Every {n} {unit} on {days}',
 
-  'addTransactionModal.incomeAccountLabel': 'Income Account',
   'addTransactionModal.scheduledToggleLabel': 'Mark to repeat',
   'addTransactionModal.scheduledToggleLabelActive': '✓ Repeating',
   'addTransactionModal.startDateLabel': 'Starts',

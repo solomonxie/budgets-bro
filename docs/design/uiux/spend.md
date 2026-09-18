@@ -14,10 +14,12 @@ tabs by the `✛ Spend` tab, which intercepts its own press.
  │ Payee                              › │   one card, hairline rows — no
  ├──────────────────────────────────────┤   box per field
  │ Category                             │
- │ 🛒 Groceries                       › │   hidden for income (→ Income
- ├──────────────────────────────────────┤   Account) and for tracking
- │ Account                              │   accounts
- │ Chequing — Joint                   › │
+ │ 🛒 Groceries                       › │   hidden on an inflow and on a
+ ├──────────────────────────────────────┤   tracking account
+ │ Account                              │
+ │ Chequing — Joint                   › │   greyed, not tappable, when
+                                            opened from an account's page
+                                            or on a loan row
  ├──────────────────────────────────────┤
  │ Date                                 │
  │ September 17, 2026                 › │
@@ -59,8 +61,9 @@ The memo's system keyboard is the only thing that ever floats over this
 page, and dragging the form dismisses it — so it can never end up covering
 the pad or Save while you scroll.
 
-Income swaps Category for **Income Account** and requires it — an income
-transaction with no stream has nothing to attribute itself to.
+An inflow drops Category: where money came from is its payee, which the
+form already asks for. Payee is greyed too on a loan or mortgage row — it is
+the account's own payee, and that name is what links the mirrored pair.
 
 ## Repeating
 

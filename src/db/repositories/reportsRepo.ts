@@ -5,6 +5,7 @@ import {
   SPENDING_BY_CATEGORY_OVER_MONTHS,
   EARLIEST_TRANSACTION_MONTH,
   INCOME_AND_SPENDING_IN_RANGE,
+  INCOME_BY_PAYEE_IN_RANGE,
 } from '../../../databases/queries/reports';
 
 export interface CategorySpend {
@@ -173,4 +174,28 @@ export async function categorySpendingInRange(
     currentDateISO(),
   );
   return row?.total ?? 0;
+}
+
+export interface IncomeSource {
+  payeeId: number | null;
+  payeeName: string | null;
+  totalCents: number;
+}
+
+// Income broken down by who paid it, biggest first — what the tax screen's
+// "Income by source" reads now that income accounts are gone (migration 028).
+export async function incomeByPayeeInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  startDate: string,
+  endDateExclusive: string,
+): Promise<IncomeSource[]> {
+  const rows = await db.getAllAsync<{ payee_id: number | null; payee_name: string | null; total: number }>(
+    INCOME_BY_PAYEE_IN_RANGE,
+    boardId,
+    startDate,
+    endDateExclusive,
+    currentDateISO(),
+  );
+  return rows.map((r) => ({ payeeId: r.payee_id, payeeName: r.payee_name, totalCents: r.total }));
 }

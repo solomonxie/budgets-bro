@@ -73,7 +73,6 @@ export function AddTransactionScreen() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const lastAccountId = useAppStore((s) => s.lastAccountId);
-  const lastIncomeAccountId = useAppStore((s) => s.lastIncomeAccountId);
   const rememberAccounts = useAppStore((s) => s.rememberTransactionAccounts);
   const { accounts } = useAccounts();
   const { groups, categories } = useCategories();
@@ -90,12 +89,7 @@ export function AddTransactionScreen() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
-  // Income accounts hold no real balance — they're a tag on a transaction,
-  // not somewhere money sits (see migration 021) — so they're never a
-  // choice in the real "Account" field, only in the separate Income
-  // Account tag below.
-  const realAccounts = accounts.filter((a) => a.account.type !== 'income');
-  const incomeAccounts = accounts.filter((a) => a.account.type === 'income');
+  const realAccounts = accounts;
   // A loan/mortgage account's rows are its own payment mirror legs: the payee
   // is the auto-managed one named after the account (payeesRepo's
   // ensureAccountPayee — that name is the link), and an existing row cannot be
@@ -104,27 +98,10 @@ export function AddTransactionScreen() {
   const selectedAccount = accounts.find((a) => a.account.id === accountId)?.account;
   const isLoanAccount = selectedAccount != null && isLoanLikeType(selectedAccount.type);
   const payeeLocked = isLoanAccount;
-  const presetIsIncomeAccount =
-    presetAccountId != null &&
-    incomeAccounts.some((a) => a.account.id === presetAccountId);
   // Opened from an account's page, the account is the context you came from,
   // not a field — and an existing loan row cannot move accounts at all
-  // without orphaning its mirror. (An Income preset fills the stream tag
-  // instead, so the real account stays a choice there.)
-  const accountLocked = (isLoanAccount && isEditing) || (presetAccountId != null && !presetIsIncomeAccount);
-  const [incomeAccountId, setIncomeAccountId] = useState<number | null>(null);
-  const selectIncomeAccount = (id: number | null) => {
-    Keyboard.dismiss();
-    setIncomeAccountId(id);
-    // Tagging only ever makes sense on an inflow — switch the toggle so
-    // picking one doesn't silently get dropped by the outflow branch below.
-    // Scheduling isn't offered for income (see the toggle below), so drop
-    // it too rather than leave a hidden-but-still-active schedule behind.
-    if (id != null) {
-      setDirection('in');
-      setIsScheduled(false);
-    }
-  };
+  // without orphaning its mirror.
+  const accountLocked = (isLoanAccount && isEditing) || presetAccountId != null;
   // Off-budget accounts (Tracking, Asset) sit outside the envelope system
   // entirely (net-worth-only, never assigned money — see accountsRepo's
   // on_budget derivation), so a category there wouldn't mean anything:
@@ -160,7 +137,6 @@ export function AddTransactionScreen() {
       setPayee(txn.payeeName ?? '');
       setCategoryId(txn.categoryId);
       setAccountId(txn.accountId);
-      setIncomeAccountId(txn.incomeAccountId);
       setMemo(txn.memo ?? '');
       setDate(txn.date);
     })();
@@ -171,40 +147,20 @@ export function AddTransactionScreen() {
     // account last saved to, which the store remembers across visits now
     // that this form unmounts when you leave it.
     if (editingTransactionId != null || realAccounts.length === 0) return;
-    const preset = presetIsIncomeAccount ? null : presetAccountId;
+    const preset = presetAccountId;
     setAccountId(
       (prev) => preset ?? prev ?? lastAccountId ?? realAccounts[0].account.id,
     );
   }, [
     editingTransactionId,
     presetAccountId,
-    presetIsIncomeAccount,
     realAccounts,
     lastAccountId,
   ]);
 
-  useEffect(() => {
-    // An income transaction must be tagged to a stream — default to
-    // whichever one was last used (or the first) so the field is never
-    // blank, same as the real Account field above.
-    if (incomeAccounts.length === 0) return;
-    setIncomeAccountId(
-      (prev) => prev ?? lastIncomeAccountId ?? incomeAccounts[0].account.id,
-    );
-  }, [incomeAccounts, lastIncomeAccountId]);
-
-  useEffect(() => {
-    // Opened from an Income account's page: money never sits in one (see
-    // migration 021), so preselect it as the stream tag and flip to inflow
-    // instead of trying to use it as the account.
-    if (editingTransactionId != null || !presetIsIncomeAccount) return;
-    setIncomeAccountId(presetAccountId);
-    setDirection('in');
-  }, [editingTransactionId, presetIsIncomeAccount, presetAccountId]);
-
   // The "repeating" toggle lives in the header rather than costing the form
-  // a whole row of its own. Hidden for income: paychecks are logged after
-  // the fact, not set up in advance like a recurring bill.
+  // a whole row of its own. Hidden on an inflow: money coming in is logged
+  // after the fact, not set up in advance like a recurring bill.
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight:
@@ -251,11 +207,7 @@ export function AddTransactionScreen() {
   const save = async () => {
     Keyboard.dismiss();
     const enteredCents = amountCents(amount);
-    const missingIncomeAccount =
-      direction === 'in' &&
-      incomeAccounts.length > 0 &&
-      incomeAccountId == null;
-    if (!enteredCents || accountId == null || missingIncomeAccount) {
+    if (!enteredCents || accountId == null) {
       navigation.goBack();
       return;
     }
@@ -281,7 +233,6 @@ export function AddTransactionScreen() {
         daysOfWeekMask: rule.daysOfWeekMask,
         nextDate: date,
         endDate: hasEndDate ? endDate : null,
-        incomeAccountId: direction === 'in' ? incomeAccountId : null,
       });
     } else {
       const input = {
@@ -291,7 +242,6 @@ export function AddTransactionScreen() {
         memo: memo || null,
         amountCents: signedCents,
         date,
-        incomeAccountId: direction === 'in' ? incomeAccountId : null,
       };
       if (editingTransactionId != null) {
         await transactionsRepo.updateTransaction(db, boardId, {
@@ -302,7 +252,7 @@ export function AddTransactionScreen() {
         await transactionsRepo.createTransaction(db, boardId, input);
       }
     }
-    rememberAccounts(accountId, incomeAccountId);
+    rememberAccounts(accountId);
     bumpDataVersion();
     navigation.goBack();
   };
@@ -423,36 +373,9 @@ export function AddTransactionScreen() {
                   onUseText={setPayee}
                 />
               )}
-              {direction === 'in' ? (
-                incomeAccounts.length > 0 ? (
-                  <DropdownField
-                    compact
-                    row
-                    label={t('addTransactionModal.incomeAccountLabel')}
-                    valueLabel={
-                      incomeAccounts.find(
-                        (a) => a.account.id === incomeAccountId,
-                      )?.account.name ?? ''
-                    }
-                  >
-                    {(close) => (
-                      <>
-                        {incomeAccounts.map(({ account }) => (
-                          <DropdownOption
-                            key={account.id}
-                            label={account.name}
-                            selected={incomeAccountId === account.id}
-                            onPress={() => {
-                              selectIncomeAccount(account.id);
-                              close();
-                            }}
-                          />
-                        ))}
-                      </>
-                    )}
-                  </DropdownField>
-                ) : null
-              ) : isTrackingAccount ? null : (
+              {/* An inflow's source is its payee, so it needs no category and
+                  no second field naming where it came from. */}
+              {direction === 'in' || isTrackingAccount ? null : (
                 <DropdownField
                   compact
                   row

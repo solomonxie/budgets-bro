@@ -7,13 +7,13 @@ export const SELECT_WITH_LABELS = `
 `;
 
 export const INSERT_TRANSACTION = `
-  INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id, income_account_id)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 export const UPDATE_TRANSACTION = `
   UPDATE transactions
-  SET account_id = ?, category_id = ?, payee_id = ?, memo = ?, amount_cents = ?, date = ?, income_account_id = ?, updated_at = datetime('now')
+  SET account_id = ?, category_id = ?, payee_id = ?, memo = ?, amount_cents = ?, date = ?, updated_at = datetime('now')
   WHERE id = ?
 `;
 
@@ -29,7 +29,3 @@ export const LAST_CATEGORY_FOR_PAYEE = `
   LIMIT 1
 `;
 
-// Powers an Income account's own detail page — a saved filter over
-// whichever real accounts the money actually landed in, not a ledger of
-// its own (see migration 021). Same date/board guards as every other list.
-export const SELECT_FOR_INCOME_ACCOUNT = `${SELECT_WITH_LABELS} WHERE t.income_account_id = ? AND t.board_id = ? AND t.date <= ? ORDER BY t.date DESC, t.id DESC`;

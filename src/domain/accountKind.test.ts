@@ -12,14 +12,6 @@ describe('netWorth', () => {
     expect(netWorth([{ type: 'mortgage', balanceCents: -30_000_000 }]).netWorthCents).toBe(-30_000_000);
   });
 
-  it('leaves income accounts out entirely', () => {
-    const withIncome = netWorth([
-      { type: 'cash', balanceCents: 100_000 },
-      { type: 'income', balanceCents: 900_000 },
-    ]);
-    expect(withIncome.netWorthCents).toBe(100_000);
-  });
-
   it('adds a credit card balance to debts', () => {
     const result = netWorth([
       { type: 'cash', balanceCents: 500_000 },
@@ -30,8 +22,11 @@ describe('netWorth', () => {
 });
 
 describe('ACCOUNT_KIND_ORDER', () => {
-  it('puts Loan ahead of Asset and leaves Income last', () => {
+  it('puts Loan ahead of Asset', () => {
     expect(ACCOUNT_KIND_ORDER.indexOf('Loan')).toBeLessThan(ACCOUNT_KIND_ORDER.indexOf('Asset'));
-    expect(ACCOUNT_KIND_ORDER.at(-1)).toBe('Income');
+  });
+
+  it('covers every account kind exactly once', () => {
+    expect([...ACCOUNT_KIND_ORDER].sort()).toEqual(['Asset', 'Cash', 'Credit', 'Loan', 'Savings', 'Tracking']);
   });
 });

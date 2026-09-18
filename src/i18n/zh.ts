@@ -477,6 +477,7 @@ export const zh: Record<keyof typeof en, string> = {
 
   'transactions.searchPlaceholder': '搜索收款方或备注',
   'transactions.selectedCount': '已选 {count} 条',
+  'transactions.deleteSelectedConfirmTitle': '删除 {count} 条流水？',
   'transactions.selectAll': '全选',
   'transactions.selectNone': '取消全选',
   'transactions.editPayee': '修改收款方',

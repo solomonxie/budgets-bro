@@ -8,6 +8,11 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
+// Five option rows — enough to see the list is a list, short enough that
+// the sheet doesn't take the screen for an account picker with three
+// entries in it.
+const COMPACT_LIST_MAX_HEIGHT = 5 * 54;
+
 interface DropdownFieldProps {
   label: string;
   valueLabel: string;
@@ -23,8 +28,7 @@ interface DropdownFieldProps {
   // Half-height bottom sheet (swipe down or drag the handle to dismiss,
   // same as the full-screen picker's Back) instead of a full-screen page —
   // this is the default look now for every picker in the app, including
-  // long/grouped ones (category, payee). Leave off only where a filter
-  // dropdown genuinely benefits from the extra room (see TransactionsScreen).
+  // long/grouped ones (category, payee) and the history page's filters.
   compact?: boolean;
   // Skips the label row above the field to save vertical space — the
   // picker sheet/page still uses `label` as its title, and `placeholder`
@@ -34,9 +38,14 @@ interface DropdownFieldProps {
   // Renders as a row of a FieldCard — no box of its own, label above the
   // value, chevron at the end.
   row?: boolean;
+  // Renders as plain tappable text rather than a bordered field — for a
+  // filter, where the control sits above a list it is acting on and a boxed
+  // input makes it look like something to fill in. `placeholder` carries the
+  // unfiltered state ("All categories"), so no separate label is drawn.
+  link?: boolean;
 }
 
-export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row }: DropdownFieldProps) {
+export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const pendingRef = useRef<(() => void) | null>(null);
@@ -65,7 +74,13 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
 
   return (
     <View>
-      {row ? (
+      {link ? (
+        <Pressable onPress={openPicker} hitSlop={8}>
+          <Text style={styles.linkText} numberOfLines={1}>
+            {valueLabel || placeholder} ▾
+          </Text>
+        </Pressable>
+      ) : row ? (
         <FieldRow label={label} value={valueLabel} onPress={openPicker} />
       ) : (
         <>
@@ -80,7 +95,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
       )}
       {compact ? (
         <Modal visible={open} transparent animationType="slide" onRequestClose={() => close()} onDismiss={runDismissed}>
-          <BottomSheet title={label} onClose={close}>
+          <BottomSheet title={label} onClose={close} listMaxHeight={COMPACT_LIST_MAX_HEIGHT}>
             {children(close)}
           </BottomSheet>
         </Modal>
@@ -152,6 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   valueText: { fontSize: 15, color: colors.text, flex: 1 },
+  linkText: { fontSize: 14, fontWeight: '600', color: colors.accent },
   placeholder: { color: colors.textMuted },
   chevron: { color: colors.textMuted, fontSize: 13, marginLeft: spacing.sm },
   header: {
@@ -181,7 +197,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 17,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

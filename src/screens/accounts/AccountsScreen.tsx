@@ -36,7 +36,6 @@ export function AccountsScreen() {
   const { valuesByAccountId: houseValues } = useAccountValues();
   const [excludedAccountIds, setExcludedAccountIds] = useState<Set<number>>(new Set());
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
-  const [trendExpanded, setTrendExpanded] = useState(false);
 
   const toggleAccountIncluded = (accountId: number) => {
     setExcludedAccountIds((prev) => {
@@ -96,13 +95,6 @@ export function AccountsScreen() {
         {/* Needs two points to be a line — a board opened today is just the
             number above. */}
         {trendPoints.length > 1 ? (
-          <Pressable onPress={() => setTrendExpanded((v) => !v)}>
-            <Text style={styles.customizeLink}>
-              {trendExpanded ? t('accounts.hideTrend') : t('accounts.showTrend')}
-            </Text>
-          </Pressable>
-        ) : null}
-        {trendExpanded && trendPoints.length > 1 ? (
           <BalanceTrendChart points={trendPoints} valueLabel={t('accounts.netWorth')} />
         ) : null}
       </View>

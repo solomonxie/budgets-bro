@@ -9,6 +9,10 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { useFutureTransactions } from '../../hooks/useFutureTransactions';
 import { useAccountScheduledTransactions } from '../../hooks/useAccountScheduledTransactions';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
+import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
+import { useTransactionSelection } from '../../hooks/useTransactionSelection';
+import { getDb } from '../../db/client';
+import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { withRunningBalances } from '../../domain/register';
 import { monthlyBalanceTrend } from '../../domain/balanceTrend';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
@@ -87,6 +91,9 @@ export function AccountDetailScreen() {
   const [valueExpanded, setValueExpanded] = useState(false);
   const rootNavigation = useNavigation<RootNav>();
   const openEditAccount = useAppStore((s) => s.openEditAccount);
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const boardId = useAppStore((s) => s.currentBoardId);
+  const { selectMode, selectedIds, beginWith, toggle, toggleAll, exit } = useTransactionSelection();
 
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
   // An Income account has no ledger rows of its own (see migration 021) —
@@ -160,6 +167,20 @@ export function AccountDetailScreen() {
         : withRunningBalances(transactions, balanceCents),
     [isIncome, incomeTaggedTransactions, transactions, balanceCents],
   );
+
+  const deleteSelected = async () => {
+    const db = await getDb();
+    await transactionsRepo.deleteTransactions(db, selectedIds);
+    exit();
+    bumpDataVersion();
+  };
+
+  const setPayeeForSelected = async (payeeName: string) => {
+    const db = await getDb();
+    await transactionsRepo.setPayeeForTransactions(db, boardId, selectedIds, payeeName);
+    exit();
+    bumpDataVersion();
+  };
 
   return (
     <ScreenContainer>
@@ -434,11 +455,17 @@ export function AccountDetailScreen() {
           <Pressable
             style={styles.txnRow}
             onPress={() =>
-              rootNavigation.navigate('AddTransaction', {
-                transactionId: item.id,
-              })
+              selectMode
+                ? toggle(item.id)
+                : rootNavigation.navigate('AddTransaction', {
+                    transactionId: item.id,
+                  })
             }
+            onLongPress={() => beginWith(item.id)}
           >
+            {selectMode ? (
+              <View style={[styles.checkbox, selectedIds.includes(item.id) && styles.checkboxChecked]} />
+            ) : null}
             <View style={{ flex: 1 }}>
               <Text style={styles.payee}>
                 {item.payeeName ?? t('common.noPayee')}
@@ -485,11 +512,30 @@ export function AccountDetailScreen() {
           </Text>
         }
       />
+      {selectMode ? (
+        <TransactionSelectionBar
+          selectedCount={selectedIds.length}
+          allSelected={selectedIds.length >= rows.length && rows.length > 0}
+          onToggleAll={() => toggleAll(rows.map((r) => r.id))}
+          onSetPayee={setPayeeForSelected}
+          onDelete={deleteSelected}
+          onDone={exit}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+    marginRight: spacing.sm,
+  },
+  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
   summaryCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,

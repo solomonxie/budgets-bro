@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
+import { MoneyField } from '../../components/ui/MoneyField';
 import { DateField } from '../../components/ui/DateField';
 import { DropdownField, DropdownOption } from '../../components/ui/DropdownField';
 import { RateChangeModal } from '../../components/ui/RateChangeModal';
@@ -392,11 +393,10 @@ export function AccountModal() {
             <>
               {isMortgage ? (
                 <View style={styles.field}>
-                  <TextField
+                  <MoneyField
                     label={t('accountModal.currentHouseValueLabel')}
                     value={currentHouseValue}
                     onChangeText={setCurrentHouseValue}
-                    keyboardType="decimal-pad"
                     placeholder={t('common.amountPlaceholder')}
                     hint={t('accountModal.currentHouseValueHint')}
                   />
@@ -413,11 +413,10 @@ export function AccountModal() {
                 </View>
               ) : null}
               <View style={styles.field}>
-                <TextField
+                <MoneyField
                   label={t('accountModal.currentPrincipalLabel')}
                   value={currentPrincipal}
                   onChangeText={setCurrentPrincipal}
-                  keyboardType="decimal-pad"
                   placeholder={t('common.amountPlaceholder')}
                   hint={t('accountModal.currentPrincipalHint')}
                 />
@@ -435,11 +434,10 @@ export function AccountModal() {
             </>
           ) : usesLoggedValue(type) ? (
             <View style={styles.field}>
-              <TextField
+              <MoneyField
                 label={t('accountModal.currentValueLabel')}
                 value={currentHouseValue}
                 onChangeText={setCurrentHouseValue}
-                keyboardType="decimal-pad"
                 placeholder={t('common.amountPlaceholder')}
                 hint={t('accountModal.currentValueHint')}
               />
@@ -455,11 +453,10 @@ export function AccountModal() {
               ) : null}
             </View>
           ) : isEditing ? (
-            <TextField
+            <MoneyField
               label={t('accountModal.latestBalanceLabel')}
               value={latestBalance}
               onChangeText={setLatestBalance}
-              keyboardType="decimal-pad"
               placeholder={t('common.amountPlaceholder')}
               hint={t('accountModal.latestBalanceHint')}
             />
@@ -519,20 +516,18 @@ export function AccountModal() {
                 hint={t('accountModal.termMonthsHint')}
               />
               {isMortgage ? (
-                <TextField
+                <MoneyField
                   label={t('accountModal.originalHousePriceLabel')}
                   value={originalHousePrice}
                   onChangeText={setOriginalHousePrice}
-                  keyboardType="decimal-pad"
                   placeholder={t('accountModal.originalHousePricePlaceholder')}
                   hint={t('accountModal.originalHousePriceHint')}
                 />
               ) : null}
-              <TextField
+              <MoneyField
                 label={isMortgage ? t('accountModal.mortgageAmountLabel') : t('accountModal.originalPrincipalLabel')}
                 value={originalPrincipal}
                 onChangeText={setOriginalPrincipal}
-                keyboardType="decimal-pad"
                 placeholder={t('common.amountPlaceholder')}
                 hint={t('accountModal.originalPrincipalHint')}
               />

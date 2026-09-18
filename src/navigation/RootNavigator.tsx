@@ -23,6 +23,7 @@ import {
 } from '../hooks/useBoards';
 import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
+import { useAutoSnapshot } from '../hooks/useAutoSnapshot';
 import { useT } from '../i18n';
 import { colors } from '../theme/colors';
 import type { RootStackParamList, RootTabParamList } from './types';
@@ -127,6 +128,7 @@ export function RootNavigator() {
   useEnsureDemoBoard();
   useBootstrapLanguage();
   useAutoCloudSync();
+  useAutoSnapshot();
   const t = useT();
   return (
     <NavigationContainer theme={navigationTheme}>

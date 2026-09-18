@@ -4,7 +4,7 @@ import type { AccountRateChange } from '../../domain/types';
 import { LIST_RATE_HISTORY, CURRENT_RATE, CURRENT_RATES_FOR_BOARD } from '../../../databases/queries/accountRateHistory';
 
 function mapRow(row: AccountRateHistoryRow): AccountRateChange {
-  return { id: row.id, accountId: row.account_id, rateBps: row.rate_bps, effectiveDate: row.effective_date };
+  return { id: row.id, accountId: row.account_id, rateBps: row.rate_bps, effectiveDate: row.effective_date, note: row.note };
 }
 
 export async function listRateHistory(db: SQLiteDatabase, accountId: number): Promise<AccountRateChange[]> {
@@ -25,18 +25,37 @@ export async function currentRatesByBoard(db: SQLiteDatabase, boardId: number): 
   return new Map(rows.map((r) => [r.account_id, r.rate_bps]));
 }
 
-export async function addRateChange(db: SQLiteDatabase, accountId: number, rateBps: number, effectiveDate: string): Promise<number> {
+export async function addRateChange(
+  db: SQLiteDatabase,
+  accountId: number,
+  rateBps: number,
+  effectiveDate: string,
+  note: string | null = null,
+): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO account_rate_history (account_id, rate_bps, effective_date) VALUES (?, ?, ?)',
+    'INSERT INTO account_rate_history (account_id, rate_bps, effective_date, note) VALUES (?, ?, ?, ?)',
     accountId,
     rateBps,
     effectiveDate,
+    note,
   );
   return result.lastInsertRowId;
 }
 
-export async function updateRateChange(db: SQLiteDatabase, id: number, rateBps: number, effectiveDate: string): Promise<void> {
-  await db.runAsync('UPDATE account_rate_history SET rate_bps = ?, effective_date = ? WHERE id = ?', rateBps, effectiveDate, id);
+export async function updateRateChange(
+  db: SQLiteDatabase,
+  id: number,
+  rateBps: number,
+  effectiveDate: string,
+  note: string | null = null,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE account_rate_history SET rate_bps = ?, effective_date = ?, note = ? WHERE id = ?',
+    rateBps,
+    effectiveDate,
+    note,
+    id,
+  );
 }
 
 export async function deleteRateChange(db: SQLiteDatabase, id: number): Promise<void> {

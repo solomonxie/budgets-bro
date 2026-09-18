@@ -48,6 +48,7 @@ export const zh: Record<keyof typeof en, string> = {
   'rateChangeModal.title': '利率变更',
   'rateChangeModal.rateLabel': '利率（年化 %）',
   'rateChangeModal.ratePlaceholder': '例如 6.25',
+  'rateChangeModal.notePlaceholder': '例如 优惠利率到期',
 
   'stubScreen.comingSoon': '即将上线——该页面仍在设计中。',
 
@@ -239,6 +240,12 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.houseValueHistoryLabel': '房屋估值记录',
   'accountModal.principalHistoryLabel': '剩余本金记录',
   'accountModal.noReadings': '尚无记录。',
+  'accountModal.currentValueLabel': '当前估值',
+  'accountModal.currentValueHint': '现在值多少。这类账户的余额取最后一次记录的数值，不是流水的累加。',
+  'accountModal.valueHistoryLabel': '估值记录',
+  'accountModal.addValue': '+ 记一次估值更新',
+  'interestRateCard.notSet': '未设置',
+  'interestRateCard.logRateChange': '+ 记一次利率变更',
   'accountModal.addHouseValue': '+ 添加房屋估值',
   'accountModal.addPrincipal': '+ 添加剩余本金',
   'accountModal.latestBalanceLabel': '当前余额',

@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
 import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES, LOAN_PAYMENTS_FOR_BOARD } from '../../../databases/queries/accounts';

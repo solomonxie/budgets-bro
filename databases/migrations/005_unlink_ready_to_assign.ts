@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // The YNAB importer used to create a real category for "Ready to Assign"
 // rows (YNAB's reserved category for uncategorized inflow) instead of

@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Transfers used to post both legs with no payee at all (transactionsRepo's
 // createTransfer), so a mortgage paid by transfer left a row on the loan

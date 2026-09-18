@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Ties a category 1:1 to a loan/mortgage account — its auto-generated
 // "Payment: <account>" category (see accountsRepo's payment-category

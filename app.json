@@ -56,7 +56,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite",
       "expo-secure-store",
       [
         "expo-file-system",

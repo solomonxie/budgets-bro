@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import { File, Paths } from 'expo-file-system';
 import { Share } from 'react-native';
 import { buildBackupZip } from '../sync/buildBackup';

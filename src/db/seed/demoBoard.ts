@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import * as boardsRepo from '../repositories/boardsRepo';
 import * as accountsRepo from '../repositories/accountsRepo';
 import * as accountRateHistoryRepo from '../repositories/accountRateHistoryRepo';

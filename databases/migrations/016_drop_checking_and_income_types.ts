@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // 'checking' and 'income' account types are gone — checking was
 // indistinguishable from 'cash' (same Kind, no separate behavior) and

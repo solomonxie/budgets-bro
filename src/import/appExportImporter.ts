@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import * as boardsRepo from '../db/repositories/boardsRepo';
 import type { PickedAppExport } from './pickAppExport';
 

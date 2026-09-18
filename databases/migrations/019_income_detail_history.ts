@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Effective-dated income details for an 'income' account — pay rate
 // changes, a per-hour rate alongside variable logged hours, etc. Same

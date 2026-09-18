@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import { parseCsv, parseYnabDate } from './csv';
 import { makeOccurrenceCounter, ynabImportId } from './ynabImportId';
 import * as categoriesRepo from '../db/repositories/categoriesRepo';

@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Settles what the two rows of a transfer are called: each names the account
 // across from it. The payer's row names where the money went, the receiver's

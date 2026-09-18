@@ -2,17 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { getDb } from '../db/client';
 import * as payeesRepo from '../db/repositories/payeesRepo';
 import type { Payee } from '../domain/types';
+import type { PayeeOrder } from '../db/repositories/payeesRepo';
 import { useAppStore } from '../state/useAppStore';
 
-export function usePayees() {
+export function usePayees(order: PayeeOrder = 'name') {
   const [payees, setPayees] = useState<Payee[]>([]);
   const dataVersion = useAppStore((s) => s.dataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
-    setPayees(await payeesRepo.listPayees(db, boardId));
-  }, [boardId]);
+    setPayees(await payeesRepo.listPayees(db, boardId, order));
+  }, [boardId, order]);
 
   useEffect(() => {
     refresh();

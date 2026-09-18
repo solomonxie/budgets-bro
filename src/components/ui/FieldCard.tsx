@@ -6,12 +6,16 @@ import { spacing } from '../../theme/spacing';
 // One rounded panel holding the whole form, hairline-divided into rows,
 // instead of a stack of individually outlined boxes — a grid of borders
 // under a number pad reads as clutter.
-export function FieldCard({ children }: { children: ReactNode }) {
+// `grow` lets the card absorb whatever vertical space is left over, and
+// hands it to its last row — so the spend form's pad stays put at the bottom
+// whether or not the account above it offers a Category row, instead of
+// riding up and down with the row count.
+export function FieldCard({ children, grow }: { children: ReactNode; grow?: boolean }) {
   const rows = Children.toArray(children);
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, grow && styles.cardGrow]}>
       {rows.map((row, i) => (
-        <View key={i}>
+        <View key={i} style={grow && i === rows.length - 1 ? styles.growRow : undefined}>
           {i > 0 ? <View style={styles.divider} /> : null}
           {row}
         </View>
@@ -73,6 +77,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
   },
+  cardGrow: { flex: 1 },
+  growRow: { flex: 1 },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,

@@ -34,6 +34,7 @@ export const zh: Record<keyof typeof en, string> = {
   'bottomSheet.cancel': '取消',
 
   'searchableDropdown.useText': '使用「{text}」',
+  'payeePicker.accountBadge': '账户',
 
   'monthPickerModal.title': '月份',
 

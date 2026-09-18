@@ -1,4 +1,4 @@
-import { buildGrowthSeries, projectGrowthOntoMonths } from './investmentGrowth';
+import { buildGrowthSeries, projectGrowthOntoPeriods } from './investmentGrowth';
 
 describe('buildGrowthSeries', () => {
   it('attributes a snapshot with no deposits yet entirely to gain', () => {
@@ -92,10 +92,10 @@ describe('buildGrowthSeries', () => {
   });
 });
 
-describe('projectGrowthOntoMonths', () => {
+describe('projectGrowthOntoPeriods', () => {
   it('returns null for months before the first snapshot', () => {
     const series = buildGrowthSeries([{ valueCents: 10_000, effectiveDate: '2026-03-01' }], []);
-    const projected = projectGrowthOntoMonths(series, ['2026-01', '2026-02', '2026-03']);
+    const projected = projectGrowthOntoPeriods(series, ['2026-01', '2026-02', '2026-03']);
     expect(projected).toEqual([null, null, series[0]]);
   });
 
@@ -107,7 +107,19 @@ describe('projectGrowthOntoMonths', () => {
       ],
       [],
     );
-    const projected = projectGrowthOntoMonths(series, ['2026-01', '2026-02', '2026-03', '2026-04']);
+    const projected = projectGrowthOntoPeriods(series, ['2026-01', '2026-02', '2026-03', '2026-04']);
     expect(projected.map((p) => p?.totalCents ?? null)).toEqual([10_000, 10_000, 12_000, 12_000]);
+  });
+
+  it('buckets by year when the periods are years', () => {
+    const series = buildGrowthSeries(
+      [
+        { valueCents: 500_000, effectiveDate: '2024-06-01' },
+        { valueCents: 560_000, effectiveDate: '2026-02-01' },
+      ],
+      [],
+    );
+    const projected = projectGrowthOntoPeriods(series, ['2023', '2024', '2025', '2026']);
+    expect(projected.map((p) => p?.totalCents ?? null)).toEqual([null, 500_000, 500_000, 560_000]);
   });
 });

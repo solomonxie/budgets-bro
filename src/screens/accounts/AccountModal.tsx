@@ -41,6 +41,11 @@ const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
 };
 const TYPE_VALUES: AccountType[] = ['income', 'cash', 'savings', 'tracking', 'asset', 'loan', 'mortgage', 'credit_card'];
 
+const parseCents = (text: string): number | null => {
+  const value = parseFloat(text);
+  return Number.isFinite(value) ? Math.round(value * 100) : null;
+};
+
 // Same "one sheet, create or edit" pattern as the transaction modal —
 // "+ Add Account" used to push a full-screen form; this matches it.
 export function AccountModal() {
@@ -63,7 +68,13 @@ export function AccountModal() {
   const [termMonths, setTermMonths] = useState('');
   const [originalPrincipal, setOriginalPrincipal] = useState('');
   const [originalHousePrice, setOriginalHousePrice] = useState('');
+  // A brand-new loan's starting balance IS what was borrowed, negated — so
+  // auto-fill it rather than make the same number get typed twice. Stops
+  // the moment the field is edited by hand: someone adding a loan they had
+  // already been paying owes less now than they borrowed.
+  const [openingBalanceEdited, setOpeningBalanceEdited] = useState(false);
   const [originationDate, setOriginationDate] = useState(currentDateISO());
+  const [note, setNote] = useState('');
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
   const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -80,7 +91,9 @@ export function AccountModal() {
     setTermMonths('');
     setOriginalPrincipal('');
     setOriginalHousePrice('');
+    setOpeningBalanceEdited(false);
     setOriginationDate(currentDateISO());
+    setNote('');
     setArchivedAt(null);
     setRateModal(null);
     setToolsOpen(false);
@@ -105,6 +118,7 @@ export function AccountModal() {
       setOriginalPrincipal(account.originalPrincipalCents != null ? (account.originalPrincipalCents / 100).toString() : '');
       setOriginalHousePrice(account.originalHousePriceCents != null ? (account.originalHousePriceCents / 100).toString() : '');
       setOriginationDate(account.originationDate ?? currentDateISO());
+      setNote(account.note ?? '');
       setArchivedAt(account.archivedAt);
       setIncomeHistory(await incomeDetailHistoryRepo.listHistory(db, editingAccountId));
     })();
@@ -120,6 +134,19 @@ export function AccountModal() {
   };
 
   const isLoanLike = isLoanLikeType(type);
+  const isMortgage = type === 'mortgage';
+
+  const editOpeningBalance = (text: string) => {
+    setOpeningBalanceEdited(true);
+    setOpeningBalance(text);
+  };
+
+  const editAmountBorrowed = (text: string) => {
+    setOriginalPrincipal(text);
+    if (isEditing || openingBalanceEdited) return;
+    const cents = parseCents(text);
+    setOpeningBalance(cents == null ? '' : String(-cents / 100));
+  };
   const isIncomeType = type === 'income';
 
   const refreshIncomeHistory = async () => {
@@ -151,10 +178,10 @@ export function AccountModal() {
     setIncomeDetailModal(null);
   };
 
-  const downPaymentCents =
-    originalHousePrice && originalPrincipal
-      ? Math.round(parseFloat(originalHousePrice) * 100) - Math.round(parseFloat(originalPrincipal) * 100)
-      : null;
+  const housePriceCents = parseCents(originalHousePrice);
+  const borrowedCents = parseCents(originalPrincipal);
+  const downPaymentCents = housePriceCents != null && borrowedCents != null ? housePriceCents - borrowedCents : null;
+  const downPaymentPercent = downPaymentCents != null && housePriceCents ? ((downPaymentCents / housePriceCents) * 100).toFixed(1) : null;
 
   // Tools > Amortization Schedule prefill — the account's real outstanding
   // balance (not opening balance) and current rate. `fixedPaymentCents` pins the
@@ -162,10 +189,9 @@ export function AccountModal() {
   // fields (the "live" values being edited), not the last-saved DB record.
   const outstandingCents = Math.max(0, -loadedBalanceCents);
   const formTermMonths = termMonths ? Math.round(parseFloat(termMonths)) : null;
-  const formPrincipalCents = originalPrincipal ? Math.round(parseFloat(originalPrincipal) * 100) : null;
   const scheduledPaymentCents =
-    formPrincipalCents != null && formTermMonths != null && currentRateBps != null
-      ? monthlyPaymentCents(formPrincipalCents, currentRateBps, formTermMonths)
+    borrowedCents != null && formTermMonths != null && currentRateBps != null
+      ? monthlyPaymentCents(borrowedCents, currentRateBps, formTermMonths)
       : null;
 
   const save = async () => {
@@ -174,14 +200,20 @@ export function AccountModal() {
       return;
     }
     const db = await getDb();
+    const typedOpeningCents = parseCents(openingBalance) ?? 0;
     const input = {
       name: name.trim(),
       type,
-      openingBalanceCents: Math.round(parseFloat(openingBalance || '0') * 100),
+      // A loan is money owed — stored negative, so the accounts list and Net
+      // Worth read it as debt rather than as something you own. The field
+      // auto-fills negated from the amount borrowed, but a hand-typed
+      // positive number is the obvious mistake to absorb here.
+      openingBalanceCents: isLoanLike ? -Math.abs(typedOpeningCents) : typedOpeningCents,
       termMonths: isLoanLike && termMonths ? Math.round(parseFloat(termMonths)) : null,
       originalPrincipalCents: isLoanLike && originalPrincipal ? Math.round(parseFloat(originalPrincipal) * 100) : null,
       originationDate: isLoanLike ? originationDate : null,
       originalHousePriceCents: isLoanLike && originalHousePrice ? Math.round(parseFloat(originalHousePrice) * 100) : null,
+      note: note.trim() || null,
     };
     if (editingAccountId != null) {
       await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
@@ -288,11 +320,12 @@ export function AccountModal() {
             )}
           </DropdownField>
           <TextField
-            label={t('accountModal.openingBalanceLabel')}
+            label={t(isLoanLike ? 'accountModal.openingBalanceLoanLabel' : 'accountModal.openingBalanceLabel')}
             value={openingBalance}
-            onChangeText={setOpeningBalance}
+            onChangeText={editOpeningBalance}
             keyboardType="decimal-pad"
             placeholder={t('common.amountPlaceholder')}
+            hint={t(isLoanLike ? 'accountModal.openingBalanceLoanHint' : 'accountModal.openingBalanceHint')}
           />
           {isEditing && !usesLoggedValue(type) ? (
             <TextField
@@ -301,6 +334,7 @@ export function AccountModal() {
               onChangeText={setLatestBalance}
               keyboardType="decimal-pad"
               placeholder={t('common.amountPlaceholder')}
+              hint={t('accountModal.latestBalanceHint')}
             />
           ) : null}
           <Text style={styles.sectionLabel}>{t('accountModal.interestRateHeading')}</Text>
@@ -344,33 +378,51 @@ export function AccountModal() {
                 onChangeText={setTermMonths}
                 keyboardType="number-pad"
                 placeholder={t('accountModal.termMonthsPlaceholder')}
+                hint={t('accountModal.termMonthsHint')}
               />
-              <TextField
-                label={t('accountModal.originalPrincipalLabel')}
-                value={originalPrincipal}
-                onChangeText={setOriginalPrincipal}
-                keyboardType="decimal-pad"
-                placeholder={t('common.amountPlaceholder')}
-              />
-              <View style={styles.field}>
+              {isMortgage ? (
                 <TextField
                   label={t('accountModal.originalHousePriceLabel')}
                   value={originalHousePrice}
                   onChangeText={setOriginalHousePrice}
                   keyboardType="decimal-pad"
                   placeholder={t('accountModal.originalHousePricePlaceholder')}
+                  hint={t('accountModal.originalHousePriceHint')}
                 />
-                {downPaymentCents != null ? (
-                  <Text style={styles.hint}>
-                    {downPaymentCents >= 0
-                      ? t('accountModal.downPaymentHint', { amount: formatMoney(downPaymentCents) })
-                      : t('accountModal.principalExceedsHint')}
-                  </Text>
-                ) : null}
-              </View>
+              ) : null}
+              <TextField
+                label={isMortgage ? t('accountModal.mortgageAmountLabel') : t('accountModal.originalPrincipalLabel')}
+                value={originalPrincipal}
+                onChangeText={editAmountBorrowed}
+                keyboardType="decimal-pad"
+                placeholder={t('common.amountPlaceholder')}
+                hint={t('accountModal.originalPrincipalHint')}
+              />
+              {isMortgage ? (
+                <View style={styles.computedRow}>
+                  <Text style={styles.label}>{t('accountModal.downPaymentLabel')}</Text>
+                  {downPaymentCents == null ? (
+                    <Text style={styles.hint}>{t('accountModal.downPaymentPending')}</Text>
+                  ) : downPaymentCents < 0 ? (
+                    <Text style={styles.computedWarning}>{t('accountModal.principalExceedsHint')}</Text>
+                  ) : (
+                    <Text style={styles.computedValue}>
+                      {t('accountModal.downPaymentValue', { amount: formatMoney(downPaymentCents), percent: downPaymentPercent ?? '' })}
+                    </Text>
+                  )}
+                </View>
+              ) : null}
               <DateField label={t('accountModal.originationDateLabel')} value={originationDate} onChange={setOriginationDate} />
             </>
           ) : null}
+          <TextField
+            label={t('accountModal.noteLabel')}
+            value={note}
+            onChangeText={setNote}
+            placeholder={t('accountModal.notePlaceholder')}
+            multiline
+            style={styles.noteInput}
+          />
           {isEditing && isIncomeType ? (
             <View style={styles.field}>
               <Text style={styles.sectionLabel}>{t('accountModal.incomeDetailsHeading')}</Text>
@@ -467,7 +519,20 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   hint: { fontSize: 12, color: colors.textMuted },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginTop: spacing.xs },
-  dangerZone: { marginTop: spacing.md, alignItems: 'center' },
+  computedRow: {
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: colors.surface,
+  },
+  computedValue: { fontSize: 15, fontWeight: '700', color: colors.text },
+  computedWarning: { fontSize: 13, fontWeight: '600', color: colors.negative },
+  noteInput: { minHeight: 72, textAlignVertical: 'top' },
+  dangerZone: {
+ marginTop: spacing.md, alignItems: 'center' },
   closeLink: { color: colors.negative, fontWeight: '600', fontSize: 14 },
   reopenLink: { color: colors.accent, fontWeight: '600', fontSize: 14 },
   rateRow: {

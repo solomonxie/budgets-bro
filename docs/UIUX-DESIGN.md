@@ -1,5 +1,9 @@
 # UI/UX Design
 
+**Every screen is drawn in `design/uiux/` — start there.** This file carries the
+rules and the reasoning behind those drawings; where the two disagree,
+`design/uiux/` is current.
+
 Screen-by-screen spec for ByoBudget (Expo/React Native, dark-only, YNAB-style envelope budgeting), plus the conventions behind it. Product/domain decisions live in `DESIGN.md`; task breakdown in `IMPLEMENTATION_PLAN.md`.
 
 Every rule here was paid for by something that shipped wrong first — the reasons are kept in place, not trimmed.
@@ -36,7 +40,7 @@ Copy:
 ```
 
 - Tabs are destinations only. No hidden tab reachable only from a header button; Settings lives as a gear in the native header, same row as the screen's own action, identical on every screen.
-- One action tab (`✛ Spend`) intercepts its own press and opens the sheet instead of navigating — flush in the bar, never raised above it.
+- One action tab (`✛ Spend`) intercepts its own press and pushes the Add Transaction page instead of navigating to a tab — flush in the bar, never raised above it.
 - No FAB. One global entry point beats two buttons with different behavior, even when the per-screen one could prefill context. (Android elevation also refuses to follow a rounded pill's shape — the shadow renders as a rectangular smudge.)
 - Give the tab bar an explicit background/border; iOS's translucent blur reads as a stray dark bar against a near-black theme.
 - Don't keep a one-screen navigator alive just to host a screen that has no sub-routes — make it a modal.
@@ -54,6 +58,8 @@ Dark by default, near-black (`#0D0D0D`) page, surface `#1C1C1E`, one accent (tea
 if something / some options aren't many, don't jump to another page, but use propor sized dropdown menu or pop up window instead.
 
 Half-height sheet is the default for pickers and short forms; full page only when the form truly needs the room.
+
+A page, not a sheet, once the form scrolls: transaction entry moved off a pageSheet because dragging down to dismiss competed with the scrolling form under it. A pushed page gets a back button top-left and a full-screen swipe-right gesture, neither of which the content can swallow.
 
 ```
         ▁▁▁▁▁▁▁                 ← drag handle; drag anywhere dismisses
@@ -246,7 +252,8 @@ Every sync writes a full copy of this board…       ← one hint for all of the
 - State the real protection scope in the hint: an on-device snapshot survives a bad import or corruption, **not** a lost phone.
 - Say where the file lands (visible in Files app under "On My iPhone" on a real device build) so it can be copied off manually.
 - Keep a manual "Restore Latest" reachable whenever local is the only destination — auto-writing the snapshot covers the save side, but restore must never depend on a file picker.
-- Data actions that are peers (export · import a backup · import from YNAB) are chevron rows in one group, not stacked full-width buttons. Three buttons read as three competing calls to action in what is really a list; one primary button per screen, at most.
+- Data actions that are peers (export · import a backup · import from YNAB) are a row of plain text links under the backup destinations — not full-width buttons, not rows with hints. Three buttons read as three competing calls to action, and each of these is a one-off that opens a picker and is over; the label is the whole explanation. One primary button per screen, at most.
+- A finished one-off reports in a toast that leaves by itself (`ResultToast`), never a results panel that stays on the page — import/restore counts are worth one glance and nothing afterwards.
 
 
 ### Cloud Bucket Backup
@@ -351,11 +358,11 @@ Reference: real YNAB's screenshots — reuse the interaction patterns that carry
 - Tapping a category opens the assign popup with the amount already focused — no second tap into the field.
 - Month via prev/next **and** a tappable label.
 
-**Transaction entry/edit sheet** — see Forms above for the layout. Large amount field with a numeric keypad and a Done bar; Outflow/Inflow toggle sets the sign; payee/category/account/date/memo; category hidden for income and for tracking accounts; income requires an income stream; "Mark to repeat" as a header pill that swaps Date → Starts and reveals the repeat builder.
+**Transaction entry/edit page** — see Forms above for the layout. Pinned amount up top; the number pad (0-9, C, ⌫) is ordinary page content below the other fields, with Save under it. Not the system keypad, which covered half the form and moved its keys around, and not a pinned bar either — anything held over the fields reads as floating on top of them. 44pt keys, the minimum a thumb needs and no more. The amount needs no text field at all this way. Outflow/Inflow toggle sets the sign; payee/category/account/date/memo; category hidden for income and for tracking accounts; income requires an income stream; "Mark to repeat" as a header pill that swaps Date → Starts and reveals the repeat builder.
 
 **Transactions list** — grouped by date, most recent first. Row: payee, category tag, coloured amount, account, truncated one-line memo. Search + multi-select for bulk edit/delete. Future-dated rows never appear here; they live in the account's Scheduled box.
 
-**Accounts screen** — Net Worth card on top, then groups by kind (Cash / Savings / Credit / Loan / Asset / Tracking / Income last) with subtotals and extra spacing between groups. Row: name (one line, truncated) + balance, red when negative. Income rows show "$X this year", not a near-zero ledger balance. Account detail carries a computed balance trend for cash/savings/credit (credit cards overlay monthly spend, or a paid-off card reads flat), a manual value-history chart for asset/tracking, loan details and the amortization tool inline in the balance box — not as separate cards.
+**Accounts screen** — Net Worth card on top, then groups by kind (Income first, then Cash / Savings / Tracking / Loan / Asset / Credit) with subtotals and extra spacing between groups. A loan/mortgage balance is always negative — what is still owed — and its detail page labels it "Remaining Principal", not "Balance". Row: name (one line, truncated) + balance, red when negative. Income rows show "$X this year", not a near-zero ledger balance. Account detail carries a computed balance trend for cash/savings/credit (credit cards overlay monthly spend, or a paid-off card reads flat), a manual value-history chart for asset/tracking, loan details and the amortization tool inline in the balance box — not as separate cards.
 
 **Insights** — on-device only, distinct from the AI analysis feature; needs no key and sends nothing off-device. Month picker; spending breakdown with the same number scale as Budget's; all-time category trend as a horizontally scrollable stacked area chart of the top 5 categories with a dashed 12-month-average baseline. Baby Steps and Tax Insights link real accounts/categories, falling back to a manual "Mark Done" pill when nothing is linked yet.
 

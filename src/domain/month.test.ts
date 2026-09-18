@@ -1,4 +1,4 @@
-import { lastNMonths, nextMonth, previousMonth } from './month';
+import { lastNMonths, nextMonth, previousMonth, yearsBetween } from './month';
 
 describe('nextMonth', () => {
   it('advances within a year', () => {
@@ -27,5 +27,19 @@ describe('lastNMonths', () => {
 
   it('handles a year boundary', () => {
     expect(lastNMonths('2026-01', 3)).toEqual(['2025-11', '2025-12', '2026-01']);
+  });
+});
+
+describe('yearsBetween', () => {
+  it('is inclusive at both ends', () => {
+    expect(yearsBetween('2024', '2026')).toEqual(['2024', '2025', '2026']);
+  });
+
+  it('returns the single year when start and end match', () => {
+    expect(yearsBetween('2026', '2026')).toEqual(['2026']);
+  });
+
+  it('falls back to the end year when the range is inverted', () => {
+    expect(yearsBetween('2027', '2026')).toEqual(['2026']);
   });
 });

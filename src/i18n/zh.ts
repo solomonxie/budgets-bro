@@ -39,6 +39,8 @@ export const zh: Record<keyof typeof en, string> = {
 
   'houseValueModal.title': '房屋价值',
   'houseValueModal.valueLabel': '价值',
+  'houseValueModal.noteLabel': '备注（可选）',
+  'houseValueModal.notePlaceholder': '例如 链家估价、银行评估',
 
   'rateChangeModal.title': '利率变更',
   'rateChangeModal.rateLabel': '利率（年化 %）',
@@ -198,6 +200,7 @@ export const zh: Record<keyof typeof en, string> = {
   'accounts.kindAsset': '资产',
 
   'accountDetail.balance': '余额',
+  'accountDetail.remainingPrincipal': '剩余本金',
   'accountDetail.incomeThisMonth': '本月 {amount}',
   'accountDetail.incomeThisYear': '今年收入',
   'accountDetail.noTransactionsYet': '暂无交易记录。',
@@ -219,8 +222,15 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.typeMortgage': '房贷',
   'accountModal.typeTracking': '追踪账户',
   'accountModal.typeAsset': '资产',
-  'accountModal.openingBalanceLabel': '期初余额',
-  'accountModal.latestBalanceLabel': '最新余额',
+  'accountModal.openingBalanceLabel': '起始余额',
+  'accountModal.openingBalanceHint':
+    '这个账户在本应用里开始记账那天的余额。贷款和信用卡填负数——当时欠了多少。',
+  'accountModal.openingBalanceLoanLabel': '开始记账时的余额',
+  'accountModal.openingBalanceLoanHint':
+    '已根据下方的借款金额自动填好。只有在添加之前就已经还过一段时间的情况下才需要改动——那时填当天还欠多少。负数表示欠款。',
+  'accountModal.latestBalanceLabel': '当前余额',
+  'accountModal.latestBalanceHint':
+    '账户今天实际显示的余额。保存一个不同的数字，会自动记一笔调整流水来对平差额。',
   'accountModal.interestRateHeading': '利率',
   'accountModal.interestRateHistoryLabel': '利率变更历史',
   'accountModal.noRateRecorded': '尚未记录利率。',
@@ -244,12 +254,21 @@ export const zh: Record<keyof typeof en, string> = {
   'incomeDetailModal.noteLabel': '备注（可选）',
   'incomeDetailModal.notePlaceholder': '例如 年度加薪',
   'accountModal.termMonthsPlaceholder': '例如 360',
-  'accountModal.originalPrincipalLabel': '初始本金',
-  'accountModal.originalHousePriceLabel': '原始房价',
+  'accountModal.termMonthsHint': '贷款年限：360 = 30 年，240 = 20 年。',
+  'accountModal.originalPrincipalLabel': '借款金额',
+  'accountModal.mortgageAmountLabel': '贷款金额',
+  'accountModal.originalPrincipalHint':
+    '签约时借了多少，不是现在还剩多少。用于推算月供和还清时间，并自动填好上方的起始余额。',
+  'accountModal.originalHousePriceLabel': '购房总价',
   'accountModal.originalHousePricePlaceholder': '0.00（可选）',
-  'accountModal.downPaymentHint': '首付：{amount}',
-  'accountModal.principalExceedsHint': '初始本金超过房价',
+  'accountModal.originalHousePriceHint': '买房时的成交总价，同时作为第一条房产估值记录。',
+  'accountModal.downPaymentLabel': '首付',
+  'accountModal.downPaymentPending': '请先填写上面两项',
+  'accountModal.downPaymentValue': '{amount}（首付 {percent}%）',
+  'accountModal.principalExceedsHint': '贷款金额超过购房总价',
   'accountModal.originationDateLabel': '起始日期',
+  'accountModal.noteLabel': '备注',
+  'accountModal.notePlaceholder': '名称说不清的信息（可选）',
   'accountModal.reopenAccount': '重新开启账户',
   'accountModal.closeAccount': '关闭账户',
   'accountModal.closeAccountConfirmTitle': '关闭「{name}」？',
@@ -288,6 +307,17 @@ export const zh: Record<keyof typeof en, string> = {
   'loanDetailsCard.payoffValue': '{date}（{months} 个月）',
   'loanDetailsCard.paymentTooLow': '还款金额过低，无法还清',
   'loanDetailsCard.remainingInterestLabel': '预计剩余利息',
+  'loanDetailsCard.lastPaymentLabel': '最近一次还款（{date}）',
+  'loanDetailsCard.splitValue': '利息 {interest} · 本金 {principal}',
+  'loanDetailsCard.paidToDateLabel': '累计已还',
+  'loanDetailsCard.derivedOwedLabel': '拆出利息后的欠款',
+  'loanDetailsCard.owedGapHint':
+    '与上方余额相差 {amount}——很可能把整笔还款都记到了这个贷款账户上，而只有其中的本金部分才会减少欠款。',
+  'loanDetailsCard.statementOwedLabel': '当前欠款',
+  'loanDetailsCard.statementOwedHint': '按最新账单上还欠多少填写。保存后会为差额自动记一笔调整流水。',
+  'loanDetailsCard.saveAdjustment': '保存 {amount} 的调整',
+  'loanDetailsCard.actualsOnlyHint':
+    '按每期还款额和流水算出的实际余额推算。想试算额外还款，请用提前还清 / 提前还贷计算器。',
   'loanDetailsCard.summary': '{rate}% · 每月 {payment}',
 
   'aiAnalysis.title': 'AI 洞察',
@@ -335,6 +365,7 @@ export const zh: Record<keyof typeof en, string> = {
   'investmentGrowth.gainLabel': '盈亏',
   'investmentGrowth.totalLabel': '总额',
   'investmentGrowth.notEnoughHistory': '记录至少两次余额更新即可查看趋势。',
+  'investmentGrowth.notEnoughYears': '在两个不同年份各记录一次估值即可查看趋势。',
   'investmentGrowth.noDepositsHint':
     '此账户还没有记录任何交易，因此全部余额都显示为盈利。将存入/取出记为交易即可区分两者。',
 

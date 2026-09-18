@@ -22,6 +22,7 @@ export interface AccountRow {
   original_principal_cents: number | null;
   origination_date: string | null;
   original_house_price_cents: number | null;
+  note: string | null;
 }
 
 export interface AccountRateHistoryRow {
@@ -37,6 +38,7 @@ export interface AccountValueHistoryRow {
   account_id: number;
   value_cents: number;
   effective_date: string;
+  note: string | null;
   created_at: string;
 }
 

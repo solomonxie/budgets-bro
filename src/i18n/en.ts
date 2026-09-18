@@ -36,6 +36,8 @@ export const en = {
 
   'houseValueModal.title': 'Home Value',
   'houseValueModal.valueLabel': 'Value',
+  'houseValueModal.noteLabel': 'Note (optional)',
+  'houseValueModal.notePlaceholder': 'e.g. Zillow estimate, bank appraisal',
 
   'rateChangeModal.title': 'Rate Change',
   'rateChangeModal.rateLabel': 'Rate (annual %)',
@@ -199,6 +201,7 @@ export const en = {
   'accounts.kindAsset': 'Asset',
 
   'accountDetail.balance': 'Balance',
+  'accountDetail.remainingPrincipal': 'Remaining Principal',
   'accountDetail.incomeThisMonth': '{amount} this month',
   'accountDetail.incomeThisYear': 'Income This Year',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
@@ -221,8 +224,15 @@ export const en = {
   'accountModal.typeMortgage': 'Mortgage',
   'accountModal.typeTracking': 'Tracking',
   'accountModal.typeAsset': 'Asset',
-  'accountModal.openingBalanceLabel': 'Opening Balance',
-  'accountModal.latestBalanceLabel': 'Latest Balance',
+  'accountModal.openingBalanceLabel': 'Starting Balance',
+  'accountModal.openingBalanceHint':
+    'The balance on the day this account starts in the app. Loans and credit cards go in negative — what you owed back then.',
+  'accountModal.openingBalanceLoanLabel': 'Balance When Tracking Started',
+  'accountModal.openingBalanceLoanHint':
+    'Filled in for you from the amount borrowed below. Change it only if you had already been paying this loan down before adding it here — then it is what you still owed that day. Negative: it is a debt.',
+  'accountModal.latestBalanceLabel': 'Current Balance',
+  'accountModal.latestBalanceHint':
+    'What the account really says today. Saving a different number logs one adjustment transaction to close the gap.',
   'accountModal.interestRateHeading': 'Interest Rate',
   'accountModal.interestRateHistoryLabel': 'Interest Rate History',
   'accountModal.noRateRecorded': 'No rate recorded yet.',
@@ -247,12 +257,21 @@ export const en = {
   'incomeDetailModal.noteLabel': 'Note (optional)',
   'incomeDetailModal.notePlaceholder': 'e.g. Annual raise',
   'accountModal.termMonthsPlaceholder': 'e.g. 360',
-  'accountModal.originalPrincipalLabel': 'Original Principal',
-  'accountModal.originalHousePriceLabel': 'Original House Price',
+  'accountModal.termMonthsHint': 'How long the loan runs: 360 = 30 years, 240 = 20 years.',
+  'accountModal.originalPrincipalLabel': 'Amount Borrowed',
+  'accountModal.mortgageAmountLabel': 'Mortgage Amount',
+  'accountModal.originalPrincipalHint':
+    'What you borrowed at signing — not what is left to pay today. Sets the monthly payment and payoff projection, and fills in the starting balance above.',
+  'accountModal.originalHousePriceLabel': 'Purchase Price',
   'accountModal.originalHousePricePlaceholder': '0.00 (optional)',
-  'accountModal.downPaymentHint': 'Down payment: {amount}',
-  'accountModal.principalExceedsHint': 'Original principal exceeds house price',
+  'accountModal.originalHousePriceHint': 'What the home cost. Also becomes its first home-value entry.',
+  'accountModal.downPaymentLabel': 'Down Payment',
+  'accountModal.downPaymentPending': 'Fill in both fields above',
+  'accountModal.downPaymentValue': '{amount} ({percent}% down)',
+  'accountModal.principalExceedsHint': 'Mortgage amount exceeds the purchase price',
   'accountModal.originationDateLabel': 'Origination Date',
+  'accountModal.noteLabel': 'Note',
+  'accountModal.notePlaceholder': 'Anything the name does not say (optional)',
   'accountModal.reopenAccount': 'Reopen Account',
   'accountModal.closeAccount': 'Close Account',
   'accountModal.closeAccountConfirmTitle': 'Close "{name}"?',
@@ -292,6 +311,18 @@ export const en = {
   'loanDetailsCard.payoffValue': '{date} ({months} mo)',
   'loanDetailsCard.paymentTooLow': 'Payment too low to pay off',
   'loanDetailsCard.remainingInterestLabel': 'Est. remaining interest',
+  'loanDetailsCard.lastPaymentLabel': 'Last payment ({date})',
+  'loanDetailsCard.splitValue': '{interest} interest · {principal} principal',
+  'loanDetailsCard.paidToDateLabel': 'Paid so far',
+  'loanDetailsCard.derivedOwedLabel': 'Owed, interest split out',
+  'loanDetailsCard.owedGapHint':
+    '{amount} apart from the balance above — a payment was likely logged against this loan in full, when only its principal share pays the loan down.',
+  'loanDetailsCard.statementOwedLabel': 'Balance owed today',
+  'loanDetailsCard.statementOwedHint':
+    'What your latest statement says you still owe. Saving posts one adjustment transaction for the difference.',
+  'loanDetailsCard.saveAdjustment': 'Save adjustment of {amount}',
+  'loanDetailsCard.actualsOnlyHint':
+    'Projected from the scheduled payment and the balance your transactions actually add up to. To try extra payments, use the payoff and early-repayment calculators.',
   'loanDetailsCard.summary': '{rate}% · {payment}/mo',
 
   'aiAnalysis.title': 'AI Insights',
@@ -343,6 +374,8 @@ export const en = {
   'investmentGrowth.totalLabel': 'Total',
   'investmentGrowth.notEnoughHistory':
     'Log at least two value updates to see a trend.',
+  'investmentGrowth.notEnoughYears':
+    'Log a value in two different years to see the trend.',
   'investmentGrowth.noDepositsHint':
     'No transactions logged on this account yet, so the whole balance shows as gain. Record deposits/withdrawals as transactions to split the two.',
 

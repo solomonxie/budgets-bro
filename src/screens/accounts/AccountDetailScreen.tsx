@@ -66,6 +66,7 @@ export function AccountDetailScreen() {
   const isAsset = accountWithBalance?.account.type === 'asset';
   const isIncome = accountWithBalance?.account.type === 'income';
   const isCreditCard = accountWithBalance?.account.type === 'credit_card';
+  const isLoanLike = accountWithBalance != null && isLoanLikeType(accountWithBalance.account.type);
   const isCashOrSavings =
     accountWithBalance?.account.type === 'savings' ||
     accountWithBalance?.account.type === 'cash';
@@ -162,239 +163,272 @@ export function AccountDetailScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.summaryCard}>
-        {isIncome ? (
-          <Pressable
-            style={styles.summaryTopRow}
-            onPress={() => setValueExpanded((v) => !v)}
-          >
-            <View style={styles.summaryLeft}>
-              <Text style={styles.summaryLabel}>
-                {t('accountDetail.incomeThisYear')}
-              </Text>
-              <Text style={styles.summaryValue}>
-                {formatMoney(thisYearCents)}
-              </Text>
-              <Text style={styles.hint}>
-                {t('accountDetail.incomeThisMonth', {
-                  amount: formatMoney(thisMonthCents),
-                })}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.summaryTopRow}>
-            <View style={styles.summaryLeft}>
-              <Text style={styles.summaryLabel}>
-                {t('accountDetail.balance')}
-              </Text>
-              <Text
-                style={[
-                  styles.summaryValue,
-                  balanceCents < 0 && styles.negative,
-                ]}
-              >
-                {formatMoney(balanceCents)}
-              </Text>
-              {latestGrowth ? (
-                <View style={styles.depositGainRow}>
-                  <Text style={styles.depositedText}>
-                    {t('investmentGrowth.depositedLabel')}{' '}
-                    {formatMoney(latestGrowth.depositedCents)}
+      {/* The balance box and the scheduled card are the list's header, not
+          siblings above it: expanded (home value, loan details, a trend
+          chart) they grow taller than the screen, and as siblings above a
+          flex:1 list there was no way to scroll down to their bottom. */}
+      <FlatList
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <>
+            <View style={styles.summaryCard}>
+              {isIncome ? (
+                <Pressable
+                  style={styles.summaryTopRow}
+                  onPress={() => setValueExpanded((v) => !v)}
+                >
+                  <View style={styles.summaryLeft}>
+                    <Text style={styles.summaryLabel}>
+                      {t('accountDetail.incomeThisYear')}
+                    </Text>
+                    <Text style={styles.summaryValue}>
+                      {formatMoney(thisYearCents)}
+                    </Text>
+                    <Text style={styles.hint}>
+                      {t('accountDetail.incomeThisMonth', {
+                        amount: formatMoney(thisMonthCents),
+                      })}
+                    </Text>
+                  </View>
+                  <Text style={styles.chevron}>
+                    {valueExpanded ? '▾' : '›'}
                   </Text>
-                  <Text
-                    style={[
-                      styles.gainText,
-                      latestGrowth.gainCents < 0 && styles.negative,
-                    ]}
-                  >
-                    {latestGrowth.gainCents >= 0 ? '+' : ''}
-                    {formatMoney(latestGrowth.gainCents)}
-                  </Text>
+                </Pressable>
+              ) : (
+                <View style={styles.summaryTopRow}>
+                  <View style={styles.summaryLeft}>
+                    <Text style={styles.summaryLabel}>
+                      {t(
+                        isLoanLike
+                          ? 'accountDetail.remainingPrincipal'
+                          : 'accountDetail.balance',
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        balanceCents < 0 && styles.negative,
+                      ]}
+                    >
+                      {formatMoney(balanceCents)}
+                    </Text>
+                    {latestGrowth ? (
+                      <View style={styles.depositGainRow}>
+                        <Text style={styles.depositedText}>
+                          {t('investmentGrowth.depositedLabel')}{' '}
+                          {formatMoney(latestGrowth.depositedCents)}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.gainText,
+                            latestGrowth.gainCents < 0 && styles.negative,
+                          ]}
+                        >
+                          {latestGrowth.gainCents >= 0 ? '+' : ''}
+                          {formatMoney(latestGrowth.gainCents)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  {isMortgage ? (
+                    <Pressable
+                      style={styles.summaryRight}
+                      onPress={() => setValueExpanded((v) => !v)}
+                    >
+                      <Text style={styles.summaryLabel}>
+                        {t('houseValueCard.label')}
+                      </Text>
+                      <View style={styles.houseValueRow}>
+                        <Text style={styles.houseValueText}>
+                          {currentValueCents == null
+                            ? t('houseValueCard.notSet')
+                            : formatMoney(currentValueCents)}
+                        </Text>
+                        <Text style={styles.chevron}>
+                          {valueExpanded ? '▾' : '›'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ) : null}
                 </View>
+              )}
+              {isIncome && valueExpanded ? (
+                <IncomeTrendChart points={trend} />
               ) : null}
-            </View>
-            {isMortgage ? (
-              <Pressable
-                style={styles.summaryRight}
-                onPress={() => setValueExpanded((v) => !v)}
-              >
-                <Text style={styles.summaryLabel}>
-                  {t('houseValueCard.label')}
-                </Text>
-                <View style={styles.houseValueRow}>
-                  <Text style={styles.houseValueText}>
-                    {currentValueCents == null
-                      ? t('houseValueCard.notSet')
-                      : formatMoney(currentValueCents)}
+              {isMortgage && valueExpanded && accountWithBalance ? (
+                <HouseValueDetails
+                  account={accountWithBalance.account}
+                  balanceCents={balanceCents}
+                  history={valueHistory}
+                  currentValueCents={currentValueCents}
+                  refresh={refreshValueHistory}
+                />
+              ) : null}
+              {hasValueHistory && accountWithBalance ? (
+                <Pressable
+                  style={styles.trackingValueHeader}
+                  onPress={() => setValueExpanded((v) => !v)}
+                >
+                  <Text style={styles.trackingValueHeaderText}>
+                    {t('trackingValueCard.label')}
                   </Text>
                   <Text style={styles.chevron}>
                     {valueExpanded ? '▾' : '›'}
                   </Text>
-                </View>
-              </Pressable>
-            ) : null}
-          </View>
-        )}
-        {isIncome && valueExpanded ? <IncomeTrendChart points={trend} /> : null}
-        {isMortgage && valueExpanded && accountWithBalance ? (
-          <HouseValueDetails
-            account={accountWithBalance.account}
-            balanceCents={balanceCents}
-            history={valueHistory}
-            currentValueCents={currentValueCents}
-            refresh={refreshValueHistory}
-          />
-        ) : null}
-        {hasValueHistory && accountWithBalance ? (
-          <Pressable
-            style={styles.trackingValueHeader}
-            onPress={() => setValueExpanded((v) => !v)}
-          >
-            <Text style={styles.trackingValueHeaderText}>
-              {t('trackingValueCard.label')}
-            </Text>
-            <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
-          </Pressable>
-        ) : null}
-        {hasValueHistory && valueExpanded && accountWithBalance ? (
-          <TrackingValueDetails
-            account={accountWithBalance.account}
-            history={valueHistory}
-            currentValueCents={currentValueCents}
-            transactions={transactions}
-            mode={isAsset ? 'single' : 'stacked'}
-            refresh={refreshValueHistory}
-          />
-        ) : null}
-        {showsBalanceTrend && accountWithBalance ? (
-          <Pressable
-            style={styles.trackingValueHeader}
-            onPress={() => setValueExpanded((v) => !v)}
-          >
-            <Text style={styles.trackingValueHeaderText}>
-              {t('trackingValueCard.label')}
-            </Text>
-            <Text style={styles.chevron}>{valueExpanded ? '▾' : '›'}</Text>
-          </Pressable>
-        ) : null}
-        {showsBalanceTrend && valueExpanded ? (
-          <View style={styles.balanceTrendCard}>
-            <BalanceTrendChart
-              points={balanceTrend}
-              showSpending={isCreditCard}
-            />
-          </View>
-        ) : null}
-        {accountWithBalance &&
-        isLoanLikeType(accountWithBalance.account.type) ? (
-          <LoanDetailsCard
-            account={accountWithBalance.account}
-            balanceCents={balanceCents}
-          />
-        ) : null}
-      </View>
-      {futureTransactions.length > 0 || scheduledTransactions.length > 0 ? (
-        <View style={styles.scheduledCard}>
-          <Pressable
-            style={styles.scheduledHeader}
-            onPress={() => setScheduledExpanded((v) => !v)}
-          >
-            <Text style={styles.scheduledTitle}>
-              {t('accountDetail.scheduledHeading', {
-                count: futureTransactions.length + scheduledTransactions.length,
-              })}
-            </Text>
-            <Text style={styles.scheduledChevron}>
-              {scheduledExpanded ? '▾' : '▸'}
-            </Text>
-          </Pressable>
-          {scheduledExpanded ? (
-            <>
-              <Text style={styles.scheduledHint}>
-                {t('accountDetail.scheduledHint')}
-              </Text>
-              {scheduledTransactions.map((s) => (
-                <View key={`recurring-${s.id}`} style={styles.scheduledRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.payee}>
-                      {s.payeeName ?? t('common.noPayee')}
-                    </Text>
-                    <Text style={styles.sub}>
-                      {[
-                        categorySubLabel(s, t),
-                        t('accountDetail.nextDateLabel', { date: s.nextDate }),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.amount,
-                      s.amountCents < 0 ? styles.negative : styles.positive,
-                    ]}
-                  >
-                    {formatMoney(s.amountCents)}
-                  </Text>
-                  {s.nextDate <= today ? (
-                    <Pressable
-                      style={styles.approveBtn}
-                      onPress={() => approveSchedule(s.id)}
-                    >
-                      <Text style={styles.approveBtnText}>
-                        {t('pendingScheduled.approve')}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                  <RowMenuButton
-                    items={[
-                      {
-                        label: t('accountDetail.cancelSchedule'),
-                        destructive: true,
-                        onPress: () => cancelSchedule(s.id),
-                      },
-                    ]}
-                  />
-                </View>
-              ))}
-              {futureTransactions.map((item) => (
+                </Pressable>
+              ) : null}
+              {hasValueHistory && valueExpanded && accountWithBalance ? (
+                <TrackingValueDetails
+                  account={accountWithBalance.account}
+                  history={valueHistory}
+                  currentValueCents={currentValueCents}
+                  transactions={transactions}
+                  mode={isAsset ? 'single' : 'stacked'}
+                  refresh={refreshValueHistory}
+                />
+              ) : null}
+              {showsBalanceTrend && accountWithBalance ? (
                 <Pressable
-                  key={item.id}
-                  style={styles.scheduledRow}
-                  onPress={() =>
-                    rootNavigation.navigate('AddTransaction', {
-                      transactionId: item.id,
-                    })
-                  }
+                  style={styles.trackingValueHeader}
+                  onPress={() => setValueExpanded((v) => !v)}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.payee}>
-                      {item.payeeName ?? t('common.noPayee')}
-                    </Text>
-                    <Text style={styles.sub}>
-                      {[categorySubLabel(item, t), item.date]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.amount,
-                      item.amountCents < 0 ? styles.negative : styles.positive,
-                    ]}
-                  >
-                    {formatMoney(item.amountCents)}
+                  <Text style={styles.trackingValueHeaderText}>
+                    {t('trackingValueCard.label')}
+                  </Text>
+                  <Text style={styles.chevron}>
+                    {valueExpanded ? '▾' : '›'}
                   </Text>
                 </Pressable>
-              ))}
-            </>
-          ) : null}
-        </View>
-      ) : null}
-      <FlatList
-        style={{ flex: 1 }}
+              ) : null}
+              {showsBalanceTrend && valueExpanded ? (
+                <View style={styles.balanceTrendCard}>
+                  <BalanceTrendChart
+                    points={balanceTrend}
+                    showSpending={isCreditCard}
+                  />
+                </View>
+              ) : null}
+              {accountWithBalance && isLoanLike ? (
+                <LoanDetailsCard
+                  account={accountWithBalance.account}
+                  balanceCents={balanceCents}
+                  transactions={transactions}
+                />
+              ) : null}
+            </View>
+            {futureTransactions.length > 0 ||
+            scheduledTransactions.length > 0 ? (
+              <View style={styles.scheduledCard}>
+                <Pressable
+                  style={styles.scheduledHeader}
+                  onPress={() => setScheduledExpanded((v) => !v)}
+                >
+                  <Text style={styles.scheduledTitle}>
+                    {t('accountDetail.scheduledHeading', {
+                      count:
+                        futureTransactions.length +
+                        scheduledTransactions.length,
+                    })}
+                  </Text>
+                  <Text style={styles.scheduledChevron}>
+                    {scheduledExpanded ? '▾' : '▸'}
+                  </Text>
+                </Pressable>
+                {scheduledExpanded ? (
+                  <>
+                    <Text style={styles.scheduledHint}>
+                      {t('accountDetail.scheduledHint')}
+                    </Text>
+                    {scheduledTransactions.map((s) => (
+                      <View
+                        key={`recurring-${s.id}`}
+                        style={styles.scheduledRow}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.payee}>
+                            {s.payeeName ?? t('common.noPayee')}
+                          </Text>
+                          <Text style={styles.sub}>
+                            {[
+                              categorySubLabel(s, t),
+                              t('accountDetail.nextDateLabel', {
+                                date: s.nextDate,
+                              }),
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.amount,
+                            s.amountCents < 0
+                              ? styles.negative
+                              : styles.positive,
+                          ]}
+                        >
+                          {formatMoney(s.amountCents)}
+                        </Text>
+                        {s.nextDate <= today ? (
+                          <Pressable
+                            style={styles.approveBtn}
+                            onPress={() => approveSchedule(s.id)}
+                          >
+                            <Text style={styles.approveBtnText}>
+                              {t('pendingScheduled.approve')}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        <RowMenuButton
+                          items={[
+                            {
+                              label: t('accountDetail.cancelSchedule'),
+                              destructive: true,
+                              onPress: () => cancelSchedule(s.id),
+                            },
+                          ]}
+                        />
+                      </View>
+                    ))}
+                    {futureTransactions.map((item) => (
+                      <Pressable
+                        key={item.id}
+                        style={styles.scheduledRow}
+                        onPress={() =>
+                          rootNavigation.navigate('AddTransaction', {
+                            transactionId: item.id,
+                          })
+                        }
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.payee}>
+                            {item.payeeName ?? t('common.noPayee')}
+                          </Text>
+                          <Text style={styles.sub}>
+                            {[categorySubLabel(item, t), item.date]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.amount,
+                            item.amountCents < 0
+                              ? styles.negative
+                              : styles.positive,
+                          ]}
+                        >
+                          {formatMoney(item.amountCents)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        }
         data={rows}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (

@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
+import { RowMenuButton } from './RowMenuButton';
 import { BackupFileList } from './BackupFileList';
 import { getDb } from '../../db/client';
 import { downloadS3Object, listS3Objects, removeS3Config } from '../../sync/s3Provider';
@@ -168,7 +169,13 @@ export function S3BrowserModal({
             <Text style={styles.headerBtn}>{t('common.done')}</Text>
           </Pressable>
           <Text style={styles.title}>{t('s3Browser.title')}</Text>
-          <View style={styles.headerBtn} />
+          {/* Removing the bucket is a once-ever action and a destructive
+              one, so it sits behind the menu rather than under the listing,
+              where it was a permanent red invitation at the bottom of a page
+              you open to read files. */}
+          <RowMenuButton
+            items={[{ label: t('backup.deleteConnection'), destructive: true, onPress: confirmDelete }]}
+          />
         </View>
         <ScrollView
           horizontal
@@ -232,17 +239,12 @@ export function S3BrowserModal({
           </ScrollView>
         ) : null}
 
-        <Pressable style={styles.footerLink} onPress={confirmDelete} hitSlop={8}>
-          <Text style={styles.deleteText}>{t('backup.deleteConnection')}</Text>
-        </Pressable>
       </ScreenContainer>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  footerLink: { alignItems: 'center', paddingVertical: spacing.md },
-  deleteText: { color: colors.negative, fontWeight: '700' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

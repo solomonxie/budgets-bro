@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { CategoryGroupRow, CategoryRow } from '../schema';
 import type { Category, CategoryGroup } from '../../domain/types';
 import { LIST_CATEGORIES, LIST_CATEGORY_GROUPS, INSERT_CATEGORY, UPDATE_CATEGORY } from '../../../databases/queries/categories';

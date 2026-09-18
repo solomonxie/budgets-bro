@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import JSZip from 'jszip';
 
 // Raw table dumps (not the mapped camelCase domain types) — a lossless

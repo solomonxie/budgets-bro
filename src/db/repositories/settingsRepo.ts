@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 
 // Generic key/value store for small cross-screen state that doesn't warrant
 // its own table (e.g. which account is the emergency fund, Baby Steps

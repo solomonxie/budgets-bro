@@ -1,5 +1,6 @@
-import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
+import { IOS_DOCUMENT_PATH } from '@op-engineering/op-sqlite';
 import { Directory, File, Paths } from 'expo-file-system';
+import { openDatabase, type SQLiteDatabase } from './driver';
 import { migrate } from './migrate';
 
 const DB_NAME = 'budgetsbro.db';
@@ -8,10 +9,15 @@ const DB_NAME = 'budgetsbro.db';
 // orphan anyone's board data behind a fresh empty database.
 const LEGACY_DB_NAME = 'yama.db';
 
+// Kept where expo-sqlite used to put it, Documents/SQLite, so an install
+// that predates the engine swap opens the database it already has rather
+// than a fresh empty one beside it.
+const DB_DIRECTORY = `${IOS_DOCUMENT_PATH}/SQLite`;
+
 let dbPromise: Promise<SQLiteDatabase> | null = null;
 
-// expo-sqlite stores its databases at Documents/SQLite/, alongside the
-// WAL/SHM sidecar files the journal_mode=WAL pragma below creates. Runs
+// Databases live at Documents/SQLite/, alongside the WAL/SHM sidecar files
+// the journal_mode=WAL pragma below creates. Runs
 // before the database is opened, so there's no concurrent writer to race.
 // Idempotent: a fresh install has neither file (no-op), an already-
 // migrated install has DB_NAME already (returns immediately), and only a
@@ -28,7 +34,8 @@ function migrateLegacyDbFile(): void {
 export function getDb(): Promise<SQLiteDatabase> {
   if (!dbPromise) {
     migrateLegacyDbFile();
-    dbPromise = openDatabaseAsync(DB_NAME).then(async (db) => {
+    dbPromise = (async () => {
+      const db = openDatabase(DB_NAME, DB_DIRECTORY);
       await db.execAsync('PRAGMA foreign_keys = ON');
       // WAL + NORMAL sync is the standard mobile SQLite config (same trade
       // Core Data/Room make): fsync only the small WAL file, not the whole
@@ -48,7 +55,7 @@ export function getDb(): Promise<SQLiteDatabase> {
       await db.execAsync('PRAGMA busy_timeout = 5000');
       await migrate(db, DB_NAME);
       return db;
-    });
+    })();
   }
   return dbPromise;
 }

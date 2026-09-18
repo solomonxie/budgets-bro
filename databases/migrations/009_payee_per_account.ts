@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Every account gets a payee, not just loan/mortgage ones (migration 008) —
 // selecting another account's payee on a transaction is how inter-account

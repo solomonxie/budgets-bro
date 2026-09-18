@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { downloadLatestBackup } from './cloudSync';
 import { ICLOUD_PROVIDER_ID, isICloudSupported } from './icloudProvider';

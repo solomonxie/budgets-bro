@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Loan/mortgage terms (nullable — only set for loan-like accounts) so the
 // account page can show a real amortization projection, not just a balance.

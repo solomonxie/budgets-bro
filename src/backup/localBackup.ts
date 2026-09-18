@@ -1,5 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import { buildBackupZip } from '../sync/buildBackup';
 import { dailyBackupName, isBackupFileName, isStale, operationBackupName } from './localBackupName';
 

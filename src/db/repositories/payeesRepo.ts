@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { PayeeRow } from '../schema';
 import type { Payee } from '../../domain/types';
 

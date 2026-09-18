@@ -2,7 +2,7 @@
 // inside quotes, CRLF or LF line endings. Good enough for YNAB's export
 // without pulling in a parsing dependency.
 export function parseCsv(text: string): Record<string, string>[] {
-  const rows = parseRows(text.replace(/^﻿/, ''));
+  const rows = parseRows(text.replace(/^\uFEFF/, ''));
   if (rows.length === 0) return [];
   const header = rows[0];
   return rows.slice(1).map((row) => {

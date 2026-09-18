@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountValueHistoryRow } from '../schema';
 import type { AccountValueChange, AccountValueKind } from '../../domain/types';
 import {

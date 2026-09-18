@@ -5,7 +5,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 // top-N breakdown) — plural because Transactions' single-select Category
 // dropdown can't represent it, so it's matched separately from
 // `categoryId`. Shared by both stacks that push Transactions (Budget's own
-// "Details" button, and Insights' category/​"All Others" rows) so back
+// "Details" button, and Insights' category/"All Others" rows) so back
 // navigation returns to wherever the user actually came from instead of
 // always landing on Budget.
 export type TransactionsFilterParams = { categoryId?: number; categoryIds?: number[]; month?: string } | undefined;

@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Full Phase 1/2 schema, created up front so it's versioned from commit one
 // even though CRUD for these tables lands across later phases.

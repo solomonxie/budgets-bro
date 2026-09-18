@@ -60,6 +60,15 @@ public class ICloudDriveModule: Module {
       guard FileManager.default.fileExists(atPath: target.path) else { return nil }
       return try coordinateRead(target)
     }
+
+    // Coordinated, like the writes: another device may be reading this file
+    // as it goes. Missing is success — pruning the same stale key twice, or
+    // deleting one iCloud already removed elsewhere, is not a failure.
+    AsyncFunction("remove") { (key: String) in
+      let target = try resolve(key)
+      guard FileManager.default.fileExists(atPath: target.path) else { return }
+      try coordinateDelete(target)
+    }
   }
 }
 
@@ -146,6 +155,16 @@ private func coordinateWrite(_ url: URL, _ data: Data) throws {
   }
   if let coordinationError { throw coordinationError }
   if let failure { throw failure }
+}
+
+private func coordinateDelete(_ url: URL) throws {
+  var coordinatorError: NSError?
+  var thrown: Error?
+  NSFileCoordinator().coordinate(writingItemAt: url, options: .forDeleting, error: &coordinatorError) { target in
+    do { try FileManager.default.removeItem(at: target) } catch { thrown = error }
+  }
+  if let coordinatorError { throw coordinatorError }
+  if let thrown { throw thrown }
 }
 
 private func coordinateRead(_ url: URL) throws -> Data? {

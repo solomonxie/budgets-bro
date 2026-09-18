@@ -106,3 +106,19 @@ export function restoreSnapshot(dbName: string, snapshotName: string): void {
     if (sidecar.exists) sidecar.copy(new File(sqliteDir, `${dbName}${suffix}`));
   }
 }
+
+// Empties the snapshot folder. Only ever the user's own doing (Settings →
+// Data → Delete all backups) — starting a dataset over means the copies of
+// the old one are noise, and keeping them would leave the app restoring from
+// a database that predates the fresh start.
+export function deleteAllSnapshots(): number {
+  const dir = snapshotDir();
+  let removed = 0;
+  for (const entry of dir.list()) {
+    if (entry instanceof File) {
+      entry.delete();
+      if (entry.name.endsWith('.db')) removed += 1;
+    }
+  }
+  return removed;
+}

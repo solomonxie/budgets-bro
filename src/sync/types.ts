@@ -13,10 +13,13 @@ export type CloudProviderId = string;
 // there's no separate `isConfigured()` to remember to check first.
 export interface CloudProvider {
   id: CloudProviderId;
-  // Where this destination wants today's backup written — a dated key for a
-  // bucket that keeps history, a single overwritten one for iCloud. See
-  // backupPath.ts.
-  keyFor(boardName: string, dateIso: string): string;
+  // How many of this board's backups to leave behind, newest first, after a
+  // successful upload — `null` to keep every one of them. What separates a
+  // destination the user pays for (the OS cloud drive: keep a few) from one
+  // that is cheap and append-only (a bucket: keep the lot). Pruning needs
+  // `remove`; without it `keepLatest` is ignored.
+  keepLatest: number | null;
+  remove?(key: string): Promise<void>;
   upload(bytes: Uint8Array, key: string): Promise<void>;
   // Every backup key this provider holds, relative to its own root (an S3
   // config's keyPrefix, the iCloud container's Documents folder). Restore

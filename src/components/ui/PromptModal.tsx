@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useT } from '../../i18n';
+import { CardModal } from './CardModal';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -31,51 +32,31 @@ export function PromptModal({ visible, title, placeholder, initialValue = '', on
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.backdrop} onPress={onCancel}>
-        <Pressable
-          style={styles.card}
-          onPress={(e) => {
-            e.stopPropagation();
-            Keyboard.dismiss();
-          }}
-        >
-          <Text style={styles.title}>{title}</Text>
-          <TextInput
-            style={styles.input}
-            value={value}
-            onChangeText={setValue}
-            placeholder={placeholder}
-            placeholderTextColor={colors.textMuted}
-            keyboardAppearance="dark"
-            autoFocus
-            onSubmitEditing={submit}
-          />
-          <View style={styles.actions}>
-            <Pressable onPress={onCancel}>
-              <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-            </Pressable>
-            <Pressable style={styles.saveButton} onPress={submit}>
-              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-            </Pressable>
-          </View>
+    <CardModal visible={visible} onCancel={onCancel}>
+      <Text style={styles.title}>{title}</Text>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={setValue}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        keyboardAppearance="dark"
+        autoFocus
+        onSubmitEditing={submit}
+      />
+      <View style={styles.actions}>
+        <Pressable onPress={onCancel}>
+          <Text style={styles.cancelText}>{t('common.cancel')}</Text>
         </Pressable>
-      </Pressable>
-    </Modal>
+        <Pressable style={styles.saveButton} onPress={submit}>
+          <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+        </Pressable>
+      </View>
+    </CardModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  card: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   input: {
     borderWidth: 1,

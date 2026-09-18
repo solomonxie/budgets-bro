@@ -11,7 +11,7 @@ export const colors = {
   // The spent share of a budget bar: the same green at half strength, so the
   // bar is one colour in two weights — solid for what is left, faded for
   // what has gone. A second hue made it look like two unrelated things.
-  positiveFaded: 'rgba(74, 222, 128, 0.45)',
+  positiveFaded: 'rgba(74, 222, 128, 0.2)',
   positiveTint: '#132B1C',
   negative: '#F87171',
   negativeTint: '#331616',

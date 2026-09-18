@@ -44,6 +44,21 @@ export function monthsBetween(startMonth: string, endMonth: string): string[] {
   return months;
 }
 
+// Years are 'YYYY' strings — same "sorts and compares as a plain string"
+// property as months, and a month/date string's own first 4 characters.
+export function currentYear(): string {
+  return currentDateISO().slice(0, 4);
+}
+
+// Inclusive 'YYYY' range, ascending — the yearly counterpart of
+// monthsBetween, for a trend charted year by year.
+export function yearsBetween(startYear: string, endYear: string): string[] {
+  if (startYear > endYear) return [endYear];
+  const years: string[] = [];
+  for (let y = Number(startYear); y <= Number(endYear); y++) years.push(String(y));
+  return years;
+}
+
 export function formatMonthLabel(month: string, locale = 'en-US'): string {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1, 1));

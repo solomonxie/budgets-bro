@@ -22,6 +22,7 @@ function mapRow(row: AccountRow): Account {
     originalPrincipalCents: row.original_principal_cents,
     originationDate: row.origination_date,
     originalHousePriceCents: row.original_house_price_cents,
+    note: row.note,
   };
 }
 
@@ -94,13 +95,14 @@ export interface AccountInput {
   originalPrincipalCents?: number | null;
   originationDate?: string | null;
   originalHousePriceCents?: number | null;
+  note?: string | null;
 }
 
 export async function createAccount(db: SQLiteDatabase, boardId: number, input: AccountInput): Promise<number> {
   const onBudget = usesLoggedValue(input.type) ? 0 : 1;
   const result = await db.runAsync(
-    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     boardId,
     input.name,
     input.type,
@@ -111,6 +113,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     input.originalPrincipalCents ?? null,
     input.originationDate ?? null,
     input.originalHousePriceCents ?? null,
+    input.note ?? null,
   );
   const id = result.lastInsertRowId;
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
@@ -121,7 +124,7 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
   const onBudget = usesLoggedValue(input.type) ? 0 : 1;
   await db.runAsync(
     `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
-       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?
+       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?, note = ?
      WHERE id = ?`,
     input.name,
     input.type,
@@ -131,6 +134,7 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
     input.originalPrincipalCents ?? null,
     input.originationDate ?? null,
     input.originalHousePriceCents ?? null,
+    input.note ?? null,
     id,
   );
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);

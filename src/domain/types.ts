@@ -35,6 +35,9 @@ export interface Account {
   originalPrincipalCents: number | null;
   originationDate: string | null;
   originalHousePriceCents: number | null;
+  // Free-text, any account type — why this account exists, which branch it
+  // is with, whatever the name alone doesn't say.
+  note: string | null;
 }
 
 export interface AccountRateChange {
@@ -49,6 +52,9 @@ export interface AccountValueChange {
   accountId: number;
   valueCents: number;
   effectiveDate: string; // 'YYYY-MM-DD'
+  // Where the number came from — "Zillow", "bank appraisal", "after the
+  // kitchen" — since the value alone doesn't say why it moved.
+  note: string | null;
 }
 
 export interface CategoryGroup {

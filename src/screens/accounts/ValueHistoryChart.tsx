@@ -1,25 +1,31 @@
 import { useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
-import { buildGrowthSeries, projectGrowthOntoMonths } from '../../domain/investmentGrowth';
-import { currentMonth, formatMonthShort, monthsBetween } from '../../domain/month';
+import { buildGrowthSeries, projectGrowthOntoPeriods } from '../../domain/investmentGrowth';
+import { currentMonth, currentYear, formatMonthShort, monthsBetween, yearsBetween } from '../../domain/month';
 import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-const VISIBLE_MONTHS = 12;
 const CHART_HEIGHT = 120;
 const Y_AXIS_WIDTH = 44;
-const MIN_MONTH_WIDTH = 28;
+// How much of the trend fits without scrolling, and how tight a step can
+// get before the x labels collide — a 'YYYY' label needs more room than
+// 'Jan', and a yearly trend has far fewer steps to spend width on.
+const STEP_SIZING = {
+  month: { visible: 12, minWidth: 28 },
+  year: { visible: 8, minWidth: 44 },
+};
 
 export type ValueHistoryChartMode = 'stacked' | 'single';
+export type ValueHistoryChartInterval = 'month' | 'year';
 
 // A manually-logged value history (account_value_history), resampled onto
-// a real monthly calendar and drawn as a scrollable area chart — same
-// shape/interaction as InsightsScreen's category-trend chart (12 months
-// visible by default, drag to see further back, Jan/Feb.. labels with a
-// year marker). Shared by every account kind that logs one of these:
+// a real calendar (months, or years — see `interval`) and drawn as a
+// scrollable area chart — same shape/interaction as InsightsScreen's
+// category-trend chart (a fixed window visible by default, drag to see
+// further back). Shared by every account kind that logs one of these:
 // - 'stacked': deposited (net real transactions) as the base band, gain
 //   stacked on top — savings/cash/tracking accounts (see
 //   domain/investmentGrowth.ts).
@@ -29,10 +35,15 @@ export function ValueHistoryChart({
   history,
   transactions = [],
   mode,
+  interval = 'month',
 }: {
   history: { valueCents: number; effectiveDate: string }[];
   transactions?: { amountCents: number; date: string }[];
   mode: ValueHistoryChartMode;
+  // 'year': a home value is appraised/estimated once in a while, not
+  // monthly — month steps just stretch the same number into a flat run of
+  // identical points. Everything else logs often enough to be worth months.
+  interval?: ValueHistoryChartInterval;
 }) {
   const { t, language } = useI18n();
   const { width: windowWidth } = useWindowDimensions();
@@ -46,16 +57,19 @@ export function ValueHistoryChart({
   const gainColor = latest != null && latest.gainCents < 0 ? colors.negative : colors.positive;
   const gainPct = latest != null && latest.depositedCents > 0 ? (latest.gainCents / latest.depositedCents) * 100 : null;
 
-  const months = useMemo(
-    () => (series.length > 0 ? monthsBetween(series[0].date.slice(0, 7), currentMonth()) : []),
-    [series],
-  );
-  const projected = useMemo(() => projectGrowthOntoMonths(series, months), [series, months]);
+  const byYear = interval === 'year';
+  const periods = useMemo(() => {
+    if (series.length === 0) return [];
+    const first = series[0].date;
+    return byYear ? yearsBetween(first.slice(0, 4), currentYear()) : monthsBetween(first.slice(0, 7), currentMonth());
+  }, [series, byYear]);
+  const projected = useMemo(() => projectGrowthOntoPeriods(series, periods), [series, periods]);
 
+  const sizing = STEP_SIZING[interval];
   const fittedWidth = Math.max(200, windowWidth - spacing.md * 4 - Y_AXIS_WIDTH);
-  const monthWidth = Math.max(MIN_MONTH_WIDTH, fittedWidth / VISIBLE_MONTHS);
-  const chartWidth = Math.max(fittedWidth, months.length * monthWidth);
-  const pointX = (i: number) => (months.length > 1 ? (i / (months.length - 1)) * chartWidth : chartWidth / 2);
+  const stepWidth = Math.max(sizing.minWidth, fittedWidth / sizing.visible);
+  const chartWidth = Math.max(fittedWidth, periods.length * stepWidth);
+  const pointX = (i: number) => (periods.length > 1 ? (i / (periods.length - 1)) * chartWidth : chartWidth / 2);
 
   const maxValue = Math.max(1, ...projected.map((p) => (p ? Math.max(p.totalCents, p.depositedCents) : 0)));
   const pointY = (v: number) => CHART_HEIGHT - (v / maxValue) * (CHART_HEIGHT - 8) - 4;
@@ -65,20 +79,22 @@ export function ValueHistoryChart({
   const gainTops = projected.map((p, i) => (p ? depositedTops[i] + Math.max(0, p.gainCents) : depositedTops[i]));
   const totalLine = projected.map((p, i) => `${pointX(i)},${pointY(p ? p.totalCents : 0)}`).join(' ');
   const depositedBand = [
-    ...months.map((_, i) => `${pointX(i)},${pointY(depositedTops[i])}`),
-    ...months.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(0)}`),
+    ...periods.map((_, i) => `${pointX(i)},${pointY(depositedTops[i])}`),
+    ...periods.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(0)}`),
   ].join(' ');
   const gainBand = [
-    ...months.map((_, i) => `${pointX(i)},${pointY(gainTops[i])}`),
-    ...months.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(depositedTops[arr.length - 1 - i])}`),
+    ...periods.map((_, i) => `${pointX(i)},${pointY(gainTops[i])}`),
+    ...periods.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(depositedTops[arr.length - 1 - i])}`),
   ].join(' ');
   const singleBand = [
-    ...months.map((_, i) => `${pointX(i)},${pointY(gainTops[i])}`),
-    ...months.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(0)}`),
+    ...periods.map((_, i) => `${pointX(i)},${pointY(gainTops[i])}`),
+    ...periods.map((_, i, arr) => `${pointX(arr.length - 1 - i)},${pointY(0)}`),
   ].join(' ');
 
-  if (series.length < 2) {
-    return <Text style={styles.hint}>{t('investmentGrowth.notEnoughHistory')}</Text>;
+  // A trend needs two steps to be a trend — by year that means two
+  // different years, not just two logged entries.
+  if (series.length < 2 || periods.length < 2) {
+    return <Text style={styles.hint}>{t(byYear ? 'investmentGrowth.notEnoughYears' : 'investmentGrowth.notEnoughHistory')}</Text>;
   }
 
   return (
@@ -128,12 +144,16 @@ export function ValueHistoryChart({
               <Polyline points={totalLine} fill="none" stroke={colors.text} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
             </Svg>
             <View style={[styles.xLabels, { width: chartWidth }]}>
-              {months.map((m, i) => {
-                const isYearMarker = i === 0 || m.endsWith('-01');
+              {periods.map((period, i) => {
+                const isYearMarker = byYear || i === 0 || period.endsWith('-01');
                 const locale = localeTag(language);
                 return (
-                  <Text key={m} style={[styles.xLabel, isYearMarker && styles.xLabelYear]}>
-                    {isYearMarker ? `${formatMonthShort(m, locale)} ’${m.slice(2, 4)}` : formatMonthShort(m, locale)}
+                  <Text key={period} style={[styles.xLabel, isYearMarker && styles.xLabelYear]}>
+                    {byYear
+                      ? period
+                      : isYearMarker
+                        ? `${formatMonthShort(period, locale)} ’${period.slice(2, 4)}`
+                        : formatMonthShort(period, locale)}
                   </Text>
                 );
               })}

@@ -11,7 +11,10 @@ const KIND_BY_TYPE: Record<AccountType, AccountKind> = {
   asset: 'Asset',
 };
 
-export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Cash', 'Savings', 'Tracking', 'Asset', 'Loan', 'Credit', 'Income'];
+// Income first — what comes in leads the page. Then where money sits, then
+// what is owed against it (Loan ahead of Asset: a mortgage's debt reads
+// next to the cash it is paid from, not buried under the things you own).
+export const ACCOUNT_KIND_ORDER: AccountKind[] = ['Income', 'Cash', 'Savings', 'Tracking', 'Loan', 'Asset', 'Credit'];
 
 // Kinds whose balances are debts (stored as negative) — used to split Net
 // Worth into Assets vs. Debts.

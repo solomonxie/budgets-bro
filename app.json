@@ -14,6 +14,7 @@
       },
       "supportsTablet": true,
       "bundleIdentifier": "com.example.buildyourownbudget",
+      "appleTeamId": "REPLACE_WITH_YOUR_TEAM_ID",
       "entitlements": {
         "com.apple.developer.icloud-container-identifiers": [
           "iCloud.com.example.buildyourownbudget"

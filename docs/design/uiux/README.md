@@ -1,4 +1,4 @@
-# UI/UX mockups — Build Your Own Budget
+# UI/UX mockups — Budgets Bro
 
 Every surface drawn as it is built today. `../../UIUX-DESIGN.md` carries the
 style rules and the reasoning; these files carry the pictures.

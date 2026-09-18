@@ -2,7 +2,7 @@ import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { Directory, File, Paths } from 'expo-file-system';
 import { migrate } from './migrate';
 
-const DB_NAME = 'byobudget.db';
+const DB_NAME = 'budgetsbro.db';
 // Pre-rebrand filename — migrateLegacyDbFile carries an existing install's
 // data over to DB_NAME once, below, so renaming this doesn't silently
 // orphan anyone's board data behind a fresh empty database.

@@ -4,7 +4,7 @@ import { buildBackupZip } from '../sync/buildBackup';
 import { dailyBackupName, isBackupFileName, isStale, operationBackupName } from './localBackupName';
 
 // Tier 1: the copy that lives on the phone, in the app's own Documents
-// folder, where the Files app can see it ("On My iPhone → BYO Budget →
+// folder, where the Files app can see it ("On My iPhone → Budgets Bro →
 // Backups").
 //
 // It does not survive deleting the app — nothing in this sandbox does — and

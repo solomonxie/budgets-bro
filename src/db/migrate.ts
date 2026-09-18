@@ -86,7 +86,7 @@ function rewritesExistingData(from: number, to: number): boolean {
   return migrations.some((m) => m.version > from && m.version <= to && m.rewritesData);
 }
 
-export async function migrate(db: SQLiteDatabase, dbName = 'byobudget.db'): Promise<void> {
+export async function migrate(db: SQLiteDatabase, dbName = 'budgetsbro.db'): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>(
     'PRAGMA user_version',
   );

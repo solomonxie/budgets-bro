@@ -13,7 +13,7 @@ const CONFIGS_KEY = 'sync_s3_configs';
 // Keeps backups namespaced if the bucket is ever shared with another app,
 // without the user having to think one up. Keys under it are dated — see
 // backupPath.ts.
-export const DEFAULT_S3_KEY_PREFIX = 'build-your-own-budget';
+export const DEFAULT_S3_KEY_PREFIX = 'budgets-bro';
 
 // Bucket identifies the config (no separate display name) — region is
 // auto-detected (see detectBucketRegion), never typed by the user. keyPrefix
@@ -171,7 +171,7 @@ function nonce(): string {
 // (e.g. `publicAccessBlock`) — SigV4 requires it in the canonical query
 // string as `name=` even though the actual request URL omits the `=`.
 //
-// Every request also gets a unique `x-byobudget-nonce` query param, signed like
+// Every request also gets a unique `x-budgetsbro-nonce` query param, signed like
 // any other. Without it, iOS's URLSession (which fetch sits on top of)
 // caches responses by URL and can transparently attach a conditional
 // revalidation header (If-Modified-Since/If-None-Match) to a *later*
@@ -198,7 +198,7 @@ async function signRequest(
 ): Promise<{ url: string; headers: Record<string, string> }> {
   const hostname = `${config.bucket}.s3.${config.region}.amazonaws.com`;
   const path = objectKey ? `/${objectKey}` : '/';
-  const query: Record<string, string> = { 'x-byobudget-nonce': nonce(), ...extraQuery };
+  const query: Record<string, string> = { 'x-budgetsbro-nonce': nonce(), ...extraQuery };
   if (subresource) query[subresource] = '';
 
   const request = new HttpRequest({
@@ -340,7 +340,7 @@ export async function testS3Connection(input: S3ConnectionInput): Promise<string
   const config: S3Config = { id: '_test_', bucket, region, accessKeyId: input.accessKeyId.trim(), secretAccessKey: input.secretAccessKey.trim() };
   await checkReachable(config);
 
-  const key = joinKey(keyPrefix, `.build-your-own-budget-connection-test-${Date.now()}`);
+  const key = joinKey(keyPrefix, `.budgets-bro-connection-test-${Date.now()}`);
   const marker = utf8ToBytes('ok');
   await put(config, key, marker);
   try {

@@ -208,27 +208,42 @@ export interface CreateTransferInput {
   memo: string | null;
 }
 
+// Each leg names the account on the other side, via the payee every account
+// owns (payeesRepo.ensureAccountPayee). Both legs used to post with no payee
+// at all, which read as "(No payee)" in every list — see migration 026, which
+// backfills the ones already posted.
 export async function createTransfer(db: SQLiteDatabase, boardId: number, input: CreateTransferInput): Promise<void> {
+  const [fromPayee, toPayee] = await Promise.all([
+    getLinkedPayeeId(db, input.fromAccountId),
+    getLinkedPayeeId(db, input.toAccountId),
+  ]);
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id, payee_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       boardId,
       input.fromAccountId,
       -input.amountCents,
       input.date,
       input.memo,
       input.toAccountId,
+      toPayee,
     );
     await db.runAsync(
-      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id, payee_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       boardId,
       input.toAccountId,
       input.amountCents,
       input.date,
       input.memo,
       input.fromAccountId,
+      fromPayee,
     );
   });
+}
+
+async function getLinkedPayeeId(db: SQLiteDatabase, accountId: number): Promise<number | null> {
+  const row = await db.getFirstAsync<{ id: number }>('SELECT id FROM payees WHERE linked_account_id = ?', accountId);
+  return row?.id ?? null;
 }
 
 // Creates one uncategorized adjustment transaction for `deltaCents` — the

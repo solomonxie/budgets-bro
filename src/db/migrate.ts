@@ -20,6 +20,7 @@ import { up as up018 } from '../../databases/migrations/018_custom_goals';
 import { up as up019 } from '../../databases/migrations/019_income_detail_history';
 import { up as up020 } from '../../databases/migrations/020_drop_scheduled_transaction_auto_post';
 import { up as up021 } from '../../databases/migrations/021_income_account_tag';
+import { up as up026 } from '../../databases/migrations/026_backfill_transfer_payees';
 import { up as up025 } from '../../databases/migrations/025_rate_history_note';
 import { up as up024 } from '../../databases/migrations/024_value_history_kind';
 import { up as up023 } from '../../databases/migrations/023_notes';
@@ -53,6 +54,7 @@ const migrations: Migration[] = [
   { version: 23, up: up023 },
   { version: 24, up: up024 },
   { version: 25, up: up025 },
+  { version: 26, up: up026 },
 ];
 
 // Small versioned migration runner: expo-sqlite has no built-in migration

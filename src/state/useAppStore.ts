@@ -34,17 +34,10 @@ interface AppState {
   openEditAccount: (id: number) => void;
   closeAccountModal: () => void;
 
-  // Settings lives in a global modal (opened from a corner button on each
-  // tab's home screen) instead of its own bottom tab, and doesn't need a
-  // navigation stack — SettingsScreen has no navigation dependency itself.
-  settingsModal: { open: boolean };
-  openSettings: () => void;
-  closeSettings: () => void;
-
   // Bumped after any write (transaction, account, category, budget entry) so
-  // read hooks can refetch regardless of navigation focus — the account and
-  // settings modals don't blur the screen behind them, so useFocusEffect
-  // alone would miss those writes.
+  // read hooks can refetch regardless of navigation focus — the account
+  // modal doesn't blur the screen behind it, so useFocusEffect alone would
+  // miss those writes.
   dataVersion: number;
   bumpDataVersion: () => void;
 }
@@ -69,10 +62,6 @@ export const useAppStore = create<AppState>((set) => ({
     set({ accountModal: { open: true, editingAccountId: id } }),
   closeAccountModal: () =>
     set({ accountModal: { open: false, editingAccountId: null } }),
-
-  settingsModal: { open: false },
-  openSettings: () => set({ settingsModal: { open: true } }),
-  closeSettings: () => set({ settingsModal: { open: false } }),
 
   dataVersion: 0,
   bumpDataVersion: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),

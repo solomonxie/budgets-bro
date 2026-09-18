@@ -12,7 +12,7 @@ import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { AddTransactionScreen } from '../screens/transactions/AddTransactionScreen';
 import { AccountModal } from '../screens/accounts/AccountModal';
-import { SettingsModal } from '../screens/settings/SettingsModal';
+import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import { focusedAccountId } from './focusedAccount';
 import type { TabNavState } from './focusedAccount';
@@ -157,9 +157,17 @@ export function RootNavigator() {
             fullScreenGestureEnabled: true,
           })}
         />
+        <RootStack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            title: t('settingsModal.title'),
+            headerBackTitle: t('common.backTitle'),
+            fullScreenGestureEnabled: true,
+          }}
+        />
       </RootStack.Navigator>
       <AccountModal />
-      <SettingsModal />
     </NavigationContainer>
   );
 }

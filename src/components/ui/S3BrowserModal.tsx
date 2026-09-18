@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
+import { BackupFileList } from './BackupFileList';
 import { getDb } from '../../db/client';
 import { downloadS3Object, listS3Objects, removeS3Config } from '../../sync/s3Provider';
 import { parseBackupZip } from '../../sync/parseBackupZip';
@@ -205,58 +206,33 @@ export function S3BrowserModal({
 
         {!loading && !error ? (
           <ScrollView contentContainerStyle={styles.list}>
-            {path.length > 0 ? (
-              <Pressable
-                style={styles.row}
-                onPress={() => setPath(path.slice(0, -1))}
-              >
-                <Text style={styles.rowIcon}>⬆︎</Text>
-                <Text style={styles.rowTitle}>{t('s3Browser.up')}</Text>
-              </Pressable>
-            ) : null}
-            {prefixes.map((prefix) => (
-              <Pressable
-                key={prefix}
-                style={styles.row}
-                onPress={() => setPath([...path, basename(prefix)])}
-              >
-                <Text style={styles.rowIcon}>📁</Text>
-                <Text style={styles.rowTitle}>{basename(prefix)}</Text>
-              </Pressable>
-            ))}
-            {objects.map((obj) => {
-              const restorable = obj.key.toLowerCase().endsWith('.zip');
-              return (
-                <View key={obj.key} style={styles.row}>
-                  <Text style={styles.rowIcon}>📄</Text>
-                  <View style={styles.rowMain}>
-                    <Text style={styles.rowTitle}>{basename(obj.key)}</Text>
-                    <Text style={styles.rowValue}>
-                      {formatSize(obj.size)} ·{' '}
-                      {new Date(obj.lastModified).toLocaleString()}
-                    </Text>
-                  </View>
-                  {restorable ? (
-                    restoringKey === obj.key ? (
-                      <ActivityIndicator size="small" />
-                    ) : (
-                      <Pressable onPress={() => confirmRestore(obj.key)} hitSlop={8} disabled={restoringKey != null}>
-                        <Text style={[styles.restoreLink, restoringKey != null && styles.restoreLinkDisabled]}>
-                          {t('backup.restore')}
-                        </Text>
-                      </Pressable>
-                    )
-                  ) : null}
-                </View>
-              );
-            })}
+            <BackupFileList
+              restoreLabel={t('backup.restore')}
+              entries={[
+                ...(path.length > 0
+                  ? [{ key: '..', title: t('s3Browser.up'), onOpen: () => setPath(path.slice(0, -1)) }]
+                  : []),
+                ...prefixes.map((prefix) => ({
+                  key: prefix,
+                  title: basename(prefix),
+                  onOpen: () => setPath([...path, basename(prefix)]),
+                })),
+                ...objects.map((obj) => ({
+                  key: obj.key,
+                  title: basename(obj.key),
+                  subtitle: `${formatSize(obj.size)} · ${new Date(obj.lastModified).toLocaleDateString()}`,
+                  restoring: restoringKey === obj.key,
+                  onRestore: obj.key.toLowerCase().endsWith('.zip') ? () => confirmRestore(obj.key) : undefined,
+                })),
+              ]}
+            />
             {prefixes.length === 0 && objects.length === 0 ? (
               <Text style={styles.hint}>{t('s3Browser.empty')}</Text>
             ) : null}
           </ScrollView>
         ) : null}
 
-        <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
+        <Pressable style={styles.footerLink} onPress={confirmDelete} hitSlop={8}>
           <Text style={styles.deleteText}>{t('backup.deleteConnection')}</Text>
         </Pressable>
       </ScreenContainer>
@@ -265,7 +241,7 @@ export function S3BrowserModal({
 }
 
 const styles = StyleSheet.create({
-  deleteBtn: { alignItems: 'center', paddingVertical: spacing.md },
+  footerLink: { alignItems: 'center', paddingVertical: spacing.md },
   deleteText: { color: colors.negative, fontWeight: '700' },
   header: {
     flexDirection: 'row',

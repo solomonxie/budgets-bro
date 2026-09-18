@@ -293,6 +293,7 @@ export const en = {
   'closedAccounts.deleteForever': 'Delete permanently',
   'closedAccounts.deleteConfirmTitle': 'Delete \'{name}\' and its transactions?',
   'closedAccounts.deleteConfirmMessage': 'Its transactions are deleted too, and stop counting toward category activity and Unassigned Cash. The other side of any transfer keeps its own entry. This cannot be undone.',
+  'closedAccounts.deleteImpactMessage': 'Its transactions go too — including {amount} of categorised spending, which is what offset the cash that paid this account off. Deleting it leaves those payments behind, so Unassigned Cash drops by that much. Usually you want to keep the account closed instead. This cannot be undone.',
 
   'houseValueCard.label': 'Home Value',
   'houseValueCard.notSet': 'Not set',

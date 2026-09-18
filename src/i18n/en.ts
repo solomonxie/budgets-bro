@@ -31,6 +31,7 @@ export const en = {
   'bottomSheet.cancel': 'Cancel',
 
   'searchableDropdown.useText': 'Use “{text}”',
+  'payeePicker.accountBadge': 'Account',
 
   'monthPickerModal.title': 'Month',
 

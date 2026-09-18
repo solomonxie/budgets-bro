@@ -76,7 +76,7 @@ export function AddTransactionScreen() {
   const rememberAccounts = useAppStore((s) => s.rememberTransactionAccounts);
   const { accounts } = useAccounts();
   const { groups, categories } = useCategories();
-  const { payees } = usePayees();
+  const { payees } = usePayees('usage');
   const isEditing = editingTransactionId != null;
 
   // Typed on the page's own calculator pad — digits read right-to-left as
@@ -364,7 +364,7 @@ export function AddTransactionScreen() {
           <View style={styles.form}>
             {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
-            <FieldCard>
+            <FieldCard grow>
               {payeeLocked ? (
                 <FieldRow label={t('common.payee')} value={selectedAccount?.name ?? ''} />
               ) : (
@@ -375,7 +375,11 @@ export function AddTransactionScreen() {
                   valueLabel={payee}
                   placeholder={t('spend.payeePlaceholder')}
                   searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                  options={payees.map((p) => ({ id: p.id, label: p.name }))}
+                  options={payees.map((p) => ({
+                    id: p.id,
+                    label: p.name,
+                    badge: p.linkedAccountId != null ? t('payeePicker.accountBadge') : undefined,
+                  }))}
                   onSelect={(o) => selectPayee(o.label, o.id)}
                   onUseText={setPayee}
                 />
@@ -557,7 +561,7 @@ const styles = StyleSheet.create({
   },
   amountPlaceholder: { color: colors.textMuted },
   scrollContent: { flexGrow: 1 },
-  form: { padding: spacing.md, gap: spacing.md },
+  form: { flex: 1, padding: spacing.md, gap: spacing.md },
   scheduledPill: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -607,9 +611,13 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
-  // The card's last row, typed into in place — no box of its own.
+  // The card's last row, typed into in place — no box of its own. It takes
+  // the leftover height so the pad below it doesn't move between accounts
+  // (see FieldCard's `grow`).
   memoRow: {
+    flex: 1,
     minHeight: 58,
+    textAlignVertical: 'top',
     paddingVertical: 10,
     paddingHorizontal: spacing.md,
     fontSize: 16,

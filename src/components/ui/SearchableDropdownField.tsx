@@ -10,11 +10,15 @@ import { spacing } from '../../theme/spacing';
 interface Option {
   id: number;
   label: string;
+  // A short pill after the label, for an option that behaves differently
+  // from its neighbours — an account-linked payee posts a transfer rather
+  // than just naming who was paid.
+  badge?: string;
 }
 
 // ~5 option rows tall — fixed regardless of how many results a search
 // narrows the list down to.
-const COMPACT_LIST_HEIGHT = 240;
+const COMPACT_LIST_HEIGHT = 5 * 54;
 
 // Substring match ranks highest (by position); otherwise falls back to an
 // in-order fuzzy subsequence match (typo/skip-tolerant), scored by how
@@ -138,7 +142,14 @@ export function SearchableDropdownField({
             close();
           }}
         >
-          <Text style={styles.optionText}>{o.label}</Text>
+          <Text style={styles.optionText} numberOfLines={1}>
+            {o.label}
+          </Text>
+          {o.badge ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{o.badge}</Text>
+            </View>
+          ) : null}
         </Pressable>
       ))}
     </>
@@ -237,11 +248,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 17,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  optionText: { fontSize: 15, color: colors.text },
+  optionText: { flex: 1, fontSize: 15, color: colors.text },
+  badge: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  badgeText: { fontSize: 11, fontWeight: '700', color: colors.accent },
   useText: { fontSize: 15, color: colors.accent, fontWeight: '600' },
 });

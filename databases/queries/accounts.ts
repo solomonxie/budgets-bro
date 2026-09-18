@@ -18,3 +18,14 @@ export const LIST_CLOSED_ACCOUNTS_WITH_BALANCES = `
   GROUP BY a.id
   ORDER BY a.archived_at DESC
 `;
+
+// Every posted transaction on the board's loan/mortgage accounts, so each
+// loan's remaining principal can be derived in one pass instead of a query
+// per account (see accountsRepo.listAccountsWithBalances). Same "no future
+// dates" rule as the balance queries above.
+export const LOAN_PAYMENTS_FOR_BOARD = `
+  SELECT t.account_id, t.amount_cents, t.date
+  FROM transactions t JOIN accounts a ON a.id = t.account_id
+  WHERE a.board_id = ? AND a.type IN ('loan', 'mortgage') AND t.date <= ?
+  ORDER BY t.date
+`;

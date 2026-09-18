@@ -1,11 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
-import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES } from '../../../databases/queries/accounts';
+import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES, LOAN_PAYMENTS_FOR_BOARD } from '../../../databases/queries/accounts';
 import { currentDateISO } from '../../domain/month';
-import { usesLoggedValue } from '../../domain/accountKind';
+import { isLoanLikeType, usesLoggedValue } from '../../domain/accountKind';
+import { remainingPrincipal } from '../../finance-tools/remainingPrincipal';
+import type { ActualPayment } from '../../finance-tools/paymentSplit';
 import * as payeesRepo from './payeesRepo';
+import * as accountRateHistoryRepo from './accountRateHistoryRepo';
 import * as accountValueHistoryRepo from './accountValueHistoryRepo';
+import type { DatedReading } from './accountValueHistoryRepo';
 
 function mapRow(row: AccountRow): Account {
   return {
@@ -39,29 +43,65 @@ export interface AccountWithBalance {
   balanceCents: number;
 }
 
-// A tracking/asset account's "balance" is its latest logged value (see
-// accountValueHistoryRepo/T8.6), not opening_balance + transactions — its
-// transactions track real cash movement, but growth/decline is tracked
-// separately via manual value-log entries. Falls back to the usual
-// computed balance for one with no value entries logged yet (freshly
-// created, only an opening balance).
-function resolveBalanceCents(
-  account: Account,
-  computedBalanceCents: number,
-  valuesByAccountId: Map<number, number>,
-): number {
-  if (!usesLoggedValue(account.type)) return computedBalanceCents;
-  return valuesByAccountId.get(account.id) ?? computedBalanceCents;
+// Three account shapes, three definitions of "balance":
+//
+// - tracking/asset: its latest logged value (see accountValueHistoryRepo),
+//   not opening_balance + transactions. Its transactions track real cash
+//   movement, but growth/decline is logged by hand.
+// - loan/mortgage: the remaining principal, derived — each real payment
+//   covers its period's interest first, so summing the payments would pay
+//   the loan off years early (see finance-tools/remainingPrincipal). Stored
+//   negative, like any debt.
+// - everything else: opening_balance + transactions.
+//
+// Each falls back to the computed balance when it has nothing better to go
+// on (a freshly created account with only an opening balance).
+interface DerivedBalanceSources {
+  valuesByAccountId: Map<number, number>;
+  principalsByAccountId: Map<number, DatedReading>;
+  ratesByAccountId: Map<number, number>;
+  paymentsByAccountId: Map<number, ActualPayment[]>;
+}
+
+function resolveBalanceCents(account: Account, computedBalanceCents: number, sources: DerivedBalanceSources): number {
+  if (usesLoggedValue(account.type)) return sources.valuesByAccountId.get(account.id) ?? computedBalanceCents;
+  if (!isLoanLikeType(account.type)) return computedBalanceCents;
+  const { owedCents } = remainingPrincipal({
+    loggedPrincipal: sources.principalsByAccountId.get(account.id) ?? null,
+    originalPrincipalCents: account.originalPrincipalCents,
+    originationDate: account.originationDate,
+    openingBalanceCents: account.openingBalanceCents,
+    fallbackDate: account.createdAt.slice(0, 10),
+    annualRateBps: sources.ratesByAccountId.get(account.id) ?? null,
+    payments: sources.paymentsByAccountId.get(account.id) ?? [],
+  });
+  return -owedCents;
+}
+
+async function derivedBalanceSources(db: SQLiteDatabase, boardId: number): Promise<DerivedBalanceSources> {
+  const [valuesByAccountId, principalsByAccountId, ratesByAccountId, paymentRows] = await Promise.all([
+    accountValueHistoryRepo.currentValuesByBoard(db, boardId),
+    accountValueHistoryRepo.currentReadingsByBoard(db, boardId, 'principal'),
+    accountRateHistoryRepo.currentRatesByBoard(db, boardId),
+    db.getAllAsync<{ account_id: number; amount_cents: number; date: string }>(LOAN_PAYMENTS_FOR_BOARD, boardId, currentDateISO()),
+  ]);
+  const paymentsByAccountId = new Map<number, ActualPayment[]>();
+  for (const row of paymentRows) {
+    const list = paymentsByAccountId.get(row.account_id) ?? [];
+    list.push({ date: row.date, amountCents: row.amount_cents });
+    paymentsByAccountId.set(row.account_id, list);
+  }
+  return { valuesByAccountId, principalsByAccountId, ratesByAccountId, paymentsByAccountId };
 }
 
 export async function listAccountsWithBalances(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
-  const [rows, valuesByAccountId] = await Promise.all([
+  const [rows, sources] = await Promise.all([
     db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES, currentDateISO(), boardId),
-    accountValueHistoryRepo.currentValuesByBoard(db, boardId),
+    derivedBalanceSources(db, boardId),
   ]);
   return rows.map((row) => {
     const account = mapRow(row);
-    return { account, balanceCents: resolveBalanceCents(account, row.opening_balance_cents + row.activity_cents, valuesByAccountId) };
+    return { account, balanceCents: resolveBalanceCents(account, row.opening_balance_cents + row.activity_cents, sources) };
   });
 }
 
@@ -146,13 +186,13 @@ export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<vo
 }
 
 export async function listClosedAccounts(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
-  const [rows, valuesByAccountId] = await Promise.all([
+  const [rows, sources] = await Promise.all([
     db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_CLOSED_ACCOUNTS_WITH_BALANCES, currentDateISO(), boardId),
-    accountValueHistoryRepo.currentValuesByBoard(db, boardId),
+    derivedBalanceSources(db, boardId),
   ]);
   return rows.map((row) => {
     const account = mapRow(row);
-    return { account, balanceCents: resolveBalanceCents(account, row.opening_balance_cents + row.activity_cents, valuesByAccountId) };
+    return { account, balanceCents: resolveBalanceCents(account, row.opening_balance_cents + row.activity_cents, sources) };
   });
 }
 

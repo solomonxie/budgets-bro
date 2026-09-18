@@ -6,17 +6,20 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-export interface HouseValueChangeValue {
+export interface LoggedValueChange {
   value: string;
   effectiveDate: string;
   note: string;
 }
 
-interface HouseValueModalProps {
+interface LoggedValueModalProps {
   visible: boolean;
-  initial: HouseValueChangeValue;
+  title: string;
+  valueLabel: string;
+  notePlaceholder: string;
+  initial: LoggedValueChange;
   onCancel: () => void;
-  onSubmit: (value: HouseValueChangeValue) => void;
+  onSubmit: (value: LoggedValueChange) => void;
   onDelete?: () => void;
 }
 
@@ -25,12 +28,23 @@ function splitSign(value: string): { negative: boolean; magnitude: string } {
   return trimmed.startsWith('-') ? { negative: true, magnitude: trimmed.slice(1) } : { negative: false, magnitude: trimmed };
 }
 
-// Add/edit one row of a mortgage's home-value history (value, the date it
-// took effect, and where the number came from) — same small-card modal
-// shell as RateChangeModal. The sign
-// toggle exists because decimal-pad has no minus key on iOS, and a home
-// value can go negative (underwater on the loan).
-export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete }: HouseValueModalProps) {
+// Add/edit one reading in an account's logged history (account_value_history):
+// the figure, the date it took effect, and where the number came from. Used
+// for both kinds that table holds — a home's value and a loan's remaining
+// principal (see migration 024) — so the wording comes in as props. Same
+// small-card modal shell as RateChangeModal. The sign toggle exists because
+// decimal-pad has no minus key on iOS, and a home value can go negative
+// (underwater on the loan).
+export function LoggedValueModal({
+  visible,
+  title,
+  valueLabel,
+  notePlaceholder,
+  initial,
+  onCancel,
+  onSubmit,
+  onDelete,
+}: LoggedValueModalProps) {
   const t = useT();
   const [negative, setNegative] = useState(false);
   const [magnitude, setMagnitude] = useState('');
@@ -57,14 +71,14 @@ export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>{t('houseValueModal.title')}</Text>
+          <Text style={styles.title}>{title}</Text>
           <View style={styles.valueRow}>
             <Pressable style={styles.signToggle} onPress={() => setNegative((v) => !v)}>
               <Text style={styles.signToggleText}>{negative ? '−' : '+'}</Text>
             </Pressable>
             <View style={styles.valueInput}>
               <TextField
-                label={t('houseValueModal.valueLabel')}
+                label={valueLabel}
                 value={magnitude}
                 onChangeText={setMagnitude}
                 keyboardType="decimal-pad"
@@ -75,10 +89,10 @@ export function HouseValueModal({ visible, initial, onCancel, onSubmit, onDelete
           </View>
           <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
           <TextField
-            label={t('houseValueModal.noteLabel')}
+            label={t('loggedValueModal.noteLabel')}
             value={note}
             onChangeText={setNote}
-            placeholder={t('houseValueModal.notePlaceholder')}
+            placeholder={notePlaceholder}
           />
           <View style={styles.actions}>
             {onDelete ? (

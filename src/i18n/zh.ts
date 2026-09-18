@@ -39,8 +39,11 @@ export const zh: Record<keyof typeof en, string> = {
 
   'houseValueModal.title': '房屋价值',
   'houseValueModal.valueLabel': '价值',
-  'houseValueModal.noteLabel': '备注（可选）',
   'houseValueModal.notePlaceholder': '例如 链家估价、银行评估',
+  'loggedValueModal.noteLabel': '备注（可选）',
+  'principalModal.title': '剩余本金',
+  'principalModal.valueLabel': '当前还欠多少',
+  'principalModal.notePlaceholder': '例如 5 月账单',
 
   'rateChangeModal.title': '利率变更',
   'rateChangeModal.rateLabel': '利率（年化 %）',
@@ -225,9 +228,13 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.openingBalanceLabel': '起始余额',
   'accountModal.openingBalanceHint':
     '这个账户在本应用里开始记账那天的余额。贷款和信用卡填负数——当时欠了多少。',
-  'accountModal.openingBalanceLoanLabel': '开始记账时的余额',
-  'accountModal.openingBalanceLoanHint':
-    '已根据下方的借款金额自动填好。只有在添加之前就已经还过一段时间的情况下才需要改动——那时填当天还欠多少。负数表示欠款。',
+  'accountModal.currentHouseValueLabel': '当前房屋估值',
+  'accountModal.currentHouseValueHint':
+    '房子现在值多少，按你自己的估计填。会存成一条带日期的记录，之后可以在账户页继续补充。',
+  'accountModal.currentPrincipalLabel': '当前剩余本金',
+  'accountModal.currentPrincipalHint':
+    '按账单填今天还欠多少。两次填写之间，你记的每笔还款都会先抵利息、剩下的才减本金，所以这个数字能自己跟上。记录它不会产生任何流水。',
+  'accountModal.purchaseDateLabel': '购房日期',
   'accountModal.latestBalanceLabel': '当前余额',
   'accountModal.latestBalanceHint':
     '账户今天实际显示的余额。保存一个不同的数字，会自动记一笔调整流水来对平差额。',
@@ -309,15 +316,15 @@ export const zh: Record<keyof typeof en, string> = {
   'loanDetailsCard.remainingInterestLabel': '预计剩余利息',
   'loanDetailsCard.lastPaymentLabel': '最近一次还款（{date}）',
   'loanDetailsCard.splitValue': '利息 {interest} · 本金 {principal}',
-  'loanDetailsCard.paidToDateLabel': '累计已还',
-  'loanDetailsCard.derivedOwedLabel': '拆出利息后的欠款',
-  'loanDetailsCard.owedGapHint':
-    '与上方余额相差 {amount}——很可能把整笔还款都记到了这个贷款账户上，而只有其中的本金部分才会减少欠款。',
-  'loanDetailsCard.statementOwedLabel': '当前欠款',
-  'loanDetailsCard.statementOwedHint': '按最新账单上还欠多少填写。保存后会为差额自动记一笔调整流水。',
-  'loanDetailsCard.saveAdjustment': '保存 {amount} 的调整',
+  'loanDetailsCard.paidSinceReadingLabel': '之后已还',
+  'loanDetailsCard.updatePrincipal': '+ 更新剩余本金',
+  'loanDetailsCard.sinceReadingHint':
+    '以你记录的 {date} 还欠 {amount} 为基准，加上之后 {count} 笔还款推算——每笔先抵利息，剩下的才减本金。随时可以记一个新数字，不会产生任何流水。',
+  'loanDetailsCard.sinceOriginHint':
+    '以借款金额加上之后 {count} 笔还款推算——每笔先抵利息，剩下的才减本金。按账单记一次实际欠款就能校准。',
+  'loanDetailsCard.noRateHint': '没有填利率，所以每笔还款都被当作全额还本金——这会让这个数字低于实际欠款。',
   'loanDetailsCard.actualsOnlyHint':
-    '按每期还款额和流水算出的实际余额推算。想试算额外还款，请用提前还清 / 提前还贷计算器。',
+    '按每期还款额和当前剩余本金推算。想试算额外还款，请用提前还清 / 提前还贷计算器。',
   'loanDetailsCard.summary': '{rate}% · 每月 {payment}',
 
   'aiAnalysis.title': 'AI 洞察',

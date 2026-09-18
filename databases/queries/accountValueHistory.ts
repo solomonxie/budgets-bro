@@ -1,8 +1,8 @@
 export const LIST_VALUE_HISTORY =
-  'SELECT * FROM account_value_history WHERE account_id = ? ORDER BY effective_date DESC, id DESC';
+  'SELECT * FROM account_value_history WHERE account_id = ? AND kind = ? ORDER BY effective_date DESC, id DESC';
 
 export const CURRENT_VALUE =
-  'SELECT value_cents FROM account_value_history WHERE account_id = ? ORDER BY effective_date DESC, id DESC LIMIT 1';
+  'SELECT value_cents FROM account_value_history WHERE account_id = ? AND kind = ? ORDER BY effective_date DESC, id DESC LIMIT 1';
 
 // Latest value_cents per account on a board (mortgage house value or a
 // tracking account's logged value — same table, see migration 014), for
@@ -10,13 +10,13 @@ export const CURRENT_VALUE =
 // subquery "latest row" idiom (mirrors effective_date DESC, id DESC
 // ordering above).
 export const CURRENT_VALUES_FOR_BOARD = `
-  SELECT h.account_id, h.value_cents
+  SELECT h.account_id, h.value_cents, h.effective_date
   FROM account_value_history h
   JOIN accounts a ON a.id = h.account_id
-  WHERE a.board_id = ?
+  WHERE a.board_id = ? AND h.kind = ?
     AND h.id = (
       SELECT h2.id FROM account_value_history h2
-      WHERE h2.account_id = h.account_id
+      WHERE h2.account_id = h.account_id AND h2.kind = h.kind
       ORDER BY h2.effective_date DESC, h2.id DESC
       LIMIT 1
     )

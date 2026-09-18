@@ -9,6 +9,7 @@ import { spacing } from '../../theme/spacing';
 export interface RateChangeValue {
   ratePercent: string;
   effectiveDate: string;
+  note: string;
 }
 
 interface RateChangeModalProps {
@@ -25,18 +26,20 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
   const t = useT();
   const [ratePercent, setRatePercent] = useState(initial.ratePercent);
   const [effectiveDate, setEffectiveDate] = useState(initial.effectiveDate);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     if (visible) {
       setRatePercent(initial.ratePercent);
       setEffectiveDate(initial.effectiveDate);
+      setNote(initial.note);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const submit = () => {
     if (!ratePercent.trim() || !effectiveDate.trim()) return;
-    onSubmit({ ratePercent: ratePercent.trim(), effectiveDate: effectiveDate.trim() });
+    onSubmit({ ratePercent: ratePercent.trim(), effectiveDate: effectiveDate.trim(), note: note.trim() });
   };
 
   return (
@@ -53,6 +56,12 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
             autoFocus
           />
           <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+          <TextField
+            label={t('loggedValueModal.noteLabel')}
+            value={note}
+            onChangeText={setNote}
+            placeholder={t('rateChangeModal.notePlaceholder')}
+          />
           <View style={styles.actions}>
             {onDelete ? (
               <Pressable onPress={onDelete}>

@@ -159,6 +159,11 @@ export function AccountModal() {
   const isMortgage = type === 'mortgage';
 
   const isIncomeType = type === 'income';
+  // Where a rate is a real property of the account: what savings and cash
+  // earn, what a loan charges. A tracking/asset account's growth is logged as
+  // value, not computed from a rate; income accounts and credit cards have no
+  // rate this app does anything with.
+  const tracksInterestRate = type === 'cash' || type === 'savings' || isLoanLike;
 
   const refreshIncomeHistory = async () => {
     if (editingAccountId == null) return;
@@ -229,17 +234,23 @@ export function AccountModal() {
       originalHousePriceCents: isLoanLike ? parseCents(originalHousePrice) : null,
       note: note.trim() || null,
     };
+    // Each figure typed here becomes a reading dated today, and only if it
+    // actually changed — re-saving the form otherwise piles up identical rows
+    // in the history. `currentHouseValue` carries the 'value' reading for both
+    // a mortgage's home and a tracking/asset account's worth: same column,
+    // same meaning.
     const saveReadings = async (accountId: number) => {
-      if (!isLoanLike) return;
       const today = currentDateISO();
-      const principalCents = parseCents(currentPrincipal);
-      if (principalCents != null && principalCents !== loadedPrincipalCents) {
-        await accountValueHistoryRepo.addValueChange(db, accountId, principalCents, today, null, 'principal');
+      if (isLoanLike) {
+        const principalCents = parseCents(currentPrincipal);
+        if (principalCents != null && principalCents !== loadedPrincipalCents) {
+          await accountValueHistoryRepo.addValueChange(db, accountId, principalCents, today, null, 'principal');
+        }
       }
-      if (!isMortgage) return;
-      const houseValueCents = parseCents(currentHouseValue);
-      if (houseValueCents != null && houseValueCents !== loadedHouseValueCents) {
-        await accountValueHistoryRepo.addValueChange(db, accountId, houseValueCents, today, null, 'value');
+      if (!isMortgage && !usesLoggedValue(type)) return;
+      const valueCents = parseCents(currentHouseValue);
+      if (valueCents != null && valueCents !== loadedHouseValueCents) {
+        await accountValueHistoryRepo.addValueChange(db, accountId, valueCents, today, null, 'value');
       }
     };
     if (editingAccountId != null) {
@@ -337,8 +348,9 @@ export function AccountModal() {
     if (editingAccountId == null) return;
     const rateBps = Math.round(parseFloat(value.ratePercent) * 100);
     const db = await getDb();
-    if (rateModal?.editing) await accountRateHistoryRepo.updateRateChange(db, rateModal.editing.id, rateBps, value.effectiveDate);
-    else await accountRateHistoryRepo.addRateChange(db, editingAccountId, rateBps, value.effectiveDate);
+    const note = value.note.trim() || null;
+    if (rateModal?.editing) await accountRateHistoryRepo.updateRateChange(db, rateModal.editing.id, rateBps, value.effectiveDate, note);
+    else await accountRateHistoryRepo.addRateChange(db, editingAccountId, rateBps, value.effectiveDate, note);
     bumpDataVersion();
     setRateModal(null);
   };
@@ -432,7 +444,28 @@ export function AccountModal() {
                 ) : null}
               </View>
             </>
-          ) : isEditing && !usesLoggedValue(type) ? (
+          ) : usesLoggedValue(type) ? (
+            <View style={styles.field}>
+              <TextField
+                label={t('accountModal.currentValueLabel')}
+                value={currentHouseValue}
+                onChangeText={setCurrentHouseValue}
+                keyboardType="decimal-pad"
+                placeholder={t('common.amountPlaceholder')}
+                hint={t('accountModal.currentValueHint')}
+              />
+              {isEditing ? (
+                <ReadingList
+                  label={t('accountModal.valueHistoryLabel')}
+                  emptyLabel={t('accountModal.noReadings')}
+                  addLabel={t('accountModal.addValue')}
+                  readings={houseValueHistory}
+                  onOpen={(editing) => setReadingModal({ kind: 'value', editing })}
+                  t={t}
+                />
+              ) : null}
+            </View>
+          ) : isEditing ? (
             <TextField
               label={t('accountModal.latestBalanceLabel')}
               value={latestBalance}
@@ -442,6 +475,8 @@ export function AccountModal() {
               hint={t('accountModal.latestBalanceHint')}
             />
           ) : null}
+          {tracksInterestRate ? (
+            <>
           <Text style={styles.sectionLabel}>{t('accountModal.interestRateHeading')}</Text>
           {isEditing ? (
             <View style={styles.field}>
@@ -457,7 +492,14 @@ export function AccountModal() {
                     })
                   }
                 >
-                  <Text style={styles.rateRowText}>{(r.rateBps / 100).toFixed(2)}%</Text>
+                  <View style={styles.readingLeft}>
+                    <Text style={styles.rateRowText}>{(r.rateBps / 100).toFixed(2)}%</Text>
+                    {r.note ? (
+                      <Text style={styles.rateRowDate} numberOfLines={1}>
+                        {r.note}
+                      </Text>
+                    ) : null}
+                  </View>
                   <Text style={styles.rateRowDate}>{t('common.effectivePrefix', { date: r.effectiveDate })}</Text>
                 </Pressable>
               ))}
@@ -474,6 +516,8 @@ export function AccountModal() {
               placeholder={t('accountModal.interestRatePlaceholder')}
             />
           )}
+            </>
+          ) : null}
           {isLoanLike ? (
             <>
               <Text style={styles.sectionLabel}>{t('accountModal.loanTermsHeading')}</Text>
@@ -590,6 +634,7 @@ export function AccountModal() {
         initial={{
           ratePercent: rateModal?.editing ? (rateModal.editing.rateBps / 100).toString() : '',
           effectiveDate: rateModal?.editing?.effectiveDate ?? currentDateISO(),
+          note: rateModal?.editing?.note ?? '',
         }}
         onCancel={() => setRateModal(null)}
         onSubmit={submitRateChange}

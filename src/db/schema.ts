@@ -30,6 +30,7 @@ export interface AccountRateHistoryRow {
   account_id: number;
   rate_bps: number;
   effective_date: string;
+  note: string | null;
   created_at: string;
 }
 

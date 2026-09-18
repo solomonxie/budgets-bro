@@ -45,6 +45,9 @@ export interface AccountRateChange {
   accountId: number;
   rateBps: number;
   effectiveDate: string; // 'YYYY-MM-DD'
+  // Why it changed — a promo ending, a fixed term rolling over — which the
+  // percentage on its own can't say.
+  note: string | null;
 }
 
 // Two kinds of reading share account_value_history (migration 024):

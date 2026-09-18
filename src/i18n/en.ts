@@ -45,6 +45,7 @@ export const en = {
   'rateChangeModal.title': 'Rate Change',
   'rateChangeModal.rateLabel': 'Rate (annual %)',
   'rateChangeModal.ratePlaceholder': 'e.g. 6.25',
+  'rateChangeModal.notePlaceholder': 'e.g. intro rate ended',
 
   'stubScreen.comingSoon': 'Coming soon — this screen is still being designed.',
 
@@ -241,6 +242,13 @@ export const en = {
   'accountModal.houseValueHistoryLabel': 'House Value History',
   'accountModal.principalHistoryLabel': 'Remaining Principal History',
   'accountModal.noReadings': 'Nothing recorded yet.',
+  'accountModal.currentValueLabel': 'Current Value',
+  'accountModal.currentValueHint':
+    'What it is worth now. This account’s balance is whatever was logged last, not a sum of its transactions.',
+  'accountModal.valueHistoryLabel': 'Value History',
+  'accountModal.addValue': '+ Log an Update on Value',
+  'interestRateCard.notSet': 'Not set',
+  'interestRateCard.logRateChange': '+ Log a Rate Change',
   'trackingValueModal.notePlaceholder': 'e.g. 60% equities / 40% bonds',
   'accountModal.addHouseValue': '+ Add House Value',
   'accountModal.addPrincipal': '+ Add Remaining Principal',

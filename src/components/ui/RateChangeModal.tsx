@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
 import { DateField } from './DateField';
 import { useT } from '../../i18n';
+import { CardModal } from './CardModal';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -43,68 +44,45 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.backdrop} onPress={onCancel}>
-        {/* Stops the tap reaching the backdrop (which cancels), and puts
-            the keyboard away — tapping off a field inside the card used to
-            do nothing at all, leaving the pad covering the buttons. */}
-        <Pressable
-          style={styles.card}
-          onPress={(e) => {
-            e.stopPropagation();
-            Keyboard.dismiss();
-          }}
-        >
-          <Text style={styles.title}>{t('rateChangeModal.title')}</Text>
-          <TextField
-            label={t('rateChangeModal.rateLabel')}
-            value={ratePercent}
-            onChangeText={setRatePercent}
-            keyboardType="decimal-pad"
-            placeholder={t('rateChangeModal.ratePlaceholder')}
-            autoFocus
-          />
-          <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
-          <TextField
-            label={t('loggedValueModal.noteLabel')}
-            value={note}
-            onChangeText={setNote}
-            placeholder={t('rateChangeModal.notePlaceholder')}
-          />
-          <View style={styles.actions}>
-            {onDelete ? (
-              <Pressable onPress={onDelete}>
-                <Text style={styles.deleteText}>{t('common.delete')}</Text>
-              </Pressable>
-            ) : (
-              <View />
-            )}
-            <View style={styles.rightActions}>
-              <Pressable onPress={onCancel}>
-                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable style={styles.saveButton} onPress={submit}>
-                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <CardModal visible={visible} onCancel={onCancel}>
+      <Text style={styles.title}>{t('rateChangeModal.title')}</Text>
+      <TextField
+        label={t('rateChangeModal.rateLabel')}
+        value={ratePercent}
+        onChangeText={setRatePercent}
+        keyboardType="decimal-pad"
+        placeholder={t('rateChangeModal.ratePlaceholder')}
+        autoFocus
+      />
+      <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+      <TextField
+        label={t('loggedValueModal.noteLabel')}
+        value={note}
+        onChangeText={setNote}
+        placeholder={t('rateChangeModal.notePlaceholder')}
+      />
+      <View style={styles.actions}>
+        {onDelete ? (
+          <Pressable onPress={onDelete}>
+            <Text style={styles.deleteText}>{t('common.delete')}</Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
+        <View style={styles.rightActions}>
+          <Pressable onPress={onCancel}>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+          </Pressable>
+          <Pressable style={styles.saveButton} onPress={submit}>
+            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </CardModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  card: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   rightActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

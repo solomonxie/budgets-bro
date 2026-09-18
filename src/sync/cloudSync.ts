@@ -3,7 +3,7 @@ import * as settingsRepo from '../db/repositories/settingsRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
 import { createICloudProviders } from './icloudProvider';
-import { LEGACY_BACKUP_KEY, backupKey, latestBackupKey } from './backupPath';
+import { LEGACY_BACKUP_KEY, latestBackupKey } from './backupPath';
 import { currentDateISO } from '../domain/month';
 import { resolveSyncEnabled } from './autoSync';
 import type { CloudProvider, CloudProviderId } from './types';
@@ -97,12 +97,13 @@ export async function syncNow(
   if (eligible.length === 0) return [];
 
   const bytes = await buildBackupZip(db, boardId, boardName);
-  // One object per board per day — syncing again the same day replaces it.
-  const key = backupKey(boardName, currentDateISO());
+  // Built once, but keyed per destination: a bucket keeps one object per
+  // board per month, iCloud overwrites its single file — see backupPath.ts.
+  const today = currentDateISO();
   return Promise.all(
     eligible.map(async (provider) => {
       try {
-        await provider.upload(bytes, key);
+        await provider.upload(bytes, provider.keyFor(boardName, today));
         const syncedAt = new Date().toISOString();
         await setLastSyncedAt(db, provider.id, syncedAt);
         return { providerId: provider.id, syncedAt, error: null };

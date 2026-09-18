@@ -78,14 +78,16 @@ global endpoint, even an unauthenticated one that 403s, so
 (store via `settingsRepo`, alongside access key ID/secret which stay in
 `secureStore`). Optional **key prefix** nests backups under a folder, for a
 bucket shared with other stuff — object key:
-`<keyPrefix>/<YYYYMM>/<board-slug>-<YYYYMMDD>.zip` — readable straight out of
-an S3 console (which board, taken when, without opening it) and browsable as
-month folders. One object per board per day: syncing repeatedly in a day
-replaces that day's file rather than piling up near-identical zips, so the
-history stays a history without becoming noise.
+`<keyPrefix>/<YYYYMM>-<board-slug>.zip` — readable straight out of an S3
+console (which board, roughly when, without opening it). One object per board
+per month: every sync that month replaces that month's file, so a year of
+history is twelve files on one screen instead of hundreds of
+near-identical zips nobody restores a specific day from. Keys older versions
+wrote (`<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`, and `<boardId>/latest.zip`
+before that) are still recognised when looking for the newest backup.
 
 **Local** — no credentials, no network: writes the same zip to
-`Paths.document/backups/<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`. Not off-device
+`Paths.document/backups/<YYYYMM>-<board-slug>.zip`. Not off-device
 protection —
 expo-sqlite's own database already lives at `Documents/SQLite/`, the same
 sandbox this zip sits in, so both disappear together on app deletion and
@@ -100,10 +102,18 @@ app/dev-client, not Expo Go. One toggle in Settings (no bucket/account
 concept to manage, unlike S3/Drive).
 
 **iCloud Drive** — the same zip written into the app's own ubiquity
-container at `Documents/<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`. No credentials,
-no account setup, no third party: the user is already signed in, and the
-folder shows up in Files under iCloud Drive → BYO Budget, where they can drag
-a backup out or an old one back. This is the destination that closes
+container at `Documents/<board-slug>-latest.zip`. No credentials, no account
+setup, no third party: the user is already signed in, and the folder shows up
+in Files under iCloud Drive → BYO Budget, where they can drag a backup out or
+one back in.
+
+One file per board, overwritten every sync — no dates, no history. iCloud's
+whole job here is surviving a reinstall, and only the current copy does that
+job; a dated history would spend the user's own iCloud quota on zips nobody
+opens. A bucket, which is cheap and browsable, keeps the history instead.
+Restore still lists the folder rather than naming the file, so an install
+that backed up under the old dated layout still finds its newest zip
+(`latest` sorts past every date — `backupPath.ts`). This is the destination that closes
 localProvider's gap — it survives losing the phone and it reaches their other
 devices — without S3's provisioning.
 
@@ -206,8 +216,8 @@ choice flips on upgrade.
   the demo board seeds. No prompt: on first launch the user has no context
   for the question, and getting their data back is the entire point of
   having backed it up.
-- **Everything else, by hand**: "Import a backup" in the Data section takes
-  a zip the user picked and overrides anything.
+- **Everything else, by hand**: the "Import a backup" link under the backup
+  destinations takes a zip the user picked and overrides anything.
 - New Google Drive section: "Connect"/"Disconnect", shows connected
   account email once linked.
 - Per-provider: "Auto-sync" toggle (default on once configured), "Last

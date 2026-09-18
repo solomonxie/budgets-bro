@@ -112,7 +112,12 @@ export function AddTransactionScreen() {
   // on the paying side. Budget activity queries already guard against this
   // (see databases/queries/budgets.ts); the field shouldn't be offered
   // either.
-  const takesCategory = selectedAccount != null && isSpendingAccountType(selectedAccount.type);
+  // Choosing an account-linked payee makes this a transfer: the money is
+  // moving between your own accounts, not being spent, and it gets its
+  // category when it leaves the other side. Categorising it here would count
+  // the same money twice.
+  const isTransfer = payees.some((p) => p.name === payee && p.linkedAccountId != null);
+  const takesCategory = selectedAccount != null && isSpendingAccountType(selectedAccount.type) && !isTransfer;
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no

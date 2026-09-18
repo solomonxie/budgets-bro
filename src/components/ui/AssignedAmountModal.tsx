@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { formatMoney } from '../../domain/money';
@@ -86,7 +86,13 @@ export function AssignedAmountModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={done}>
       <Pressable style={styles.backdrop} onPress={done}>
-        <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.card}
+          onPress={(e) => {
+            e.stopPropagation();
+            Keyboard.dismiss();
+          }}
+        >
           <Text style={styles.title}>
             {categoryIcon ? `${categoryIcon} ` : ''}
             {categoryName}

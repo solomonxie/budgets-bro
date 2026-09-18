@@ -2,8 +2,11 @@
 
 `AddTransactionScreen` is a page on the root stack (above the tabs), so it
 covers the tab bar, gets a back button, and closes with a swipe right from
-anywhere. Reached by `navigate('AddTransaction', { transactionId? })` — the
-Spend tab pushes it empty, a row tap pushes it with an id to edit.
+anywhere. Reached by `navigate('AddTransaction', { transactionId?, presetAccountId? })`
+— a row tap pushes it with an id to edit; the Spend tab pushes it empty,
+except from an open account page, where `focusedAccountId` (navigation/) reads
+that account off the tab state and preselects it. An Income account preselects
+the stream tag + inflow instead of the Account field — money never sits in one.
 
 ```
 TransactionsScreen.tsx

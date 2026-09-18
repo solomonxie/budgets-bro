@@ -33,9 +33,7 @@
             "NSUbiquitousContainerSupportedFolderLevels": "Any",
             "NSUbiquitousContainerName": "BYO Budget"
           }
-        },
-        "UIFileSharingEnabled": true,
-        "LSSupportsOpeningDocumentsInPlace": true
+        }
       }
     },
     "android": {

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { TextField } from './TextField';
 import { MoneyField } from './MoneyField';
 import { DateField } from './DateField';
 import { useT } from '../../i18n';
-import { CardModal } from './CardModal';
+import { FormSheet } from './FormSheet';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -30,7 +30,7 @@ interface LoggedValueModalProps {
 // kind of reading uses it — a home's value, an investment's total, a loan's
 // remaining principal (see migration 024) — so all the wording comes in as
 // props: a dialog headed "Home Value" on an RRSP is worse than no heading.
-// Same small-card shell as RateChangeModal.
+// A pushed sheet rather than a popup — see FormSheet.
 export function LoggedValueModal({
   visible,
   title,
@@ -61,8 +61,7 @@ export function LoggedValueModal({
   };
 
   return (
-    <CardModal visible={visible} onCancel={onCancel}>
-      <Text style={styles.title}>{title}</Text>
+    <FormSheet visible={visible} title={title} onCancel={onCancel} onSave={submit}>
       <MoneyField
         label={valueLabel}
         value={magnitude}
@@ -77,33 +76,18 @@ export function LoggedValueModal({
         onChangeText={setNote}
         placeholder={notePlaceholder}
       />
-      <View style={styles.actions}>
-        {onDelete ? (
-          <Pressable onPress={onDelete}>
-            <Text style={styles.deleteText}>{t('common.delete')}</Text>
-          </Pressable>
-        ) : (
-          <View />
-        )}
-        <View style={styles.rightActions}>
-          <Pressable onPress={onCancel}>
-            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-          </Pressable>
-          <Pressable style={styles.saveButton} onPress={submit}>
-            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </CardModal>
+      {onDelete ? (
+        <Pressable style={styles.deleteRow} onPress={onDelete}>
+          <Text style={styles.deleteText}>{t('common.delete')}</Text>
+        </Pressable>
+      ) : null}
+    </FormSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 15, fontWeight: '700', color: colors.text },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  rightActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // Away from Save, at the end of the form — the account editor puts its
+  // Close Account link in the same place.
+  deleteRow: { alignItems: 'center', paddingVertical: spacing.sm, marginTop: spacing.md },
   deleteText: { color: colors.negative, fontWeight: '600' },
-  cancelText: { color: colors.textMuted, fontWeight: '600' },
-  saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },
-  saveButtonText: { color: '#fff', fontWeight: '700' },
 });

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { TextField } from './TextField';
 import { DateField } from './DateField';
 import { useT } from '../../i18n';
-import { CardModal } from './CardModal';
+import { FormSheet } from './FormSheet';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -44,8 +44,7 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
   };
 
   return (
-    <CardModal visible={visible} onCancel={onCancel}>
-      <Text style={styles.title}>{t('rateChangeModal.title')}</Text>
+    <FormSheet visible={visible} title={t('rateChangeModal.title')} onCancel={onCancel} onSave={submit}>
       <TextField
         label={t('rateChangeModal.rateLabel')}
         value={ratePercent}
@@ -61,33 +60,16 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
         onChangeText={setNote}
         placeholder={t('rateChangeModal.notePlaceholder')}
       />
-      <View style={styles.actions}>
-        {onDelete ? (
-          <Pressable onPress={onDelete}>
-            <Text style={styles.deleteText}>{t('common.delete')}</Text>
-          </Pressable>
-        ) : (
-          <View />
-        )}
-        <View style={styles.rightActions}>
-          <Pressable onPress={onCancel}>
-            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-          </Pressable>
-          <Pressable style={styles.saveButton} onPress={submit}>
-            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </CardModal>
+      {onDelete ? (
+        <Pressable style={styles.deleteRow} onPress={onDelete}>
+          <Text style={styles.deleteText}>{t('common.delete')}</Text>
+        </Pressable>
+      ) : null}
+    </FormSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 15, fontWeight: '700', color: colors.text },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  rightActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  deleteRow: { alignItems: 'center', paddingVertical: spacing.sm, marginTop: spacing.md },
   deleteText: { color: colors.negative, fontWeight: '600' },
-  cancelText: { color: colors.textMuted, fontWeight: '600' },
-  saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },
-  saveButtonText: { color: '#fff', fontWeight: '700' },
 });

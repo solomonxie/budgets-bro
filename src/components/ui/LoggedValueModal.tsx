@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
 import { DateField } from './DateField';
 import { useT } from '../../i18n';
@@ -70,7 +70,16 @@ export function LoggedValueModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.backdrop} onPress={onCancel}>
-        <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+        {/* Stops the tap reaching the backdrop (which cancels), and puts
+            the keyboard away — tapping off a field inside the card used to
+            do nothing at all, leaving the pad covering the buttons. */}
+        <Pressable
+          style={styles.card}
+          onPress={(e) => {
+            e.stopPropagation();
+            Keyboard.dismiss();
+          }}
+        >
           <Text style={styles.title}>{title}</Text>
           <View style={styles.valueRow}>
             <Pressable style={styles.signToggle} onPress={() => setNegative((v) => !v)}>

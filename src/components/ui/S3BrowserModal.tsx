@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { getDb } from '../../db/client';
-import { listS3Objects, removeS3Config } from '../../sync/s3Provider';
+import { downloadS3Object, listS3Objects, removeS3Config } from '../../sync/s3Provider';
+import { parseBackupZip } from '../../sync/parseBackupZip';
+import { importAppExport } from '../../import/appExportImporter';
 import type { S3ConfigMeta, S3ListEntry } from '../../sync/s3Provider';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -21,6 +23,8 @@ interface S3BrowserModalProps {
   config: S3ConfigMeta | null;
   onClose: () => void;
   onDeleted: () => void;
+  // Fired after a restore has written rows, so the screen behind can reload.
+  onRestored?: () => void;
 }
 
 function basename(fullPrefixOrKey: string): string {
@@ -41,8 +45,13 @@ function formatSize(bytes: number): string {
 
 // Browser for one saved bucket's content — scoped to its configured
 // keyPrefix, which is the root here (`path` never goes above it, see
-// s3Provider.listS3Objects). Navigation and metadata only; nothing here
-// downloads, because restoring by hand goes through "Import a backup".
+// s3Provider.listS3Objects).
+//
+// A .zip here can be restored in place. It used to be listing only, on the
+// reasoning that restoring by hand goes through "Import a backup" — but that
+// means fetching the object from somewhere that isn't the phone first, which
+// is no use when the phone is what you have. Same bytes either way:
+// download, parseBackupZip, importAppExport.
 //
 // It also owns "Delete Connection": the Settings row is a bare switch now,
 // so a destination's rare and destructive action lives one level down,
@@ -51,6 +60,7 @@ export function S3BrowserModal({
   config,
   onClose,
   onDeleted,
+  onRestored,
 }: S3BrowserModalProps) {
   const t = useT();
   const [path, setPath] = useState<string[]>([]);
@@ -58,6 +68,7 @@ export function S3BrowserModal({
   const [objects, setObjects] = useState<S3ListEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [restoringKey, setRestoringKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!config) return;
@@ -105,6 +116,36 @@ export function S3BrowserModal({
         },
       ],
     );
+
+  // A restore merges rows in rather than wiping first (see
+  // appExportImporter), which is why it is safe to offer next to a listing —
+  // but it is still another copy of the board landing on top of this one, so
+  // it asks first and names the file.
+  const confirmRestore = (key: string) => {
+    if (!config) return;
+    Alert.alert(t('s3Browser.restoreConfirmTitle', { name: basename(key) }), t('s3Browser.restoreConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('backup.restore'),
+        onPress: async () => {
+          setRestoringKey(key);
+          setError(null);
+          try {
+            const db = await getDb();
+            const bytes = await downloadS3Object(db, config.id, key);
+            if (!bytes) throw new Error(t('s3Browser.restoreNotFound'));
+            await importAppExport(db, await parseBackupZip(bytes));
+            onRestored?.();
+            onClose();
+          } catch (e) {
+            setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
+          } finally {
+            setRestoringKey(null);
+          }
+        },
+      },
+    ]);
+  };
 
   const crumbs = [
     config.bucket,
@@ -183,18 +224,32 @@ export function S3BrowserModal({
                 <Text style={styles.rowTitle}>{basename(prefix)}</Text>
               </Pressable>
             ))}
-            {objects.map((obj) => (
-              <View key={obj.key} style={styles.row}>
-                <Text style={styles.rowIcon}>📄</Text>
-                <View style={styles.rowMain}>
-                  <Text style={styles.rowTitle}>{basename(obj.key)}</Text>
-                  <Text style={styles.rowValue}>
-                    {formatSize(obj.size)} ·{' '}
-                    {new Date(obj.lastModified).toLocaleString()}
-                  </Text>
+            {objects.map((obj) => {
+              const restorable = obj.key.toLowerCase().endsWith('.zip');
+              return (
+                <View key={obj.key} style={styles.row}>
+                  <Text style={styles.rowIcon}>📄</Text>
+                  <View style={styles.rowMain}>
+                    <Text style={styles.rowTitle}>{basename(obj.key)}</Text>
+                    <Text style={styles.rowValue}>
+                      {formatSize(obj.size)} ·{' '}
+                      {new Date(obj.lastModified).toLocaleString()}
+                    </Text>
+                  </View>
+                  {restorable ? (
+                    restoringKey === obj.key ? (
+                      <ActivityIndicator size="small" />
+                    ) : (
+                      <Pressable onPress={() => confirmRestore(obj.key)} hitSlop={8} disabled={restoringKey != null}>
+                        <Text style={[styles.restoreLink, restoringKey != null && styles.restoreLinkDisabled]}>
+                          {t('backup.restore')}
+                        </Text>
+                      </Pressable>
+                    )
+                  ) : null}
                 </View>
-              </View>
-            ))}
+              );
+            })}
             {prefixes.length === 0 && objects.length === 0 ? (
               <Text style={styles.hint}>{t('s3Browser.empty')}</Text>
             ) : null}
@@ -249,6 +304,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowIcon: { fontSize: 16, width: 22, textAlign: 'center' },
+  restoreLink: { color: colors.accent, fontWeight: '600', fontSize: 13 },
+  restoreLinkDisabled: { opacity: 0.4 },
   rowMain: { flex: 1, gap: 2 },
   rowTitle: { fontSize: 15, color: colors.text },
   rowValue: { fontSize: 12, color: colors.textMuted },

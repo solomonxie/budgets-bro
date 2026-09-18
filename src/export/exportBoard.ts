@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { Share } from 'react-native';
 import { buildBackupZip } from '../sync/buildBackup';
 import { slugifyBoardName } from '../sync/backupPath';
 
@@ -14,7 +14,7 @@ export async function exportBoardZip(db: SQLiteDatabase, boardId: number, boardN
   file.create();
   file.write(bytes);
 
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(file.uri, { mimeType: 'application/zip', UTI: 'public.zip-archive' });
-  }
+  // iOS takes a file:// url straight: the share sheet reads the UTI off the
+  // extension, so the zip offers Files, Mail, AirDrop as before.
+  await Share.share({ url: file.uri });
 }

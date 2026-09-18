@@ -6,8 +6,22 @@ function mapRow(row: PayeeRow): Payee {
   return { id: row.id, name: row.name, linkedAccountId: row.linked_account_id };
 }
 
-export async function listPayees(db: SQLiteDatabase, boardId: number): Promise<Payee[]> {
-  const rows = await db.getAllAsync<PayeeRow>('SELECT * FROM payees WHERE board_id = ? ORDER BY name', boardId);
+export type PayeeOrder = 'name' | 'usage';
+
+// 'usage' puts the payees you actually use at the top of a picker — typing a
+// name is the fast path anyway, so the list's job is to make the handful you
+// reach for constantly reachable without typing. 'name' is for Settings'
+// payee management, where you are hunting a specific one to rename or delete.
+export async function listPayees(db: SQLiteDatabase, boardId: number, order: PayeeOrder = 'name'): Promise<Payee[]> {
+  const orderBy = order === 'usage' ? 'usage_count DESC, p.name' : 'p.name';
+  const rows = await db.getAllAsync<PayeeRow>(
+    `SELECT p.*, COUNT(t.id) as usage_count
+     FROM payees p LEFT JOIN transactions t ON t.payee_id = p.id
+     WHERE p.board_id = ?
+     GROUP BY p.id
+     ORDER BY ${orderBy}`,
+    boardId,
+  );
   return rows.map(mapRow);
 }
 

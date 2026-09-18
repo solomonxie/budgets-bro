@@ -27,7 +27,7 @@ export function TransactionSelectionBar({
   onDone: () => void;
 }) {
   const t = useT();
-  const { payees } = usePayees();
+  const { payees } = usePayees('usage');
   const [payeePickerOpen, setPayeePickerOpen] = useState(false);
 
   const applyPayee = (payeeName: string) => {
@@ -70,7 +70,11 @@ export function TransactionSelectionBar({
             valueLabel=""
             placeholder={t('settings.payeeSelectPlaceholder')}
             searchPlaceholder={t('settings.payeeSearchPlaceholder')}
-            options={payees.map((p) => ({ id: p.id, label: p.name }))}
+            options={payees.map((p) => ({
+              id: p.id,
+              label: p.name,
+              badge: p.linkedAccountId != null ? t('payeePicker.accountBadge') : undefined,
+            }))}
             onSelect={(o) => applyPayee(o.label)}
             onUseText={applyPayee}
           />

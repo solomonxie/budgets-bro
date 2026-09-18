@@ -30,8 +30,8 @@ describe('netWorth', () => {
 });
 
 describe('ACCOUNT_KIND_ORDER', () => {
-  it('leads with Income and puts Loan ahead of Asset', () => {
-    expect(ACCOUNT_KIND_ORDER[0]).toBe('Income');
+  it('puts Loan ahead of Asset and leaves Income last', () => {
     expect(ACCOUNT_KIND_ORDER.indexOf('Loan')).toBeLessThan(ACCOUNT_KIND_ORDER.indexOf('Asset'));
+    expect(ACCOUNT_KIND_ORDER.at(-1)).toBe('Income');
   });
 });

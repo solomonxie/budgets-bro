@@ -28,8 +28,8 @@
                    ( Closed Accounts )
 ```
 
-Groups in a fixed order — **Income first** · Cash · Savings · Tracking ·
-Loan · Asset · Credit — with a subtotal each and extra space between
+Groups in a fixed order — Cash · Savings · Tracking · Loan · Asset ·
+Credit · Income **last** — with a subtotal each and extra space between
 groups. A loan/mortgage row is negative: what's still owed.
 
 ```

@@ -37,7 +37,15 @@ yarn-error.*
 *.tsbuildinfo
 
 # generated native folders
-/ios
+# ios/ is a real Xcode project now, committed and edited by hand — there is
+# no prebuild to regenerate it from app.json. Only the parts a build
+# produces are ignored.
+/ios/Pods
+/ios/build
+/ios/.xcode.env.local
+/ios/*.xcworkspace/xcuserdata
+/ios/*.xcodeproj/xcuserdata
+/ios/*.xcodeproj/project.xcworkspace/xcuserdata
 /android
 
 # scratch SQLite db for local verification, not the app's runtime db

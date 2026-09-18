@@ -40,13 +40,13 @@ a UDID: `scripts/install-ios-device.sh <udid>`.
 First build from cold is slow (~10-20 min); later ones reuse DerivedData under
 `/tmp/budgetsbro-device`.
 
-Changing `app.json` or anything under `modules/` regenerates the native project:
+`ios/` is a real Xcode project, committed and edited by hand — there is no
+prebuild step to regenerate it. After adding a native dependency, or if the
+project folder moves (CocoaPods bakes absolute paths and the build fails on the
+old one):
 ```
-npm run prebuild
+cd ios && pod install
 ```
-`ios/` is generated and gitignored, so it is never hand-edited. If the project
-folder moves, re-run this — CocoaPods bakes absolute paths and the build fails on
-the old one.
 
 ### Xcode 26.4+ required
 SDK 57 requires Xcode 26.4 / Swift 6.3. Xcode 26.3 is the last version that runs on macOS

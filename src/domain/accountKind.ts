@@ -83,3 +83,11 @@ export function usesLoggedValue(type: AccountType): boolean {
 export function isSpendingAccountType(type: AccountType): boolean {
   return type === 'cash' || type === 'credit_card';
 }
+
+// Whether one transaction is the kind that carries a category — the account
+// can spend (above) and it isn't money moving between your own accounts.
+// Shared by the spend form and every list, so a row can't be shown a
+// category the form would refuse to give it.
+export function transactionTakesCategory(type: AccountType, isTransfer: boolean): boolean {
+  return isSpendingAccountType(type) && !isTransfer;
+}

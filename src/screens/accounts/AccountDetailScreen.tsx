@@ -19,7 +19,8 @@ import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
-import { isLoanLikeType } from '../../domain/accountKind';
+import { isLoanLikeType, transactionTakesCategory } from '../../domain/accountKind';
+import type { AccountType } from '../../domain/types';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { InterestRateDetails } from './InterestRateDetails';
 import { HouseValueDetails } from './HouseValueDetails';
@@ -35,17 +36,23 @@ import type {
 } from '../../navigation/types';
 import type { TranslationKey } from '../../i18n';
 
-// Money coming in carries no category by design — "Uncategorized" would be
-// noise on every single one, so only fall back to it for an outflow
-// (spending genuinely missing a category is worth flagging).
+// Nothing at all for a row that doesn't take a category — a savings
+// withdrawal or a transfer isn't "Uncategorized", it's simply not the kind
+// of thing a category applies to, and old rows can still carry one from
+// before that rule (see domain/accountKind). Money coming in carries no
+// category by design either, so "Uncategorized" is only for an outflow that
+// genuinely lost one.
 function categorySubLabel(
   item: {
     categoryIcon: string | null;
     categoryName: string | null;
     amountCents: number;
+    accountType: AccountType;
+    transferAccountId: number | null;
   },
   t: (key: TranslationKey) => string,
 ): string | null {
+  if (!transactionTakesCategory(item.accountType, item.transferAccountId != null)) return null;
   if (item.categoryName)
     return `${item.categoryIcon ? item.categoryIcon + ' ' : ''}${item.categoryName}`;
   return item.amountCents < 0 ? t('common.uncategorized') : null;
@@ -314,7 +321,13 @@ export function AccountDetailScreen() {
                           </Text>
                           <Text style={styles.sub}>
                             {[
-                              categorySubLabel(s, t),
+                              // A schedule belongs to the account being
+                              // viewed and hasn't posted, so it is never a
+                              // transfer leg of its own.
+                              categorySubLabel(
+                                { ...s, accountType: accountWithBalance?.account.type ?? 'cash', transferAccountId: null },
+                                t,
+                              ),
                               t('accountDetail.nextDateLabel', {
                                 date: s.nextDate,
                               }),

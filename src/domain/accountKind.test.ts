@@ -1,4 +1,4 @@
-import { ACCOUNT_KIND_ORDER, isSpendingAccountType, netWorth } from './accountKind';
+import { ACCOUNT_KIND_ORDER, isSpendingAccountType, netWorth, transactionTakesCategory } from './accountKind';
 
 describe('netWorth', () => {
   it('nets a mortgage to home equity: value minus what is still owed', () => {
@@ -52,5 +52,25 @@ describe('isSpendingAccountType', () => {
     // Rows here are mirrored payment legs; the category is on the paying side.
     expect(isSpendingAccountType('loan')).toBe(false);
     expect(isSpendingAccountType('mortgage')).toBe(false);
+  });
+});
+
+describe('transactionTakesCategory', () => {
+  it('categorises ordinary spending', () => {
+    expect(transactionTakesCategory('cash', false)).toBe(true);
+    expect(transactionTakesCategory('credit_card', false)).toBe(true);
+  });
+
+  it('never categorises a transfer, whatever the account', () => {
+    // Money moving between your own accounts is spent when it leaves the
+    // other side, not here.
+    expect(transactionTakesCategory('cash', true)).toBe(false);
+    expect(transactionTakesCategory('credit_card', true)).toBe(false);
+  });
+
+  it('never categorises an account that does not spend', () => {
+    expect(transactionTakesCategory('savings', false)).toBe(false);
+    expect(transactionTakesCategory('mortgage', false)).toBe(false);
+    expect(transactionTakesCategory('tracking', false)).toBe(false);
   });
 });

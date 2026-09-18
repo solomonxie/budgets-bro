@@ -17,6 +17,7 @@ import {
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
+import { transactionTakesCategory } from '../../domain/accountKind';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { useCategories } from '../../hooks/useCategories';
@@ -277,7 +278,12 @@ export function TransactionsScreen() {
                   <Text style={styles.payee}>
                     {txn.payeeName ?? t('common.noPayee')}
                   </Text>
-                  {txn.categoryName || txn.amountCents < 0 ? (
+                  {/* Nothing for a row a category doesn't apply to — a
+                      savings withdrawal or a transfer isn't "Uncategorized",
+                      and an old row can still carry a category from before
+                      that rule (see domain/accountKind). */}
+                  {transactionTakesCategory(txn.accountType, txn.transferAccountId != null) &&
+                  (txn.categoryName || txn.amountCents < 0) ? (
                     <Text style={styles.sub}>
                       {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
                       {txn.categoryName ?? t('common.uncategorized')}

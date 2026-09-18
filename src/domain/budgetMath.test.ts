@@ -1,5 +1,6 @@
 import {
   accountBalanceCents,
+  categoryBarSegments,
   categoryBalanceCents,
   categoryCaption,
   categoryStatus,
@@ -82,5 +83,35 @@ describe('accountBalanceCents', () => {
 
   it('handles no transactions', () => {
     expect(accountBalanceCents(5000, [])).toBe(5000);
+  });
+});
+
+describe('categoryBarSegments', () => {
+  it('splits by the real ratio', () => {
+    // $50 spent of a $100 envelope: half and half.
+    expect(categoryBarSegments(5000, 5000)).toEqual({ spentPercent: 50, remainingPercent: 50 });
+  });
+
+  it('is all remaining when funded and untouched', () => {
+    expect(categoryBarSegments(10000, 0)).toEqual({ spentPercent: 0, remainingPercent: 100 });
+  });
+
+  it('is all spent when the envelope is empty', () => {
+    expect(categoryBarSegments(0, 10000)).toEqual({ spentPercent: 100, remainingPercent: 0 });
+  });
+
+  it('measures against balance plus spent, so a rollover reads truthfully', () => {
+    // Assigned nothing this month, carried $75 in, spent $25 — a quarter
+    // gone, not "100% of this month's assignment".
+    expect(categoryBarSegments(7500, 2500)).toEqual({ spentPercent: 25, remainingPercent: 75 });
+  });
+
+  it('has nothing to draw when nothing is assigned or spent', () => {
+    expect(categoryBarSegments(0, 0)).toEqual({ spentPercent: 0, remainingPercent: 0 });
+  });
+
+  it('treats an overspent balance as nothing remaining', () => {
+    // The caller colours this one whole; there is no remainder to show.
+    expect(categoryBarSegments(-2000, 10000)).toEqual({ spentPercent: 100, remainingPercent: 0 });
   });
 });

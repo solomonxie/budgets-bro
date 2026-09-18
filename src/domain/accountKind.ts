@@ -65,12 +65,21 @@ export function usesLoggedValue(type: AccountType): boolean {
   return type === 'tracking' || type === 'asset';
 }
 
-// Accounts you actually pay things out of, where a category means something:
-// cash, savings, a credit card. Excludes off-budget accounts (tracking,
-// asset — no assigned money for a category to come out of) and loan
-// accounts, whose rows are mirrored payment legs rather than spending.
-// Used to pick the spend form's default account, so opening it from the
-// budget lands on somewhere you can actually spend from.
+// Where money is actually spent, and so where a category means something:
+// cash and a credit card (a card purchase spends out of a category — that is
+// the envelope system's whole point).
+//
+// Not savings: money sits there, it is not spent from there. What leaves a
+// savings account goes to another account of yours, and gets its category
+// when it is spent from that one — categorising both ends would count the
+// same money twice.
+//
+// Not tracking or asset either (no assigned cash for a category to come out
+// of), nor a loan, whose rows are mirrored payment legs whose category
+// belongs to the paying side.
+//
+// Doubles as the spend form's default account, so opening it from the budget
+// lands somewhere you can actually spend from.
 export function isSpendingAccountType(type: AccountType): boolean {
-  return !usesLoggedValue(type) && !isLoanLikeType(type);
+  return type === 'cash' || type === 'credit_card';
 }

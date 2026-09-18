@@ -81,7 +81,7 @@ An `income`-typed account is a saved filter/tag, not a place money sits — no t
 - An Income account's "balance" (Accounts list row/subtotal, detail page) is `SUM(amount_cents) WHERE income_account_id = X` for the period (this year / this month), never a ledger balance.
 - Replaces an earlier create-then-sweep model (a real entry on the Income account + a generated mirror transfer into a board-wide default cash account): that was two independently-editable rows that could desync on edit/delete since only creation kept them in sync. One real row now, tagged, not paired.
 - Every new board seeds one default Cash, Savings, and Income account, since at least one Income account must exist to tag anything as income.
-- Accounts list orders the Income group first (`ACCOUNT_KIND_ORDER`: Income · Cash · Savings · Tracking · Loan · Asset · Credit) — what comes in leads the page, and Loan sits ahead of Asset so a mortgage's debt reads near the cash it is paid from.
+- Accounts list orders the Income group last (`ACCOUNT_KIND_ORDER`: Cash · Savings · Tracking · Loan · Asset · Credit · Income) — Income is a tag over the other accounts' transactions, not a place money sits. Loan sits ahead of Asset so a mortgage's debt reads near the cash it is paid from.
 
 ## Recurring/scheduled transactions (designed, not yet built)
 New table `scheduled_transactions` (id, account_id, category_id nullable, payee_id nullable, memo, amount_cents, frequency, interval_n, next_date, end_date nullable, auto_post boolean, is_interest, created_at) mirroring a real transaction's shape. Two posting modes, chosen per schedule:

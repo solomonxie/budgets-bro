@@ -1,4 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { takeSnapshot } from './preMigrationSnapshot';
 import { up as up001 } from '../../databases/migrations/001_init';
 import { up as up002 } from '../../databases/migrations/002_linked_category';
 import { up as up003 } from '../../databases/migrations/003_loan_terms_and_settings';
@@ -29,7 +30,15 @@ import { up as up024 } from '../../databases/migrations/024_value_history_kind';
 import { up as up023 } from '../../databases/migrations/023_notes';
 import { up as up022 } from '../../databases/migrations/022_ai_request_history';
 
-type Migration = { version: number; up: (db: SQLiteDatabase) => Promise<void> };
+type Migration = {
+  version: number;
+  up: (db: SQLiteDatabase) => Promise<void>;
+  // Set on a migration that changes or clears rows that already exist, as
+  // opposed to only adding columns/tables. Triggers a snapshot of the whole
+  // database before the batch runs, because there is otherwise nothing to
+  // go back to when the rewrite turns out to be wrong.
+  rewritesData?: boolean;
+};
 
 const migrations: Migration[] = [
   { version: 1, up: up001 },
@@ -57,19 +66,43 @@ const migrations: Migration[] = [
   { version: 23, up: up023 },
   { version: 24, up: up024 },
   { version: 25, up: up025 },
-  { version: 26, up: up026 },
-  { version: 27, up: up027 },
-  { version: 28, up: up028 },
-  { version: 29, up: up029 },
+  { version: 26, up: up026, rewritesData: true },
+  { version: 27, up: up027, rewritesData: true },
+  { version: 28, up: up028, rewritesData: true },
+  { version: 29, up: up029, rewritesData: true },
 ];
 
 // Small versioned migration runner: expo-sqlite has no built-in migration
 // framework, so schema version is tracked via PRAGMA user_version.
-export async function migrate(db: SQLiteDatabase): Promise<void> {
+// Migrations that only add a column or a table can't lose anything. One that
+// rewrites or clears existing rows can, and the old values are gone the
+// moment it commits — migration 029 cleared categories that turned out to be
+// load-bearing for Unassigned Cash, and there was nothing to go back to.
+// Those are marked `rewritesData`, and the database is copied aside before
+// the batch runs (see preMigrationSnapshot).
+function rewritesExistingData(from: number, to: number): boolean {
+  return migrations.some((m) => m.version > from && m.version <= to && m.rewritesData);
+}
+
+export async function migrate(db: SQLiteDatabase, dbName = 'byobudget.db'): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>(
     'PRAGMA user_version',
   );
   const currentVersion = row?.user_version ?? 0;
+  const target = migrations[migrations.length - 1]?.version ?? currentVersion;
+
+  if (target > currentVersion && rewritesExistingData(currentVersion, target)) {
+    // WAL checkpoint first, so the copy has every committed write in the
+    // main file rather than only in the sidecar.
+    await db.execAsync('PRAGMA wal_checkpoint(FULL)');
+    try {
+      takeSnapshot(dbName, currentVersion, target);
+    } catch (e) {
+      // A snapshot that fails must not stop the app opening — it is
+      // insurance, not a precondition.
+      console.warn('[migrate] pre-migration snapshot failed', e);
+    }
+  }
 
   for (const migration of migrations) {
     if (migration.version <= currentVersion) continue;

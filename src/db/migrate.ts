@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import { takeSnapshot } from './preMigrationSnapshot';
 import { up as up001 } from '../../databases/migrations/001_init';
 import { up as up002 } from '../../databases/migrations/002_linked_category';

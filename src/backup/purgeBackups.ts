@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import ICloudDrive from '../../modules/icloud-drive';
 import { deleteAllSnapshots } from '../db/preMigrationSnapshot';
 import { createS3Providers, deleteS3Objects, listS3Configs } from '../sync/s3Provider';

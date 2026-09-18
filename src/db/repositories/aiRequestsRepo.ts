@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { ChatMessage } from '../../ai/types';
 
 // Per key, not global: the history is read from one key's detail view, and

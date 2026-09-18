@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // User-defined savings/payoff goals for the Baby Steps screen, alongside
 // its fixed Dave Ramsey steps — a name, a target, and progress from either

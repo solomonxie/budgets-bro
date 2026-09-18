@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Multi-weekday support for weekly schedules (e.g. "every Mon & Thu" as
 // one schedule instead of two) — see domain/recurrence.ts. NULL keeps the

@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { BoardRow } from '../schema';
 import type { Board } from '../../domain/types';
 import { LIST_BOARDS, DELETE_BOARD_CASCADE } from '../../../databases/queries/boards';

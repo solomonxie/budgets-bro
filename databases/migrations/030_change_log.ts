@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Tables whose rows are the user's own data. Deliberately not settings, AI
 // request history or the log itself — nobody wants to undo a preference, and

@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { ScheduledTransactionJoinRow } from '../schema';
 import type { ScheduledTransactionWithLabels } from '../../domain/types';
 import type { ScheduleFrequency } from '../../domain/recurrence';

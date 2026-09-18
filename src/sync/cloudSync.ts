@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../db/driver';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { buildBackupZip } from './buildBackup';

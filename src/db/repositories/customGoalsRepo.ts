@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { CustomGoalJoinRow } from '../schema';
 import type { CustomGoalWithProgress } from '../../domain/types';
 import { currentDateISO } from '../../domain/month';

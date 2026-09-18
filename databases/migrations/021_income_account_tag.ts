@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Income accounts become a tag, not a ledger: a transaction lives on the
 // real account the money landed in (cash/savings/tracking/...) and

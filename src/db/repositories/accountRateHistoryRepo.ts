@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountRateHistoryRow } from '../schema';
 import type { AccountRateChange } from '../../domain/types';
 import { LIST_RATE_HISTORY, CURRENT_RATE, CURRENT_RATES_FOR_BOARD } from '../../../databases/queries/accountRateHistory';

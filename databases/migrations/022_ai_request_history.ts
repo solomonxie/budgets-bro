@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // Every AI call's exact prompt and reply, so "what did this key actually
 // send?" has an answer. The app's pitch is that budget data leaves the

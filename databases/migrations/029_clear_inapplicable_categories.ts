@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../src/db/driver';
 
 // A category means "this money was spent out of that envelope", which only
 // holds for cash and credit cards, and only when the money actually left

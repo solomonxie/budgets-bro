@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from '../../db/driver';
 import { nextMonth, currentDateISO } from '../../domain/month';
 import {
   ASSIGNED_THIS_MONTH,

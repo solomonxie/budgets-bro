@@ -4,7 +4,7 @@ import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
 import { createICloudProviders } from './icloudProvider';
-import { LEGACY_BACKUP_KEY, latestBackupKey } from './backupPath';
+import { LEGACY_BACKUP_KEY, backupKey, latestBackupKey, staleBackupKeys } from './backupPath';
 import { currentDateISO } from '../domain/month';
 import { resolveSyncEnabled } from './autoSync';
 import type { CloudProvider, CloudProviderId } from './types';
@@ -146,14 +146,16 @@ async function upload(
   atSeq: number,
 ): Promise<SyncOutcome[]> {
   const bytes = await buildBackupZip(db, boardId, boardName);
-  // Built once, but keyed per destination: a bucket keeps one object per
-  // board per month, iCloud overwrites its single file — see backupPath.ts.
-  const today = currentDateISO();
+  // Built once and written under the same name everywhere — one object per
+  // board per day. Destinations differ in what they keep, not what they call
+  // it (see backupPath.ts and CloudProvider.keepLatest).
+  const key = backupKey(boardName, currentDateISO());
   return Promise.all(
     providers.map(async (provider) => {
       try {
-        await provider.upload(bytes, provider.keyFor(boardName, today));
+        await provider.upload(bytes, key);
         const syncedAt = new Date().toISOString();
+        await prune(provider, boardName);
         await setLastSyncedAt(db, provider.id, syncedAt);
         // Recorded only on success, so a failed upload leaves the next
         // change still looking overdue rather than silently skipped.
@@ -169,6 +171,21 @@ async function upload(
       }
     }),
   );
+}
+
+// After the upload, never before: a prune that runs first can delete the
+// last good copy and then fail to replace it. Failures here are swallowed on
+// purpose — the backup is already up, and a destination that won't let us
+// delete (a write-only bucket, an iCloud file open elsewhere) is not a failed
+// backup. It just keeps more history than asked.
+async function prune(provider: CloudProvider, boardName: string): Promise<void> {
+  if (provider.keepLatest == null || provider.remove == null) return;
+  try {
+    const stale = staleBackupKeys(await provider.listKeys(), boardName, provider.keepLatest);
+    for (const key of stale) await provider.remove(key);
+  } catch (e) {
+    console.warn(`[cloudSync] ${provider.id} prune failed`, e);
+  }
 }
 
 // Used by the automatic post-reinstall restore (sync/autoRestore.ts), which

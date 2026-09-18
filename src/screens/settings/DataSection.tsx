@@ -9,13 +9,16 @@ import { restoreCategoriesFromYnab } from '../../import/restoreCategoriesFromYna
 import type { CategoryRestoreResult } from '../../import/restoreCategoriesFromYnab';
 import type { YnabImportResult } from '../../import/ynabImporter';
 import { pickAppExport } from '../../import/pickAppExport';
+import { writeOperationBackup } from '../../backup/localBackup';
+import { purgeAllBackups } from '../../backup/purgeBackups';
+import type { PurgeResult } from '../../backup/purgeBackups';
 import { importAppExport } from '../../import/appExportImporter';
 import type { AppExportImportResult } from '../../import/appExportImporter';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-type Action = 'export' | 'importBackup' | 'importYnab' | 'restoreCategories';
+type Action = 'export' | 'importBackup' | 'importYnab' | 'restoreCategories' | 'purge';
 
 interface DataSectionProps {
   boardId: number;
@@ -34,6 +37,7 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
   const [error, setError] = useState<string | null>(null);
   const [ynabResult, setYnabResult] = useState<YnabImportResult | null>(null);
   const [restoreResult, setRestoreResult] = useState<CategoryRestoreResult | null>(null);
+  const [purgeResult, setPurgeResult] = useState<PurgeResult | null>(null);
 
   const runExport = async () => {
     setBusy('export');
@@ -57,6 +61,12 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
       if (!files) return;
       setBusy('importBackup');
       const db = await getDb();
+      // This and the two imports below rewrite many rows at once, and the
+      // day's rolling backup may have captured the good state hours ago — or,
+      // on a busy day, minutes ago and then been overwritten by the bad one.
+      // So each writes its own file first, named after what it precedes and
+      // kept apart from the daily overwrite (backup/localBackupName.ts).
+      await writeOperationBackup(db, boardId, boardName, 'restore');
       onRestored(await importAppExport(db, files));
     } catch (e) {
       setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
@@ -73,6 +83,7 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
       if (!files) return;
       setBusy('importYnab');
       const db = await getDb();
+      await writeOperationBackup(db, boardId, boardName, 'ynab-import');
       setYnabResult(await importYnabExport(db, boardId, files));
       onImported();
     } catch (e) {
@@ -93,6 +104,7 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
       if (!files) return;
       setBusy('restoreCategories');
       const db = await getDb();
+      await writeOperationBackup(db, boardId, boardName, 'category-repair');
       setRestoreResult(await restoreCategoriesFromYnab(db, boardId, files.registerCsv));
       onImported();
     } catch (e) {
@@ -102,11 +114,37 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
     }
   };
 
+  // Destructive, and irreversible in the one way that matters: it deletes the
+  // copies, so there is nothing to undo it with. Hence the confirm, and the
+  // wording that separates backups from data — this removes neither the
+  // database nor the change log.
+  const runPurge = () => {
+    Alert.alert(t('settings.purgeBackupsTitle'), t('settings.purgeBackupsMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.purgeBackupsConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          setBusy('purge');
+          setError(null);
+          try {
+            setPurgeResult(await purgeAllBackups(await getDb()));
+          } catch (e) {
+            setError(e instanceof Error ? e.message : t('settings.purgeBackupsFailed'));
+          } finally {
+            setBusy(null);
+          }
+        },
+      },
+    ]);
+  };
+
   const links: { action: Action; label: string; onPress: () => void }[] = [
     { action: 'export', label: t('settings.exportBoard'), onPress: runExport },
     { action: 'importBackup', label: t('settings.importAppBackup'), onPress: runImportBackup },
     { action: 'importYnab', label: t('settings.importYnab'), onPress: runImportYnab },
     { action: 'restoreCategories', label: t('settings.restoreCategories'), onPress: runRestoreCategories },
+    { action: 'purge', label: t('settings.purgeBackups'), onPress: runPurge },
   ];
 
   return (
@@ -153,6 +191,24 @@ export function DataSection({ boardId, boardName, onImported, onRestored }: Data
             : []
         }
         onDismiss={() => setRestoreResult(null)}
+      />
+      <ResultToast
+        visible={purgeResult != null}
+        title={t('settings.purgeBackupsHeading')}
+        lines={
+          purgeResult
+            ? [
+                { label: t('settings.purgeResultLocal'), value: String(purgeResult.localZips) },
+                { label: t('settings.purgeResultSnapshots'), value: String(purgeResult.snapshots) },
+                { label: t('settings.purgeResultICloud'), value: String(purgeResult.icloud) },
+                { label: t('settings.purgeResultBucket'), value: String(purgeResult.bucket) },
+                ...(purgeResult.bucketRefused > 0
+                  ? [{ label: t('settings.purgeResultRefused'), value: String(purgeResult.bucketRefused) }]
+                  : []),
+              ]
+            : []
+        }
+        onDismiss={() => setPurgeResult(null)}
       />
     </View>
   );

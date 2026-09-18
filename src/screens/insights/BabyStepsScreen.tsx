@@ -513,7 +513,7 @@ export function BabyStepsScreen() {
         return (
           <Pressable key={goal.id} style={styles.card} onPress={() => startEditGoal(goal)}>
             <Text style={styles.stepTitle}>{goal.name}</Text>
-            <ProgressBar percent={percent} color={percent >= 100 ? colors.positive : colors.accent} />
+            <ProgressBar segments={[{ percent, color: percent >= 100 ? colors.positive : colors.accent }]} />
             <Text style={styles.hint}>
               {t('babySteps.progressCaption', { current: formatMoney(goal.progressCents), target: formatMoney(goal.targetCents) })}
               {linkedAccountName ? ` · ${linkedAccountName}` : ''}
@@ -618,7 +618,7 @@ function Step({
   return (
     <View style={styles.card}>
       <Text style={styles.stepTitle}>{t('babySteps.stepPrefix', { number, title })}</Text>
-      <ProgressBar percent={percent} color={percent >= 100 ? colors.positive : colors.accent} />
+      <ProgressBar segments={[{ percent, color: percent >= 100 ? colors.positive : colors.accent }]} />
       {captionSuffix ? (
         <View style={styles.captionRow}>
           <Text style={[styles.hint, styles.captionText]}>{captionText}</Text>

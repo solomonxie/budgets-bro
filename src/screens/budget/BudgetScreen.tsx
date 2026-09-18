@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProgressBar } from '../../components/ui/ProgressBar';
+import { categoryBarSegments } from '../../domain/budgetMath';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
@@ -240,12 +241,20 @@ export function BudgetScreen() {
                 : items.map((item) => {
                   const statusColors = STATUS_COLORS[item.status];
                   const spentThisMonth = Math.max(0, -item.activityThisMonthCents);
-                  const percentSpent =
-                    item.assignedThisMonthCents > 0
-                      ? Math.min(100, Math.round((spentThisMonth / item.assignedThisMonthCents) * 100))
-                      : spentThisMonth > 0
-                        ? 100
-                        : 0;
+                  const { spentPercent, remainingPercent } = categoryBarSegments(
+                    item.balanceCents,
+                    spentThisMonth,
+                  );
+                  // Overspent has no remainder to show, so it reads as one
+                  // red run rather than a split; unbudgeted has nothing at
+                  // all and leaves the bare track.
+                  const barSegments =
+                    item.status === 'overspent'
+                      ? [{ percent: 100, color: statusColors.fg }]
+                      : [
+                          { percent: spentPercent, color: colors.amber },
+                          { percent: remainingPercent, color: colors.positive },
+                        ];
 
                   return (
                     <Pressable key={item.category.id} style={styles.catRow} onPress={() => setEditingItem(item)}>
@@ -256,7 +265,7 @@ export function BudgetScreen() {
                         </View>
                         <StatusBadge text={formatMoney(item.balanceCents)} bg={statusColors.bg} fg={statusColors.fg} />
                       </View>
-                      <ProgressBar percent={percentSpent} color={statusColors.fg} />
+                      <ProgressBar segments={barSegments} />
                       <Text style={styles.caption}>{item.captionText}</Text>
                     </Pressable>
                   );

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, moneyTextFromDigits } from '../../domain/money';
 import { RowMenuButton } from './RowMenuButton';
 import type { MenuItem } from './RowMenuButton';
 import { useT } from '../../i18n';
@@ -64,7 +64,7 @@ export function AssignedAmountModal({
   const availableCents = unassignedCents + initialCents;
 
   const changeValue = (text: string) => {
-    setValue(text);
+    setValue(moneyTextFromDigits(text));
     if (error) setError(null);
   };
 
@@ -105,12 +105,11 @@ export function AssignedAmountModal({
           <Text style={styles.label}>{t('assignedAmountModal.assignedThisMonth')}</Text>
           <TextInput
             style={styles.amountInput}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             keyboardAppearance="dark"
             value={value}
             onChangeText={changeValue}
             autoFocus
-            selectTextOnFocus
             onSubmitEditing={done}
           />
           <Text style={styles.unassignedHint}>

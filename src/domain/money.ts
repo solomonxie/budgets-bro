@@ -39,3 +39,16 @@ export function parseMoneyToCents(text: string): number {
   const value = parseFloat(cleaned);
   return Number.isFinite(value) ? Math.round(value * 100) : 0;
 }
+
+// Money typed the way a card terminal takes it: digits fill in from the
+// right, so "1234" is $12.34 and no decimal point is ever typed. The field
+// keeps its formatted text as state, so each keystroke arrives as the old
+// text plus one character — stripping to digits and re-placing the point
+// round-trips exactly, and backspace walks back the same way.
+export function moneyTextFromDigits(text: string): string {
+  const digits = text.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  if (digits === '') return '';
+  // Beyond 15 digits Number loses precision — and nobody is typing a
+  // quadrillion into a budget.
+  return (Number(digits.slice(0, 15)) / 100).toFixed(2);
+}

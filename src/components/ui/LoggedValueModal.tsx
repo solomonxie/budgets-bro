@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextField } from './TextField';
+import { MoneyField } from './MoneyField';
 import { DateField } from './DateField';
 import { useT } from '../../i18n';
 import { CardModal } from './CardModal';
@@ -62,11 +63,10 @@ export function LoggedValueModal({
   return (
     <CardModal visible={visible} onCancel={onCancel}>
       <Text style={styles.title}>{title}</Text>
-      <TextField
+      <MoneyField
         label={valueLabel}
         value={magnitude}
         onChangeText={setMagnitude}
-        keyboardType="decimal-pad"
         placeholder={t('common.amountPlaceholder')}
         autoFocus
       />

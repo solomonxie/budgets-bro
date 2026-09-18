@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TextField } from '../../components/ui/TextField';
+import { MoneyField } from '../../components/ui/MoneyField';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DropdownOption, DropdownGroupLabel } from '../../components/ui/DropdownField';
 import { ProgressBar } from '../../components/ui/ProgressBar';
@@ -527,11 +528,10 @@ export function BabyStepsScreen() {
   function Step5TargetEditRow() {
     return (
       <View style={styles.targetEditRow}>
-        <TextField
+        <MoneyField
           style={styles.targetEditInput}
           value={step5TargetInput}
           onChangeText={setStep5TargetInput}
-          keyboardType="decimal-pad"
           placeholder={t('common.amountPlaceholder')}
           autoFocus
         />
@@ -553,22 +553,20 @@ export function BabyStepsScreen() {
           placeholder={t('customGoalModal.namePlaceholder')}
           autoFocus={isNew}
         />
-        <TextField
+        <MoneyField
           label={t('customGoalModal.targetLabel')}
           value={goalDraftTargetInput}
           onChangeText={setGoalDraftTargetInput}
-          keyboardType="decimal-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <Text style={styles.linkText} onPress={() => setGoalAccountPickerOpen(true)}>
           {goalAccountLabel} ▾
         </Text>
         {goalDraftAccountId == null ? (
-          <TextField
+          <MoneyField
             label={t('customGoalModal.progressLabel')}
             value={goalDraftManualProgressInput}
             onChangeText={setGoalDraftManualProgressInput}
-            keyboardType="decimal-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         ) : null}

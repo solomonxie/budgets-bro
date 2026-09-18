@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { FinanceToolList } from '../finance-tools/FinanceToolList';
-import { TextField } from '../../components/ui/TextField';
+import { MoneyField } from '../../components/ui/MoneyField';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DropdownOption } from '../../components/ui/DropdownField';
 import { useAccounts } from '../../hooks/useAccounts';
@@ -317,17 +317,15 @@ export function TaxInsightsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>{t('taxInsights.additionalInfoLabel')}</Text>
-        <TextField
+        <MoneyField
           label={t('taxInsights.additionalIncomeLabel')}
           placeholder={t('common.amountPlaceholder')}
-          keyboardType="decimal-pad"
           value={additionalIncome}
           onChangeText={setAdditionalIncome}
         />
-        <TextField
+        <MoneyField
           label={t('taxInsights.deductionsLabel')}
           placeholder={t('common.amountPlaceholder')}
-          keyboardType="decimal-pad"
           value={deductions}
           onChangeText={setDeductions}
         />

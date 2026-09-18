@@ -75,7 +75,50 @@ function columnsAndValues(row: Record<string, unknown>): { columns: string[]; va
 // change, not a rewrite of history, so undoing an undo works and the record
 // stays honest about what happened and when.
 export async function undoGroup(db: SQLiteDatabase, group: ChangeGroup): Promise<number> {
-  const entries = await listEntriesInGroup(db, group);
+  return revert(db, await listEntriesInGroup(db, group));
+}
+
+// Everything written from `seq` onwards, put back — what an import needs.
+//
+// A large import writes for as long as it takes, so it lands as a hundred
+// separate entries across several seconds and several tables, and undoing it
+// one at a time is not a thing anybody would do. Rewinding to the moment
+// before it started treats it as what it was: one action.
+//
+// Reversed newest first, so a row the import touched more than once walks
+// back through each state rather than jumping to the wrong one.
+export async function undoSince(db: SQLiteDatabase, seq: number): Promise<number> {
+  const rows = await db.getAllAsync<{
+    seq: number;
+    at: string;
+    tbl: string;
+    op: ChangeLogEntry['op'];
+    row_id: number | null;
+    before: string | null;
+    after: string | null;
+  }>('SELECT * FROM change_log WHERE seq >= ? ORDER BY seq', seq);
+  return revert(
+    db,
+    rows.map((r) => ({
+      seq: r.seq,
+      at: r.at,
+      table: r.tbl,
+      op: r.op,
+      rowId: r.row_id,
+      before: parse(r.before),
+      after: parse(r.after),
+    })),
+  );
+}
+
+// How many rows a rewind would touch, so the confirmation can say so before
+// anyone agrees to it.
+export async function countSince(db: SQLiteDatabase, seq: number): Promise<number> {
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) as n FROM change_log WHERE seq >= ?', seq);
+  return row?.n ?? 0;
+}
+
+async function revert(db: SQLiteDatabase, entries: ChangeLogEntry[]): Promise<number> {
   let undone = 0;
 
   await db.withTransactionAsync(async () => {

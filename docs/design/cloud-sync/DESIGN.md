@@ -22,8 +22,8 @@ without remembering to export by hand.
   (same shape as today's "Import App Backup") — same limitation the app
   already has, just automated on the push side.
 - **Not true background execution.** `expo-task-manager`/`expo-background-task`
-  don't run in Expo Go (confirmed against the v57 docs) and this app has no
-  custom dev client. "Auto" here means triggered while the app is open
+  would each need their own entitlement and a background task registered at
+  launch, which this app does not ship. "Auto" here means triggered while the app is open
   (foreground + on-save), not while closed or killed.
 - **Not a user-picked iCloud Drive folder** (`Directory.pickDirectoryAsync()`):
   iOS grants that folder only for the current app session — Expo's JS API
@@ -98,7 +98,7 @@ retrievable copy: the `expo-file-system` config plugin (`app.json`) sets
 `UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace` so a real
 device build exposes it in the Files app under "On My iPhone" for the user
 to copy elsewhere by hand — that flag only takes effect in a built
-app/dev-client, not Expo Go. One toggle in Settings (no bucket/account
+app. One toggle in Settings (no bucket/account
 concept to manage, unlike S3/Drive).
 
 **iCloud Drive** — the same zip written into the app's own ubiquity
@@ -152,7 +152,7 @@ them somewhere that could not help. The section re-checks on AppState
 `active`, since the fix happens in iOS Settings and the user comes back
 expecting the row to know.
 
-Unsupported (Expo Go, Android — the native module is absent) hides the row
+Unsupported (Android — the native module is absent) hides the row
 entirely. None of the blocked states is a failed sync: `createICloudProviders`
 returns nothing and `syncNow` skips the destination, same as an unconfigured
 bucket.
@@ -162,8 +162,8 @@ company entity, no D-U-N-S, no entitlement request form). A free personal team
 cannot sign the iCloud capability at all, so the entitlement in `app.json` now
 gates every local device build too, not just EAS ones.
 
-**Google Drive** — OAuth via `expo-auth-session`'s PKCE flow (Expo Go
-compatible, no native module) against scope **`drive.appdata`** specifically
+**Google Drive** — OAuth via `expo-auth-session`'s PKCE flow (no native
+module) against scope **`drive.appdata`** specifically
 (not full `drive` scope): stores the backup in the user's hidden per-app
 `appDataFolder`, invisible in their normal Drive UI, and — practically
 important — narrow enough that Google's consent screen works fine in
@@ -230,9 +230,9 @@ choice flips on upgrade.
   edge cases) — needs a real test against a live bucket before trusting it,
   not just unit tests against fixtures.
 - Google's PKCE redirect on iOS needs a custom URL scheme registered in
-  `app.json` — first Expo Go-compatible deep-link config in this app;
-  confirm `expo-auth-session`'s Expo-Go proxy flow still works on SDK 57
-  (docs should be re-checked at implementation time, not assumed).
+  `app.json` — the first deep-link config in this app; confirm
+  `expo-auth-session`'s native redirect flow on SDK 57 (docs should be
+  re-checked at implementation time, not assumed).
 - Debounce window (5s) is a guess — fine to tune after real use.
 - "Last synced" timestamp storage: per-provider, per-board, in
   `settingsRepo` (small KV, already used for exactly this kind of thing).

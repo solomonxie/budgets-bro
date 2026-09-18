@@ -170,7 +170,7 @@ The AI API key and S3 credentials are provider credentials, not money data, and 
 ## Tech stack
 | Concern | Choice | Reasoning |
 |---|---|---|
-| Framework | Expo (managed, TypeScript) | EAS cloud builds substitute for local Xcode.app |
+| Framework | Expo SDK (prebuild, TypeScript) | Native project generated from `app.json`, built locally with Xcode — see "No Expo Go, no dev server" below |
 | Navigation | React Navigation (native-stack + bottom-tabs) | Explicit nav tree simpler than file-based routing for a small app |
 | Local DB | expo-sqlite | No custom native linking under EAS; adequate for single-user scale |
 | State management | Zustand | Most state is SQLite queries + light UI state; Redux/React Query is overkill |
@@ -180,9 +180,34 @@ The AI API key and S3 credentials are provider credentials, not money data, and 
 | AI calls | Direct `fetch` to provider REST endpoints | Avoids heavy SDKs, keeps payload (aggregate/detailed) under app's control |
 | S3 signing | aws4fetch | Lightweight SigV4 signer, keeps backup backend-less |
 | Testing | Jest (`jest-expo`) | Unit tests for calculators & budget math only |
-| Build/submit | EAS Build + EAS Submit | Required — no full Xcode.app locally |
+| Build/submit | Local `xcodebuild` + `devicectl`; EAS only for over-the-air/TestFlight | Everyday path is a Release build straight onto the phone (`npm run ios`) |
 | Lint/format | ESLint + Prettier | Baseline consistency for solo maintainer |
 | Charts (Insights) | `react-native-svg` for the line chart; stacked bar still hand-rolled `View`/flex | Line chart needs real point geometry; the bar doesn't |
+
+## No Expo Go, no dev server
+
+Removed entirely: no `expo start`, no Expo Go, no dev client, no Metro server in
+the loop. The only way this app runs is a native Release build installed on a
+real device (`npm run ios`), with the JS bundled into the app.
+
+**Why.** Expo Go was buggy, wanted a login, and added a layer of its own between
+the code and what actually ships. For a personal, single-developer app it bought
+nothing: every feature that matters here — SQLite, secure-store, file sharing,
+and especially `modules/icloud-drive` — is a native module that either behaves
+differently inside Expo Go's shell or is missing from it outright, so anything
+seen there had to be re-verified in a real build anyway. What it did add was
+overhead and confusion: two runtimes to reason about, a class of bug that only
+exists in one of them, and stale-bundle mysteries when the server and the
+installed app disagreed.
+
+**Cost accepted.** No Fast Refresh and no one-second reload — a change costs a
+native build (minutes, incremental). In exchange there is exactly one runtime,
+and what is on the phone is what the code says. Debug builds attached to Metro
+are still possible in principle; they are simply not a path this repo documents
+or supports.
+
+**Metro is not Expo Go.** The bundler still runs — at build time, to produce the
+`main.jsbundle` baked into the app. `metro.config.js` stays.
 
 ## Testing strategy
 - Unit tests for `finance-tools/*` and `domain/budgetMath.ts` (rollover, to-be-budgeted, overspend) — these need correctness guarantees.

@@ -41,10 +41,8 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
+    "ios": "scripts/install-ios-device.sh",
+    "prebuild": "expo prebuild --clean -p ios && npx pod-install",
     "test": "jest",
     "lint": "eslint ."
   },

@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getDb } from '../../db/client';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { useAppStore } from '../../state/useAppStore';
-import { HouseValueModal } from '../../components/ui/HouseValueModal';
-import type { HouseValueChangeValue } from '../../components/ui/HouseValueModal';
+import { LoggedValueModal } from '../../components/ui/LoggedValueModal';
+import type { LoggedValueChange } from '../../components/ui/LoggedValueModal';
 import { ValueHistoryChart } from './ValueHistoryChart';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
@@ -35,7 +35,7 @@ export function HouseValueDetails({
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const [modal, setModal] = useState<{ editing: AccountValueChange | null } | null>(null);
 
-  const submit = async (value: HouseValueChangeValue) => {
+  const submit = async (value: LoggedValueChange) => {
     const valueCents = Math.round(parseFloat(value.value) * 100);
     const db = await getDb();
     const note = value.note.trim() || null;
@@ -82,8 +82,11 @@ export function HouseValueDetails({
       <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
         <Text style={styles.addBtnText}>{t('houseValueCard.updateButton')}</Text>
       </Pressable>
-      <HouseValueModal
+      <LoggedValueModal
         visible={modal != null}
+        title={t('houseValueModal.title')}
+        valueLabel={t('houseValueModal.valueLabel')}
+        notePlaceholder={t('houseValueModal.notePlaceholder')}
         initial={{
           value: modal?.editing ? (modal.editing.valueCents / 100).toString() : '',
           effectiveDate: modal?.editing?.effectiveDate ?? currentDateISO(),

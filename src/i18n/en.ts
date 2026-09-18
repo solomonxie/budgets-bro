@@ -36,8 +36,11 @@ export const en = {
 
   'houseValueModal.title': 'Home Value',
   'houseValueModal.valueLabel': 'Value',
-  'houseValueModal.noteLabel': 'Note (optional)',
   'houseValueModal.notePlaceholder': 'e.g. Zillow estimate, bank appraisal',
+  'loggedValueModal.noteLabel': 'Note (optional)',
+  'principalModal.title': 'Remaining Principal',
+  'principalModal.valueLabel': 'Amount still owed',
+  'principalModal.notePlaceholder': 'e.g. May statement',
 
   'rateChangeModal.title': 'Rate Change',
   'rateChangeModal.rateLabel': 'Rate (annual %)',
@@ -227,9 +230,13 @@ export const en = {
   'accountModal.openingBalanceLabel': 'Starting Balance',
   'accountModal.openingBalanceHint':
     'The balance on the day this account starts in the app. Loans and credit cards go in negative — what you owed back then.',
-  'accountModal.openingBalanceLoanLabel': 'Balance When Tracking Started',
-  'accountModal.openingBalanceLoanHint':
-    'Filled in for you from the amount borrowed below. Change it only if you had already been paying this loan down before adding it here — then it is what you still owed that day. Negative: it is a debt.',
+  'accountModal.currentHouseValueLabel': 'Current House Value',
+  'accountModal.currentHouseValueHint':
+    'What the home is worth now, your own estimate. Recorded as a dated entry you can add to over time from the account page.',
+  'accountModal.currentPrincipalLabel': 'Current Remaining Principal',
+  'accountModal.currentPrincipalHint':
+    'What you still owe today, straight off a statement. Between figures like this one, each payment you log covers its interest first and only the rest comes off the principal — so this stays close on its own. Recording it never creates a transaction.',
+  'accountModal.purchaseDateLabel': 'Purchase Date',
   'accountModal.latestBalanceLabel': 'Current Balance',
   'accountModal.latestBalanceHint':
     'What the account really says today. Saving a different number logs one adjustment transaction to close the gap.',
@@ -313,16 +320,16 @@ export const en = {
   'loanDetailsCard.remainingInterestLabel': 'Est. remaining interest',
   'loanDetailsCard.lastPaymentLabel': 'Last payment ({date})',
   'loanDetailsCard.splitValue': '{interest} interest · {principal} principal',
-  'loanDetailsCard.paidToDateLabel': 'Paid so far',
-  'loanDetailsCard.derivedOwedLabel': 'Owed, interest split out',
-  'loanDetailsCard.owedGapHint':
-    '{amount} apart from the balance above — a payment was likely logged against this loan in full, when only its principal share pays the loan down.',
-  'loanDetailsCard.statementOwedLabel': 'Balance owed today',
-  'loanDetailsCard.statementOwedHint':
-    'What your latest statement says you still owe. Saving posts one adjustment transaction for the difference.',
-  'loanDetailsCard.saveAdjustment': 'Save adjustment of {amount}',
+  'loanDetailsCard.paidSinceReadingLabel': 'Paid since then',
+  'loanDetailsCard.updatePrincipal': '+ Update Remaining Principal',
+  'loanDetailsCard.sinceReadingHint':
+    'Estimated from {count} payment(s) since you recorded {amount} owed on {date} — each covers its interest first, and only the rest comes off the principal. Record a new figure any time; it never touches your transactions.',
+  'loanDetailsCard.sinceOriginHint':
+    'Estimated from the amount borrowed and {count} payment(s) since — each covers its interest first, and only the rest comes off the principal. Record what your statement says to pin it down exactly.',
+  'loanDetailsCard.noRateHint':
+    'No interest rate on file, so every payment counts fully against the principal — which makes this read lower than the truth.',
   'loanDetailsCard.actualsOnlyHint':
-    'Projected from the scheduled payment and the balance your transactions actually add up to. To try extra payments, use the payoff and early-repayment calculators.',
+    'Projected from the scheduled payment and the principal still owed. To try extra payments, use the payoff and early-repayment calculators.',
   'loanDetailsCard.summary': '{rate}% · {payment}/mo',
 
   'aiAnalysis.title': 'AI Insights',

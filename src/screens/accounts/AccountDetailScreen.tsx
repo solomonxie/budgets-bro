@@ -312,7 +312,6 @@ export function AccountDetailScreen() {
               {accountWithBalance && isLoanLike ? (
                 <LoanDetailsCard
                   account={accountWithBalance.account}
-                  balanceCents={balanceCents}
                   transactions={transactions}
                 />
               ) : null}
@@ -468,7 +467,11 @@ export function AccountDetailScreen() {
               >
                 {formatMoney(item.amountCents)}
               </Text>
-              {isIncome ? null : (
+              {/* A loan's balance is its remaining principal, derived — not a
+                  running sum of these rows (see accountsRepo), so a
+                  per-row running balance there would be a different number
+                  walking backwards from an unrelated total. */}
+              {isIncome || isLoanLike ? null : (
                 <Text style={styles.running}>
                   {formatMoney(item.runningBalanceCents)}
                 </Text>

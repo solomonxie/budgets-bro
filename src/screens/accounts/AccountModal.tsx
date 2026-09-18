@@ -75,6 +75,14 @@ export function AccountModal() {
   const [openingBalanceEdited, setOpeningBalanceEdited] = useState(false);
   const [originationDate, setOriginationDate] = useState(currentDateISO());
   const [note, setNote] = useState('');
+  // A loan's two readings, edited here as plain numbers and saved as
+  // account_value_history entries dated today — the same rows the account
+  // page logs, so there is one way a loan's principal and a home's value get
+  // recorded and no transaction is ever invented for either.
+  const [currentHouseValue, setCurrentHouseValue] = useState('');
+  const [currentPrincipal, setCurrentPrincipal] = useState('');
+  const [loadedHouseValueCents, setLoadedHouseValueCents] = useState<number | null>(null);
+  const [loadedPrincipalCents, setLoadedPrincipalCents] = useState<number | null>(null);
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
   const [rateModal, setRateModal] = useState<{ editing: AccountRateChange | null } | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -94,6 +102,10 @@ export function AccountModal() {
     setOpeningBalanceEdited(false);
     setOriginationDate(currentDateISO());
     setNote('');
+    setCurrentHouseValue('');
+    setCurrentPrincipal('');
+    setLoadedHouseValueCents(null);
+    setLoadedPrincipalCents(null);
     setArchivedAt(null);
     setRateModal(null);
     setToolsOpen(false);
@@ -120,6 +132,15 @@ export function AccountModal() {
       setOriginationDate(account.originationDate ?? currentDateISO());
       setNote(account.note ?? '');
       setArchivedAt(account.archivedAt);
+      const houseValueCents = await accountValueHistoryRepo.currentValueCents(db, editingAccountId, 'value');
+      const principalCents = await accountValueHistoryRepo.currentValueCents(db, editingAccountId, 'principal');
+      setLoadedHouseValueCents(houseValueCents);
+      setLoadedPrincipalCents(principalCents);
+      setCurrentHouseValue(houseValueCents != null ? (houseValueCents / 100).toString() : '');
+      // Nothing logged yet: the loan's own terms are what it still owes, so
+      // show that rather than an empty field the user has to re-type.
+      const owedCents = principalCents ?? account.originalPrincipalCents ?? -account.openingBalanceCents;
+      setCurrentPrincipal(owedCents ? (owedCents / 100).toString() : '');
       setIncomeHistory(await incomeDetailHistoryRepo.listHistory(db, editingAccountId));
     })();
     // Deliberately excludes `accounts` — it refreshes on every write (dataVersion
@@ -201,38 +222,58 @@ export function AccountModal() {
     }
     const db = await getDb();
     const typedOpeningCents = parseCents(openingBalance) ?? 0;
+    const borrowedAtSigningCents = isLoanLike ? parseCents(originalPrincipal) : null;
     const input = {
       name: name.trim(),
       type,
-      // A loan is money owed — stored negative, so the accounts list and Net
-      // Worth read it as debt rather than as something you own. The field
-      // auto-fills negated from the amount borrowed, but a hand-typed
-      // positive number is the obvious mistake to absorb here.
-      openingBalanceCents: isLoanLike ? -Math.abs(typedOpeningCents) : typedOpeningCents,
+      // A loan has no opening-balance field of its own any more: what it owes
+      // is a reading. The column still holds the amount borrowed, negated, as
+      // the last-resort anchor for a loan with no reading and no terms — and
+      // negative either way, so nothing reads a debt as an asset.
+      openingBalanceCents: isLoanLike ? -Math.abs(borrowedAtSigningCents ?? typedOpeningCents) : typedOpeningCents,
       termMonths: isLoanLike && termMonths ? Math.round(parseFloat(termMonths)) : null,
-      originalPrincipalCents: isLoanLike && originalPrincipal ? Math.round(parseFloat(originalPrincipal) * 100) : null,
+      originalPrincipalCents: borrowedAtSigningCents,
       originationDate: isLoanLike ? originationDate : null,
-      originalHousePriceCents: isLoanLike && originalHousePrice ? Math.round(parseFloat(originalHousePrice) * 100) : null,
+      originalHousePriceCents: isLoanLike ? parseCents(originalHousePrice) : null,
       note: note.trim() || null,
+    };
+    const saveReadings = async (accountId: number) => {
+      if (!isLoanLike) return;
+      const today = currentDateISO();
+      const principalCents = parseCents(currentPrincipal);
+      if (principalCents != null && principalCents !== loadedPrincipalCents) {
+        await accountValueHistoryRepo.addValueChange(db, accountId, principalCents, today, null, 'principal');
+      }
+      if (!isMortgage) return;
+      const houseValueCents = parseCents(currentHouseValue);
+      if (houseValueCents != null && houseValueCents !== loadedHouseValueCents) {
+        await accountValueHistoryRepo.addValueChange(db, accountId, houseValueCents, today, null, 'value');
+      }
     };
     if (editingAccountId != null) {
       await accountsRepo.updateAccount(db, boardId, editingAccountId, input);
-      // Tracking/asset accounts don't have a "Latest Balance" correction
-      // field — their balance is driven by the value log (see
-      // TrackingValueDetails), not by a correction transaction.
-      if (!usesLoggedValue(type)) {
-        const actualBalanceCents = Math.round(parseFloat(latestBalance || '0') * 100);
+      // Only a plain ledger account gets the "Current Balance" correction —
+      // tracking/asset run off their value log, and a loan off its principal
+      // readings, neither of which wants a correction transaction.
+      if (!usesLoggedValue(type) && !isLoanLike) {
+        const actualBalanceCents = parseCents(latestBalance) ?? 0;
         const deltaCents = computeBalanceCorrectionCents(loadedBalanceCents, actualBalanceCents);
         if (deltaCents !== 0) await transactionsRepo.correctBalance(db, boardId, editingAccountId, deltaCents);
       }
+      await saveReadings(editingAccountId);
     } else {
       const id = await accountsRepo.createAccount(db, boardId, { ...input, interestRateBps: initialInterestRate ? Math.round(parseFloat(initialInterestRate) * 100) : null });
       if (initialInterestRate) {
         await accountRateHistoryRepo.addRateChange(db, id, Math.round(parseFloat(initialInterestRate) * 100), originationDate);
       }
-      if (type === 'mortgage' && originalHousePrice) {
-        await accountValueHistoryRepo.addValueChange(db, id, Math.round(parseFloat(originalHousePrice) * 100), originationDate);
+      // The purchase price is the home's value on the day it was bought — a
+      // real first data point, dated then, distinct from any "what is it
+      // worth now" reading the form also carries.
+      const purchasePriceCents = isMortgage ? parseCents(originalHousePrice) : null;
+      if (purchasePriceCents != null) {
+        await accountValueHistoryRepo.addValueChange(db, id, purchasePriceCents, originationDate, null, 'value');
       }
+      await saveReadings(id);
     }
     bumpDataVersion();
     close();
@@ -319,24 +360,54 @@ export function AccountModal() {
               </>
             )}
           </DropdownField>
-          <TextField
-            label={t(isLoanLike ? 'accountModal.openingBalanceLoanLabel' : 'accountModal.openingBalanceLabel')}
-            value={openingBalance}
-            onChangeText={editOpeningBalance}
-            keyboardType="decimal-pad"
-            placeholder={t('common.amountPlaceholder')}
-            hint={t(isLoanLike ? 'accountModal.openingBalanceLoanHint' : 'accountModal.openingBalanceHint')}
-          />
-          {isEditing && !usesLoggedValue(type) ? (
-            <TextField
-              label={t('accountModal.latestBalanceLabel')}
-              value={latestBalance}
-              onChangeText={setLatestBalance}
-              keyboardType="decimal-pad"
-              placeholder={t('common.amountPlaceholder')}
-              hint={t('accountModal.latestBalanceHint')}
-            />
-          ) : null}
+          {/* A loan has no ledger balance to seed: what it owes is a reading
+              (latest 'principal' entry, estimated from real payments in
+              between — see finance-tools/remainingPrincipal), so asking for
+              an opening balance and a current balance here would be asking
+              for the same number twice in the wrong units. */}
+          {isLoanLike ? (
+            <>
+              {isMortgage ? (
+                <TextField
+                  label={t('accountModal.currentHouseValueLabel')}
+                  value={currentHouseValue}
+                  onChangeText={setCurrentHouseValue}
+                  keyboardType="decimal-pad"
+                  placeholder={t('common.amountPlaceholder')}
+                  hint={t('accountModal.currentHouseValueHint')}
+                />
+              ) : null}
+              <TextField
+                label={t('accountModal.currentPrincipalLabel')}
+                value={currentPrincipal}
+                onChangeText={setCurrentPrincipal}
+                keyboardType="decimal-pad"
+                placeholder={t('common.amountPlaceholder')}
+                hint={t('accountModal.currentPrincipalHint')}
+              />
+            </>
+          ) : (
+            <>
+              <TextField
+                label={t('accountModal.openingBalanceLabel')}
+                value={openingBalance}
+                onChangeText={editOpeningBalance}
+                keyboardType="decimal-pad"
+                placeholder={t('common.amountPlaceholder')}
+                hint={t('accountModal.openingBalanceHint')}
+              />
+              {isEditing && !usesLoggedValue(type) ? (
+                <TextField
+                  label={t('accountModal.latestBalanceLabel')}
+                  value={latestBalance}
+                  onChangeText={setLatestBalance}
+                  keyboardType="decimal-pad"
+                  placeholder={t('common.amountPlaceholder')}
+                  hint={t('accountModal.latestBalanceHint')}
+                />
+              ) : null}
+            </>
+          )}
           <Text style={styles.sectionLabel}>{t('accountModal.interestRateHeading')}</Text>
           {isEditing ? (
             <View style={styles.field}>
@@ -412,17 +483,31 @@ export function AccountModal() {
                   )}
                 </View>
               ) : null}
-              <DateField label={t('accountModal.originationDateLabel')} value={originationDate} onChange={setOriginationDate} />
+              <DateField
+                label={t(isMortgage ? 'accountModal.purchaseDateLabel' : 'accountModal.originationDateLabel')}
+                value={originationDate}
+                onChange={setOriginationDate}
+              />
+              <TextField
+                label={t('accountModal.noteLabel')}
+                value={note}
+                onChangeText={setNote}
+                placeholder={t('accountModal.notePlaceholder')}
+                multiline
+                style={styles.noteInput}
+              />
             </>
           ) : null}
-          <TextField
-            label={t('accountModal.noteLabel')}
-            value={note}
-            onChangeText={setNote}
-            placeholder={t('accountModal.notePlaceholder')}
-            multiline
-            style={styles.noteInput}
-          />
+          {isLoanLike ? null : (
+            <TextField
+              label={t('accountModal.noteLabel')}
+              value={note}
+              onChangeText={setNote}
+              placeholder={t('accountModal.notePlaceholder')}
+              multiline
+              style={styles.noteInput}
+            />
+          )}
           {isEditing && isIncomeType ? (
             <View style={styles.field}>
               <Text style={styles.sectionLabel}>{t('accountModal.incomeDetailsHeading')}</Text>

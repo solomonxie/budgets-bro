@@ -47,11 +47,17 @@ export interface AccountRateChange {
   effectiveDate: string; // 'YYYY-MM-DD'
 }
 
+// Two kinds of reading share account_value_history (migration 024):
+// 'value' is what a thing is worth (a home, a tracking account's total),
+// 'principal' is what is still owed on a loan.
+export type AccountValueKind = 'value' | 'principal';
+
 export interface AccountValueChange {
   id: number;
   accountId: number;
   valueCents: number;
   effectiveDate: string; // 'YYYY-MM-DD'
+  kind: AccountValueKind;
   // Where the number came from — "Zillow", "bank appraisal", "after the
   // kitchen" — since the value alone doesn't say why it moved.
   note: string | null;

@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { AccountValueHistoryRow } from '../schema';
-import type { AccountValueChange } from '../../domain/types';
+import type { AccountValueChange, AccountValueKind } from '../../domain/types';
 import {
   LIST_VALUE_HISTORY,
   CURRENT_VALUE,
@@ -8,27 +8,67 @@ import {
 } from '../../../databases/queries/accountValueHistory';
 
 function mapRow(row: AccountValueHistoryRow): AccountValueChange {
-  return { id: row.id, accountId: row.account_id, valueCents: row.value_cents, effectiveDate: row.effective_date, note: row.note };
+  return {
+    id: row.id,
+    accountId: row.account_id,
+    valueCents: row.value_cents,
+    effectiveDate: row.effective_date,
+    kind: row.kind as AccountValueKind,
+    note: row.note,
+  };
 }
 
-export async function listValueHistory(db: SQLiteDatabase, accountId: number): Promise<AccountValueChange[]> {
-  const rows = await db.getAllAsync<AccountValueHistoryRow>(LIST_VALUE_HISTORY, accountId);
+export async function listValueHistory(
+  db: SQLiteDatabase,
+  accountId: number,
+  kind: AccountValueKind = 'value',
+): Promise<AccountValueChange[]> {
+  const rows = await db.getAllAsync<AccountValueHistoryRow>(LIST_VALUE_HISTORY, accountId, kind);
   return rows.map(mapRow);
 }
 
 // Most recent by effective date — same "backdated correction stays in
 // order" rule as accountRateHistoryRepo.currentRateBps.
-export async function currentValueCents(db: SQLiteDatabase, accountId: number): Promise<number | null> {
-  const row = await db.getFirstAsync<{ value_cents: number }>(CURRENT_VALUE, accountId);
+export async function currentValueCents(
+  db: SQLiteDatabase,
+  accountId: number,
+  kind: AccountValueKind = 'value',
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ value_cents: number }>(CURRENT_VALUE, accountId, kind);
   return row?.value_cents ?? null;
 }
 
 // Board-wide latest value per account — feeds the Net Worth rollup (mortgage
 // house value) and a tracking account's displayed balance (see
 // accountsRepo.listAccountsWithBalances) without an N+1 query per account.
-export async function currentValuesByBoard(db: SQLiteDatabase, boardId: number): Promise<Map<number, number>> {
-  const rows = await db.getAllAsync<{ account_id: number; value_cents: number }>(CURRENT_VALUES_FOR_BOARD, boardId);
+export async function currentValuesByBoard(
+  db: SQLiteDatabase,
+  boardId: number,
+  kind: AccountValueKind = 'value',
+): Promise<Map<number, number>> {
+  const rows = await db.getAllAsync<{ account_id: number; value_cents: number }>(CURRENT_VALUES_FOR_BOARD, boardId, kind);
   return new Map(rows.map((r) => [r.account_id, r.value_cents]));
+}
+
+export interface DatedReading {
+  valueCents: number;
+  effectiveDate: string;
+}
+
+// Latest reading *with its date* per account — deriving a loan's remaining
+// principal needs to know which payments came after the reading, not just
+// what it said (see finance-tools/remainingPrincipal).
+export async function currentReadingsByBoard(
+  db: SQLiteDatabase,
+  boardId: number,
+  kind: AccountValueKind,
+): Promise<Map<number, DatedReading>> {
+  const rows = await db.getAllAsync<{ account_id: number; value_cents: number; effective_date: string }>(
+    CURRENT_VALUES_FOR_BOARD,
+    boardId,
+    kind,
+  );
+  return new Map(rows.map((r) => [r.account_id, { valueCents: r.value_cents, effectiveDate: r.effective_date }]));
 }
 
 export async function addValueChange(
@@ -37,13 +77,15 @@ export async function addValueChange(
   valueCents: number,
   effectiveDate: string,
   note: string | null = null,
+  kind: AccountValueKind = 'value',
 ): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO account_value_history (account_id, value_cents, effective_date, note) VALUES (?, ?, ?, ?)',
+    'INSERT INTO account_value_history (account_id, value_cents, effective_date, note, kind) VALUES (?, ?, ?, ?, ?)',
     accountId,
     valueCents,
     effectiveDate,
     note,
+    kind,
   );
   return result.lastInsertRowId;
 }

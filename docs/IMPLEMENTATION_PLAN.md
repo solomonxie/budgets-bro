@@ -156,15 +156,21 @@ surfaces behind adapters, then the native module, and only then does the
 | `expo-secure-store` | `react-native-keychain` |
 | `expo prebuild` | `ios/` committed, edited by hand |
 
-- [ ] T12.1 Leaf swaps — `expo-status-bar` → RN `StatusBar`, `expo-sharing` → RN `Share` (iOS shares a file by `url`), `registerRootComponent` → `AppRegistry`. No native deps touched, no data at risk.
-- [ ] T12.2 Tooling off Expo presets — `metro.config.js`, jest preset (all 363 tests must stay green), eslint config. Lands before any library swap so the next phases are verified by the same toolchain they'll ship on.
-- [ ] T12.3 `src/db/driver.ts` — own `SQLiteDatabase` interface (`runAsync`/`getAllAsync`/`getFirstAsync`/`execAsync`/`withTransactionAsync`, the only five methods actually used) and re-point all 28 files' type imports at it. Still expo-sqlite underneath: a pure indirection step, so the driver swap that follows touches one file.
-- [ ] T12.4 op-sqlite under the driver — same on-disk path (`<documents>/SQLite/budgetsbro.db`) so nothing has to migrate. Re-run the full migration chain (001→030) against a fresh DB and against a restored backup.
+Done out of order: T12.9 had to come early. Switching Metro (T12.2) broke
+Expo's Xcode bundling phase, which only accepts Expo's serializer, so `ios/`
+picked up hand edits the same day — leaving it gitignored would have meant a
+checkout that cannot build.
+
+- [x] T12.1 Leaf swaps — `expo-status-bar` → RN `StatusBar`, `expo-sharing` → RN `Share` (iOS shares a file by `url`), `registerRootComponent` → `AppRegistry`. No native deps touched, no data at risk.
+- [x] T12.2 Tooling off Expo presets — `metro.config.js`, jest preset (all 363 tests must stay green), eslint config. Lands before any library swap so the next phases are verified by the same toolchain they'll ship on.
+- [x] T12.3 `src/db/driver.ts` — own `SQLiteDatabase` interface (`runAsync`/`getAllAsync`/`getFirstAsync`/`execAsync`/`withTransactionAsync`, the only five methods actually used) and re-point all 28 files' type imports at it. Still expo-sqlite underneath: a pure indirection step, so the driver swap that follows touches one file.
+- [x] T12.4 op-sqlite under the driver — same on-disk path (`<documents>/SQLite/budgetsbro.db`) so nothing has to migrate. Re-run the full migration chain (001→030) against a fresh DB and against a restored backup.
 - [ ] T12.5 `src/platform/fs.ts` adapter over `react-native-blob-util`, replacing `Directory`/`File`/`Paths` in the six call sites. Must keep the Files-app-visible document folder working (`UIFileSharingEnabled`).
 - [ ] T12.6 Document picking — `@react-native-documents/picker` for the YNAB import.
 - [ ] T12.7 `react-native-keychain` for the AI key and S3 credentials. **Breaking:** different keychain items, so existing secrets are not readable — Settings must prompt for re-entry rather than silently showing an empty field.
 - [ ] T12.8 `modules/icloud-drive` as a plain TurboModule — codegen spec + Swift, dropping `ExpoModulesCore` from the podspec. The Swift body (ubiquity container, coordinated read/write) is unchanged; only the module registration is.
-- [ ] T12.9 Own `ios/` — stop gitignoring it, commit the current generated project, and move what `app.json` was configuring (bundle id, entitlements, iCloud containers, `NSUbiquitousContainers`, icons, splash, file sharing) into `Info.plist`/`.entitlements`/asset catalogs. After this there is no prebuild to re-run.
+- [x] T12.9a `ios/` committed (project, sources, assets, Info.plist, entitlements, Podfile+lock; Pods/ and build/ still ignored), `npm run prebuild` deleted. Pulled forward — see the note above.
+- [ ] T12.9b Move what `app.json` still configures (bundle id, entitlements, iCloud containers, `NSUbiquitousContainers`, icons, splash, file sharing) out of it — the generated `Info.plist`/`.entitlements` already carry the values, so this is deleting the source they were generated from, once nothing reads it.
 - [ ] T12.10 Remove `expo`, every `expo-*` dependency and `app.json`'s expo block; update README, AGENTS.md (v57 docs no longer the reference) and the tech-stack table.
 
 Done when `grep -ri expo` over tracked files returns nothing but history, and a

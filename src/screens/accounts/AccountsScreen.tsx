@@ -5,7 +5,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountValues } from '../../hooks/useAccountValues';
-import { useIncomeAccountYearTotals } from '../../hooks/useIncomeAccountYearTotals';
 import { useAppStore } from '../../state/useAppStore';
 import { ACCOUNT_KIND_ORDER, accountKind, netWorth as computeNetWorth } from '../../domain/accountKind';
 import type { AccountKind } from '../../domain/types';
@@ -19,7 +18,6 @@ import type { AccountsStackParamList } from '../../navigation/types';
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountsList'>;
 
 const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
-  Income: 'accounts.kindIncome',
   Cash: 'accounts.kindCash',
   Savings: 'accounts.kindSavings',
   Credit: 'accounts.kindCredit',
@@ -34,7 +32,6 @@ export function AccountsScreen() {
   const openAddAccount = useAppStore((s) => s.openAddAccount);
   const { accounts } = useAccounts();
   const { valuesByAccountId: houseValues } = useAccountValues();
-  const { totalsByAccountId: incomeYearTotals } = useIncomeAccountYearTotals();
   const [excludedAccountIds, setExcludedAccountIds] = useState<Set<number>>(new Set());
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
 
@@ -57,20 +54,17 @@ export function AccountsScreen() {
     [accounts, excludedAccountIds, houseValues],
   );
 
-  // An Income account's "balance" is its own ledger only by accident (see
-  // migration 021) — it's really a tag over real accounts' transactions, so
-  // its list value is this year's tagged total, not balanceCents.
   const groups = useMemo(() => {
     return ACCOUNT_KIND_ORDER.map((kind) => {
       const list = accounts
         .filter((a) => accountKind(a.account.type) === kind)
         .map((a) => ({
           account: a.account,
-          displayCents: kind === 'Income' ? incomeYearTotals.get(a.account.id) ?? 0 : a.balanceCents,
+          displayCents: a.balanceCents,
         }));
       return { kind, accounts: list, subtotalCents: list.reduce((s, a) => s + a.displayCents, 0) };
     }).filter((g) => g.accounts.length > 0);
-  }, [accounts, incomeYearTotals]);
+  }, [accounts]);
 
   return (
     <ScreenContainer scroll>
@@ -95,7 +89,7 @@ export function AccountsScreen() {
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>{t('accounts.includeInNetWorth')}</Text>
             <ScrollView>
-              {accounts.filter((a) => a.account.type !== 'income').map(({ account }) => {
+              {accounts.map(({ account }) => {
                 const included = !excludedAccountIds.has(account.id);
                 return (
                   <Pressable key={account.id} style={styles.accountRow} onPress={() => toggleAccountIncluded(account.id)}>
@@ -118,12 +112,7 @@ export function AccountsScreen() {
         <View key={group.kind} style={styles.group}>
           <View style={styles.groupHeader}>
             <Text style={styles.groupLabel}>{t(KIND_LABEL_KEY[group.kind])}</Text>
-            {/* Income totals are this year's tagged inflow, not a balance —
-                said once on the group's own subtotal, inline, rather than as
-                a second line under every row as well. */}
-            <Text style={styles.groupSub}>
-              {group.kind === 'Income' ? t('accounts.thisYearAmount', { amount: formatMoney(group.subtotalCents) }) : formatMoney(group.subtotalCents)}
-            </Text>
+            <Text style={styles.groupSub}>{formatMoney(group.subtotalCents)}</Text>
           </View>
           {group.accounts.map(({ account, displayCents }) => (
             <Pressable

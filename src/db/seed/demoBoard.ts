@@ -6,7 +6,6 @@ import * as accountValueHistoryRepo from '../repositories/accountValueHistoryRep
 import * as categoriesRepo from '../repositories/categoriesRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as budgetsRepo from '../repositories/budgetsRepo';
-import * as incomeDetailHistoryRepo from '../repositories/incomeDetailHistoryRepo';
 import { currentMonth, lastNMonths } from '../../domain/month';
 import { addMonths } from '../../finance-tools/amortization';
 
@@ -73,43 +72,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     openingBalanceCents: cents(12000),
   });
 
-  // Income accounts — one per earner/gig, showcasing the type's three
-  // Pay Rate History units. Each is a tag, not a ledger (see migration
-  // 021): every paycheck posts as a real transaction on `checkingId`
-  // below, tagged back to whichever of these three it came from.
-  const salaryIncomeId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Meridian Robotics Salary',
-    type: 'income',
-    openingBalanceCents: 0,
-  });
-  await incomeDetailHistoryRepo.addDetail(db, salaryIncomeId, {
-    amountCents: cents(84000),
-    unit: 'year',
-    effectiveDate: day(months[0], 1),
-    note: 'Software engineer, base salary',
-  });
-  const partTimeIncomeId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Alderbrook Part-Time Work',
-    type: 'income',
-    openingBalanceCents: 0,
-  });
-  await incomeDetailHistoryRepo.addDetail(db, partTimeIncomeId, {
-    amountCents: cents(28),
-    unit: 'hour',
-    effectiveDate: day(months[0], 1),
-    note: 'Weekend retail shifts',
-  });
-  const freelanceIncomeId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Freelance Design Gigs',
-    type: 'income',
-    openingBalanceCents: 0,
-  });
-  await incomeDetailHistoryRepo.addDetail(db, freelanceIncomeId, {
-    amountCents: cents(650),
-    unit: 'paycheck',
-    effectiveDate: day(months[0], 1),
-    note: 'Per-project rate, varies with scope',
-  });
   const ccId = await accountsRepo.createAccount(db, boardId, {
     name: 'Rewards Visa',
     type: 'credit_card',
@@ -326,7 +288,6 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     payeeName: string,
     amountCents: number,
     date: string,
-    incomeAccountId?: number,
   ) => {
     const shortfall = amountCents < 0 ? CHECKING_FLOOR - (checkingBalance + amountCents) : 0;
     if (shortfall > 0) {
@@ -360,14 +321,13 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
       memo: null,
       amountCents,
       date,
-      incomeAccountId,
     });
   };
 
-  // One real transaction on the cash account, tagged to its income account
-  // (see migration 021) — no separate sweep-transfer pair needed anymore.
-  const postIncome = (incomeAccountId: number, payeeName: string, amountCents: number, date: string) =>
-    postChecking(null, payeeName, amountCents, date, incomeAccountId);
+  // Money in is just a positive transaction on the cash account — its payee
+  // says where it came from, which is all the tax breakdown needs.
+  const postIncome = (payeeName: string, amountCents: number, date: string) =>
+    postChecking(null, payeeName, amountCents, date);
 
   for (let i = 0; i < months.length; i++) {
     const month = months[i];
@@ -379,14 +339,14 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     // otherwise Unassigned drifts deeply negative and every category
     // assignment (even leaving one unchanged) gets rejected as "exceeds
     // unassigned" (see AssignedAmountModal's cap).
-    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 1));
-    await postIncome(salaryIncomeId, 'Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 15));
-    await postIncome(partTimeIncomeId, 'Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 1));
-    await postIncome(partTimeIncomeId, 'Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 15));
+    await postIncome('Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 1));
+    await postIncome('Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 15));
+    await postIncome('Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 1));
+    await postIncome('Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 15));
     // Freelance work is lumpy — most months get one payment, some get
     // none, so the trend graph actually looks like gig income.
     if (Math.random() < 0.75) {
-      await postIncome(freelanceIncomeId, 'Freelance Design Gigs', cents(rand(400, 1200) * inflation), day(month, pick([8, 22])));
+      await postIncome('Freelance Design Gigs', cents(rand(400, 1200) * inflation), day(month, pick([8, 22])));
     }
 
     // One payment per loan, for the whole amount, exactly as a bank statement

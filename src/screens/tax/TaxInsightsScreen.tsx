@@ -7,7 +7,6 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DropdownOption } from '../../components/ui/DropdownField';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
-import { useIncomeAccountYearTotals } from '../../hooks/useIncomeAccountYearTotals';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as reportsRepo from '../../db/repositories/reportsRepo';
@@ -96,10 +95,10 @@ export function TaxInsightsScreen() {
   const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
   const { categories } = useCategories();
-  const { totalsByAccountId: incomeByAccountId } = useIncomeAccountYearTotals();
   const year = month.slice(0, 4);
 
   const [ledgerTotals, setLedgerTotals] = useState({ incomeCents: 0, spendingCents: 0 });
+  const [incomeSources, setIncomeSources] = useState<reportsRepo.IncomeSource[]>([]);
   const [country, setCountry] = useState('CA');
   const [province, setProvince] = useState<string | null>(null);
   const [interestCategoryIds, setInterestCategoryIds] = useState<number[]>([]);
@@ -120,6 +119,7 @@ export function TaxInsightsScreen() {
       const db = await getDb();
       const totals = await reportsRepo.incomeAndSpendingInRange(db, boardId, `${year}-01-01`, `${Number(year) + 1}-01-01`);
       setLedgerTotals(totals);
+      setIncomeSources(await reportsRepo.incomeByPayeeInRange(db, boardId, `${year}-01-01`, `${Number(year) + 1}-01-01`));
 
       setCountry(await settingsRepo.getSetting(db, countryKey(boardId)) ?? 'CA');
       setProvince(await settingsRepo.getSetting(db, provinceKey(boardId)));
@@ -187,9 +187,6 @@ export function TaxInsightsScreen() {
 
   const estimatedTaxableIncomeCents = ledgerTotals.incomeCents + toCents(additionalIncome) - toCents(deductions);
   const totalGainCents = trackingGains.reduce((sum, g) => sum + g.gainCents, 0);
-  const incomeAccounts = accounts.filter((a) => a.account.type === 'income');
-  const taggedIncomeCents = incomeAccounts.reduce((sum, a) => sum + (incomeByAccountId.get(a.account.id) ?? 0), 0);
-  const untaggedIncomeCents = Math.max(0, ledgerTotals.incomeCents - taggedIncomeCents);
 
   const filingYear = Number(year) + 1;
   const filingDeadline = formatFullDate(craFilingDeadline(filingYear));
@@ -267,12 +264,19 @@ export function TaxInsightsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>{t('taxInsights.incomeBySourceLabel')}</Text>
-        {incomeAccounts.length === 0 ? (
-          <Text style={styles.hint}>{t('taxInsights.noIncomeAccounts')}</Text>
+        {/* Who paid it, biggest first — the parts add up to the total above
+            because both use the same definition of income. */}
+        {incomeSources.length === 0 ? (
+          <Text style={styles.hint}>{t('taxInsights.noIncomeYet')}</Text>
         ) : (
-          incomeAccounts.map((a) => <Row key={a.account.id} label={a.account.name} value={formatMoney(incomeByAccountId.get(a.account.id) ?? 0)} />)
+          incomeSources.map((source) => (
+            <Row
+              key={source.payeeId ?? 'unnamed'}
+              label={source.payeeName ?? t('common.noPayee')}
+              value={formatMoney(source.totalCents)}
+            />
+          ))
         )}
-        <Row label={t('taxInsights.otherUntaggedIncome')} value={formatMoney(untaggedIncomeCents)} />
       </View>
 
       <View style={styles.card}>
@@ -343,7 +347,7 @@ export function TaxInsightsScreen() {
           <Text style={styles.hint}>{t('taxInsights.filingDeadline', { date: filingDeadline })}</Text>
 
           <Text style={[styles.label, styles.formsLabel]}>{t('taxInsights.formsChecklistLabel')}</Text>
-          <FormRow show={incomeAccounts.length > 0 || ledgerTotals.incomeCents > 0} label={t('taxInsights.formT4')} />
+          <FormRow show={ledgerTotals.incomeCents > 0} label={t('taxInsights.formT4')} />
           <FormRow show={interestTotals.incomeCents > 0 || trackingGains.length > 0} label={t('taxInsights.formT5')} />
           <FormRow show={donationCents > 0} label={t('taxInsights.formDonationReceipts')} />
           <FormRow show label={t('taxInsights.formRrsp')} />

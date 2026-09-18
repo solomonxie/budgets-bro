@@ -26,11 +26,7 @@ interface AppState {
   // exit — these carry the "same account as last time" default that used to
   // survive in the sheet's own state.
   lastAccountId: number | null;
-  lastIncomeAccountId: number | null;
-  rememberTransactionAccounts: (
-    accountId: number | null,
-    incomeAccountId: number | null,
-  ) => void;
+  rememberTransactionAccounts: (accountId: number | null) => void;
 
   // Same "one sheet, create or edit" pattern as the transaction modal.
   accountModal: { open: boolean; editingAccountId: number | null };
@@ -64,9 +60,7 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentBoardId: (id) => set({ currentBoardId: id }),
 
   lastAccountId: null,
-  lastIncomeAccountId: null,
-  rememberTransactionAccounts: (accountId, incomeAccountId) =>
-    set({ lastAccountId: accountId, lastIncomeAccountId: incomeAccountId }),
+  rememberTransactionAccounts: (accountId) => set({ lastAccountId: accountId }),
 
   accountModal: { open: false, editingAccountId: null },
   openAddAccount: () =>

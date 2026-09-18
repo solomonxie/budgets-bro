@@ -25,9 +25,6 @@ import { InterestRateDetails } from './InterestRateDetails';
 import { HouseValueDetails } from './HouseValueDetails';
 import { TrackingValueDetails } from './TrackingValueDetails';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
-import { useIncomeInsights } from '../../hooks/useIncomeInsights';
-import { useIncomeAccountTransactions } from '../../hooks/useIncomeAccountTransactions';
-import { IncomeTrendChart } from './IncomeTrendChart';
 import { BalanceTrendChart } from './BalanceTrendChart';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -38,9 +35,9 @@ import type {
 } from '../../navigation/types';
 import type { TranslationKey } from '../../i18n';
 
-// Income transactions carry no category by design — "Uncategorized" would
-// be noise on every single one of them, so only fall back to it for an
-// outflow (spending genuinely missing a category is worth flagging).
+// Money coming in carries no category by design — "Uncategorized" would be
+// noise on every single one, so only fall back to it for an outflow
+// (spending genuinely missing a category is worth flagging).
 function categorySubLabel(
   item: {
     categoryIcon: string | null;
@@ -69,18 +66,14 @@ export function AccountDetailScreen() {
   const isMortgage = accountWithBalance?.account.type === 'mortgage';
   const isTracking = accountWithBalance?.account.type === 'tracking';
   const isAsset = accountWithBalance?.account.type === 'asset';
-  const isIncome = accountWithBalance?.account.type === 'income';
   const isCreditCard = accountWithBalance?.account.type === 'credit_card';
-  const isLoanLike = accountWithBalance != null && isLoanLikeType(accountWithBalance.account.type);
+  const isLoanLike =
+    accountWithBalance != null &&
+    isLoanLikeType(accountWithBalance.account.type);
   const isCashOrSavings =
     accountWithBalance?.account.type === 'savings' ||
     accountWithBalance?.account.type === 'cash';
   const { transactions } = useTransactions(accountId);
-  // An Income account has no ledger rows of its own — its "transactions"
-  // are a filtered view over whichever real accounts the money actually
-  // landed in (see migration 021).
-  const { transactions: incomeTaggedTransactions } =
-    useIncomeAccountTransactions(isIncome ? accountId : null);
   const { futureTransactions } = useFutureTransactions(accountId);
   const {
     scheduledTransactions,
@@ -94,15 +87,10 @@ export function AccountDetailScreen() {
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
-  const { selectMode, selectedIds, beginWith, toggle, toggleAll, exit } = useTransactionSelection();
+  const { selectMode, selectedIds, beginWith, toggle, toggleAll, exit } =
+    useTransactionSelection();
 
   const balanceCents = accountWithBalance?.balanceCents ?? 0;
-  // An Income account has no ledger rows of its own (see migration 021) —
-  // not worth a balance number, so the balance box shows what it actually
-  // earned instead.
-  const { thisMonthCents, thisYearCents, trend } = useIncomeInsights(
-    isIncome ? accountId : null,
-  );
   const hasValueHistory = isTracking || isAsset;
   // Cash/savings/credit card balances are fully derivable from the real
   // ledger (opening balance + transactions) — no manual logging needed,
@@ -159,14 +147,8 @@ export function AccountDetailScreen() {
   }, [navigation, accountWithBalance, accountId, openEditAccount, t]);
 
   const rows = useMemo(
-    () =>
-      isIncome
-        ? incomeTaggedTransactions.map((tx) => ({
-            ...tx,
-            runningBalanceCents: 0,
-          }))
-        : withRunningBalances(transactions, balanceCents),
-    [isIncome, incomeTaggedTransactions, transactions, balanceCents],
+    () => withRunningBalances(transactions, balanceCents),
+    [transactions, balanceCents],
   );
 
   const deleteSelected = async () => {
@@ -178,7 +160,12 @@ export function AccountDetailScreen() {
 
   const setPayeeForSelected = async (payeeName: string) => {
     const db = await getDb();
-    await transactionsRepo.setPayeeForTransactions(db, boardId, selectedIds, payeeName);
+    await transactionsRepo.setPayeeForTransactions(
+      db,
+      boardId,
+      selectedIds,
+      payeeName,
+    );
     exit();
     bumpDataVersion();
   };
@@ -195,89 +182,62 @@ export function AccountDetailScreen() {
         ListHeaderComponent={
           <>
             <View style={styles.summaryCard}>
-              {isIncome ? (
-                <Pressable
-                  style={styles.summaryTopRow}
-                  onPress={() => setValueExpanded((v) => !v)}
-                >
-                  <View style={styles.summaryLeft}>
-                    <Text style={styles.summaryLabel}>
-                      {t('accountDetail.incomeThisYear')}
-                    </Text>
-                    <Text style={styles.summaryValue}>
-                      {formatMoney(thisYearCents)}
-                    </Text>
-                    <Text style={styles.hint}>
-                      {t('accountDetail.incomeThisMonth', {
-                        amount: formatMoney(thisMonthCents),
-                      })}
-                    </Text>
-                  </View>
-                  <Text style={styles.chevron}>
-                    {valueExpanded ? '▾' : '›'}
+              <View style={styles.summaryTopRow}>
+                <View style={styles.summaryLeft}>
+                  <Text style={styles.summaryLabel}>
+                    {t(
+                      isLoanLike
+                        ? 'accountDetail.remainingPrincipal'
+                        : 'accountDetail.balance',
+                    )}
                   </Text>
-                </Pressable>
-              ) : (
-                <View style={styles.summaryTopRow}>
-                  <View style={styles.summaryLeft}>
-                    <Text style={styles.summaryLabel}>
-                      {t(
-                        isLoanLike
-                          ? 'accountDetail.remainingPrincipal'
-                          : 'accountDetail.balance',
-                      )}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        balanceCents < 0 && styles.negative,
-                      ]}
-                    >
-                      {formatMoney(balanceCents)}
-                    </Text>
-                    {latestGrowth ? (
-                      <View style={styles.depositGainRow}>
-                        <Text style={styles.depositedText}>
-                          {t('investmentGrowth.depositedLabel')}{' '}
-                          {formatMoney(latestGrowth.depositedCents)}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.gainText,
-                            latestGrowth.gainCents < 0 && styles.negative,
-                          ]}
-                        >
-                          {latestGrowth.gainCents >= 0 ? '+' : ''}
-                          {formatMoney(latestGrowth.gainCents)}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  {isMortgage ? (
-                    <Pressable
-                      style={styles.summaryRight}
-                      onPress={() => setValueExpanded((v) => !v)}
-                    >
-                      <Text style={styles.summaryLabel}>
-                        {t('houseValueCard.label')}
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      balanceCents < 0 && styles.negative,
+                    ]}
+                  >
+                    {formatMoney(balanceCents)}
+                  </Text>
+                  {latestGrowth ? (
+                    <View style={styles.depositGainRow}>
+                      <Text style={styles.depositedText}>
+                        {t('investmentGrowth.depositedLabel')}{' '}
+                        {formatMoney(latestGrowth.depositedCents)}
                       </Text>
-                      <View style={styles.houseValueRow}>
-                        <Text style={styles.houseValueText}>
-                          {currentValueCents == null
-                            ? t('houseValueCard.notSet')
-                            : formatMoney(currentValueCents)}
-                        </Text>
-                        <Text style={styles.chevron}>
-                          {valueExpanded ? '▾' : '›'}
-                        </Text>
-                      </View>
-                    </Pressable>
+                      <Text
+                        style={[
+                          styles.gainText,
+                          latestGrowth.gainCents < 0 && styles.negative,
+                        ]}
+                      >
+                        {latestGrowth.gainCents >= 0 ? '+' : ''}
+                        {formatMoney(latestGrowth.gainCents)}
+                      </Text>
+                    </View>
                   ) : null}
                 </View>
-              )}
-              {isIncome && valueExpanded ? (
-                <IncomeTrendChart points={trend} />
-              ) : null}
+                {isMortgage ? (
+                  <Pressable
+                    style={styles.summaryRight}
+                    onPress={() => setValueExpanded((v) => !v)}
+                  >
+                    <Text style={styles.summaryLabel}>
+                      {t('houseValueCard.label')}
+                    </Text>
+                    <View style={styles.houseValueRow}>
+                      <Text style={styles.houseValueText}>
+                        {currentValueCents == null
+                          ? t('houseValueCard.notSet')
+                          : formatMoney(currentValueCents)}
+                      </Text>
+                      <Text style={styles.chevron}>
+                        {valueExpanded ? '▾' : '›'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ) : null}
+              </View>
               {isMortgage && valueExpanded && accountWithBalance ? (
                 <HouseValueDetails
                   account={accountWithBalance.account}
@@ -331,7 +291,9 @@ export function AccountDetailScreen() {
                   />
                 </View>
               ) : null}
-              {isCashOrSavings ? <InterestRateDetails accountId={accountId} /> : null}
+              {isCashOrSavings ? (
+                <InterestRateDetails accountId={accountId} />
+              ) : null}
               {accountWithBalance && isLoanLike ? (
                 <LoanDetailsCard
                   account={accountWithBalance.account}
@@ -466,18 +428,19 @@ export function AccountDetailScreen() {
             onLongPress={() => beginWith(item.id)}
           >
             {selectMode ? (
-              <View style={[styles.checkbox, selectedIds.includes(item.id) && styles.checkboxChecked]} />
+              <View
+                style={[
+                  styles.checkbox,
+                  selectedIds.includes(item.id) && styles.checkboxChecked,
+                ]}
+              />
             ) : null}
             <View style={{ flex: 1 }}>
               <Text style={styles.payee}>
                 {item.payeeName ?? t('common.noPayee')}
               </Text>
               <Text style={styles.sub}>
-                {[
-                  categorySubLabel(item, t),
-                  isIncome ? item.accountName : null,
-                  item.date,
-                ]
+                {[categorySubLabel(item, t), item.date]
                   .filter(Boolean)
                   .join(' · ')}
               </Text>
@@ -500,7 +463,7 @@ export function AccountDetailScreen() {
                   running sum of these rows (see accountsRepo), so a
                   per-row running balance there would be a different number
                   walking backwards from an unrelated total. */}
-              {isIncome || isLoanLike ? null : (
+              {isLoanLike ? null : (
                 <Text style={styles.running}>
                   {formatMoney(item.runningBalanceCents)}
                 </Text>
@@ -537,7 +500,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginRight: spacing.sm,
   },
-  checkboxChecked: { backgroundColor: colors.accent, borderColor: colors.accent },
+  checkboxChecked: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
   summaryCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,

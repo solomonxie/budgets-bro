@@ -81,10 +81,8 @@ export function useBoards() {
     async (name: string) => {
       const db = await getDb();
       const id = await boardsRepo.createBoard(db, name);
-      // At least one Income account must exist to tag a transaction as
-      // income (see migration 021) — seed the common starting set so a
-      // brand-new board isn't unusable until the user manually adds
-      // accounts.
+      // Seed the common starting pair so a brand-new board isn't unusable
+      // until the user manually adds accounts.
       await accountsRepo.createAccount(db, id, {
         name: 'Cash',
         type: 'cash',
@@ -93,11 +91,6 @@ export function useBoards() {
       await accountsRepo.createAccount(db, id, {
         name: 'Savings',
         type: 'savings',
-        openingBalanceCents: 0,
-      });
-      await accountsRepo.createAccount(db, id, {
-        name: 'Income',
-        type: 'income',
         openingBalanceCents: 0,
       });
       bumpDataVersion();

@@ -38,3 +38,19 @@ export const INCOME_AND_SPENDING_IN_RANGE = `
     (SELECT COALESCE(SUM(-t.amount_cents), 0) FROM transactions t JOIN accounts a ON a.id = t.account_id
      WHERE t.amount_cents < 0 AND t.transfer_account_id IS NULL AND a.on_budget = 1 AND t.board_id = ? AND t.date >= ? AND t.date < ? AND t.date <= ?) as spending_cents
 `;
+
+// Where the year's inflow came from, by payee — the replacement for the old
+// per-income-account breakdown (migration 028). Same definition of income as
+// INCOME_AND_SPENDING_IN_RANGE above (positive, not a transfer, on-budget), so
+// the parts add up to the total. Rows with no payee come back as one
+// unnamed bucket the caller labels.
+export const INCOME_BY_PAYEE_IN_RANGE = `
+  SELECT t.payee_id, p.name as payee_name, COALESCE(SUM(t.amount_cents), 0) as total
+  FROM transactions t
+  JOIN accounts a ON a.id = t.account_id
+  LEFT JOIN payees p ON p.id = t.payee_id
+  WHERE t.amount_cents > 0 AND t.transfer_account_id IS NULL AND a.on_budget = 1
+    AND t.board_id = ? AND t.date >= ? AND t.date < ? AND t.date <= ?
+  GROUP BY t.payee_id
+  ORDER BY total DESC
+`;

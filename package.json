@@ -48,7 +48,6 @@
   },
   "scripts": {
     "ios": "scripts/install-ios-device.sh",
-    "prebuild": "expo prebuild --clean -p ios && npx pod-install",
     "test": "jest",
     "lint": "eslint ."
   },

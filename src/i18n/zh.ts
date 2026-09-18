@@ -294,11 +294,7 @@ export const zh: Record<keyof typeof en, string> = {
   'balanceTrendChart.spendingLabel': '支出',
   'trackingValueModal.title': '记录数值',
   'trackingValueModal.notePlaceholder': '例如 股票 60% / 债券 40%',
-  'trackingValueModal.modeTotal': '总余额',
-  'trackingValueModal.modeGain': '盈亏',
   'trackingValueModal.totalLabel': '当前总余额',
-  'trackingValueModal.gainLabel': '距上次记录的利息或盈亏',
-  'trackingValueModal.resultHint': '新数值：{amount}',
 
   'loanDetailsCard.label': '贷款详情',
   'loanDetailsCard.addHint': '添加利率、期限和初始本金即可查看还清预测。',

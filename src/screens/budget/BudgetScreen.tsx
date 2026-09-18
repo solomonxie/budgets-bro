@@ -252,8 +252,11 @@ export function BudgetScreen() {
                     item.status === 'overspent'
                       ? [{ percent: 100, color: statusColors.fg }]
                       : [
-                          { percent: spentPercent, color: colors.amber },
+                          // What is still in the envelope leads, and the
+                          // spent share trails it — the bar reads as how
+                          // much is left, not how far along you are.
                           { percent: remainingPercent, color: colors.positive },
+                          { percent: spentPercent, color: colors.amberMuted },
                         ];
 
                   return (

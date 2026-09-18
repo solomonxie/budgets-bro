@@ -126,7 +126,7 @@ export const en = {
   's3Browser.empty': 'Nothing here yet.',
   'backup.restore': 'Restore',
   's3Browser.restoreConfirmTitle': 'Restore from {name}?',
-  's3Browser.restoreConfirmMessage': 'Its accounts, categories and transactions are merged into this board. Anything added since that backup stays.',
+  's3Browser.restoreConfirmMessage': 'It comes back as a new board alongside your current one, which is left untouched — switch between them in Settings.',
   's3Browser.restoreNotFound': 'That file is no longer in the bucket.',
   'aiHistory.hint':
     'Every request this key has sent, exactly as it went out. Kept on this device only — the last 50 per key, never included in a backup.',

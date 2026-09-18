@@ -3,8 +3,8 @@ import { Directory, File, Paths } from 'expo-file-system';
 const SQLITE_DIR = 'SQLite';
 const SNAPSHOT_DIR = 'db-snapshots';
 // Enough to get back past a bad release without turning the phone into an
-// archive. Oldest goes first.
-const KEEP = 5;
+// archive — a fortnight or so once daily ones are in the mix. Oldest first.
+const KEEP = 14;
 
 export interface DbSnapshot {
   name: string;

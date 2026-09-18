@@ -1,5 +1,14 @@
 import JSZip from 'jszip';
-import type { AccountRow, CategoryGroupRow, CategoryRow, BudgetEntryRow, PayeeRow, TransactionRow } from '../db/schema';
+import type {
+  AccountRow,
+  AccountRateHistoryRow,
+  AccountValueHistoryRow,
+  CategoryGroupRow,
+  CategoryRow,
+  BudgetEntryRow,
+  PayeeRow,
+  TransactionRow,
+} from '../db/schema';
 
 export interface PickedAppExport {
   manifest: { boardId: number; boardName: string; exportedAt: string } | null;
@@ -9,6 +18,11 @@ export interface PickedAppExport {
   budgetEntries: BudgetEntryRow[];
   payees: PayeeRow[];
   transactions: TransactionRow[];
+  // Absent from any backup written before these were added to the dump —
+  // readJson returns [] for a missing entry, so an older zip restores as it
+  // always did rather than failing.
+  accountValueHistory: AccountValueHistoryRow[];
+  accountRateHistory: AccountRateHistoryRow[];
 }
 
 async function readJson<T>(zip: JSZip, name: string): Promise<T[]> {
@@ -39,5 +53,7 @@ export async function parseBackupZip(bytes: Uint8Array | ArrayBuffer): Promise<P
     budgetEntries: await readJson<BudgetEntryRow>(zip, 'budget_entries.json'),
     payees: await readJson<PayeeRow>(zip, 'payees.json'),
     transactions: await readJson<TransactionRow>(zip, 'transactions.json'),
+    accountValueHistory: await readJson<AccountValueHistoryRow>(zip, 'account_value_history.json'),
+    accountRateHistory: await readJson<AccountRateHistoryRow>(zip, 'account_rate_history.json'),
   };
 }

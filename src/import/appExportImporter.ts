@@ -120,6 +120,34 @@ export async function importAppExport(db: SQLiteDatabase, files: PickedAppExport
       transactionsImported++;
     }
 
+    // Rebuilt against the new account ids, like everything else here. A
+    // mortgage's balance is derived from its principal readings, so a
+    // restore that dropped these would put the loan back at the amount
+    // borrowed and quietly lose every house value ever typed in.
+    for (const v of files.accountValueHistory) {
+      const newAccountId = accountIdMap.get(v.account_id);
+      if (newAccountId == null) continue;
+      await db.runAsync(
+        'INSERT INTO account_value_history (account_id, value_cents, effective_date, kind, note) VALUES (?, ?, ?, ?, ?)',
+        newAccountId,
+        v.value_cents,
+        v.effective_date,
+        v.kind ?? 'value',
+        v.note ?? null,
+      );
+    }
+    for (const r of files.accountRateHistory) {
+      const newAccountId = accountIdMap.get(r.account_id);
+      if (newAccountId == null) continue;
+      await db.runAsync(
+        'INSERT INTO account_rate_history (account_id, rate_bps, effective_date, note) VALUES (?, ?, ?, ?)',
+        newAccountId,
+        r.rate_bps,
+        r.effective_date,
+        r.note ?? null,
+      );
+    }
+
     result = {
       boardId,
       boardName,

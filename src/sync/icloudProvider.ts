@@ -1,9 +1,12 @@
 import ICloudDrive from '../../modules/icloud-drive';
 import type { ICloudStatus } from '../../modules/icloud-drive';
 import type { CloudProvider } from './types';
-import { rollingBackupKey } from './backupPath';
 
 export const ICLOUD_PROVIDER_ID = 'icloud';
+
+// Ten days of history, give or take — enough to notice a bad import a week
+// late, not enough to be felt in a 5 GB iCloud plan.
+const ICLOUD_KEEP_LATEST = 10;
 
 // The destination that survives deleting the app: the board's zip written
 // into the app's own iCloud Drive folder (visible in Files, syncs to their
@@ -11,11 +14,11 @@ export const ICLOUD_PROVIDER_ID = 'icloud';
 // it and was removed — it shared the database's sandbox, so it protected
 // against nothing a reinstall could do.
 //
-// One file per board, `<board-slug>-latest.zip`, overwritten every sync.
-// Surviving a reinstall is the whole job here, and only the current copy
-// does that job — a history would be someone's iCloud storage spent on
-// backups they'll never open. Buckets, which are cheap and browsable, keep
-// the dated history instead (backupPath.ts).
+// One dated file per board per day, the newest ten kept and the rest pruned:
+// this is storage the user pays for, so a count is what bounds the bill. It
+// used to be a single overwritten `-latest.zip`, which made "get me
+// yesterday's, before I did that" impossible from the one destination the
+// user can actually open in Files.
 //
 // Needs the iCloud entitlement from app.json and therefore a real build: the
 // native module is absent in Expo Go, where `ICloudDrive` is null.
@@ -36,8 +39,9 @@ export async function getICloudPath(): Promise<string | null> {
 function toProvider(drive: NonNullable<typeof ICloudDrive>): CloudProvider {
   return {
     id: ICLOUD_PROVIDER_ID,
-    keyFor: rollingBackupKey,
+    keepLatest: ICLOUD_KEEP_LATEST,
     upload: (bytes, key) => drive.write(key, bytes),
+    remove: (key) => drive.remove(key),
     listKeys: () => drive.list(),
     download: (key) => drive.read(key),
   };

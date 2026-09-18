@@ -6,7 +6,6 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { secureStore } from '../secure/secureStore';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import type { CloudProvider } from './types';
-import { backupKey } from './backupPath';
 
 const CONFIGS_KEY = 'sync_s3_configs';
 
@@ -487,7 +486,11 @@ export async function listS3Objects(db: SQLiteDatabase, configId: string, subPat
 function toProvider(meta: S3ConfigMeta): CloudProvider {
   return {
     id: `aws-s3:${meta.id}`,
-    keyFor: backupKey,
+    // A bucket keeps everything: object storage is cheap, the credentials are
+    // often write-only by design, and a destination that cannot delete cannot
+    // be emptied by a bug in this app. Deleting there is the user's own doing,
+    // from the browser.
+    keepLatest: null,
     async upload(bytes, key) {
       const config = await resolveConfig(meta);
       if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
@@ -526,4 +529,33 @@ export async function downloadS3Object(db: SQLiteDatabase, configId: string, key
   const config = await resolveConfig(meta);
   if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
   return get(config, joinKey(meta.keyPrefix, key));
+}
+
+// Deletes objects the user picked by key — the only path in the app that
+// removes anything from a bucket. Automatic pruning deliberately does not
+// happen here (see toProvider's keepLatest), so this stays a thing the user
+// asks for, once, by name. Returns what actually went: many buckets are set
+// up write-only, and a refused delete is an answer, not a crash.
+export async function deleteS3Objects(
+  db: SQLiteDatabase,
+  configId: string,
+  keys: string[],
+): Promise<{ deleted: number; failed: number }> {
+  const meta = (await listS3Configs(db)).find((c) => c.id === configId);
+  if (!meta) throw new Error('S3 config not found');
+  const config = await resolveConfig(meta);
+  if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
+
+  let deleted = 0;
+  let failed = 0;
+  for (const key of keys) {
+    try {
+      await del(config, joinKey(meta.keyPrefix, key));
+      deleted += 1;
+    } catch (e) {
+      console.warn(`[s3] delete ${key} failed`, e);
+      failed += 1;
+    }
+  }
+  return { deleted, failed };
 }

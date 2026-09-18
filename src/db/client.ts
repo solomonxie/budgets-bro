@@ -46,7 +46,7 @@ export function getDb(): Promise<SQLiteDatabase> {
       // timeout at all. Bounding it turns that into a clear error instead
       // of the app looking frozen.
       await db.execAsync('PRAGMA busy_timeout = 5000');
-      await migrate(db);
+      await migrate(db, DB_NAME);
       return db;
     });
   }

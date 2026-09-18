@@ -66,22 +66,25 @@ export function usesLoggedValue(type: AccountType): boolean {
 }
 
 // Where money is actually spent, and so where a category means something:
-// cash and a credit card (a card purchase spends out of a category — that is
-// the envelope system's whole point).
+// cash, savings, and a credit card.
 //
-// Not savings: money sits there, it is not spent from there. What leaves a
-// savings account goes to another account of yours, and gets its category
-// when it is spent from that one — categorising both ends would count the
-// same money twice.
+// Savings is in the pool deliberately. It counts as cash for Unassigned Cash
+// (see databases/queries/budgets.ts CASH_ACCOUNT_TYPES), so money leaving it
+// has to land in a category or the envelope arithmetic cannot balance —
+// cash went down, nothing was spent, and the difference surfaces as
+// over-assignment. Taking savings out of this list broke exactly that, and
+// the fix is the transfer rule below, not an account-level exclusion: money
+// moved from savings to chequing is a transfer and carries no category
+// either way, while money genuinely spent out of savings still does.
 //
-// Not tracking or asset either (no assigned cash for a category to come out
-// of), nor a loan, whose rows are mirrored payment legs whose category
-// belongs to the paying side.
+// Not tracking or asset (no assigned cash for a category to come out of),
+// nor a loan, whose rows are mirrored payment legs whose category belongs to
+// the paying side.
 //
 // Doubles as the spend form's default account, so opening it from the budget
 // lands somewhere you can actually spend from.
 export function isSpendingAccountType(type: AccountType): boolean {
-  return type === 'cash' || type === 'credit_card';
+  return type === 'cash' || type === 'savings' || type === 'credit_card';
 }
 
 // Whether one transaction is the kind that carries a category — the account

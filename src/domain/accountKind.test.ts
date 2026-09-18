@@ -39,10 +39,11 @@ describe('isSpendingAccountType', () => {
     expect(isSpendingAccountType('credit_card')).toBe(true);
   });
 
-  it('excludes savings, which money sits in rather than leaves', () => {
-    // What leaves savings goes to another account of yours and is
-    // categorised when spent from there.
-    expect(isSpendingAccountType('savings')).toBe(false);
+  it('keeps savings in, because it counts as cash for Unassigned', () => {
+    // Money leaving savings has to land in a category or the envelope
+    // arithmetic cannot balance. Moving it to another account is a transfer
+    // and is excluded by transactionTakesCategory instead.
+    expect(isSpendingAccountType('savings')).toBe(true);
   });
 
   it('excludes accounts where a category would mean nothing', () => {
@@ -69,8 +70,13 @@ describe('transactionTakesCategory', () => {
   });
 
   it('never categorises an account that does not spend', () => {
-    expect(transactionTakesCategory('savings', false)).toBe(false);
     expect(transactionTakesCategory('mortgage', false)).toBe(false);
     expect(transactionTakesCategory('tracking', false)).toBe(false);
+  });
+
+  it('categorises money genuinely spent out of savings', () => {
+    // Not a transfer: the money left the pool, so it has to land somewhere.
+    expect(transactionTakesCategory('savings', false)).toBe(true);
+    expect(transactionTakesCategory('savings', true)).toBe(false);
   });
 });

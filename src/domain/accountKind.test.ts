@@ -34,10 +34,15 @@ describe('ACCOUNT_KIND_ORDER', () => {
 describe('isSpendingAccountType', () => {
   it('covers the accounts that spend assigned money', () => {
     expect(isSpendingAccountType('cash')).toBe(true);
-    expect(isSpendingAccountType('savings')).toBe(true);
     // A card purchase still spends out of a category — that is the envelope
     // system's whole point.
     expect(isSpendingAccountType('credit_card')).toBe(true);
+  });
+
+  it('excludes savings, which money sits in rather than leaves', () => {
+    // What leaves savings goes to another account of yours and is
+    // categorised when spent from there.
+    expect(isSpendingAccountType('savings')).toBe(false);
   });
 
   it('excludes accounts where a category would mean nothing', () => {

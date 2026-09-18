@@ -476,6 +476,10 @@ export function AddTransactionScreen() {
                 value={date}
                 onChange={setDate}
               />
+              {/* Multiline: return inserts a newline instead of closing the
+                  keyboard, and the text starts at the top of the row rather
+                  than floating in the middle of it. Dismissal is by tapping
+                  off it or dragging the form. */}
               <TextInput
                 style={styles.memoRow}
                 placeholder={t('spend.memoPlaceholder')}
@@ -483,8 +487,7 @@ export function AddTransactionScreen() {
                 onChangeText={setMemo}
                 placeholderTextColor={colors.textMuted}
                 keyboardAppearance="dark"
-                returnKeyType="done"
-                onSubmitEditing={Keyboard.dismiss}
+                multiline
               />
             </FieldCard>
             {isScheduled ? (

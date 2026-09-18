@@ -55,7 +55,7 @@ export function listSnapshots(): DbSnapshot[] {
 // database is crude but has the property that matters: whatever the
 // migration was about to get wrong, this file still has it right.
 //
-// WAL matters here: recent commits may still be in byobudget.db-wal rather
+// WAL matters here: recent commits may still be in budgetsbro.db-wal rather
 // than the main file, so the sidecars are copied too — a copy of only the
 // main file can be missing the newest writes.
 export function takeSnapshot(dbName: string, fromVersion: number, toVersion: number): DbSnapshot | null {

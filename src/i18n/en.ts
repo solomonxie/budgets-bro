@@ -149,7 +149,7 @@ export const en = {
   'backup.icloudNotEntitled': 'This build of the app isn’t signed for iCloud',
   'backup.icloudNotReady': 'iCloud isn’t ready yet — try again shortly',
   'backup.icloud': 'iCloud Drive',
-  'backup.icloudLocation': 'In Files → iCloud Drive → BYO Budget',
+  'backup.icloudLocation': 'In Files → iCloud Drive → Budgets Bro',
   'backup.deleteConnection': 'Delete Connection',
   'backup.never': 'never synced',
   'backup.justNow': 'just now',

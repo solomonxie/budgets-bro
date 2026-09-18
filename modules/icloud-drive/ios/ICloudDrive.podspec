@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description    = s.summary
   s.license        = 'MIT'
   s.author         = ''
-  s.homepage       = 'https://github.com/solomonxie/build-your-own-budget'
+  s.homepage       = 'https://github.com/solomonxie/budgets-bro'
   s.platforms      = { :ios => '16.4' }
   s.swift_version  = '5.9'
   s.source         = { git: '' }

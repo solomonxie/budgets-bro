@@ -1,6 +1,6 @@
 # App Source
 
-TypeScript/React Native source for ByoBudget:
+TypeScript/React Native source for Budgets Bro:
 
 - `screens/` — one folder per tab/feature area
 - `components/` — shared UI building blocks

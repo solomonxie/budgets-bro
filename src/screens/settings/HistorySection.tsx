@@ -107,7 +107,7 @@ export function HistorySection() {
         onPress: () => {
           // Replacing the file under a live connection is why this asks the
           // user to reopen the app rather than pretending it took effect.
-          restoreSnapshot('byobudget.db', snapshot.name);
+          restoreSnapshot('budgetsbro.db', snapshot.name);
           Alert.alert(t('history.restoredTitle'), t('history.restoredMessage'));
         },
       },
@@ -119,7 +119,7 @@ export function HistorySection() {
     try {
       const db = await getDb();
       await db.execAsync('PRAGMA wal_checkpoint(FULL)');
-      takeSnapshot('byobudget.db', 0, 0);
+      takeSnapshot('budgetsbro.db', 0, 0);
       await refresh();
     } finally {
       setBusy(false);

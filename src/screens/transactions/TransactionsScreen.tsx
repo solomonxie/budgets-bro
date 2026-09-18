@@ -289,16 +289,12 @@ export function TransactionsScreen() {
                     </Text>
                   ) : null}
                 </View>
-                <View
+                <Text
                   style={[
-                    styles.signDot,
-                    {
-                      backgroundColor:
-                        txn.amountCents < 0 ? colors.negative : colors.positive,
-                    },
+                    styles.amount,
+                    txn.amountCents < 0 ? styles.negative : styles.positive,
                   ]}
-                />
-                <Text style={styles.amount}>
+                >
                   {formatMoney(txn.amountCents)}
                 </Text>
               </Pressable>
@@ -376,8 +372,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontStyle: 'italic',
   },
-  signDot: { width: 8, height: 8, borderRadius: 999 },
-  amount: { fontSize: 15, fontWeight: '700', color: colors.text },
+  // Coloured text, no dot beside it — same as an account's own list.
+  amount: { fontSize: 15, fontWeight: '700' },
+  negative: { color: colors.negative },
+  positive: { color: colors.positive },
   empty: {
     textAlign: 'center',
     color: colors.textMuted,

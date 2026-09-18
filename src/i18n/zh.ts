@@ -235,6 +235,11 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.currentPrincipalHint':
     '按账单填今天还欠多少。两次填写之间，你记的每笔还款都会先抵利息、剩下的才减本金，所以这个数字能自己跟上。记录它不会产生任何流水。',
   'accountModal.purchaseDateLabel': '购房日期',
+  'accountModal.houseValueHistoryLabel': '房屋估值记录',
+  'accountModal.principalHistoryLabel': '剩余本金记录',
+  'accountModal.noReadings': '尚无记录。',
+  'accountModal.addHouseValue': '+ 添加房屋估值',
+  'accountModal.addPrincipal': '+ 添加剩余本金',
   'accountModal.latestBalanceLabel': '当前余额',
   'accountModal.latestBalanceHint':
     '账户今天实际显示的余额。保存一个不同的数字，会自动记一笔调整流水来对平差额。',

@@ -11,6 +11,7 @@ import { AccountsStackNavigator } from './AccountsStackNavigator';
 import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { AddTransactionScreen } from '../screens/transactions/AddTransactionScreen';
+import { ReviewTransactionsScreen } from '../screens/transactions/ReviewTransactionsScreen';
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
@@ -156,6 +157,15 @@ export function RootNavigator() {
             headerBackTitle: t('common.backTitle'),
             fullScreenGestureEnabled: true,
           })}
+        />
+        <RootStack.Screen
+          name="ReviewTransactions"
+          component={ReviewTransactionsScreen}
+          options={{
+            title: t('review.title'),
+            headerBackTitle: t('common.backTitle'),
+            fullScreenGestureEnabled: true,
+          }}
         />
         <RootStack.Screen
           name="Settings"

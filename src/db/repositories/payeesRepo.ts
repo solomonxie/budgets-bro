@@ -83,3 +83,24 @@ export async function ensureAccountPayee(db: SQLiteDatabase, boardId: number, ac
 export async function unlinkAccountPayee(db: SQLiteDatabase, accountId: number): Promise<void> {
   await db.runAsync('UPDATE payees SET linked_account_id = NULL WHERE linked_account_id = ?', accountId);
 }
+
+// Drops every payee nothing points at any more. Called after anything that
+// can drop a payee's last reference (editing, relabelling or deleting
+// transactions) so the picker stays the list of payees you actually use
+// rather than accumulating every name ever typed or imported.
+//
+// Account-linked payees are exempt — ensureAccountPayee owns those, and an
+// account with no transactions yet still needs its payee to exist for the
+// next transfer. A scheduled transaction counts as a reference too: its
+// payee has to survive until it posts.
+export async function pruneUnusedPayees(db: SQLiteDatabase, boardId: number): Promise<number> {
+  const result = await db.runAsync(
+    `DELETE FROM payees
+     WHERE board_id = ?
+       AND linked_account_id IS NULL
+       AND id NOT IN (SELECT payee_id FROM transactions WHERE payee_id IS NOT NULL)
+       AND id NOT IN (SELECT payee_id FROM scheduled_transactions WHERE payee_id IS NOT NULL)`,
+    boardId,
+  );
+  return result.changes;
+}

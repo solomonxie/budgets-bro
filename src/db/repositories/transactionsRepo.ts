@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from '../../db/driver';
 import type { TransactionJoinRow } from '../schema';
 import type { AccountType, TransactionWithLabels } from '../../domain/types';
 import { currentDateISO } from '../../domain/month';
-import { findOrCreatePayee, getPayee } from './payeesRepo';
+import { findOrCreatePayee, getPayee, pruneUnusedPayees } from './payeesRepo';
 import {
   SELECT_WITH_LABELS,
   INSERT_TRANSACTION,
@@ -65,10 +65,12 @@ export async function listFutureTransactionsForAccount(
   return rows.map(mapRow);
 }
 
-
 // Excludes scheduled/future transactions (date > today) — see
 // listTransactionsForAccount.
-export async function listTransactions(db: SQLiteDatabase, boardId: number): Promise<TransactionWithLabels[]> {
+export async function listTransactions(
+  db: SQLiteDatabase,
+  boardId: number,
+): Promise<TransactionWithLabels[]> {
   const rows = await db.getAllAsync<TransactionJoinRow>(
     `${SELECT_WITH_LABELS} WHERE t.board_id = ? AND t.date <= ? ORDER BY t.date DESC, t.id DESC`,
     boardId,
@@ -77,13 +79,25 @@ export async function listTransactions(db: SQLiteDatabase, boardId: number): Pro
   return rows.map(mapRow);
 }
 
-export async function getTransaction(db: SQLiteDatabase, id: number): Promise<TransactionWithLabels | null> {
-  const row = await db.getFirstAsync<TransactionJoinRow>(`${SELECT_WITH_LABELS} WHERE t.id = ?`, id);
+export async function getTransaction(
+  db: SQLiteDatabase,
+  id: number,
+): Promise<TransactionWithLabels | null> {
+  const row = await db.getFirstAsync<TransactionJoinRow>(
+    `${SELECT_WITH_LABELS} WHERE t.id = ?`,
+    id,
+  );
   return row ? mapRow(row) : null;
 }
 
-export async function getLastCategoryIdForPayee(db: SQLiteDatabase, payeeId: number): Promise<number | null> {
-  const row = await db.getFirstAsync<{ category_id: number | null }>(LAST_CATEGORY_FOR_PAYEE, payeeId);
+export async function getLastCategoryIdForPayee(
+  db: SQLiteDatabase,
+  payeeId: number,
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ category_id: number | null }>(
+    LAST_CATEGORY_FOR_PAYEE,
+    payeeId,
+  );
   return row?.category_id ?? null;
 }
 
@@ -111,11 +125,19 @@ export interface CreateTransactionInput {
 async function postLinkedAccountLeg(
   db: SQLiteDatabase,
   boardId: number,
-  input: { accountId: number; payeeId: number | null; memo: string | null; amountCents: number; date: string },
+  originId: number,
+  input: {
+    accountId: number;
+    payeeId: number | null;
+    memo: string | null;
+    amountCents: number;
+    date: string;
+  },
 ): Promise<void> {
   if (input.payeeId == null) return;
   const payee = await getPayee(db, input.payeeId);
-  if (!payee?.linkedAccountId || payee.linkedAccountId === input.accountId) return;
+  if (!payee?.linkedAccountId || payee.linkedAccountId === input.accountId)
+    return;
   await db.runAsync(
     INSERT_TRANSACTION,
     boardId,
@@ -129,10 +151,60 @@ async function postLinkedAccountLeg(
     null,
     null,
   );
+  // Both legs carry the mark, not just the mirror. Marking one side only
+  // made the pair unverifiable from the originating row — nothing could tell
+  // "this is half of a transfer" from "this is a spend at a payee that
+  // happens to be named after an account" (see domain/transferIntegrity).
+  await db.runAsync(
+    'UPDATE transactions SET transfer_account_id = ? WHERE id = ?',
+    payee.linkedAccountId,
+    originId,
+  );
 }
 
-export async function createTransaction(db: SQLiteDatabase, boardId: number, input: CreateTransactionInput): Promise<number> {
-  const payeeId = input.payeeName ? await findOrCreatePayee(db, boardId, input.payeeName) : null;
+// The row on the other account that this one is half of a pair with. Strict
+// first — both legs marked, which is what everything written from here on
+// looks like — then the legacy shape, where only the mirror was marked and
+// the originating row is identified by its payee naming that account.
+async function findPartnerId(
+  db: SQLiteDatabase,
+  row: TransactionWithLabels,
+): Promise<number | null> {
+  const counterpart = row.transferAccountId;
+  if (counterpart == null) return null;
+  const strict = await db.getFirstAsync<{ id: number }>(
+    `SELECT id FROM transactions
+     WHERE account_id = ? AND transfer_account_id = ? AND amount_cents = ? AND date = ? AND id <> ?
+     LIMIT 1`,
+    counterpart,
+    row.accountId,
+    -row.amountCents,
+    row.date,
+    row.id,
+  );
+  if (strict) return strict.id;
+  const loose = await db.getFirstAsync<{ id: number }>(
+    `SELECT t.id FROM transactions t
+     JOIN payees p ON p.id = t.payee_id
+     WHERE t.account_id = ? AND p.linked_account_id = ? AND t.amount_cents = ? AND t.date = ? AND t.id <> ?
+     LIMIT 1`,
+    counterpart,
+    row.accountId,
+    -row.amountCents,
+    row.date,
+    row.id,
+  );
+  return loose?.id ?? null;
+}
+
+export async function createTransaction(
+  db: SQLiteDatabase,
+  boardId: number,
+  input: CreateTransactionInput,
+): Promise<number> {
+  const payeeId = input.payeeName
+    ? await findOrCreatePayee(db, boardId, input.payeeName)
+    : null;
   let insertedId = 0;
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
@@ -148,7 +220,7 @@ export async function createTransaction(db: SQLiteDatabase, boardId: number, inp
       null,
     );
     insertedId = result.lastInsertRowId;
-    await postLinkedAccountLeg(db, boardId, { ...input, payeeId });
+    await postLinkedAccountLeg(db, boardId, insertedId, { ...input, payeeId });
   });
   return insertedId;
 }
@@ -160,8 +232,16 @@ export interface UpdateTransactionInput extends CreateTransactionInput {
 // Scope cut: editing a transaction doesn't re-derive/rebalance a linked
 // loan-account leg created at insert time — deleting and re-entering it
 // keeps the loan balance correct if the category changes.
-export async function updateTransaction(db: SQLiteDatabase, boardId: number, input: UpdateTransactionInput): Promise<void> {
-  const payeeId = input.payeeName ? await findOrCreatePayee(db, boardId, input.payeeName) : null;
+export async function updateTransaction(
+  db: SQLiteDatabase,
+  boardId: number,
+  input: UpdateTransactionInput,
+): Promise<void> {
+  const before = await getTransaction(db, input.id);
+  const partnerId = before ? await findPartnerId(db, before) : null;
+  const payeeId = input.payeeName
+    ? await findOrCreatePayee(db, boardId, input.payeeName)
+    : null;
   await db.runAsync(
     UPDATE_TRANSACTION,
     input.accountId,
@@ -172,12 +252,94 @@ export async function updateTransaction(db: SQLiteDatabase, boardId: number, inp
     input.date,
     input.id,
   );
+  await syncPartnerLeg(db, boardId, { ...input, payeeId }, partnerId);
+  await pruneUnusedPayees(db, boardId);
 }
 
-export async function deleteTransactions(db: SQLiteDatabase, ids: number[]): Promise<void> {
+// Keeps the other half of a transfer in step with an edit to this one, so a
+// pair can never drift apart: change the amount and the partner is negated
+// to match, point the payee somewhere that isn't an account and the partner
+// goes away, point it at an account and one appears. This used to be a
+// documented scope cut ("delete and re-enter it"), which is how a ledger
+// ends up with legs that don't cancel.
+async function syncPartnerLeg(
+  db: SQLiteDatabase,
+  boardId: number,
+  input: {
+    id: number;
+    accountId: number;
+    payeeId: number | null;
+    memo: string | null;
+    amountCents: number;
+    date: string;
+  },
+  partnerId: number | null,
+): Promise<void> {
+  const payee =
+    input.payeeId != null ? await getPayee(db, input.payeeId) : null;
+  const counterpart =
+    payee?.linkedAccountId != null && payee.linkedAccountId !== input.accountId
+      ? payee.linkedAccountId
+      : null;
+
+  if (counterpart == null) {
+    if (partnerId != null)
+      await db.runAsync('DELETE FROM transactions WHERE id = ?', partnerId);
+    await db.runAsync(
+      'UPDATE transactions SET transfer_account_id = NULL WHERE id = ?',
+      input.id,
+    );
+    return;
+  }
+
+  if (partnerId != null) {
+    const partner = await getTransaction(db, partnerId);
+    if (partner?.accountId === counterpart) {
+      await db.runAsync(
+        `UPDATE transactions SET amount_cents = ?, date = ?, memo = ?, transfer_account_id = ?, updated_at = datetime('now')
+         WHERE id = ?`,
+        -input.amountCents,
+        input.date,
+        input.memo,
+        input.accountId,
+        partnerId,
+      );
+      await db.runAsync(
+        'UPDATE transactions SET transfer_account_id = ? WHERE id = ?',
+        counterpart,
+        input.id,
+      );
+      return;
+    }
+    // The transfer now points at a different account than it used to.
+    await db.runAsync('DELETE FROM transactions WHERE id = ?', partnerId);
+  }
+  await postLinkedAccountLeg(db, boardId, input.id, input);
+}
+
+// Takes both halves of a transfer with it. Deleting one leg on its own
+// leaves the other saying money arrived from an account that never sent it —
+// the pair is one event, so it deletes as one.
+export async function deleteTransactions(
+  db: SQLiteDatabase,
+  boardId: number,
+  ids: number[],
+): Promise<void> {
   if (ids.length === 0) return;
-  const placeholders = ids.map(() => '?').join(',');
-  await db.runAsync(`DELETE FROM transactions WHERE id IN (${placeholders})`, ...ids);
+  const withPartners = new Set(ids);
+  for (const id of ids) {
+    const row = await getTransaction(db, id);
+    if (!row) continue;
+    const partnerId = await findPartnerId(db, row);
+    if (partnerId != null) withPartners.add(partnerId);
+  }
+  const all = [...withPartners];
+  const placeholders = all.map(() => '?').join(',');
+  await db.runAsync(
+    `DELETE FROM transactions WHERE id IN (${placeholders})`,
+    ...all,
+  );
+  await pruneUnusedPayees(db, boardId);
 }
 
 export interface CreateTransferInput {
@@ -196,7 +358,11 @@ export interface CreateTransferInput {
 // owns (payeesRepo.ensureAccountPayee). Both legs used to post with no payee
 // at all, which read as "(No payee)" in every list — see migration 026, which
 // backfills the ones already posted.
-export async function createTransfer(db: SQLiteDatabase, boardId: number, input: CreateTransferInput): Promise<void> {
+export async function createTransfer(
+  db: SQLiteDatabase,
+  boardId: number,
+  input: CreateTransferInput,
+): Promise<void> {
   const [fromPayee, toPayee] = await Promise.all([
     getLinkedPayeeId(db, input.fromAccountId),
     getLinkedPayeeId(db, input.toAccountId),
@@ -225,14 +391,25 @@ export async function createTransfer(db: SQLiteDatabase, boardId: number, input:
   });
 }
 
-async function getLinkedPayeeId(db: SQLiteDatabase, accountId: number): Promise<number | null> {
-  const row = await db.getFirstAsync<{ id: number }>('SELECT id FROM payees WHERE linked_account_id = ?', accountId);
+async function getLinkedPayeeId(
+  db: SQLiteDatabase,
+  accountId: number,
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ id: number }>(
+    'SELECT id FROM payees WHERE linked_account_id = ?',
+    accountId,
+  );
   return row?.id ?? null;
 }
 
 // Creates one uncategorized adjustment transaction for `deltaCents` — the
 // "Correct Balance" action, not a separate reconciliation mechanism.
-export async function correctBalance(db: SQLiteDatabase, boardId: number, accountId: number, deltaCents: number): Promise<void> {
+export async function correctBalance(
+  db: SQLiteDatabase,
+  boardId: number,
+  accountId: number,
+  deltaCents: number,
+): Promise<void> {
   if (deltaCents === 0) return;
   const payeeId = await findOrCreatePayee(db, boardId, 'Balance Adjustment');
   await db.runAsync(
@@ -262,7 +439,11 @@ export interface ImportTransactionInput {
 // re-categorization) — scoped per board so the same export can be imported
 // into two different boards independently instead of one colliding into
 // the other's rows (see migration 010).
-export async function importTransaction(db: SQLiteDatabase, boardId: number, input: ImportTransactionInput): Promise<'inserted' | 'updated'> {
+export async function importTransaction(
+  db: SQLiteDatabase,
+  boardId: number,
+  input: ImportTransactionInput,
+): Promise<'inserted' | 'updated'> {
   const existing = await db.getFirstAsync<{ id: number }>(
     'SELECT id FROM transactions WHERE import_id = ? AND board_id = ?',
     input.importId,
@@ -306,5 +487,68 @@ export async function setPayeeForTransactions(
   if (ids.length === 0) return;
   const payeeId = await findOrCreatePayee(db, boardId, payeeName);
   const placeholders = ids.map(() => '?').join(', ');
-  await db.runAsync(`UPDATE transactions SET payee_id = ? WHERE id IN (${placeholders})`, payeeId, ...ids);
+  await db.runAsync(
+    `UPDATE transactions SET payee_id = ? WHERE id IN (${placeholders})`,
+    payeeId,
+    ...ids,
+  );
+  await pruneUnusedPayees(db, boardId);
+}
+
+// Folds a set of rows into the first of them, summing their amounts —
+// the other answer to a duplicate, for when the rows aren't a double entry
+// but two halves of one purchase that should have been a single line
+// (two $50 charges becoming one $100). The keeper holds the total; the rest
+// go.
+//
+// Refuses anything that is half of a transfer: summing one leg would leave
+// the account across from it holding the old amount, and deleting the others
+// takes their partners with them (see deleteTransactions). A transfer's
+// duplicates are fixed by deleting the pair, not by merging one side.
+export async function mergeTransactions(
+  db: SQLiteDatabase,
+  boardId: number,
+  ids: number[],
+): Promise<boolean> {
+  if (ids.length < 2) return false;
+  const rows = await Promise.all(ids.map((id) => getTransaction(db, id)));
+  const present = rows.filter(
+    (row): row is TransactionWithLabels => row != null,
+  );
+  if (present.length < 2) return false;
+  if (present.some((row) => row.transferAccountId != null)) return false;
+
+  const [keeper, ...rest] = present;
+  const totalCents = present.reduce((sum, row) => sum + row.amountCents, 0);
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE transactions SET amount_cents = ?, updated_at = datetime('now') WHERE id = ?`,
+      totalCents,
+      keeper.id,
+    );
+    const placeholders = rest.map(() => '?').join(',');
+    await db.runAsync(
+      `DELETE FROM transactions WHERE id IN (${placeholders})`,
+      ...rest.map((row) => row.id),
+    );
+  });
+  await pruneUnusedPayees(db, boardId);
+  return true;
+}
+
+// The category half of the same batch edit, used by the review page. Takes
+// an id rather than a name: categories are managed on the Budget screen and
+// a transaction can only ever point at one that already exists.
+export async function setCategoryForTransactions(
+  db: SQLiteDatabase,
+  ids: number[],
+  categoryId: number | null,
+): Promise<void> {
+  if (ids.length === 0) return;
+  const placeholders = ids.map(() => '?').join(', ');
+  await db.runAsync(
+    `UPDATE transactions SET category_id = ? WHERE id IN (${placeholders})`,
+    categoryId,
+    ...ids,
+  );
 }

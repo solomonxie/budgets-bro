@@ -18,6 +18,11 @@ import {
 } from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
 import { transactionTakesCategory } from '../../domain/accountKind';
+import {
+  duplicateTransactionIds,
+  matchesReviewFilter,
+} from '../../domain/transactionReview';
+import type { ReviewFilter } from '../../domain/transactionReview';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { useCategories } from '../../hooks/useCategories';
@@ -71,7 +76,19 @@ export function TransactionsScreen() {
     null,
   );
   const [monthFilter, setMonthFilter] = useState<string | null>(null);
-  const { selectMode, selectedIds, beginWith, toggle, toggleAll, exit, setSelectMode } = useTransactionSelection();
+  // Null is "everything"; the rest narrow to rows that are missing
+  // something (see domain/transactionReview) — the Review page is where
+  // they get fixed, this is just to see them in context here.
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter | null>(null);
+  const {
+    selectMode,
+    selectedIds,
+    beginWith,
+    toggle,
+    toggleAll,
+    exit,
+    setSelectMode,
+  } = useTransactionSelection();
 
   // Arriving from the Budget screen's "Details" button or Insights presets filters.
   useEffect(() => {
@@ -81,6 +98,11 @@ export function TransactionsScreen() {
       setOtherCategoryIds(route.params.categoryIds);
     if (route.params?.month != null) setMonthFilter(route.params.month);
   }, [route.params]);
+
+  const duplicates = useMemo(
+    () => duplicateTransactionIds(transactions),
+    [transactions],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -93,6 +115,11 @@ export function TransactionsScreen() {
       }
       if (monthFilter != null && !t.date.startsWith(monthFilter)) return false;
       if (
+        reviewFilter != null &&
+        !matchesReviewFilter(t, reviewFilter, duplicates)
+      )
+        return false;
+      if (
         q &&
         !(t.payeeName ?? '').toLowerCase().includes(q) &&
         !(t.memo ?? '').toLowerCase().includes(q)
@@ -100,7 +127,15 @@ export function TransactionsScreen() {
         return false;
       return true;
     });
-  }, [transactions, query, categoryFilter, otherCategoryIds, monthFilter]);
+  }, [
+    transactions,
+    query,
+    categoryFilter,
+    otherCategoryIds,
+    monthFilter,
+    reviewFilter,
+    duplicates,
+  ]);
 
   const grouped = useMemo<DateGroup[]>(() => {
     const byDate: DateGroup[] = [];
@@ -118,7 +153,7 @@ export function TransactionsScreen() {
 
   const deleteSelected = async () => {
     const db = await getDb();
-    await transactionsRepo.deleteTransactions(db, selectedIds);
+    await transactionsRepo.deleteTransactions(db, boardId, selectedIds);
     exit();
     bumpDataVersion();
     refresh();
@@ -126,7 +161,12 @@ export function TransactionsScreen() {
 
   const setPayeeForSelected = async (payeeName: string) => {
     const db = await getDb();
-    await transactionsRepo.setPayeeForTransactions(db, boardId, selectedIds, payeeName);
+    await transactionsRepo.setPayeeForTransactions(
+      db,
+      boardId,
+      selectedIds,
+      payeeName,
+    );
     exit();
     bumpDataVersion();
     refresh();
@@ -145,6 +185,13 @@ export function TransactionsScreen() {
     monthFilter == null
       ? ''
       : formatMonthLabel(monthFilter, localeTag(language));
+  const REVIEW_FILTER_OPTIONS: { value: ReviewFilter; label: string }[] = [
+    { value: 'missingPayee', label: t('transactions.needsPayee') },
+    { value: 'missingCategory', label: t('transactions.needsCategory') },
+    { value: 'any', label: t('transactions.needsReview') },
+  ];
+  const reviewFilterLabel =
+    REVIEW_FILTER_OPTIONS.find((o) => o.value === reviewFilter)?.label ?? '';
 
   return (
     <ScreenContainer>
@@ -245,6 +292,39 @@ export function TransactionsScreen() {
             )}
           </DropdownField>
         </View>
+        <View style={styles.filterField}>
+          <DropdownField
+            compact
+            link
+            label={t('review.title')}
+            valueLabel={reviewFilterLabel}
+            placeholder={t('transactions.allRows')}
+          >
+            {(close) => (
+              <>
+                <DropdownOption
+                  label={t('transactions.allRows')}
+                  selected={reviewFilter == null}
+                  onPress={() => {
+                    setReviewFilter(null);
+                    close();
+                  }}
+                />
+                {REVIEW_FILTER_OPTIONS.map((o) => (
+                  <DropdownOption
+                    key={o.value}
+                    label={o.label}
+                    selected={reviewFilter === o.value}
+                    onPress={() => {
+                      setReviewFilter(o.value);
+                      close();
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </DropdownField>
+        </View>
       </View>
       <FlatList
         style={{ flex: 1 }}
@@ -282,7 +362,10 @@ export function TransactionsScreen() {
                       savings withdrawal or a transfer isn't "Uncategorized",
                       and an old row can still carry a category from before
                       that rule (see domain/accountKind). */}
-                  {transactionTakesCategory(txn.accountType, txn.transferAccountId != null) &&
+                  {transactionTakesCategory(
+                    txn.accountType,
+                    txn.transferAccountId != null,
+                  ) &&
                   (txn.categoryName || txn.amountCents < 0) ? (
                     <Text style={styles.sub}>
                       {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
@@ -314,7 +397,9 @@ export function TransactionsScreen() {
       {selectMode ? (
         <TransactionSelectionBar
           selectedCount={selectedIds.length}
-          allSelected={selectedIds.length >= visibleIds.length && visibleIds.length > 0}
+          allSelected={
+            selectedIds.length >= visibleIds.length && visibleIds.length > 0
+          }
           onToggleAll={() => toggleAll(visibleIds)}
           onSetPayee={setPayeeForSelected}
           onDelete={deleteSelected}
@@ -343,12 +428,17 @@ const styles = StyleSheet.create({
   // of their own text rather than splitting the row in half.
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   filterField: { flexShrink: 1 },
-  dateGroup: { marginBottom: spacing.sm },
+  // A day is the unit this list is read in, so it gets real air around it —
+  // but it is a divider, not content: muted and a size under the payee names
+  // it separates, so the eye lands on the transactions first and uses the
+  // dates to navigate between them.
+  dateGroup: { marginBottom: spacing.lg },
   dateHeader: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.textMuted,
-    marginBottom: 4,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',

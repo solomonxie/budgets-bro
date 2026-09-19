@@ -6,7 +6,23 @@ export interface MoneyFormatOptions {
 // `symbol`/`locale` exist for the finance tools that model a loan in another
 // currency (the Chinese 提前还贷 calculator renders ¥) — the ledger itself is
 // still single-currency, so every other caller takes the defaults.
+// Whole dollars, always — cents are kept in the data and rounded only here,
+// on the way to the screen. Showing them only when they happened to be
+// non-zero made one list read "$44,000" next to "$26,305.19", as if the two
+// were measured differently.
 export function formatMoney(cents: number, opts?: MoneyFormatOptions): string {
+  const sign = cents < 0 ? '-' : '';
+  const str = Math.round(Math.abs(cents) / 100).toLocaleString(
+    opts?.locale ?? 'en-US',
+    { maximumFractionDigits: 0 },
+  );
+  return sign + (opts?.symbol ?? '$') + str;
+}
+
+// Every cent, for the places a figure is data rather than something being
+// read off a screen — the AI prompt's context block, where rounding would
+// hand the model a different number than the ledger holds.
+export function formatMoneyExact(cents: number, opts?: MoneyFormatOptions): string {
   const sign = cents < 0 ? '-' : '';
   const abs = Math.abs(cents) / 100;
   const hasCents = Math.round(abs * 100) % 100 !== 0;
@@ -19,11 +35,19 @@ export function formatMoney(cents: number, opts?: MoneyFormatOptions): string {
 
 // Compact axis label — formatMoney's full "$1,234.56" is too wide for a
 // narrow chart axis column.
-export function formatMoneyCompact(cents: number, opts?: MoneyFormatOptions): string {
+export function formatMoneyCompact(
+  cents: number,
+  opts?: MoneyFormatOptions,
+): string {
   const symbol = opts?.symbol ?? '$';
   const dollars = Math.abs(cents) / 100;
-  if (dollars >= 1000) return `${symbol}${(dollars / 1000).toFixed(dollars >= 10000 ? 0 : 1)}k`;
-  return `${symbol}${Math.round(dollars)}`;
+  // Keeps the sign. Dropping it made a chart axis read "$218k" at the floor
+  // and "$72k" at the ceiling — a scale that runs downhill and says nothing
+  // about which side of zero a point is on.
+  const sign = cents < 0 ? '−' : '';
+  if (dollars >= 1000)
+    return `${sign}${symbol}${(dollars / 1000).toFixed(dollars >= 10000 ? 0 : 1)}k`;
+  return `${sign}${symbol}${Math.round(dollars)}`;
 }
 
 // Rates are stored as basis points everywhere (6.50% -> 650).

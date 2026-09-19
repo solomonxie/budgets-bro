@@ -1,16 +1,17 @@
 import { formatMoney, formatMoneyCompact, formatPercent, parseMoneyToCents } from './money';
 
 describe('formatMoney', () => {
-  it('formats whole dollars without cents', () => {
+  it('formats whole dollars', () => {
     expect(formatMoney(180000)).toBe('$1,800');
   });
 
-  it('formats cents when present', () => {
-    expect(formatMoney(214532)).toBe('$2,145.32');
+  it('rounds cents away rather than printing them', () => {
+    expect(formatMoney(214532)).toBe('$2,145');
+    expect(formatMoney(214562)).toBe('$2,146');
   });
 
   it('formats negative amounts', () => {
-    expect(formatMoney(-4850)).toBe('-$48.50');
+    expect(formatMoney(-4850)).toBe('-$49');
   });
 
   it('formats zero', () => {
@@ -19,7 +20,7 @@ describe('formatMoney', () => {
 
   it('honours a custom currency symbol, keeping the sign outside it', () => {
     expect(formatMoney(120000000, { symbol: '¥' })).toBe('¥1,200,000');
-    expect(formatMoney(-4850, { symbol: '¥' })).toBe('-¥48.50');
+    expect(formatMoney(-4850, { symbol: '¥' })).toBe('-¥49');
   });
 });
 

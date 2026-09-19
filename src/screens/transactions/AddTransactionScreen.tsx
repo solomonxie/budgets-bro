@@ -32,7 +32,10 @@ import {
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
-import { isLoanLikeType, isSpendingAccountType } from '../../domain/accountKind';
+import {
+  isLoanLikeType,
+  isSpendingAccountType,
+} from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
 import { RepeatField } from '../../components/ui/RepeatField';
@@ -102,21 +105,35 @@ function AddTransactionForm() {
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
   const realAccounts = accounts;
-  // A loan/mortgage account's rows are its own payment mirror legs: the payee
-  // is the auto-managed one named after the account (payeesRepo's
-  // ensureAccountPayee — that name is the link), and an existing row cannot be
-  // moved to another account without orphaning the pair. Both read out,
-  // neither invites an edit that would break the link.
-  const selectedAccount = accounts.find((a) => a.account.id === accountId)?.account;
-  const isLoanAccount = selectedAccount != null && isLoanLikeType(selectedAccount.type);
-  const payeeLocked = isLoanAccount;
+  // A loan/mortgage row is half of a payment pair, and every leg names the
+  // account across from it, never itself (migration 027). So the payee here
+  // is the *paying* account: read out when editing (rewriting it would
+  // orphan the pair — and pinning it to this account's own name, which this
+  // used to do, quietly undid that migration one row at a time), and picked
+  // from the other accounts when entering a new payment from this page.
+  const selectedAccount = accounts.find(
+    (a) => a.account.id === accountId,
+  )?.account;
+  const isLoanAccount =
+    selectedAccount != null && isLoanLikeType(selectedAccount.type);
+  const payeeReadOnly = isLoanAccount && isEditing;
+  // Only an account can pay a loan: a typed name would make a plain payee,
+  // which posts no mirror leg and leaves the payment one-sided.
+  const payeeOptions =
+    isLoanAccount && !isEditing
+      ? payees.filter(
+          (p) => p.linkedAccountId != null && p.linkedAccountId !== accountId,
+        )
+      : payees;
   // Opened from an account's page, the account is the context you came from,
   // not a field — and an existing loan row cannot move accounts at all
   // without orphaning its mirror.
   // Both locks render the account's name, so neither can engage before the
   // account is resolved: `accounts` loads async and `accountId` is set by an
   // effect, so the first render of a preset-opened form has neither yet.
-  const accountLocked = selectedAccount != null && ((isLoanAccount && isEditing) || presetAccountId != null);
+  const accountLocked =
+    selectedAccount != null &&
+    ((isLoanAccount && isEditing) || presetAccountId != null);
   // A category only means something where money is actually spent out of
   // assigned cash — a cash account, savings, a credit card. Off-budget
   // accounts (Tracking, Asset) have no assigned cash for it to come out of,
@@ -128,8 +145,13 @@ function AddTransactionForm() {
   // moving between your own accounts, not being spent, and it gets its
   // category when it leaves the other side. Categorising it here would count
   // the same money twice.
-  const isTransfer = payees.some((p) => p.name === payee && p.linkedAccountId != null);
-  const takesCategory = selectedAccount != null && isSpendingAccountType(selectedAccount.type) && !isTransfer;
+  const isTransfer = payees.some(
+    (p) => p.name === payee && p.linkedAccountId != null,
+  );
+  const takesCategory =
+    selectedAccount != null &&
+    isSpendingAccountType(selectedAccount.type) &&
+    !isTransfer;
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no
@@ -169,8 +191,12 @@ function AddTransactionForm() {
     // the last account actually spent from — one where a category means
     // something. Falling back to whatever was saved last would land on a
     // mortgage or a tracking account, which take no category at all.
-    const spendable = realAccounts.filter((a) => isSpendingAccountType(a.account.type));
-    const lastSpendable = spendable.some((a) => a.account.id === lastAccountId) ? lastAccountId : null;
+    const spendable = realAccounts.filter((a) =>
+      isSpendingAccountType(a.account.type),
+    );
+    const lastSpendable = spendable.some((a) => a.account.id === lastAccountId)
+      ? lastAccountId
+      : null;
     setAccountId(
       (prev) =>
         presetAccountId ??
@@ -180,6 +206,15 @@ function AddTransactionForm() {
         realAccounts[0].account.id,
     );
   }, [editingTransactionId, presetAccountId, realAccounts, lastAccountId]);
+
+  // Money entered on a loan account's own page is a payment against it, so
+  // it comes in (debt down) — the outflow default belongs to the account
+  // paying, not the one being paid. A default, not a lock: the toggle still
+  // wins, and this only re-fires when the account itself changes.
+  useEffect(() => {
+    if (isEditing || !isLoanAccount) return;
+    setDirection('in');
+  }, [isEditing, isLoanAccount]);
 
   // The "repeating" toggle lives in the header rather than costing the form
   // a whole row of its own. Hidden on an inflow: money coming in is logged
@@ -239,10 +274,11 @@ function AddTransactionForm() {
     // Defense in depth — the field is already hidden where a category means
     // nothing, but never let a stale categoryId slip through after the
     // account or the direction changed under it.
-    const categoryIdToSave = takesCategory && direction === 'out' ? categoryId : null;
-    // A loan account's payee is the one named after it — the link itself, not
-    // a label. The field reads out rather than picks, so pin it here too.
-    const payeeToSave = payeeLocked && selectedAccount != null ? selectedAccount.name : payee;
+    const categoryIdToSave =
+      takesCategory && direction === 'out' ? categoryId : null;
+    // Whatever the row already names on the other side, unchanged — see
+    // payeeReadOnly.
+    const payeeToSave = payee;
     if (isScheduled && editingTransactionId == null) {
       await scheduledTransactionsRepo.createScheduledTransaction(db, boardId, {
         accountId,
@@ -276,7 +312,8 @@ function AddTransactionForm() {
     }
     // Only remember somewhere you'd spend from — paying a mortgage or logging
     // a tracking entry shouldn't become the next spend's default.
-    if (selectedAccount != null && isSpendingAccountType(selectedAccount.type)) rememberAccounts(accountId);
+    if (selectedAccount != null && isSpendingAccountType(selectedAccount.type))
+      rememberAccounts(accountId);
     bumpDataVersion();
     navigation.goBack();
   };
@@ -291,7 +328,9 @@ function AddTransactionForm() {
         style: 'destructive',
         onPress: async () => {
           const db = await getDb();
-          await transactionsRepo.deleteTransactions(db, [editingTransactionId]);
+          await transactionsRepo.deleteTransactions(db, boardId, [
+            editingTransactionId,
+          ]);
           bumpDataVersion();
           navigation.goBack();
         },
@@ -366,7 +405,10 @@ function AddTransactionForm() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom },
+          // The home indicator sits over the last few points of the screen,
+          // and Delete is the last thing on the page — the inset alone left
+          // its text running under the bar.
+          { paddingBottom: insets.bottom + spacing.lg },
         ]}
         keyboardShouldPersistTaps="handled"
         // The memo's keyboard is the only thing on this page that floats
@@ -382,23 +424,30 @@ function AddTransactionForm() {
             {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
             <FieldCard grow>
-              {payeeLocked ? (
-                <FieldRow label={t('common.payee')} value={selectedAccount?.name ?? ''} />
+              {payeeReadOnly ? (
+                <FieldRow label={t('common.payee')} value={payee} />
               ) : (
                 <SearchableDropdownField
                   compact
                   row
                   label={t('common.payee')}
                   valueLabel={payee}
-                  placeholder={t('spend.payeePlaceholder')}
+                  placeholder={t(
+                    isLoanAccount
+                      ? 'spend.paidFromPlaceholder'
+                      : 'spend.payeePlaceholder',
+                  )}
                   searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                  options={payees.map((p) => ({
+                  options={payeeOptions.map((p) => ({
                     id: p.id,
                     label: p.name,
-                    badge: p.linkedAccountId != null ? t('payeePicker.accountBadge') : undefined,
+                    badge:
+                      p.linkedAccountId != null
+                        ? t('payeePicker.accountBadge')
+                        : undefined,
                   }))}
                   onSelect={(o) => selectPayee(o.label, o.id)}
-                  onUseText={setPayee}
+                  onUseText={isLoanAccount ? () => {} : setPayee}
                 />
               )}
               {/* An inflow's source is its payee, so it needs no category and
@@ -458,34 +507,37 @@ function AddTransactionForm() {
                 </DropdownField>
               )}
               {accountLocked ? (
-                <FieldRow label={t('common.account')} value={selectedAccount?.name ?? ''} />
+                <FieldRow
+                  label={t('common.account')}
+                  value={selectedAccount?.name ?? ''}
+                />
               ) : (
-              <DropdownField
-                compact
-                row
-                label={t('common.account')}
-                valueLabel={
-                  realAccounts.find((a) => a.account.id === accountId)?.account
-                    .name ?? ''
-                }
-              >
-                {(close) => (
-                  <>
-                    {realAccounts.map(({ account }) => (
-                      <DropdownOption
-                        key={account.id}
-                        label={account.name}
-                        selected={accountId === account.id}
-                        onPress={() => {
-                          setAccountId(account.id);
-                          if (!account.onBudget) setCategoryId(null);
-                          close();
-                        }}
-                      />
-                    ))}
-                  </>
-                )}
-              </DropdownField>
+                <DropdownField
+                  compact
+                  row
+                  label={t('common.account')}
+                  valueLabel={
+                    realAccounts.find((a) => a.account.id === accountId)
+                      ?.account.name ?? ''
+                  }
+                >
+                  {(close) => (
+                    <>
+                      {realAccounts.map(({ account }) => (
+                        <DropdownOption
+                          key={account.id}
+                          label={account.name}
+                          selected={accountId === account.id}
+                          onPress={() => {
+                            setAccountId(account.id);
+                            if (!account.onBudget) setCategoryId(null);
+                            close();
+                          }}
+                        />
+                      ))}
+                    </>
+                  )}
+                </DropdownField>
               )}
               <DateField
                 row
@@ -646,6 +698,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  deleteButton: { alignItems: 'center', paddingVertical: spacing.sm },
+  deleteButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    marginTop: spacing.xs,
+  },
   deleteButtonText: { color: colors.negative, fontWeight: '700' },
 });

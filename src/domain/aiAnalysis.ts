@@ -1,4 +1,4 @@
-import { formatMoney } from './money';
+import { formatMoneyExact as formatMoney } from './money';
 
 // Pure data-shaping for AI Analysis (Backlog) — no DB/React/network
 // dependency, same split as recurrence.ts/investmentGrowth.ts. The actual

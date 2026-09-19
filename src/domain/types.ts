@@ -13,9 +13,10 @@ export type AccountType =
   | 'loan'
   | 'mortgage'
   | 'tracking'
-  | 'asset';
+  | 'asset'
+  | 'giving';
 
-export type AccountKind = 'Cash' | 'Savings' | 'Credit' | 'Loan' | 'Tracking' | 'Asset';
+export type AccountKind = 'Cash' | 'Savings' | 'Credit' | 'Loan' | 'Tracking' | 'Asset' | 'Giving';
 
 export interface Account {
   id: number;

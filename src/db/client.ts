@@ -1,5 +1,5 @@
 import { IOS_DOCUMENT_PATH } from '@op-engineering/op-sqlite';
-import { Directory, File, Paths } from 'expo-file-system';
+import { joinPath, movePath, pathExists } from '../files/fileStore';
 import { openDatabase, type SQLiteDatabase } from './driver';
 import { migrate } from './migrate';
 
@@ -22,19 +22,19 @@ let dbPromise: Promise<SQLiteDatabase> | null = null;
 // Idempotent: a fresh install has neither file (no-op), an already-
 // migrated install has DB_NAME already (returns immediately), and only a
 // pre-rebrand install actually has something to carry over.
-function migrateLegacyDbFile(): void {
-  const sqliteDir = new Directory(Paths.document, 'SQLite');
-  if (new File(sqliteDir, DB_NAME).exists) return;
+async function migrateLegacyDbFile(): Promise<void> {
+  if (await pathExists(joinPath(DB_DIRECTORY, DB_NAME))) return;
   for (const suffix of ['', '-wal', '-shm']) {
-    const legacyFile = new File(sqliteDir, `${LEGACY_DB_NAME}${suffix}`);
-    if (legacyFile.exists) legacyFile.move(new File(sqliteDir, `${DB_NAME}${suffix}`));
+    const legacy = joinPath(DB_DIRECTORY, `${LEGACY_DB_NAME}${suffix}`);
+    if (await pathExists(legacy))
+      await movePath(legacy, joinPath(DB_DIRECTORY, `${DB_NAME}${suffix}`));
   }
 }
 
 export function getDb(): Promise<SQLiteDatabase> {
   if (!dbPromise) {
-    migrateLegacyDbFile();
     dbPromise = (async () => {
+      await migrateLegacyDbFile();
       const db = openDatabase(DB_NAME, DB_DIRECTORY);
       await db.execAsync('PRAGMA foreign_keys = ON');
       // WAL + NORMAL sync is the standard mobile SQLite config (same trade

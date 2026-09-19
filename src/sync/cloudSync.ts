@@ -14,11 +14,14 @@ const SYNC_PREFIX = 'sync_auto_';
 const LEGACY_GLOBAL_KEY = 'sync_auto_enabled';
 const LAST_SYNCED_PREFIX = 'sync_last_synced_';
 
-// Adding an S3 connection is itself the opt-in, so it starts on. iCloud has
-// no such moment, so it starts off: installing an update shouldn't begin
-// writing into someone's iCloud uninvited.
-function startsOn(providerId: CloudProviderId): boolean {
-  return providerId.startsWith('aws-s3:');
+// Every destination starts on. Adding an S3 connection is itself the opt-in;
+// iCloud has no such moment, and used to start off so an update wouldn't
+// write into someone's iCloud uninvited — but off meant an install with no
+// bucket configured kept every copy inside the app sandbox, where deleting
+// the app takes the ledger with it. A backup nobody switched on is the
+// failure this app exists to avoid, and the switch is still right there.
+function startsOn(_providerId: CloudProviderId): boolean {
+  return true;
 }
 
 export async function isSyncEnabled(

@@ -35,9 +35,9 @@ describe('isBackupFileName', () => {
 describe('isStale', () => {
   const now = new Date('2026-09-18T12:00:00Z');
 
-  it('keeps a week', () => {
-    expect(isStale(new Date('2026-09-12T12:00:00Z'), now)).toBe(false);
-    expect(isStale(new Date('2026-09-11T11:59:00Z'), now)).toBe(true);
+  it('keeps a month', () => {
+    expect(isStale(new Date('2026-08-20T12:00:00Z'), now)).toBe(false);
+    expect(isStale(new Date('2026-08-19T11:59:00Z'), now)).toBe(true);
   });
 
   it('keeps today', () => {

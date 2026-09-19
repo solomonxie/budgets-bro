@@ -1,11 +1,17 @@
 import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
-import { LIST_ACCOUNTS_WITH_BALANCES, LIST_CLOSED_ACCOUNTS_WITH_BALANCES, LOAN_PAYMENTS_FOR_BOARD } from '../../../databases/queries/accounts';
+import {
+  ACTIVITY_SINCE_LATEST_VALUE,
+  LIST_ACCOUNTS_WITH_BALANCES,
+  LIST_CLOSED_ACCOUNTS_WITH_BALANCES,
+  LOAN_PAYMENTS_FOR_BOARD,
+} from '../../../databases/queries/accounts';
 import { currentDateISO } from '../../domain/month';
-import { isLoanLikeType, usesLoggedValue } from '../../domain/accountKind';
+import { holdsAssignableCash, isLoanLikeType, toppedUpByContributions, usesLoggedValue } from '../../domain/accountKind';
 import { remainingPrincipal } from '../../finance-tools/remainingPrincipal';
 import { planAbsorb } from '../../domain/absorbAccount';
+import type { AbsorbAccountInfo, AbsorbPlan } from '../../domain/absorbAccount';
 import type { ActualPayment } from '../../finance-tools/paymentSplit';
 import * as payeesRepo from './payeesRepo';
 import * as accountRateHistoryRepo from './accountRateHistoryRepo';
@@ -46,9 +52,13 @@ export interface AccountWithBalance {
 
 // Three account shapes, three definitions of "balance":
 //
-// - tracking/asset: its latest logged value (see accountValueHistoryRepo),
-//   not opening_balance + transactions. Its transactions track real cash
-//   movement, but growth/decline is logged by hand.
+// - tracking/giving: its latest logged value plus everything paid in since
+//   — the
+//   valuation says what it was worth that day, and a contribution made
+//   after it is money that is really there. With nothing ever logged it is
+//   the deposits alone.
+// - asset: its latest logged value (see accountValueHistoryRepo). Nothing
+//   is added on top: a car is worth what it is worth.
 // - loan/mortgage: the remaining principal, derived — each real payment
 //   covers its period's interest first, so summing the payments would pay
 //   the loan off years early (see finance-tools/remainingPrincipal). Stored
@@ -59,12 +69,18 @@ export interface AccountWithBalance {
 // on (a freshly created account with only an opening balance).
 interface DerivedBalanceSources {
   valuesByAccountId: Map<number, number>;
+  paidInSinceValueByAccountId: Map<number, number>;
   principalsByAccountId: Map<number, DatedReading>;
   ratesByAccountId: Map<number, number>;
   paymentsByAccountId: Map<number, ActualPayment[]>;
 }
 
 function resolveBalanceCents(account: Account, computedBalanceCents: number, sources: DerivedBalanceSources): number {
+  if (toppedUpByContributions(account.type)) {
+    const loggedCents = sources.valuesByAccountId.get(account.id);
+    if (loggedCents == null) return computedBalanceCents;
+    return loggedCents + (sources.paidInSinceValueByAccountId.get(account.id) ?? 0);
+  }
   if (usesLoggedValue(account.type)) return sources.valuesByAccountId.get(account.id) ?? computedBalanceCents;
   if (!isLoanLikeType(account.type)) return computedBalanceCents;
   const { owedCents } = remainingPrincipal({
@@ -74,17 +90,21 @@ function resolveBalanceCents(account: Account, computedBalanceCents: number, sou
     openingBalanceCents: account.openingBalanceCents,
     fallbackDate: account.createdAt.slice(0, 10),
     annualRateBps: sources.ratesByAccountId.get(account.id) ?? null,
+    termMonths: account.termMonths,
+    asOfDate: currentDateISO(),
     payments: sources.paymentsByAccountId.get(account.id) ?? [],
   });
   return -owedCents;
 }
 
 async function derivedBalanceSources(db: SQLiteDatabase, boardId: number): Promise<DerivedBalanceSources> {
-  const [valuesByAccountId, principalsByAccountId, ratesByAccountId, paymentRows] = await Promise.all([
+  const today = currentDateISO();
+  const [valuesByAccountId, principalsByAccountId, ratesByAccountId, paymentRows, paidInRows] = await Promise.all([
     accountValueHistoryRepo.currentValuesByBoard(db, boardId),
     accountValueHistoryRepo.currentReadingsByBoard(db, boardId, 'principal'),
     accountRateHistoryRepo.currentRatesByBoard(db, boardId),
-    db.getAllAsync<{ account_id: number; amount_cents: number; date: string }>(LOAN_PAYMENTS_FOR_BOARD, boardId, currentDateISO()),
+    db.getAllAsync<{ account_id: number; amount_cents: number; date: string }>(LOAN_PAYMENTS_FOR_BOARD, boardId, today),
+    db.getAllAsync<{ account_id: number; total: number }>(ACTIVITY_SINCE_LATEST_VALUE, boardId, today, today),
   ]);
   const paymentsByAccountId = new Map<number, ActualPayment[]>();
   for (const row of paymentRows) {
@@ -92,7 +112,13 @@ async function derivedBalanceSources(db: SQLiteDatabase, boardId: number): Promi
     list.push({ date: row.date, amountCents: row.amount_cents });
     paymentsByAccountId.set(row.account_id, list);
   }
-  return { valuesByAccountId, principalsByAccountId, ratesByAccountId, paymentsByAccountId };
+  return {
+    valuesByAccountId,
+    paidInSinceValueByAccountId: new Map(paidInRows.map((r) => [r.account_id, r.total])),
+    principalsByAccountId,
+    ratesByAccountId,
+    paymentsByAccountId,
+  };
 }
 
 export async function listAccountsWithBalances(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
@@ -283,18 +309,29 @@ export interface AbsorbOutcome {
   moved: number;
   collapsed: number;
   balanceDeltaCents: number;
+  unassignedDeltaCents: number;
 }
 
-// Deletes an account by moving its history onto the account that paid it,
-// rather than throwing the history away. See domain/absorbAccount for why
-// the transfers between the two have to go with it — without that the
-// absorbing account ends up holding both the spending and the payments for
-// it, which is the same money twice.
-export async function absorbAccountInto(
+// An archived account is already off the cash side of Unassigned Cash (see
+// databases/queries/budgets.ts), so absorbing one can't move it further.
+function absorbInfo(account: Account): AbsorbAccountInfo {
+  return {
+    id: account.id,
+    countsAsCash: holdsAssignableCash(account.type) && account.archivedAt == null,
+    onBudget: account.onBudget,
+    openingBalanceCents: account.openingBalanceCents,
+  };
+}
+
+// What absorbing would do, worked out without writing any of it — so the
+// confirm can name the real numbers instead of promising nothing moves.
+export async function previewAbsorb(
   db: SQLiteDatabase,
   accountId: number,
   intoAccountId: number,
-): Promise<AbsorbOutcome> {
+): Promise<AbsorbPlan | null> {
+  const [from, into] = await Promise.all([getAccount(db, accountId), getAccount(db, intoAccountId)]);
+  if (!from || !into) return null;
   const rows = await db.getAllAsync<{
     id: number;
     account_id: number;
@@ -309,7 +346,7 @@ export async function absorbAccountInto(
     accountId,
     intoAccountId,
   );
-  const plan = planAbsorb(
+  return planAbsorb(
     rows.map((r) => ({
       id: r.id,
       accountId: r.account_id,
@@ -317,9 +354,23 @@ export async function absorbAccountInto(
       categoryId: r.category_id,
       amountCents: r.amount_cents,
     })),
-    accountId,
-    intoAccountId,
+    absorbInfo(from),
+    absorbInfo(into),
   );
+}
+
+// Deletes an account by moving its history onto the account that paid it,
+// rather than throwing the history away. See domain/absorbAccount for why
+// the transfers between the two have to go with it — without that the
+// absorbing account ends up holding both the spending and the payments for
+// it, which is the same money twice.
+export async function absorbAccountInto(
+  db: SQLiteDatabase,
+  accountId: number,
+  intoAccountId: number,
+): Promise<AbsorbOutcome> {
+  const plan = await previewAbsorb(db, accountId, intoAccountId);
+  if (!plan) return { moved: 0, collapsed: 0, balanceDeltaCents: 0, unassignedDeltaCents: 0 };
 
   await db.withTransactionAsync(async () => {
     if (plan.deleteIds.length > 0) {
@@ -342,5 +393,10 @@ export async function absorbAccountInto(
     await db.runAsync('DELETE FROM accounts WHERE id = ?', accountId);
   });
 
-  return { moved: plan.moveIds.length, collapsed: plan.deleteIds.length, balanceDeltaCents: plan.balanceDeltaCents };
+  return {
+    moved: plan.moveIds.length,
+    collapsed: plan.deleteIds.length,
+    balanceDeltaCents: plan.balanceDeltaCents,
+    unassignedDeltaCents: plan.unassignedDeltaCents,
+  };
 }

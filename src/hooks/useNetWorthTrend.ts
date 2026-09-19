@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getDb } from '../db/client';
 import * as accountRateHistoryRepo from '../db/repositories/accountRateHistoryRepo';
+import { countsTowardNetWorth } from '../domain/accountKind';
 import { netWorthTrend } from '../domain/netWorthTrend';
-import type { NetWorthTrendPoint, TrendActivity, TrendPayment, TrendReading } from '../domain/netWorthTrend';
+import type {
+  NetWorthTrendPoint,
+  TrendActivity,
+  TrendPayment,
+  TrendReading,
+} from '../domain/netWorthTrend';
 import { currentDateISO, currentMonth, monthsBetween } from '../domain/month';
 import { useAccounts } from './useAccounts';
 import { useAppStore } from '../state/useAppStore';
@@ -22,13 +28,21 @@ interface TrendInputs {
   earliestMonth: string | null;
 }
 
-const EMPTY: TrendInputs = { activity: [], readings: [], payments: [], rateByAccountId: new Map(), earliestMonth: null };
+const EMPTY: TrendInputs = {
+  activity: [],
+  readings: [],
+  payments: [],
+  rateByAccountId: new Map(),
+  earliestMonth: null,
+};
 
 // Net worth month by month, over the board's whole history. The accounts
 // themselves come from useAccounts (so the caller's Net Worth card and this
 // line are reading the same list); everything else is what those accounts
 // were worth at each point, which only the database knows.
-export function useNetWorthTrend(excludedAccountIds: Set<number>): NetWorthTrendPoint[] {
+export function useNetWorthTrend(
+  excludedAccountIds: Set<number>,
+): NetWorthTrendPoint[] {
   const { accounts } = useAccounts();
   const boardId = useAppStore((s) => s.currentBoardId);
   const dataVersion = useAppStore((s) => s.dataVersion);
@@ -37,22 +51,48 @@ export function useNetWorthTrend(excludedAccountIds: Set<number>): NetWorthTrend
   const refresh = useCallback(async () => {
     const db = await getDb();
     const today = currentDateISO();
-    const [activityRows, readingRows, paymentRows, rateByAccountId, earliest] = await Promise.all([
-      db.getAllAsync<{ account_id: number; month: string; total: number }>(MONTHLY_ACTIVITY_BY_ACCOUNT, boardId, today),
-      db.getAllAsync<{ account_id: number; kind: string; value_cents: number; effective_date: string }>(ALL_READINGS_FOR_BOARD, boardId),
-      db.getAllAsync<{ account_id: number; amount_cents: number; date: string }>(LOAN_PAYMENTS_FOR_BOARD, boardId, today),
-      accountRateHistoryRepo.currentRatesByBoard(db, boardId),
-      db.getFirstAsync<{ month: string | null }>(EARLIEST_ACTIVITY_MONTH, boardId, boardId),
-    ]);
+    const [activityRows, readingRows, paymentRows, rateByAccountId, earliest] =
+      await Promise.all([
+        db.getAllAsync<{ account_id: number; month: string; total: number }>(
+          MONTHLY_ACTIVITY_BY_ACCOUNT,
+          boardId,
+          today,
+        ),
+        db.getAllAsync<{
+          account_id: number;
+          kind: string;
+          value_cents: number;
+          effective_date: string;
+        }>(ALL_READINGS_FOR_BOARD, boardId),
+        db.getAllAsync<{
+          account_id: number;
+          amount_cents: number;
+          date: string;
+        }>(LOAN_PAYMENTS_FOR_BOARD, boardId, today),
+        accountRateHistoryRepo.currentRatesByBoard(db, boardId),
+        db.getFirstAsync<{ month: string | null }>(
+          EARLIEST_ACTIVITY_MONTH,
+          boardId,
+          boardId,
+        ),
+      ]);
     setInputs({
-      activity: activityRows.map((r) => ({ accountId: r.account_id, month: r.month, totalCents: r.total })),
+      activity: activityRows.map((r) => ({
+        accountId: r.account_id,
+        month: r.month,
+        totalCents: r.total,
+      })),
       readings: readingRows.map((r) => ({
         accountId: r.account_id,
         kind: r.kind as AccountValueKind,
         valueCents: r.value_cents,
         effectiveDate: r.effective_date,
       })),
-      payments: paymentRows.map((r) => ({ accountId: r.account_id, date: r.date, amountCents: r.amount_cents })),
+      payments: paymentRows.map((r) => ({
+        accountId: r.account_id,
+        date: r.date,
+        amountCents: r.amount_cents,
+      })),
       rateByAccountId,
       earliestMonth: earliest?.month ?? null,
     });
@@ -64,7 +104,13 @@ export function useNetWorthTrend(excludedAccountIds: Set<number>): NetWorthTrend
 
   return useMemo(() => {
     if (inputs.earliestMonth == null) return [];
-    const included = accounts.filter((a) => !excludedAccountIds.has(a.account.id));
+    // A giving account is not net worth at all, so it is not on the line
+    // and not in the month's breakdown either — see domain/accountKind.
+    const included = accounts.filter(
+      (a) =>
+        countsTowardNetWorth(a.account.type) &&
+        !excludedAccountIds.has(a.account.id),
+    );
     if (included.length === 0) return [];
     return netWorthTrend({
       months: monthsBetween(inputs.earliestMonth, currentMonth()),
@@ -73,6 +119,8 @@ export function useNetWorthTrend(excludedAccountIds: Set<number>): NetWorthTrend
         type: account.type,
         openingBalanceCents: account.openingBalanceCents,
         originalPrincipalCents: account.originalPrincipalCents,
+        termMonths: account.termMonths,
+        originalHousePriceCents: account.originalHousePriceCents,
         originationDate: account.originationDate,
         createdAt: account.createdAt,
       })),
@@ -80,6 +128,7 @@ export function useNetWorthTrend(excludedAccountIds: Set<number>): NetWorthTrend
       readings: inputs.readings,
       payments: inputs.payments,
       rateByAccountId: inputs.rateByAccountId,
+      asOfDate: currentDateISO(),
     });
   }, [inputs, accounts, excludedAccountIds]);
 }

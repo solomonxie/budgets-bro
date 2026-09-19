@@ -1,8 +1,13 @@
 export const LIST_VALUE_HISTORY =
   'SELECT * FROM account_value_history WHERE account_id = ? AND kind = ? ORDER BY effective_date DESC, id DESC';
 
+// "Current" means as of today, not the newest row in the table: a reading
+// dated next month hasn't happened yet, exactly as a future-dated
+// transaction hasn't (see databases/queries/transactions.ts). Counting one
+// early made the Net Worth headline disagree with its own chart, which only
+// ever looks at months that have been.
 export const CURRENT_VALUE =
-  'SELECT value_cents FROM account_value_history WHERE account_id = ? AND kind = ? ORDER BY effective_date DESC, id DESC LIMIT 1';
+  'SELECT value_cents FROM account_value_history WHERE account_id = ? AND kind = ? AND effective_date <= ? ORDER BY effective_date DESC, id DESC LIMIT 1';
 
 // Latest value_cents per account on a board (mortgage house value or a
 // tracking account's logged value — same table, see migration 014), for
@@ -13,10 +18,10 @@ export const CURRENT_VALUES_FOR_BOARD = `
   SELECT h.account_id, h.value_cents, h.effective_date
   FROM account_value_history h
   JOIN accounts a ON a.id = h.account_id
-  WHERE a.board_id = ? AND h.kind = ?
+  WHERE a.board_id = ? AND h.kind = ? AND h.effective_date <= ?
     AND h.id = (
       SELECT h2.id FROM account_value_history h2
-      WHERE h2.account_id = h.account_id AND h2.kind = h.kind
+      WHERE h2.account_id = h.account_id AND h2.kind = h.kind AND h2.effective_date <= ?
       ORDER BY h2.effective_date DESC, h2.id DESC
       LIMIT 1
     )

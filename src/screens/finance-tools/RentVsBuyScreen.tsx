@@ -85,7 +85,12 @@ export function RentVsBuyScreen() {
           keyboardType="decimal-pad"
           placeholder={t('common.amountPlaceholder')}
         />
-        <TextField label={t('financeTools.rentGrowth')} value={rentGrowth.text} onChangeText={rentGrowth.set} keyboardType="decimal-pad" />
+        <TextField
+          label={t('financeTools.rentGrowth')}
+          value={rentGrowth.text}
+          onChangeText={rentGrowth.set}
+          keyboardType="decimal-pad"
+        />
       </Card>
 
       <Card title={t('financeTools.buying')}>
@@ -110,15 +115,30 @@ export function RentVsBuyScreen() {
           keyboardType="decimal-pad"
           placeholder="6.5"
         />
-        <TextField label={t('financeTools.termYears')} value={years.text} onChangeText={years.set} keyboardType="number-pad" />
-        <TextField label={t('financeTools.closingCostRate')} value={closing.text} onChangeText={closing.set} keyboardType="decimal-pad" />
+        <TextField
+          label={t('financeTools.termYears')}
+          value={years.text}
+          onChangeText={years.set}
+          keyboardType="number-pad"
+        />
+        <TextField
+          label={t('financeTools.closingCostRate')}
+          value={closing.text}
+          onChangeText={closing.set}
+          keyboardType="decimal-pad"
+        />
         <TextField
           label={t('financeTools.propertyTaxRate')}
           value={propertyTax.text}
           onChangeText={propertyTax.set}
           keyboardType="decimal-pad"
         />
-        <TextField label={t('financeTools.insuranceRate')} value={insurance.text} onChangeText={insurance.set} keyboardType="decimal-pad" />
+        <TextField
+          label={t('financeTools.insuranceRate')}
+          value={insurance.text}
+          onChangeText={insurance.set}
+          keyboardType="decimal-pad"
+        />
         <TextField
           label={t('financeTools.maintenanceRate')}
           value={maintenance.text}
@@ -153,7 +173,12 @@ export function RentVsBuyScreen() {
           onChangeText={investmentReturn.set}
           keyboardType="decimal-pad"
         />
-        <TextField label={t('financeTools.horizonYears')} value={horizon.text} onChangeText={horizon.set} keyboardType="number-pad" />
+        <TextField
+          label={t('financeTools.horizonYears')}
+          value={horizon.text}
+          onChangeText={horizon.set}
+          keyboardType="number-pad"
+        />
         <AssumptionNote text={t('financeTools.rentVsBuyNote')} />
       </Card>
 
@@ -174,14 +199,37 @@ export function RentVsBuyScreen() {
               label={t('financeTools.advantageAtHorizon', { year: final.year })}
               value={formatMoney(final.advantageCents)}
               tone={final.advantageCents >= 0 ? 'positive' : 'negative'}
-              hint={final.advantageCents >= 0 ? t('financeTools.buyingAhead') : t('financeTools.rentingAhead')}
+              hint={
+                final.advantageCents >= 0
+                  ? t('financeTools.buyingAhead')
+                  : t('financeTools.rentingAhead')
+              }
             />
-            <ResultRow label={t('financeTools.monthlyMortgagePayment')} value={formatMoney(result.monthlyPaymentCents)} />
-            <ResultRow label={t('financeTools.upfrontCash')} value={formatMoney(result.upfrontCents)} />
-            <ResultRow label={t('financeTools.buyerEquity')} value={formatMoney(final.buyerEquityCents)} />
-            <ResultRow label={t('financeTools.buyerPortfolio')} value={formatMoney(final.buyerPortfolioCents)} />
-            <ResultRow label={t('financeTools.renterPortfolio')} value={formatMoney(final.renterPortfolioCents)} />
-            <ResultRow label={t('financeTools.totalRentPaid')} value={formatMoney(final.cumulativeRentCents)} tone="muted" />
+            <ResultRow
+              label={t('financeTools.monthlyMortgagePayment')}
+              value={formatMoney(result.monthlyPaymentCents)}
+            />
+            <ResultRow
+              label={t('financeTools.upfrontCash')}
+              value={formatMoney(result.upfrontCents)}
+            />
+            <ResultRow
+              label={t('financeTools.buyerEquity')}
+              value={formatMoney(final.buyerEquityCents)}
+            />
+            <ResultRow
+              label={t('financeTools.buyerPortfolio')}
+              value={formatMoney(final.buyerPortfolioCents)}
+            />
+            <ResultRow
+              label={t('financeTools.renterPortfolio')}
+              value={formatMoney(final.renterPortfolioCents)}
+            />
+            <ResultRow
+              label={t('financeTools.totalRentPaid')}
+              value={formatMoney(final.cumulativeRentCents)}
+              tone="muted"
+            />
           </>
         ) : null}
       </ResultsCard>
@@ -198,7 +246,7 @@ export function RentVsBuyScreen() {
           String(row.year),
           formatMoneyCompact(row.buyerEquityCents + row.buyerPortfolioCents),
           formatMoneyCompact(row.renterPortfolioCents),
-          `${row.advantageCents < 0 ? '−' : ''}${formatMoneyCompact(row.advantageCents)}`,
+          formatMoneyCompact(row.advantageCents),
         ])}
       />
     </CalcScreen>

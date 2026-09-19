@@ -33,6 +33,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { useT, LANGUAGES } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 
 const THEME_KEY = 'theme_preference';
 type ThemePreference = 'dark' | 'light';
@@ -251,356 +252,386 @@ export function SettingsScreen() {
 
   return (
     <ScreenContainer scroll modal>
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.boardsHeading')}</Text>
-        <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
-        {creatingDemoBoard ? (
-          <Text style={styles.sectionHint}>
-            {t('settings.creatingDemoBoard')}
+      <ExpandingFieldGroup>
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.boardsHeading')}
           </Text>
-        ) : null}
-        {deletingBoardId != null ? (
-          <Text style={styles.sectionHint}>{t('common.deleting')}</Text>
-        ) : null}
-        <DropdownField
-          compact
-          label={t('settings.boardsHeading')}
-          valueLabel={boards.find((b) => b.id === currentBoardId)?.name ?? ''}
-        >
-          {(close) => (
-            <>
-              {boards.map((board) => (
-                <View key={board.id} style={styles.boardOptionRow}>
-                  <Pressable
-                    style={styles.boardOptionMain}
-                    onPress={() => {
-                      switchBoard(board.id);
-                      close();
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.radio,
-                        board.id === currentBoardId && styles.radioActive,
+          <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
+          {creatingDemoBoard ? (
+            <Text style={styles.sectionHint}>
+              {t('settings.creatingDemoBoard')}
+            </Text>
+          ) : null}
+          {deletingBoardId != null ? (
+            <Text style={styles.sectionHint}>{t('common.deleting')}</Text>
+          ) : null}
+          <DropdownField
+            compact
+            label={t('settings.boardsHeading')}
+            valueLabel={boards.find((b) => b.id === currentBoardId)?.name ?? ''}
+          >
+            {(close) => (
+              <>
+                {boards.map((board) => (
+                  <View key={board.id} style={styles.boardOptionRow}>
+                    <Pressable
+                      style={styles.boardOptionMain}
+                      onPress={() => {
+                        switchBoard(board.id);
+                        close();
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.radio,
+                          board.id === currentBoardId && styles.radioActive,
+                        ]}
+                      />
+                      <Text style={styles.rowTitle}>{board.name}</Text>
+                    </Pressable>
+                    <RowMenuButton
+                      items={[
+                        {
+                          label: t('common.rename'),
+                          // `close(after)` waits for this picker sheet to
+                          // actually finish dismissing before running `after`
+                          // — presenting the rename prompt on top of a still-
+                          // animating dismissal can wedge iOS's window
+                          // presentation state entirely (screen looks normal,
+                          // but no touch ever lands again — see delete-board
+                          // freeze investigation). RowMenuButton does the same
+                          // for its own "⋯" sheet, so both close in sequence.
+                          onPress: () =>
+                            close(() =>
+                              setPrompt({
+                                type: 'renameBoard',
+                                boardId: board.id,
+                                initial: board.name,
+                              }),
+                            ),
+                        },
+                        {
+                          label: t('common.delete'),
+                          destructive: true,
+                          onPress: () =>
+                            close(() =>
+                              confirmDeleteBoard(board.id, board.name),
+                            ),
+                        },
                       ]}
                     />
-                    <Text style={styles.rowTitle}>{board.name}</Text>
+                  </View>
+                ))}
+                <Pressable
+                  style={styles.addLink}
+                  onPress={() => close(() => setPrompt({ type: 'newBoard' }))}
+                >
+                  <Text style={styles.addLinkText}>
+                    {t('settings.newBoardLink')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.addLink}
+                  onPress={() => close(runCreateDemoBoard)}
+                >
+                  <Text style={styles.addLinkText}>
+                    {t('settings.createDemoBoard')}
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </DropdownField>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.payeesHeading')}
+          </Text>
+          <SearchableDropdownField
+            compact
+            hideLabel
+            label={t('settings.payeesHeading')}
+            valueLabel={payeeNameInput}
+            placeholder={t('settings.payeeSelectPlaceholder')}
+            searchPlaceholder={t('settings.payeeSearchPlaceholder')}
+            options={payees.map((p) => ({
+              id: p.id,
+              label: p.linkedAccountId != null ? `${p.name} (account)` : p.name,
+            }))}
+            onSelect={(o) =>
+              selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))
+            }
+            onUseText={createPayee}
+          />
+          {selectedPayee != null ? (
+            selectedPayee.linkedAccountId != null ? (
+              <Text style={styles.sectionHint}>
+                {t('settings.payeeLinkedHint')}
+              </Text>
+            ) : (
+              <View style={styles.payeeActions}>
+                <Pressable
+                  style={styles.payeeActionButton}
+                  onPress={() =>
+                    setPrompt({
+                      type: 'renamePayee',
+                      payeeId: selectedPayee.id,
+                      initial: payeeNameInput,
+                    })
+                  }
+                >
+                  <Text style={styles.payeeActionText}>
+                    {t('common.rename')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.payeeActionButton}
+                  onPress={deleteSelectedPayee}
+                >
+                  <Text
+                    style={[styles.payeeActionText, styles.deletePayeeText]}
+                  >
+                    {t('common.delete')}
+                  </Text>
+                </Pressable>
+              </View>
+            )
+          ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.appearanceHeading')}
+          </Text>
+          <View style={styles.segmented}>
+            {(['dark', 'light'] as const).map((opt) => (
+              <Pressable
+                key={opt}
+                style={[styles.segment, theme === opt && styles.segmentActive]}
+                onPress={() => selectTheme(opt)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    theme === opt && styles.segmentTextActive,
+                  ]}
+                >
+                  {opt === 'dark'
+                    ? t('settings.themeDark')
+                    : t('settings.themeLight')}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {theme === 'light' ? (
+            <Text style={styles.sectionHint}>
+              {t('settings.themeLightHint')}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.languageHeading')}
+          </Text>
+          <View style={styles.segmented}>
+            {LANGUAGES.map((opt) => (
+              <Pressable
+                key={opt.code}
+                style={[
+                  styles.segment,
+                  language === opt.code && styles.segmentActive,
+                ]}
+                onPress={() => selectLanguage(opt.code)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    language === opt.code && styles.segmentTextActive,
+                  ]}
+                >
+                  {t(opt.labelKey)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeadingRow}>
+            <Text style={styles.sectionHeading}>
+              {t('settings.aiKeysHeading')}
+            </Text>
+            {/* Only meaningful once there's more than one key to fall back to. */}
+            {aiKeys.length > 1 ? (
+              <Pressable
+                onPress={() =>
+                  selectAiKeyStrategy(
+                    aiKeyStrategy === 'sequential'
+                      ? 'round_robin'
+                      : 'sequential',
+                  )
+                }
+              >
+                <Text style={styles.strategyLinkText}>
+                  {aiKeyStrategy === 'sequential'
+                    ? t('settings.aiKeyStrategySequential')
+                    : t('settings.aiKeyStrategyRoundRobin')}{' '}
+                  ▾
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <Text style={styles.sectionHint}>{t('settings.aiKeysHint')}</Text>
+          {aiKeys.length > 0 ? (
+            <View style={styles.group}>
+              {aiKeys.map((key, i) => (
+                <View
+                  key={key.id}
+                  style={[styles.row, i > 0 && styles.rowDivider]}
+                >
+                  <Pressable
+                    style={styles.rowMain}
+                    onPress={() => setAiKeyHistory(key)}
+                  >
+                    <Text style={styles.rowTitle}>
+                      {aiVendorName(key.vendor)}
+                    </Text>
+                    <Text style={styles.rowValue}>
+                      {t('settings.aiKeyRequestCount', {
+                        count: key.requestCount,
+                      })}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    hitSlop={8}
+                    disabled={i === 0}
+                    onPress={() => moveAiKeyRow(key.id, -1)}
+                  >
+                    <Text
+                      style={[
+                        styles.reorderArrow,
+                        i === 0 && styles.reorderArrowDisabled,
+                      ]}
+                    >
+                      ↑
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    hitSlop={8}
+                    disabled={i === aiKeys.length - 1}
+                    onPress={() => moveAiKeyRow(key.id, 1)}
+                  >
+                    <Text
+                      style={[
+                        styles.reorderArrow,
+                        i === aiKeys.length - 1 && styles.reorderArrowDisabled,
+                      ]}
+                    >
+                      ↓
+                    </Text>
                   </Pressable>
                   <RowMenuButton
                     items={[
                       {
-                        label: t('common.rename'),
-                        // `close(after)` waits for this picker sheet to
-                        // actually finish dismissing before running `after`
-                        // — presenting the rename prompt on top of a still-
-                        // animating dismissal can wedge iOS's window
-                        // presentation state entirely (screen looks normal,
-                        // but no touch ever lands again — see delete-board
-                        // freeze investigation). RowMenuButton does the same
-                        // for its own "⋯" sheet, so both close in sequence.
-                        onPress: () =>
-                          close(() =>
-                            setPrompt({
-                              type: 'renameBoard',
-                              boardId: board.id,
-                              initial: board.name,
-                            }),
-                          ),
-                      },
-                      {
                         label: t('common.delete'),
                         destructive: true,
-                        onPress: () =>
-                          close(() => confirmDeleteBoard(board.id, board.name)),
+                        onPress: () => confirmRemoveAiKey(key),
                       },
                     ]}
                   />
                 </View>
               ))}
-              <Pressable
-                style={styles.addLink}
-                onPress={() => close(() => setPrompt({ type: 'newBoard' }))}
-              >
-                <Text style={styles.addLinkText}>
-                  {t('settings.newBoardLink')}
-                </Text>
-              </Pressable>
-              <Pressable
-                style={styles.addLink}
-                onPress={() => close(runCreateDemoBoard)}
-              >
-                <Text style={styles.addLinkText}>
-                  {t('settings.createDemoBoard')}
-                </Text>
-              </Pressable>
-            </>
-          )}
-        </DropdownField>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.payeesHeading')}</Text>
-        <SearchableDropdownField
-          compact
-          hideLabel
-          label={t('settings.payeesHeading')}
-          valueLabel={payeeNameInput}
-          placeholder={t('settings.payeeSelectPlaceholder')}
-          searchPlaceholder={t('settings.payeeSearchPlaceholder')}
-          options={payees.map((p) => ({
-            id: p.id,
-            label: p.linkedAccountId != null ? `${p.name} (account)` : p.name,
-          }))}
-          onSelect={(o) =>
-            selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))
-          }
-          onUseText={createPayee}
-        />
-        {selectedPayee != null ? (
-          selectedPayee.linkedAccountId != null ? (
-            <Text style={styles.sectionHint}>
-              {t('settings.payeeLinkedHint')}
-            </Text>
-          ) : (
-            <View style={styles.payeeActions}>
-              <Pressable
-                style={styles.payeeActionButton}
-                onPress={() =>
-                  setPrompt({
-                    type: 'renamePayee',
-                    payeeId: selectedPayee.id,
-                    initial: payeeNameInput,
-                  })
-                }
-              >
-                <Text style={styles.payeeActionText}>{t('common.rename')}</Text>
-              </Pressable>
-              <Pressable
-                style={styles.payeeActionButton}
-                onPress={deleteSelectedPayee}
-              >
-                <Text style={[styles.payeeActionText, styles.deletePayeeText]}>
-                  {t('common.delete')}
-                </Text>
-              </Pressable>
             </View>
-          )
-        ) : null}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>
-          {t('settings.appearanceHeading')}
-        </Text>
-        <View style={styles.segmented}>
-          {(['dark', 'light'] as const).map((opt) => (
-            <Pressable
-              key={opt}
-              style={[styles.segment, theme === opt && styles.segmentActive]}
-              onPress={() => selectTheme(opt)}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  theme === opt && styles.segmentTextActive,
-                ]}
-              >
-                {opt === 'dark'
-                  ? t('settings.themeDark')
-                  : t('settings.themeLight')}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        {theme === 'light' ? (
-          <Text style={styles.sectionHint}>{t('settings.themeLightHint')}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>
-          {t('settings.languageHeading')}
-        </Text>
-        <View style={styles.segmented}>
-          {LANGUAGES.map((opt) => (
-            <Pressable
-              key={opt.code}
-              style={[
-                styles.segment,
-                language === opt.code && styles.segmentActive,
-              ]}
-              onPress={() => selectLanguage(opt.code)}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  language === opt.code && styles.segmentTextActive,
-                ]}
-              >
-                {t(opt.labelKey)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeadingRow}>
-          <Text style={styles.sectionHeading}>
-            {t('settings.aiKeysHeading')}
-          </Text>
-          {/* Only meaningful once there's more than one key to fall back to. */}
-          {aiKeys.length > 1 ? (
-            <Pressable
-              onPress={() =>
-                selectAiKeyStrategy(
-                  aiKeyStrategy === 'sequential' ? 'round_robin' : 'sequential',
-                )
-              }
-            >
-              <Text style={styles.strategyLinkText}>
-                {aiKeyStrategy === 'sequential'
-                  ? t('settings.aiKeyStrategySequential')
-                  : t('settings.aiKeyStrategyRoundRobin')}{' '}
-                ▾
-              </Text>
-            </Pressable>
           ) : null}
+          <Pressable
+            style={styles.addLink}
+            onPress={() => setAiKeyModalOpen(true)}
+          >
+            <Text style={styles.addLinkText}>{t('settings.addAiKeyLink')}</Text>
+          </Pressable>
+          <AiKeyModal
+            visible={aiKeyModalOpen}
+            onCancel={() => setAiKeyModalOpen(false)}
+            onSaved={addAiKeyRow}
+          />
+          <AiKeyHistoryModal
+            aiKey={aiKeyHistory}
+            onClose={() => setAiKeyHistory(null)}
+          />
         </View>
-        <Text style={styles.sectionHint}>{t('settings.aiKeysHint')}</Text>
-        {aiKeys.length > 0 ? (
-          <View style={styles.group}>
-            {aiKeys.map((key, i) => (
-              <View
-                key={key.id}
-                style={[styles.row, i > 0 && styles.rowDivider]}
-              >
-                <Pressable
-                  style={styles.rowMain}
-                  onPress={() => setAiKeyHistory(key)}
-                >
-                  <Text style={styles.rowTitle}>
-                    {aiVendorName(key.vendor)}
-                  </Text>
-                  <Text style={styles.rowValue}>
-                    {t('settings.aiKeyRequestCount', {
-                      count: key.requestCount,
-                    })}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  hitSlop={8}
-                  disabled={i === 0}
-                  onPress={() => moveAiKeyRow(key.id, -1)}
-                >
-                  <Text
-                    style={[
-                      styles.reorderArrow,
-                      i === 0 && styles.reorderArrowDisabled,
-                    ]}
-                  >
-                    ↑
-                  </Text>
-                </Pressable>
-                <Pressable
-                  hitSlop={8}
-                  disabled={i === aiKeys.length - 1}
-                  onPress={() => moveAiKeyRow(key.id, 1)}
-                >
-                  <Text
-                    style={[
-                      styles.reorderArrow,
-                      i === aiKeys.length - 1 && styles.reorderArrowDisabled,
-                    ]}
-                  >
-                    ↓
-                  </Text>
-                </Pressable>
-                <RowMenuButton
-                  items={[
-                    {
-                      label: t('common.delete'),
-                      destructive: true,
-                      onPress: () => confirmRemoveAiKey(key),
-                    },
-                  ]}
-                />
-              </View>
-            ))}
-          </View>
-        ) : null}
-        <Pressable
-          style={styles.addLink}
-          onPress={() => setAiKeyModalOpen(true)}
+
+        <BackupSection boardId={boardId} boardName={boardName} />
+
+        <DataSection
+          boardId={boardId}
+          boardName={boardName}
+          onImported={bumpDataVersion}
+          onRestored={handleRestored}
         >
-          <Text style={styles.addLinkText}>{t('settings.addAiKeyLink')}</Text>
-        </Pressable>
-        <AiKeyModal
-          visible={aiKeyModalOpen}
-          onCancel={() => setAiKeyModalOpen(false)}
-          onSaved={addAiKeyRow}
-        />
-        <AiKeyHistoryModal
-          aiKey={aiKeyHistory}
-          onClose={() => setAiKeyHistory(null)}
-        />
-      </View>
+          <HistorySection />
+        </DataSection>
 
-      <BackupSection boardId={boardId} boardName={boardName} />
-
-      <DataSection
-        boardId={boardId}
-        boardName={boardName}
-        onImported={bumpDataVersion}
-        onRestored={handleRestored}
-      />
-
-      <HistorySection />
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>{t('settings.aboutHeading')}</Text>
-        <View style={styles.group}>
-          <View style={styles.row}>
-            <Text style={styles.rowTitle}>{t('settings.version')}</Text>
-            <Text style={styles.rowValue}>1.0.0 (MVP)</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.aboutHeading')}
+          </Text>
+          <View style={styles.group}>
+            <View style={styles.row}>
+              <Text style={styles.rowTitle}>{t('settings.version')}</Text>
+              <Text style={styles.rowValue}>1.0.0 (MVP)</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <ResultToast
-        visible={restoreResult != null}
-        title={t('settings.restoredHeading')}
-        lines={
-          restoreResult
-            ? [
-                { label: t('settings.restoreResultBoard'), value: restoreResult.boardName },
-                { label: t('settings.restoreResultAccounts'), value: String(restoreResult.accountsImported) },
-                { label: t('settings.restoreResultCategories'), value: String(restoreResult.categoriesImported) },
-                { label: t('settings.restoreResultTransactions'), value: String(restoreResult.transactionsImported) },
-              ]
-            : []
-        }
-        onDismiss={() => setRestoreResult(null)}
-      />
+        <ResultToast
+          visible={restoreResult != null}
+          title={t('settings.restoredHeading')}
+          lines={
+            restoreResult
+              ? [
+                  {
+                    label: t('settings.restoreResultBoard'),
+                    value: restoreResult.boardName,
+                  },
+                  {
+                    label: t('settings.restoreResultAccounts'),
+                    value: String(restoreResult.accountsImported),
+                  },
+                  {
+                    label: t('settings.restoreResultCategories'),
+                    value: String(restoreResult.categoriesImported),
+                  },
+                  {
+                    label: t('settings.restoreResultTransactions'),
+                    value: String(restoreResult.transactionsImported),
+                  },
+                ]
+              : []
+          }
+          onDismiss={() => setRestoreResult(null)}
+        />
 
-      <PromptModal
-        visible={prompt != null}
-        title={
-          prompt?.type === 'newBoard'
-            ? t('settings.newBoardTitle')
-            : prompt?.type === 'renamePayee'
-              ? t('settings.renamePayeeTitle')
-              : t('settings.renameBoardTitle')
-        }
-        placeholder={
-          prompt?.type === 'renamePayee'
-            ? t('settings.payeeNamePlaceholder')
-            : t('settings.boardNamePlaceholder')
-        }
-        initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
-        onCancel={() => setPrompt(null)}
-        onSubmit={submitPrompt}
-      />
+        <PromptModal
+          visible={prompt != null}
+          title={
+            prompt?.type === 'newBoard'
+              ? t('settings.newBoardTitle')
+              : prompt?.type === 'renamePayee'
+                ? t('settings.renamePayeeTitle')
+                : t('settings.renameBoardTitle')
+          }
+          placeholder={
+            prompt?.type === 'renamePayee'
+              ? t('settings.payeeNamePlaceholder')
+              : t('settings.boardNamePlaceholder')
+          }
+          initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
+          onCancel={() => setPrompt(null)}
+          onSubmit={submitPrompt}
+        />
+      </ExpandingFieldGroup>
     </ScreenContainer>
   );
 }

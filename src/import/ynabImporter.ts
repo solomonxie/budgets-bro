@@ -5,7 +5,7 @@ import * as accountsRepo from '../db/repositories/accountsRepo';
 import * as categoriesRepo from '../db/repositories/categoriesRepo';
 import * as budgetsRepo from '../db/repositories/budgetsRepo';
 import * as transactionsRepo from '../db/repositories/transactionsRepo';
-import { findOrCreatePayee } from '../db/repositories/payeesRepo';
+import { findOrCreatePayee, findPayeeByLinkedAccount } from '../db/repositories/payeesRepo';
 import type { AccountType } from '../domain/types';
 
 export interface YnabImportFiles {
@@ -170,7 +170,18 @@ export async function importYnabExport(db: SQLiteDatabase, boardId: number, file
           ? null
           : await ensureCategoryId(db, boardId, categoryIds, row['Category Group'] ?? '', row['Category'] ?? '', () => result.categoriesCreated++);
 
-      const payeeId = !isTransfer && payeeName ? await findOrCreatePayee(db, boardId, payeeName) : null;
+      // A transfer leg is named after the account across from it, same as
+      // one this app posts itself (see transactionsRepo.createTransfer).
+      // Importing them with no payee at all is what left hundreds of rows
+      // reading "(No payee)" — migration 026 only backfilled what existed
+      // when it ran, and an import happens long after that.
+      const payeeId = isTransfer
+        ? transferAccountId != null
+          ? ((await findPayeeByLinkedAccount(db, transferAccountId))?.id ?? null)
+          : null
+        : payeeName
+          ? await findOrCreatePayee(db, boardId, payeeName)
+          : null;
       const amountCents = parseMoneyToCents(row['Inflow']) - parseMoneyToCents(row['Outflow']);
       const memo = (row['Memo'] ?? '').trim() || null;
       const date = parseYnabDate(row['Date']);

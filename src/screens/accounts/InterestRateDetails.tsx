@@ -26,15 +26,31 @@ export function InterestRateDetails({ accountId }: { accountId: number }) {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { history, currentRateBps } = useAccountRateHistory(accountId);
   const [expanded, setExpanded] = useState(false);
-  const [modal, setModal] = useState<{ editing: AccountRateChange | null } | null>(null);
+  const [modal, setModal] = useState<{
+    editing: AccountRateChange | null;
+  } | null>(null);
 
   const submit = async (value: RateChangeValue) => {
     const rateBps = Math.round(parseFloat(value.ratePercent) * 100);
     if (!Number.isFinite(rateBps)) return;
     const db = await getDb();
     const note = value.note.trim() || null;
-    if (modal?.editing) await accountRateHistoryRepo.updateRateChange(db, modal.editing.id, rateBps, value.effectiveDate, note);
-    else await accountRateHistoryRepo.addRateChange(db, accountId, rateBps, value.effectiveDate, note);
+    if (modal?.editing)
+      await accountRateHistoryRepo.updateRateChange(
+        db,
+        modal.editing.id,
+        rateBps,
+        value.effectiveDate,
+        note,
+      );
+    else
+      await accountRateHistoryRepo.addRateChange(
+        db,
+        accountId,
+        rateBps,
+        value.effectiveDate,
+        note,
+      );
     bumpDataVersion();
     setModal(null);
   };
@@ -49,46 +65,73 @@ export function InterestRateDetails({ accountId }: { accountId: number }) {
 
   return (
     <View style={styles.card}>
-      <Pressable style={styles.summaryRow} onPress={() => setExpanded((v) => !v)}>
-        <Text style={styles.label}>{t('accountModal.interestRateHeading')}</Text>
+      <Pressable
+        style={styles.summaryRow}
+        onPress={() => setExpanded((v) => !v)}
+      >
+        <Text style={styles.label}>
+          {t('accountModal.interestRateHeading')}
+        </Text>
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
-            {currentRateBps == null ? t('interestRateCard.notSet') : `${(currentRateBps / 100).toFixed(2)}%`}
+            {currentRateBps == null
+              ? t('interestRateCard.notSet')
+              : `${(currentRateBps / 100).toFixed(2)}%`}
           </Text>
           <Text style={styles.chevron}>{expanded ? '▾' : '›'}</Text>
         </View>
       </Pressable>
       {expanded ? (
         <>
-          {history.length === 0 ? <Text style={styles.hint}>{t('accountModal.noRateRecorded')}</Text> : null}
+          {history.length === 0 ? (
+            <Text style={styles.hint}>{t('accountModal.noRateRecorded')}</Text>
+          ) : null}
           {history.map((rate) => (
-            <Pressable key={rate.id} style={styles.row} onPress={() => setModal({ editing: rate })}>
+            <Pressable
+              key={rate.id}
+              style={styles.row}
+              onPress={() => setModal({ editing: rate })}
+            >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowText}>{(rate.rateBps / 100).toFixed(2)}%</Text>
+                <Text style={styles.rowText}>
+                  {(rate.rateBps / 100).toFixed(2)}%
+                </Text>
                 {rate.note ? (
                   <Text style={styles.rowNote} numberOfLines={2}>
                     {rate.note}
                   </Text>
                 ) : null}
               </View>
-              <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: rate.effectiveDate })}</Text>
+              <Text style={styles.rowDate}>
+                {t('common.effectivePrefix', { date: rate.effectiveDate })}
+              </Text>
             </Pressable>
           ))}
-          <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
-            <Text style={styles.addBtnText}>{t('interestRateCard.logRateChange')}</Text>
-          </Pressable>
+          {modal == null ? (
+            <Pressable
+              style={styles.addBtn}
+              onPress={() => setModal({ editing: null })}
+            >
+              <Text style={styles.addBtnText}>
+                {t('interestRateCard.logRateChange')}
+              </Text>
+            </Pressable>
+          ) : null}
         </>
       ) : null}
       <RateChangeModal
         visible={modal != null}
         initial={{
-          ratePercent: modal?.editing ? (modal.editing.rateBps / 100).toString() : '',
+          ratePercent: modal?.editing
+            ? (modal.editing.rateBps / 100).toString()
+            : '',
           effectiveDate: modal?.editing?.effectiveDate ?? currentDateISO(),
           note: modal?.editing?.note ?? '',
         }}
         onCancel={() => setModal(null)}
         onSubmit={submit}
         onDelete={modal?.editing ? deleteEntry : undefined}
+        inline
       />
     </View>
   );
@@ -102,9 +145,19 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     gap: spacing.xs,
   },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   summaryRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   summaryText: { fontSize: 13, fontWeight: '700', color: colors.text },
   chevron: { fontSize: 14, color: colors.textMuted },

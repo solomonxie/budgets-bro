@@ -30,6 +30,22 @@ export const LOAN_PAYMENTS_FOR_BOARD = `
   ORDER BY t.date
 `;
 
+// What has gone into an account since the last time its value was written
+// down — a tracking account's balance is its latest logged value plus the
+// contributions made after it, since a deposit is real money in whether or
+// not anyone has re-valued the account since. With no reading on file this
+// sums the whole ledger (every date is later than '').
+export const ACTIVITY_SINCE_LATEST_VALUE = `
+  SELECT t.account_id, COALESCE(SUM(t.amount_cents), 0) as total
+  FROM transactions t JOIN accounts a ON a.id = t.account_id
+  WHERE a.board_id = ? AND t.date <= ?
+    AND t.date > COALESCE((
+      SELECT MAX(h.effective_date) FROM account_value_history h
+      WHERE h.account_id = t.account_id AND h.kind = 'value' AND h.effective_date <= ?
+    ), '')
+  GROUP BY t.account_id
+`;
+
 // Monthly net movement per account, for rebuilding what each was worth in a
 // past month (domain/netWorthTrend). Aggregated in SQL so the trend doesn't
 // have to carry every transaction across the bridge.

@@ -13,7 +13,8 @@
 // than plummeting by the full payment. Logging a new reading re-anchors
 // everything after it.
 
-import { splitActualPayments } from './paymentSplit';
+import { splitActualPayments, wholeMonthsBetween } from './paymentSplit';
+import { scheduledBalanceCents } from './amortization';
 import type { ActualPayment, SplitPaymentRow } from './paymentSplit';
 
 export interface RemainingPrincipal {
@@ -28,6 +29,9 @@ export interface RemainingPrincipal {
   // false when no principal has ever been logged and the loan's own terms
   // (amount borrowed at origination, or the opening balance) stood in.
   anchorWasLogged: boolean;
+  // Set when the payments on file couldn't explain the gap and the
+  // contract's own schedule answered instead — see the ceiling below.
+  cappedToSchedule: boolean;
   paymentsSinceAnchor: number;
   // Interest can only be split out with a rate. Without one every payment
   // counts as pure principal, which is right for a 0% lease and openly
@@ -42,6 +46,8 @@ export function remainingPrincipal({
   openingBalanceCents,
   fallbackDate,
   annualRateBps,
+  termMonths,
+  asOfDate,
   payments,
 }: {
   loggedPrincipal: { valueCents: number; effectiveDate: string } | null;
@@ -50,6 +56,10 @@ export function remainingPrincipal({
   openingBalanceCents: number;
   fallbackDate: string;
   annualRateBps: number | null;
+  termMonths: number | null;
+  // The day being asked about — today for the account itself, the end of the
+  // month for a point on the net worth line. Only the ceiling needs it.
+  asOfDate: string;
   payments: ActualPayment[];
 }): RemainingPrincipal {
   const anchor = loggedPrincipal
@@ -67,8 +77,36 @@ export function remainingPrincipal({
     startDate: anchor.date,
     payments: since,
   });
+  // A loan nobody has ever logged a statement for cannot be worth more than
+  // its own contract. Interest compounds across every gap between payments,
+  // and a ledger that starts years after the mortgage did has no payments in
+  // those years — so an untouched principal walked a decade of interest and
+  // a half-paid mortgage came out at three times what was borrowed, which is
+  // what dragged the early years of the net worth line below zero. With
+  // nothing logged, the scheduled balance is the ceiling, or failing a term,
+  // the amount borrowed: a mortgage does not grow.
+  //
+  // A logged reading is ground truth and is never capped — the payments
+  // after it are real and recent, and today's figure has to stay the one the
+  // statement says. Nor is a balance someone has drawn on: a line of credit
+  // is meant to grow, and a draw on file is evidence, not a gap in it.
+  const drawnOn = since.some((p) => p.amountCents <= 0);
+  const ceilingCents =
+    anchor.logged || drawnOn
+      ? null
+      : termMonths != null && termMonths > 0
+        ? scheduledBalanceCents(
+            anchor.owedCents,
+            annualRateBps ?? 0,
+            termMonths,
+            wholeMonthsBetween(anchor.date, asOfDate),
+          )
+        : anchor.owedCents;
+  const owedCents = ceilingCents != null ? Math.min(split.owedCents, ceilingCents) : split.owedCents;
+
   return {
-    owedCents: split.owedCents,
+    owedCents,
+    cappedToSchedule: ceilingCents != null && ceilingCents < split.owedCents,
     rows: split.rows,
     interestPaidCents: split.interestPaidCents,
     principalPaidCents: split.principalPaidCents,

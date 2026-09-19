@@ -1,4 +1,12 @@
-import { ACCOUNT_KIND_ORDER, isSpendingAccountType, netWorth, transactionTakesCategory } from './accountKind';
+import {
+  ACCOUNT_KIND_ORDER,
+  countsTowardNetWorth,
+  isSpendingAccountType,
+  netWorth,
+  toppedUpByContributions,
+  transactionTakesCategory,
+  usesLoggedValue,
+} from './accountKind';
 
 describe('netWorth', () => {
   it('nets a mortgage to home equity: value minus what is still owed', () => {
@@ -27,7 +35,30 @@ describe('ACCOUNT_KIND_ORDER', () => {
   });
 
   it('covers every account kind exactly once', () => {
-    expect([...ACCOUNT_KIND_ORDER].sort()).toEqual(['Asset', 'Cash', 'Credit', 'Loan', 'Savings', 'Tracking']);
+    expect([...ACCOUNT_KIND_ORDER].sort()).toEqual(['Asset', 'Cash', 'Credit', 'Giving', 'Loan', 'Savings', 'Tracking']);
+  });
+});
+
+describe('a giving account', () => {
+  it('is left out of net worth on both sides', () => {
+    expect(
+      netWorth([
+        { type: 'cash', balanceCents: 100_000 },
+        { type: 'giving', balanceCents: 50_000 },
+      ]),
+    ).toEqual({
+      assetsCents: 100_000,
+      debtsCents: 0,
+      netWorthCents: 100_000,
+    });
+  });
+
+  it('is valued like a tracking account, not like an asset', () => {
+    expect(usesLoggedValue('giving')).toBe(true);
+    expect(toppedUpByContributions('giving')).toBe(true);
+    expect(toppedUpByContributions('asset')).toBe(false);
+    expect(countsTowardNetWorth('giving')).toBe(false);
+    expect(countsTowardNetWorth('tracking')).toBe(true);
   });
 });
 

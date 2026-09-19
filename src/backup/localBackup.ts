@@ -1,4 +1,12 @@
-import { Directory, File, Paths } from 'expo-file-system';
+import {
+  documentDir,
+  ensureDir,
+  joinPath,
+  listFiles,
+  readBytes,
+  removePath,
+  writeBytes,
+} from '../files/fileStore';
 import type { SQLiteDatabase } from '../db/driver';
 import { buildBackupZip } from '../sync/buildBackup';
 import { dailyBackupName, isBackupFileName, isStale, operationBackupName } from './localBackupName';
@@ -14,7 +22,7 @@ import { dailyBackupName, isBackupFileName, isStale, operationBackupName } from 
 // someone else by dragging it out in Files.
 //
 // Retention is by age (see localBackupName.MAX_AGE_DAYS), not by count.
-const DIR = 'Backups';
+const DIR = joinPath(documentDir, 'Backups');
 
 export interface LocalBackup {
   name: string;
@@ -22,38 +30,30 @@ export interface LocalBackup {
   modifiedAt: string; // ISO
 }
 
-function dir(): Directory {
-  const d = new Directory(Paths.document, DIR);
-  if (!d.exists) d.create({ intermediates: true });
-  return d;
+async function dir(): Promise<string> {
+  await ensureDir(DIR);
+  return DIR;
 }
 
-function modifiedAt(file: File): Date {
-  // Milliseconds since the epoch, and absent on a file the platform won't
-  // stat — treat that as brand new rather than as stale, so a missing
-  // timestamp can never be the reason a backup is deleted.
-  const ms = file.lastModified;
-  return ms == null ? new Date() : new Date(ms);
-}
-
-export function listLocalBackups(): LocalBackup[] {
-  return dir()
-    .list()
-    .flatMap((entry) =>
-      entry instanceof File && isBackupFileName(entry.name)
-        ? [{ name: entry.name, sizeBytes: entry.size ?? 0, modifiedAt: modifiedAt(entry).toISOString() }]
-        : [],
-    )
+export async function listLocalBackups(): Promise<LocalBackup[]> {
+  const entries = await listFiles(await dir());
+  return entries
+    .filter((entry) => isBackupFileName(entry.name))
+    .map((entry) => ({
+      name: entry.name,
+      sizeBytes: entry.sizeBytes,
+      modifiedAt: entry.modifiedAt.toISOString(),
+    }))
     .sort((a, b) => (a.modifiedAt < b.modifiedAt ? 1 : -1));
 }
 
-export function pruneLocalBackups(now = new Date()): number {
-  const d = dir();
+export async function pruneLocalBackups(now = new Date()): Promise<number> {
+  const entries = await listFiles(await dir());
   let removed = 0;
-  for (const entry of d.list()) {
-    if (!(entry instanceof File) || !isBackupFileName(entry.name)) continue;
-    if (!isStale(modifiedAt(entry), now)) continue;
-    entry.delete();
+  for (const entry of entries) {
+    if (!isBackupFileName(entry.name)) continue;
+    if (!isStale(entry.modifiedAt, now)) continue;
+    await removePath(entry.path);
     removed += 1;
   }
   return removed;
@@ -61,10 +61,7 @@ export function pruneLocalBackups(now = new Date()): number {
 
 async function write(db: SQLiteDatabase, boardId: number, boardName: string, name: string): Promise<string> {
   const bytes = await buildBackupZip(db, boardId, boardName);
-  const file = new File(dir(), name);
-  if (file.exists) file.delete();
-  file.create();
-  file.write(bytes);
+  await writeBytes(joinPath(await dir(), name), bytes);
   return name;
 }
 
@@ -72,7 +69,7 @@ async function write(db: SQLiteDatabase, boardId: number, boardName: string, nam
 // app-background, at most daily, and only if something changed.
 export async function writeDailyBackup(db: SQLiteDatabase, boardId: number, boardName: string): Promise<string> {
   const name = await write(db, boardId, boardName, dailyBackupName(boardName));
-  pruneLocalBackups();
+  await pruneLocalBackups();
   return name;
 }
 
@@ -97,18 +94,16 @@ export async function writeOperationBackup(
 }
 
 export async function readLocalBackup(name: string): Promise<Uint8Array | null> {
-  const file = new File(dir(), name);
-  return file.exists ? file.bytes() : null;
+  return readBytes(joinPath(await dir(), name));
 }
 
-export function deleteAllLocalBackups(): number {
-  const d = dir();
+export async function deleteAllLocalBackups(): Promise<number> {
+  const entries = await listFiles(await dir());
   let removed = 0;
-  for (const entry of d.list()) {
-    if (entry instanceof File && isBackupFileName(entry.name)) {
-      entry.delete();
-      removed += 1;
-    }
+  for (const entry of entries) {
+    if (!isBackupFileName(entry.name)) continue;
+    await removePath(entry.path);
+    removed += 1;
   }
   return removed;
 }

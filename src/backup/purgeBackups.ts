@@ -31,13 +31,13 @@ export async function purgeAllBackups(db: SQLiteDatabase): Promise<PurgeResult> 
   // Each tier is attempted independently: iCloud being signed out must not
   // stop the local folder being cleared.
   try {
-    result.localZips = deleteAllLocalBackups();
+    result.localZips = await deleteAllLocalBackups();
   } catch (e) {
     result.errors.push(message(e));
   }
 
   try {
-    result.snapshots = deleteAllSnapshots();
+    result.snapshots = await deleteAllSnapshots();
   } catch (e) {
     result.errors.push(message(e));
   }

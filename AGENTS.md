@@ -9,3 +9,7 @@ before writing any code.
 
 `ios/` is a real Xcode project, edited by hand. `npm run ios` is the whole
 loop: Release build straight onto the paired iPhone.
+
+Physical iPhone only. Never build, install, or run on a simulator — the sim
+build crashes on iOS 27. If the paired device isn't reachable, stop and say
+so; don't fall back to a simulator.

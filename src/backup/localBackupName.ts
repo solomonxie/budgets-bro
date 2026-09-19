@@ -32,9 +32,10 @@ export function isBackupFileName(name: string): boolean {
 
 // Pruned by age, not by count: once an operation can add a file, a count
 // silently caps how many imports you get in a day before it starts eating
-// yesterday. "Anything from the last week" is a promise that stays true
-// however busy the week was.
-export const MAX_AGE_DAYS = 7;
+// yesterday. "Anything from the last month" is a promise that stays true
+// however busy the month was — a week was short enough that damage nobody
+// noticed for a fortnight had already aged out of every local copy.
+export const MAX_AGE_DAYS = 30;
 
 export function isStale(modifiedAt: Date, now: Date, maxAgeDays = MAX_AGE_DAYS): boolean {
   return now.getTime() - modifiedAt.getTime() > maxAgeDays * 24 * 60 * 60 * 1000;

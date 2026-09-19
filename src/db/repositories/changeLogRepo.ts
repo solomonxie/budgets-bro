@@ -20,6 +20,10 @@ export interface ChangeGroup {
   count: number;
   firstSeq: number;
   lastSeq: number;
+  // Whatever the first row of the group was called, when it had a name —
+  // "accounts, 1 row" says a great deal less than "accounts · Chequing"
+  // when you are deciding whether to undo it.
+  sampleName: string | null;
 }
 
 function parse(json: string | null): Record<string, unknown> | null {
@@ -34,15 +38,43 @@ function parse(json: string | null): Record<string, unknown> | null {
 // Grouped by the second they happened in, which is as fine-grained as the
 // trigger's own `datetime('now')` gets — and conveniently the granularity a
 // single action happens at.
-export async function listChangeGroups(db: SQLiteDatabase, limit = 100): Promise<ChangeGroup[]> {
-  return db.getAllAsync<ChangeGroup>(
-    `SELECT at, tbl as "table", op, COUNT(*) as count, MIN(seq) as firstSeq, MAX(seq) as lastSeq
-     FROM change_log GROUP BY at, tbl, op ORDER BY firstSeq DESC LIMIT ?`,
+export async function listChangeGroups(
+  db: SQLiteDatabase,
+  limit = 100,
+): Promise<ChangeGroup[]> {
+  // The sample is the group's own first row: what it looked like after the
+  // change, or — for a delete, where there is no "after" — what was lost.
+  const rows = await db.getAllAsync<
+    Omit<ChangeGroup, 'sampleName'> & { sample: string | null }
+  >(
+    `SELECT g.at, g.tbl as "table", g.op, g.count, g.firstSeq, g.lastSeq,
+            COALESCE(first.after, first.before) as sample
+     FROM (
+       SELECT at, tbl, op, COUNT(*) as count, MIN(seq) as firstSeq, MAX(seq) as lastSeq
+       FROM change_log GROUP BY at, tbl, op
+     ) g
+     JOIN change_log first ON first.seq = g.firstSeq
+     ORDER BY g.firstSeq DESC LIMIT ?`,
     limit,
   );
+  return rows.map(({ sample, ...group }) => ({
+    ...group,
+    sampleName: nameOf(sample),
+  }));
 }
 
-export async function listEntriesInGroup(db: SQLiteDatabase, group: ChangeGroup): Promise<ChangeLogEntry[]> {
+// Only a name, and only where the row has one — an amount or a date out of
+// context is noise, and every table that matters here names its rows.
+function nameOf(json: string | null): string | null {
+  const row = parse(json);
+  const name = row?.name;
+  return typeof name === 'string' && name.trim() ? name : null;
+}
+
+export async function listEntriesInGroup(
+  db: SQLiteDatabase,
+  group: ChangeGroup,
+): Promise<ChangeLogEntry[]> {
   const rows = await db.getAllAsync<{
     seq: number;
     at: string;
@@ -51,7 +83,13 @@ export async function listEntriesInGroup(db: SQLiteDatabase, group: ChangeGroup)
     row_id: number | null;
     before: string | null;
     after: string | null;
-  }>('SELECT * FROM change_log WHERE seq BETWEEN ? AND ? AND tbl = ? AND op = ? ORDER BY seq', group.firstSeq, group.lastSeq, group.table, group.op);
+  }>(
+    'SELECT * FROM change_log WHERE seq BETWEEN ? AND ? AND tbl = ? AND op = ? ORDER BY seq',
+    group.firstSeq,
+    group.lastSeq,
+    group.table,
+    group.op,
+  );
   return rows.map((r) => ({
     seq: r.seq,
     at: r.at,
@@ -63,7 +101,10 @@ export async function listEntriesInGroup(db: SQLiteDatabase, group: ChangeGroup)
   }));
 }
 
-function columnsAndValues(row: Record<string, unknown>): { columns: string[]; values: unknown[] } {
+function columnsAndValues(row: Record<string, unknown>): {
+  columns: string[];
+  values: unknown[];
+} {
   const columns = Object.keys(row);
   return { columns, values: columns.map((c) => row[c]) };
 }
@@ -74,7 +115,10 @@ function columnsAndValues(row: Record<string, unknown>): { columns: string[]; va
 // The undo is itself written to the log by the same triggers — it is another
 // change, not a rewrite of history, so undoing an undo works and the record
 // stays honest about what happened and when.
-export async function undoGroup(db: SQLiteDatabase, group: ChangeGroup): Promise<number> {
+export async function undoGroup(
+  db: SQLiteDatabase,
+  group: ChangeGroup,
+): Promise<number> {
   return revert(db, await listEntriesInGroup(db, group));
 }
 
@@ -87,7 +131,10 @@ export async function undoGroup(db: SQLiteDatabase, group: ChangeGroup): Promise
 //
 // Reversed newest first, so a row the import touched more than once walks
 // back through each state rather than jumping to the wrong one.
-export async function undoSince(db: SQLiteDatabase, seq: number): Promise<number> {
+export async function undoSince(
+  db: SQLiteDatabase,
+  seq: number,
+): Promise<number> {
   const rows = await db.getAllAsync<{
     seq: number;
     at: string;
@@ -113,18 +160,30 @@ export async function undoSince(db: SQLiteDatabase, seq: number): Promise<number
 
 // How many rows a rewind would touch, so the confirmation can say so before
 // anyone agrees to it.
-export async function countSince(db: SQLiteDatabase, seq: number): Promise<number> {
-  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) as n FROM change_log WHERE seq >= ?', seq);
+export async function countSince(
+  db: SQLiteDatabase,
+  seq: number,
+): Promise<number> {
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT COUNT(*) as n FROM change_log WHERE seq >= ?',
+    seq,
+  );
   return row?.n ?? 0;
 }
 
-async function revert(db: SQLiteDatabase, entries: ChangeLogEntry[]): Promise<number> {
+async function revert(
+  db: SQLiteDatabase,
+  entries: ChangeLogEntry[],
+): Promise<number> {
   let undone = 0;
 
   await db.withTransactionAsync(async () => {
     for (const entry of [...entries].reverse()) {
       if (entry.op === 'insert' && entry.after) {
-        await db.runAsync(`DELETE FROM ${entry.table} WHERE rowid = ?`, entry.rowId);
+        await db.runAsync(
+          `DELETE FROM ${entry.table} WHERE rowid = ?`,
+          entry.rowId,
+        );
         undone++;
         continue;
       }
@@ -152,7 +211,10 @@ async function revert(db: SQLiteDatabase, entries: ChangeLogEntry[]): Promise<nu
 // Keeps the log from growing without end. Generous, because entries are small
 // and the whole point is being able to reach back past something that turned
 // out to be wrong days later.
-export async function pruneChangeLog(db: SQLiteDatabase, keep = 20000): Promise<void> {
+export async function pruneChangeLog(
+  db: SQLiteDatabase,
+  keep = 20000,
+): Promise<void> {
   await db.runAsync(
     'DELETE FROM change_log WHERE seq <= (SELECT MAX(seq) - ? FROM change_log)',
     keep,
@@ -163,6 +225,8 @@ export async function pruneChangeLog(db: SQLiteDatabase, keep = 20000): Promise<
 // the data looked like". Comparing it against the one stored at the last
 // backup answers "has anything changed since?" without diffing anything.
 export async function latestChangeSeq(db: SQLiteDatabase): Promise<number> {
-  const row = await db.getFirstAsync<{ seq: number | null }>('SELECT MAX(seq) as seq FROM change_log');
+  const row = await db.getFirstAsync<{ seq: number | null }>(
+    'SELECT MAX(seq) as seq FROM change_log',
+  );
   return row?.seq ?? 0;
 }

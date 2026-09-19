@@ -59,4 +59,7 @@ export type RootStackParamList = {
   // dismiss: a route here gives it the native header's back button and the
   // swipe-back gesture, and lets anything it opens push on top of it.
   Settings: undefined;
+  // The whole-board cleanup worklist, opened from the history page — every
+  // transaction missing a payee or category, duplicated or zero.
+  ReviewTransactions: undefined;
 };

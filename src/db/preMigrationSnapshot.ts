@@ -1,7 +1,15 @@
-import { Directory, File, Paths } from 'expo-file-system';
+import {
+  copyPath,
+  documentDir,
+  ensureDir,
+  joinPath,
+  listFiles,
+  pathExists,
+  removePath,
+} from '../files/fileStore';
 
-const SQLITE_DIR = 'SQLite';
-const SNAPSHOT_DIR = 'db-snapshots';
+const SQLITE_DIR = joinPath(documentDir, 'SQLite');
+const SNAPSHOT_DIR = joinPath(documentDir, 'db-snapshots');
 // Enough to get back past a bad release without turning the phone into an
 // archive — a fortnight or so once daily ones are in the mix. Oldest first.
 const KEEP = 14;
@@ -14,10 +22,9 @@ export interface DbSnapshot {
   sizeBytes: number;
 }
 
-function snapshotDir(): Directory {
-  const dir = new Directory(Paths.document, SNAPSHOT_DIR);
-  if (!dir.exists) dir.create({ intermediates: true });
-  return dir;
+async function snapshotDir(): Promise<string> {
+  await ensureDir(SNAPSHOT_DIR);
+  return SNAPSHOT_DIR;
 }
 
 function parse(name: string): DbSnapshot | null {
@@ -33,13 +40,12 @@ function parse(name: string): DbSnapshot | null {
   };
 }
 
-export function listSnapshots(): DbSnapshot[] {
-  const dir = snapshotDir();
-  return dir
-    .list()
+export async function listSnapshots(): Promise<DbSnapshot[]> {
+  const entries = await listFiles(await snapshotDir());
+  return entries
     .flatMap((entry) => {
-      const snapshot = entry instanceof File ? parse(entry.name) : null;
-      return snapshot ? [{ ...snapshot, sizeBytes: entry instanceof File ? (entry.size ?? 0) : 0 }] : [];
+      const snapshot = parse(entry.name);
+      return snapshot ? [{ ...snapshot, sizeBytes: entry.sizeBytes }] : [];
     })
     .sort((a, b) => (a.takenAt < b.takenAt ? 1 : -1));
 }
@@ -58,31 +64,34 @@ export function listSnapshots(): DbSnapshot[] {
 // WAL matters here: recent commits may still be in budgetsbro.db-wal rather
 // than the main file, so the sidecars are copied too — a copy of only the
 // main file can be missing the newest writes.
-export function takeSnapshot(dbName: string, fromVersion: number, toVersion: number): DbSnapshot | null {
-  const sqliteDir = new Directory(Paths.document, SQLITE_DIR);
-  const source = new File(sqliteDir, dbName);
-  if (!source.exists) return null;
+export async function takeSnapshot(
+  dbName: string,
+  fromVersion: number,
+  toVersion: number,
+): Promise<DbSnapshot | null> {
+  const source = joinPath(SQLITE_DIR, dbName);
+  if (!(await pathExists(source))) return null;
 
   const takenAt = new Date().toISOString().replace(/:/g, '_');
   const base = `v${fromVersion}-to-v${toVersion}-${takenAt}`;
-  const dir = snapshotDir();
-  source.copy(new File(dir, `${base}.db`));
+  const dir = await snapshotDir();
+  await copyPath(source, joinPath(dir, `${base}.db`));
   for (const suffix of ['-wal', '-shm']) {
-    const sidecar = new File(sqliteDir, `${dbName}${suffix}`);
-    if (sidecar.exists) sidecar.copy(new File(dir, `${base}.db${suffix}`));
+    const sidecar = joinPath(SQLITE_DIR, `${dbName}${suffix}`);
+    if (await pathExists(sidecar))
+      await copyPath(sidecar, joinPath(dir, `${base}.db${suffix}`));
   }
 
-  prune();
+  await prune();
   return parse(`${base}.db`);
 }
 
-function prune(): void {
-  const dir = snapshotDir();
-  const snapshots = listSnapshots();
+async function prune(): Promise<void> {
+  const dir = await snapshotDir();
+  const snapshots = await listSnapshots();
   for (const stale of snapshots.slice(KEEP)) {
     for (const suffix of ['', '-wal', '-shm']) {
-      const file = new File(dir, `${stale.name}${suffix}`);
-      if (file.exists) file.delete();
+      await removePath(joinPath(dir, `${stale.name}${suffix}`));
     }
   }
 }
@@ -90,20 +99,20 @@ function prune(): void {
 // Puts a snapshot back as the live database. The caller is responsible for
 // making sure nothing holds an open connection — in practice this means
 // restarting the app right after, which is why the UI says so.
-export function restoreSnapshot(dbName: string, snapshotName: string): void {
-  const dir = snapshotDir();
-  const sqliteDir = new Directory(Paths.document, SQLITE_DIR);
-  const source = new File(dir, snapshotName);
-  if (!source.exists) throw new Error(`Snapshot ${snapshotName} is not there any more.`);
+export async function restoreSnapshot(dbName: string, snapshotName: string): Promise<void> {
+  const dir = await snapshotDir();
+  const source = joinPath(dir, snapshotName);
+  if (!(await pathExists(source)))
+    throw new Error(`Snapshot ${snapshotName} is not there any more.`);
 
   for (const suffix of ['', '-wal', '-shm']) {
-    const live = new File(sqliteDir, `${dbName}${suffix}`);
-    if (live.exists) live.delete();
+    await removePath(joinPath(SQLITE_DIR, `${dbName}${suffix}`));
   }
-  source.copy(new File(sqliteDir, dbName));
+  await copyPath(source, joinPath(SQLITE_DIR, dbName));
   for (const suffix of ['-wal', '-shm']) {
-    const sidecar = new File(dir, `${snapshotName}${suffix}`);
-    if (sidecar.exists) sidecar.copy(new File(sqliteDir, `${dbName}${suffix}`));
+    const sidecar = joinPath(dir, `${snapshotName}${suffix}`);
+    if (await pathExists(sidecar))
+      await copyPath(sidecar, joinPath(SQLITE_DIR, `${dbName}${suffix}`));
   }
 }
 
@@ -111,14 +120,12 @@ export function restoreSnapshot(dbName: string, snapshotName: string): void {
 // Data → Delete all backups) — starting a dataset over means the copies of
 // the old one are noise, and keeping them would leave the app restoring from
 // a database that predates the fresh start.
-export function deleteAllSnapshots(): number {
-  const dir = snapshotDir();
+export async function deleteAllSnapshots(): Promise<number> {
+  const entries = await listFiles(await snapshotDir());
   let removed = 0;
-  for (const entry of dir.list()) {
-    if (entry instanceof File) {
-      entry.delete();
-      if (entry.name.endsWith('.db')) removed += 1;
-    }
+  for (const entry of entries) {
+    await removePath(entry.path);
+    if (entry.name.endsWith('.db')) removed += 1;
   }
   return removed;
 }

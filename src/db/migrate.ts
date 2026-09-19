@@ -98,7 +98,7 @@ export async function migrate(db: SQLiteDatabase, dbName = 'budgetsbro.db'): Pro
     // main file rather than only in the sidecar.
     await db.execAsync('PRAGMA wal_checkpoint(FULL)');
     try {
-      takeSnapshot(dbName, currentVersion, target);
+      await takeSnapshot(dbName, currentVersion, target);
     } catch (e) {
       // A snapshot that fails must not stop the app opening — it is
       // insurance, not a precondition.

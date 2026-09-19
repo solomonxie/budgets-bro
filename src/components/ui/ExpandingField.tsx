@@ -55,7 +55,9 @@ export function useExpandingField() {
 
 interface ExpandedPanelProps {
   children: ReactNode;
-  // Pinned above the scrollable list — a search box.
+  // Pinned above the scrollable list — a search box. Full-bleed: it spans
+  // the card edge to edge like the row it unfolded from, so it brings its
+  // own horizontal padding.
   sticky?: ReactNode;
   // Off for content that owns its own vertical gesture (a date spinner),
   // which would otherwise fight the list's scroll.
@@ -70,7 +72,7 @@ export function ExpandedPanel({
 }: ExpandedPanelProps) {
   return (
     <View style={styles.panel}>
-      {sticky ? <View style={styles.sticky}>{sticky}</View> : null}
+      {sticky ?? null}
       {scroll ? (
         <ScrollView
           style={styles.list}
@@ -89,7 +91,6 @@ export function ExpandedPanel({
 
 const styles = StyleSheet.create({
   panel: { backgroundColor: colors.background, paddingBottom: spacing.xs },
-  sticky: { paddingHorizontal: spacing.md },
   block: { paddingHorizontal: spacing.md },
   list: { maxHeight: PANEL_MAX_HEIGHT },
   listContent: {

@@ -4,6 +4,7 @@ import {
   categoryBalanceCents,
   categoryCaption,
   categoryStatus,
+  overspentMonths,
   unassignedCashCents,
 } from './budgetMath';
 
@@ -113,5 +114,46 @@ describe('categoryBarSegments', () => {
   it('treats an overspent balance as nothing remaining', () => {
     // The caller colours this one whole; there is no remainder to show.
     expect(categoryBarSegments(-2000, 10000)).toEqual({ spentPercent: 100, remainingPercent: 0 });
+  });
+});
+
+describe('overspentMonths', () => {
+  const months = (...rows: [string, number, number][]) =>
+    rows.map(([month, assignedCents, activityCents]) => ({ month, assignedCents, activityCents }));
+
+  it('is empty while the running balance stays positive', () => {
+    expect(
+      overspentMonths(months(['2026-06', 10_000, -4_000], ['2026-07', 0, -5_000])),
+    ).toEqual([]);
+  });
+
+  it('names the month that broke, not the months that inherit the hole', () => {
+    expect(
+      overspentMonths(
+        months(['2026-06', 10_000, -12_000], ['2026-07', 0, 0], ['2026-08', 0, 0]),
+      ),
+    ).toEqual([{ month: '2026-06', shortfallCents: 2_000 }]);
+  });
+
+  it('charges each month only with the deficit it added', () => {
+    // June digs 30, July digs another 50 on top.
+    expect(
+      overspentMonths(months(['2026-06', 0, -3_000], ['2026-07', 0, -5_000])),
+    ).toEqual([
+      { month: '2026-06', shortfallCents: 3_000 },
+      { month: '2026-07', shortfallCents: 5_000 },
+    ]);
+  });
+
+  it('ignores a month that refills part of an older hole', () => {
+    expect(
+      overspentMonths(months(['2026-06', 0, -3_000], ['2026-07', 1_000, 0])),
+    ).toEqual([{ month: '2026-06', shortfallCents: 3_000 }]);
+  });
+
+  it('reads months in order however they arrive', () => {
+    expect(
+      overspentMonths(months(['2026-07', 0, -1_000], ['2026-06', 500, 0])),
+    ).toEqual([{ month: '2026-07', shortfallCents: 500 }]);
   });
 });

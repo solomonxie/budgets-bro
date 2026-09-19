@@ -10,7 +10,10 @@ export const LANGUAGES: { code: Language; labelKey: TranslationKey }[] = [
   { code: 'zh', labelKey: 'settings.languageChinese' },
 ];
 
-const dictionaries: Record<Language, Record<TranslationKey, string>> = { en, zh };
+const dictionaries: Record<Language, Record<TranslationKey, string>> = {
+  en,
+  zh,
+};
 
 // Intl locale tag for date/number formatting (domain/month.ts's
 // formatMonthLabel etc.) — separate from the translation dictionary since
@@ -19,7 +22,10 @@ export function localeTag(language: Language): string {
   return language === 'zh' ? 'zh-CN' : 'en-US';
 }
 
-function interpolate(template: string, vars?: Record<string, string | number>): string {
+function interpolate(
+  template: string,
+  vars?: Record<string, string | number>,
+): string {
   if (!vars) return template;
   let result = template;
   for (const [key, value] of Object.entries(vars)) {
@@ -31,7 +37,8 @@ function interpolate(template: string, vars?: Record<string, string | number>): 
 export function useI18n() {
   const language = useAppStore((s) => s.language);
   const dict = dictionaries[language];
-  const t = (key: TranslationKey, vars?: Record<string, string | number>) => interpolate(dict[key], vars);
+  const t = (key: TranslationKey, vars?: Record<string, string | number>) =>
+    interpolate(dict[key], vars);
   return { t, language };
 }
 

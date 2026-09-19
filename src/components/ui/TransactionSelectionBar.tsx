@@ -7,6 +7,7 @@ import { usePayees } from '../../hooks/usePayees';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { ExpandingFieldGroup } from './ExpandingField';
 
 // The toolbar a transaction list shows while in select mode (see
 // useTransactionSelection).
@@ -47,10 +48,14 @@ export function TransactionSelectionBar({
   };
 
   const confirmDelete = () => {
-    Alert.alert(t('transactions.deleteSelectedConfirmTitle', { count: selectedCount }), t('common.cannotBeUndone'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: onDelete },
-    ]);
+    Alert.alert(
+      t('transactions.deleteSelectedConfirmTitle', { count: selectedCount }),
+      t('common.cannotBeUndone'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: onDelete },
+      ],
+    );
   };
 
   return (
@@ -58,44 +63,71 @@ export function TransactionSelectionBar({
       {selectedCount > 0 ? (
         <RowMenuButton
           items={[
-            { label: t('transactions.editPayee'), onPress: () => setPayeePickerOpen(true) },
-            { label: t('transactions.deleteSelected', { count: selectedCount }), destructive: true, onPress: confirmDelete },
+            {
+              label: t('transactions.editPayee'),
+              onPress: () => setPayeePickerOpen(true),
+            },
+            {
+              label: t('transactions.deleteSelected', { count: selectedCount }),
+              destructive: true,
+              onPress: confirmDelete,
+            },
           ]}
         />
       ) : (
         // Keeps the row from reflowing as the selection empties and fills.
         <View style={styles.menuPlaceholder} />
       )}
-      <Text style={styles.count}>{t('transactions.selectedCount', { count: selectedCount })}</Text>
+      <Text style={styles.count}>
+        {t('transactions.selectedCount', { count: selectedCount })}
+      </Text>
       <Pressable onPress={onToggleAll} hitSlop={8}>
-        <Text style={styles.link}>{allSelected ? t('transactions.selectNone') : t('transactions.selectAll')}</Text>
+        <Text style={styles.link}>
+          {allSelected
+            ? t('transactions.selectNone')
+            : t('transactions.selectAll')}
+        </Text>
       </Pressable>
       <Pressable onPress={onDone} hitSlop={8}>
         <Text style={[styles.link, styles.done]}>{t('common.done')}</Text>
       </Pressable>
 
-      <Modal visible={payeePickerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPayeePickerOpen(false)}>
+      <Modal
+        visible={payeePickerOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setPayeePickerOpen(false)}
+      >
         <ScreenContainer modal>
           <View style={styles.header}>
             <Pressable onPress={() => setPayeePickerOpen(false)}>
               <Text style={styles.headerBtn}>{t('common.cancel')}</Text>
             </Pressable>
-            <Text style={styles.title}>{t('transactions.editPayeeTitle', { count: selectedCount })}</Text>
-            <Text style={[styles.headerBtn, { opacity: 0 }]}>{t('common.cancel')}</Text>
+            <Text style={styles.title}>
+              {t('transactions.editPayeeTitle', { count: selectedCount })}
+            </Text>
+            <Text style={[styles.headerBtn, { opacity: 0 }]}>
+              {t('common.cancel')}
+            </Text>
           </View>
-          <SearchableDropdownField
-            label={t('common.payee')}
-            valueLabel=""
-            placeholder={t('settings.payeeSelectPlaceholder')}
-            searchPlaceholder={t('settings.payeeSearchPlaceholder')}
-            options={payees.map((p) => ({
-              id: p.id,
-              label: p.name,
-              badge: p.linkedAccountId != null ? t('payeePicker.accountBadge') : undefined,
-            }))}
-            onSelect={(o) => applyPayee(o.label)}
-            onUseText={applyPayee}
-          />
+          <ExpandingFieldGroup>
+            <SearchableDropdownField
+              label={t('common.payee')}
+              valueLabel=""
+              placeholder={t('settings.payeeSelectPlaceholder')}
+              searchPlaceholder={t('settings.payeeSearchPlaceholder')}
+              options={payees.map((p) => ({
+                id: p.id,
+                label: p.name,
+                badge:
+                  p.linkedAccountId != null
+                    ? t('payeePicker.accountBadge')
+                    : undefined,
+              }))}
+              onSelect={(o) => applyPayee(o.label)}
+              onUseText={applyPayee}
+            />
+          </ExpandingFieldGroup>
         </ScreenContainer>
       </Modal>
     </View>
@@ -116,7 +148,12 @@ const styles = StyleSheet.create({
   count: { flex: 1, fontSize: 13, color: colors.textMuted },
   link: { color: colors.accent, fontSize: 14 },
   done: { fontWeight: '700' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.text },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
 });

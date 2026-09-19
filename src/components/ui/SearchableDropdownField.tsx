@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { FieldRow } from './FieldCard';
 import { BottomSheet } from './BottomSheet';
@@ -115,7 +124,7 @@ export function SearchableDropdownField({
 
   const searchBox = (
     <TextInput
-      style={styles.search}
+      style={[styles.search, inline && row && styles.searchInline]}
       placeholder={searchPlaceholder}
       placeholderTextColor={colors.textMuted}
       keyboardAppearance="dark"
@@ -140,7 +149,9 @@ export function SearchableDropdownField({
             close();
           }}
         >
-          <Text style={styles.useText}>{t('searchableDropdown.useText', { text: query.trim() })}</Text>
+          <Text style={styles.useText}>
+            {t('searchableDropdown.useText', { text: query.trim() })}
+          </Text>
         </Pressable>
       ) : null}
       {filtered.map((o) => (
@@ -168,12 +179,20 @@ export function SearchableDropdownField({
   return (
     <View>
       {row ? (
-        <FieldRow label={label} value={valueLabel} onPress={openPicker} expanded={inline?.expanded} />
+        <FieldRow
+          label={label}
+          value={valueLabel}
+          onPress={openPicker}
+          expanded={inline?.expanded}
+        />
       ) : (
         <>
           {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
           <Pressable style={styles.field} onPress={openPicker}>
-            <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
+            <Text
+              style={[styles.valueText, !valueLabel && styles.placeholder]}
+              numberOfLines={1}
+            >
               {valueLabel || placeholder}
             </Text>
             <Text style={styles.chevron}>▾</Text>
@@ -181,13 +200,25 @@ export function SearchableDropdownField({
         </>
       )}
       {inline ? (
-        inline.expanded ? <ExpandedPanel sticky={searchBox}>{optionRows}</ExpandedPanel> : null
+        inline.expanded ? (
+          <ExpandedPanel sticky={searchBox}>{optionRows}</ExpandedPanel>
+        ) : null
       ) : compact ? (
-        <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+        <Modal
+          visible={open}
+          transparent
+          animationType="slide"
+          onRequestClose={close}
+        >
           {/* Keeps the sheet from shrink-wrapping to a sliver — and sliding
               down behind the keyboard — once typing narrows the results to
               just one or two rows. */}
-          <BottomSheet title={label} onClose={close} stickyContent={searchBox} listHeight={COMPACT_LIST_HEIGHT}>
+          <BottomSheet
+            title={label}
+            onClose={close}
+            stickyContent={searchBox}
+            listHeight={COMPACT_LIST_HEIGHT}
+          >
             {optionRows}
           </BottomSheet>
         </Modal>
@@ -195,7 +226,13 @@ export function SearchableDropdownField({
         // iOS lets a pageSheet be swiped down to dismiss directly, without
         // ever pressing the button — onDismiss keeps `open` in sync with
         // that, same as pressing Back would.
-        <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={close} onDismiss={close}>
+        <Modal
+          visible={open}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={close}
+          onDismiss={close}
+        >
           <ScreenContainer modal>
             <View style={styles.header}>
               <Pressable onPress={close} hitSlop={10}>
@@ -204,7 +241,9 @@ export function SearchableDropdownField({
               <Text style={styles.title} numberOfLines={1}>
                 {label}
               </Text>
-              <Text style={[styles.headerBtn, styles.headerBtnGhost]}>{t('common.back')}</Text>
+              <Text style={[styles.headerBtn, styles.headerBtnGhost]}>
+                {t('common.back')}
+              </Text>
             </View>
             {searchBox}
             <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
@@ -218,7 +257,12 @@ export function SearchableDropdownField({
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 6 },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginBottom: 6,
+  },
   field: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -243,7 +287,14 @@ const styles = StyleSheet.create({
   },
   headerBtn: { fontSize: 15, fontWeight: '600', color: colors.accent },
   headerBtnGhost: { opacity: 0 },
-  title: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: colors.text, marginHorizontal: spacing.sm },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginHorizontal: spacing.sm,
+  },
   search: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -254,6 +305,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
     marginTop: spacing.sm,
+  },
+  // Unfolded in place *inside a FieldCard* the box is a row of that card,
+  // not a box inside it: full width, square, its text on the same left edge
+  // as the label above it. Only there — a field standing on its own (the
+  // payee manager in Settings, the review page's cards) has no card edge to
+  // run to, so full-bleed just overhangs its section and cuts its own
+  // corners off. Those keep the bordered box.
+  searchInline: {
+    borderWidth: 0,
+    borderRadius: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    marginTop: 0,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
   },
   list: { flex: 1, marginTop: spacing.xs },
   option: {

@@ -19,11 +19,21 @@ interface RateChangeModalProps {
   onCancel: () => void;
   onSubmit: (value: RateChangeValue) => void;
   onDelete?: () => void;
+  // Unfold where the button was rather than covering the page — see
+  // FormSheet.
+  inline?: boolean;
 }
 
 // Add/edit one row of a loan's interest-rate history (rate + the date it
 // took effect) — same small-card modal shell as PromptModal, two fields.
-export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete }: RateChangeModalProps) {
+export function RateChangeModal({
+  visible,
+  initial,
+  onCancel,
+  onSubmit,
+  onDelete,
+  inline,
+}: RateChangeModalProps) {
   const t = useT();
   const [ratePercent, setRatePercent] = useState(initial.ratePercent);
   const [effectiveDate, setEffectiveDate] = useState(initial.effectiveDate);
@@ -40,11 +50,21 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
 
   const submit = () => {
     if (!ratePercent.trim() || !effectiveDate.trim()) return;
-    onSubmit({ ratePercent: ratePercent.trim(), effectiveDate: effectiveDate.trim(), note: note.trim() });
+    onSubmit({
+      ratePercent: ratePercent.trim(),
+      effectiveDate: effectiveDate.trim(),
+      note: note.trim(),
+    });
   };
 
   return (
-    <FormSheet visible={visible} title={t('rateChangeModal.title')} onCancel={onCancel} onSave={submit}>
+    <FormSheet
+      visible={visible}
+      title={t('rateChangeModal.title')}
+      onCancel={onCancel}
+      onSave={submit}
+      inline={inline}
+    >
       <TextField
         label={t('rateChangeModal.rateLabel')}
         value={ratePercent}
@@ -53,7 +73,11 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
         placeholder={t('rateChangeModal.ratePlaceholder')}
         autoFocus
       />
-      <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+      <DateField
+        label={t('common.effectiveDateLabel')}
+        value={effectiveDate}
+        onChange={setEffectiveDate}
+      />
       <TextField
         label={t('loggedValueModal.noteLabel')}
         value={note}
@@ -70,6 +94,10 @@ export function RateChangeModal({ visible, initial, onCancel, onSubmit, onDelete
 }
 
 const styles = StyleSheet.create({
-  deleteRow: { alignItems: 'center', paddingVertical: spacing.sm, marginTop: spacing.md },
+  deleteRow: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
+  },
   deleteText: { color: colors.negative, fontWeight: '600' },
 });

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { getDb } from '../db/client';
 import * as budgetsRepo from '../db/repositories/budgetsRepo';
 import * as categoriesRepo from '../db/repositories/categoriesRepo';
-import { categoryBalanceCents, categoryCaption, categoryStatus, unassignedCashCents } from '../domain/budgetMath';
+import {
+  categoryBalanceCents,
+  categoryCaption,
+  categoryStatus,
+} from '../domain/budgetMath';
 import type { CategoryStatus } from '../domain/budgetMath';
 import type { Category, CategoryGroup } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
@@ -18,8 +22,12 @@ export interface CategoryBudgetItem {
 
 export function useBudget(month: string) {
   const [groups, setGroups] = useState<CategoryGroup[]>([]);
-  const [itemsByGroup, setItemsByGroup] = useState<Record<number, CategoryBudgetItem[]>>({});
+  const [itemsByGroup, setItemsByGroup] = useState<
+    Record<number, CategoryBudgetItem[]>
+  >({});
   const [unassignedCents, setUnassignedCents] = useState(0);
+  const [breakdown, setBreakdown] =
+    useState<budgetsRepo.UnassignedBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
   const dataVersion = useAppStore((s) => s.dataVersion);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -27,18 +35,23 @@ export function useBudget(month: string) {
 
   const refresh = useCallback(async () => {
     const db = await getDb();
-    const [allGroups, allCategories, cumAssigned, cumActivity, thisAssigned, thisActivity, totalAssigned, totalActivity, cashBalance] =
-      await Promise.all([
-        categoriesRepo.listCategoryGroups(db, boardId),
-        categoriesRepo.listCategories(db, boardId),
-        budgetsRepo.cumulativeAssignedByCategory(db, boardId, month),
-        budgetsRepo.cumulativeActivityByCategory(db, boardId, month),
-        budgetsRepo.assignedThisMonthByCategory(db, boardId, month),
-        budgetsRepo.activityThisMonthByCategory(db, boardId, month),
-        budgetsRepo.totalAssignedThroughMonth(db, boardId, month),
-        budgetsRepo.totalActivityThroughMonth(db, boardId, month),
-        budgetsRepo.cashAccountsBalanceThroughMonth(db, boardId, month),
-      ]);
+    const [
+      allGroups,
+      allCategories,
+      cumAssigned,
+      cumActivity,
+      thisAssigned,
+      thisActivity,
+      unassigned,
+    ] = await Promise.all([
+      categoriesRepo.listCategoryGroups(db, boardId),
+      categoriesRepo.listCategories(db, boardId),
+      budgetsRepo.cumulativeAssignedByCategory(db, boardId, month),
+      budgetsRepo.cumulativeActivityByCategory(db, boardId, month),
+      budgetsRepo.assignedThisMonthByCategory(db, boardId, month),
+      budgetsRepo.activityThisMonthByCategory(db, boardId, month),
+      budgetsRepo.unassignedBreakdown(db, boardId, month),
+    ]);
 
     const byGroup: Record<number, CategoryBudgetItem[]> = {};
     for (const category of allCategories) {
@@ -49,7 +62,12 @@ export function useBudget(month: string) {
       const activityThisMonthCents = thisActivity[category.id] ?? 0;
       const status = categoryStatus(balanceCents, assignedThisMonthCents);
       const spentThisMonthCents = Math.max(0, -activityThisMonthCents);
-      const captionText = categoryCaption(status, spentThisMonthCents, assignedThisMonthCents, balanceCents);
+      const captionText = categoryCaption(
+        status,
+        spentThisMonthCents,
+        assignedThisMonthCents,
+        balanceCents,
+      );
       const item: CategoryBudgetItem = {
         category,
         assignedThisMonthCents,
@@ -63,8 +81,8 @@ export function useBudget(month: string) {
 
     setGroups(allGroups);
     setItemsByGroup(byGroup);
-    const totalCategoryBalance = categoryBalanceCents(totalAssigned, totalActivity);
-    setUnassignedCents(unassignedCashCents(cashBalance, totalCategoryBalance));
+    setUnassignedCents(unassigned.unassignedCents);
+    setBreakdown(unassigned);
     setLoading(false);
   }, [month, boardId]);
 
@@ -75,11 +93,25 @@ export function useBudget(month: string) {
   const setAssigned = useCallback(
     async (categoryId: number, assignedCents: number) => {
       const db = await getDb();
-      await budgetsRepo.setAssignedCents(db, boardId, categoryId, month, assignedCents);
+      await budgetsRepo.setAssignedCents(
+        db,
+        boardId,
+        categoryId,
+        month,
+        assignedCents,
+      );
       bumpDataVersion();
     },
     [month, boardId, bumpDataVersion],
   );
 
-  return { groups, itemsByGroup, unassignedCents, loading, setAssigned, refresh };
+  return {
+    groups,
+    itemsByGroup,
+    unassignedCents,
+    breakdown,
+    loading,
+    setAssigned,
+    refresh,
+  };
 }

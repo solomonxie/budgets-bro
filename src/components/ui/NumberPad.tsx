@@ -13,6 +13,8 @@ import { colors } from '../../theme/colors';
 // edges up with the rows above — sizing keys individually made the row with
 // fewer of them (one gap less to share) come out wider.
 const SUBMIT = 'submit';
+const LEFT = 'bottomLeft';
+const RIGHT = 'bottomRight';
 const ROWS: { digits: AmountKey[]; ops: AmountKey[] }[] = [
   { digits: ['1', '2', '3'], ops: ['÷', '×'] },
   { digits: ['4', '5', '6'], ops: ['−', '+'] },
@@ -27,6 +29,14 @@ interface NumberPadProps {
   // rather than another full-width button below the pad.
   submitLabel: string;
   onSubmit: () => void;
+  // The bottom row's two spare slots, either side of the 0. A pad that edits
+  // something which already has a value (a category's assignment) needs more
+  // than "save": a way to throw away what you just typed, and a way through
+  // to what the figure is made of. Both belong under the thumb that is
+  // already here, in the grid the rest of the keys line up to — not squeezed
+  // into the operator column, which is two-fifths as wide.
+  bottomLeft?: { label: string; onPress: () => void };
+  bottomRight?: { label: string; onPress: () => void };
 }
 
 // Part of the page, in the normal flow with everything else — not popped
@@ -38,8 +48,48 @@ export function NumberPad({
   onChange,
   submitLabel,
   onSubmit,
+  bottomLeft,
+  bottomRight,
 }: NumberPadProps) {
+  // Submit keeps the whole operator column to itself, so it stays the widest
+  // key on the pad however many words sit beside the 0.
+  const rows =
+    bottomLeft || bottomRight
+      ? ROWS.map((row, i) =>
+          i === ROWS.length - 1
+            ? {
+                ...row,
+                digits: [
+                  ...(bottomLeft ? [LEFT] : []),
+                  '0',
+                  ...(bottomRight ? [RIGHT] : []),
+                ],
+              }
+            : row,
+        )
+      : ROWS;
+
   const renderKey = (key: AmountKey) => {
+    if (key === LEFT || key === RIGHT) {
+      const action = key === LEFT ? bottomLeft! : bottomRight!;
+      return (
+        <Pressable
+          key={key}
+          style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+          onPress={action.onPress}
+        >
+          <Text
+            style={[
+              styles.wordKeyText,
+              key === RIGHT && styles.wordKeyTextAccent,
+            ]}
+            numberOfLines={1}
+          >
+            {action.label}
+          </Text>
+        </Pressable>
+      );
+    }
     if (key === SUBMIT)
       return (
         <Pressable
@@ -82,7 +132,7 @@ export function NumberPad({
 
   return (
     <View style={styles.pad}>
-      {ROWS.map((row, i) => (
+      {rows.map((row, i) => (
         <View key={i} style={styles.row}>
           <View style={styles.digitBlock}>{row.digits.map(renderKey)}</View>
           <View style={styles.opBlock}>{row.ops.map(renderKey)}</View>
@@ -118,4 +168,9 @@ const styles = StyleSheet.create({
   submitKey: { backgroundColor: colors.accent, borderRadius: 16 },
   submitKeyPressed: { opacity: 0.85 },
   submitKeyText: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  // No box of their own: they are keys of the same grid as the digits, and
+  // outlining them made two odd little buttons floating in a row of plain
+  // glyphs. Weight and colour carry the difference instead.
+  wordKeyText: { fontSize: 15, fontWeight: '600', color: colors.textMuted },
+  wordKeyTextAccent: { color: colors.accent },
 });

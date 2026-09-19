@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountValueHistoryRow } from '../schema';
 import type { AccountValueChange, AccountValueKind } from '../../domain/types';
+import { currentDateISO } from '../../domain/month';
 import {
   LIST_VALUE_HISTORY,
   CURRENT_VALUE,
@@ -23,7 +24,11 @@ export async function listValueHistory(
   accountId: number,
   kind: AccountValueKind = 'value',
 ): Promise<AccountValueChange[]> {
-  const rows = await db.getAllAsync<AccountValueHistoryRow>(LIST_VALUE_HISTORY, accountId, kind);
+  const rows = await db.getAllAsync<AccountValueHistoryRow>(
+    LIST_VALUE_HISTORY,
+    accountId,
+    kind,
+  );
   return rows.map(mapRow);
 }
 
@@ -34,7 +39,12 @@ export async function currentValueCents(
   accountId: number,
   kind: AccountValueKind = 'value',
 ): Promise<number | null> {
-  const row = await db.getFirstAsync<{ value_cents: number }>(CURRENT_VALUE, accountId, kind);
+  const row = await db.getFirstAsync<{ value_cents: number }>(
+    CURRENT_VALUE,
+    accountId,
+    kind,
+    currentDateISO(),
+  );
   return row?.value_cents ?? null;
 }
 
@@ -46,7 +56,11 @@ export async function currentValuesByBoard(
   boardId: number,
   kind: AccountValueKind = 'value',
 ): Promise<Map<number, number>> {
-  const rows = await db.getAllAsync<{ account_id: number; value_cents: number }>(CURRENT_VALUES_FOR_BOARD, boardId, kind);
+  const today = currentDateISO();
+  const rows = await db.getAllAsync<{
+    account_id: number;
+    value_cents: number;
+  }>(CURRENT_VALUES_FOR_BOARD, boardId, kind, today, today);
   return new Map(rows.map((r) => [r.account_id, r.value_cents]));
 }
 
@@ -63,12 +77,18 @@ export async function currentReadingsByBoard(
   boardId: number,
   kind: AccountValueKind,
 ): Promise<Map<number, DatedReading>> {
-  const rows = await db.getAllAsync<{ account_id: number; value_cents: number; effective_date: string }>(
-    CURRENT_VALUES_FOR_BOARD,
-    boardId,
-    kind,
+  const today = currentDateISO();
+  const rows = await db.getAllAsync<{
+    account_id: number;
+    value_cents: number;
+    effective_date: string;
+  }>(CURRENT_VALUES_FOR_BOARD, boardId, kind, today, today);
+  return new Map(
+    rows.map((r) => [
+      r.account_id,
+      { valueCents: r.value_cents, effectiveDate: r.effective_date },
+    ]),
   );
-  return new Map(rows.map((r) => [r.account_id, { valueCents: r.value_cents, effectiveDate: r.effective_date }]));
 }
 
 export async function addValueChange(
@@ -106,13 +126,24 @@ export async function updateValueChange(
   );
 }
 
-export async function deleteValueChange(db: SQLiteDatabase, id: number): Promise<void> {
+export async function deleteValueChange(
+  db: SQLiteDatabase,
+  id: number,
+): Promise<void> {
   await db.runAsync('DELETE FROM account_value_history WHERE id = ?', id);
 }
 
 // Folds one account's whole value log into another's (T8.3: merging a
 // tracking account's value history into a mortgage account) — a straight
 // re-point, no row transformation needed since both sides share this table.
-export async function reassignAccount(db: SQLiteDatabase, fromAccountId: number, toAccountId: number): Promise<void> {
-  await db.runAsync('UPDATE account_value_history SET account_id = ? WHERE account_id = ?', toAccountId, fromAccountId);
+export async function reassignAccount(
+  db: SQLiteDatabase,
+  fromAccountId: number,
+  toAccountId: number,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE account_value_history SET account_id = ? WHERE account_id = ?',
+    toAccountId,
+    fromAccountId,
+  );
 }

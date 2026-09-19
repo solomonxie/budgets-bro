@@ -126,7 +126,8 @@ export const en = {
   's3Browser.empty': 'Nothing here yet.',
   'backup.restore': 'Restore',
   's3Browser.restoreConfirmTitle': 'Restore from {name}?',
-  's3Browser.restoreConfirmMessage': 'It comes back as a new board alongside your current one, which is left untouched — switch between them in Settings.',
+  's3Browser.restoreConfirmMessage':
+    'It comes back as a new board alongside your current one, which is left untouched — switch between them in Settings.',
   's3Browser.restoreNotFound': 'That file is no longer in the bucket.',
   'aiHistory.hint':
     'Every request this key has sent, exactly as it went out. Kept on this device only — the last 50 per key, never included in a backup.',
@@ -158,6 +159,25 @@ export const en = {
   'backup.daysAgo': '{count} d ago',
   'settings.importYnab': 'Import from YNAB',
   'settings.restoreCategories': 'Restore Categories from YNAB',
+  'settings.dataHeading': 'Data',
+  'settings.exportBoardHint': 'A zip of this board, through the share sheet.',
+  'settings.importAppBackupHint': 'Restores one of those zips as a new board.',
+  'settings.importYnabHint': 'Your YNAB export, merged into this board.',
+  'settings.restoreCategoriesHint':
+    'Fills in categories from a YNAB export without re-importing it.',
+  'settings.fixTransfersHint':
+    'Names both halves of every transfer and links them back together.',
+  'settings.purgeBackupsHint':
+    'Every copy, everywhere. Your data itself is untouched.',
+  'history.openHint': 'Undo a single change, or roll the whole file back.',
+  'settings.fixTransfers': 'Fix Transfers',
+  'settings.fixTransfersHeading': 'Transfers Checked',
+  'settings.fixTransfersFailed': 'Could not check transfers.',
+  'settings.transferNamed': 'Legs named',
+  'settings.transferRenamed': 'Renamed off themselves',
+  'settings.transferMarked': 'Pairs linked',
+  'settings.transferMissingLeg': 'No matching row',
+  'settings.transferMismatch': 'Amounts disagree',
   'settings.purgeBackups': 'Delete All Backups',
   'settings.purgeBackupsTitle': 'Delete every backup?',
   'settings.purgeBackupsMessage':
@@ -211,6 +231,17 @@ export const en = {
 
   'settingsModal.title': 'Settings',
 
+  'netWorthBreakdown.heading': 'Where {month} came from',
+  'netWorthBreakdown.noAccounts': 'No account had started by then.',
+  'netWorthBreakdown.homeValue': 'home {amount}',
+  'netWorthBreakdown.owed': 'owed {amount}',
+  'netWorthBreakdown.sourceReading': 'logged value',
+  'netWorthBreakdown.sourcePurchasePrice': 'purchase price',
+  'netWorthBreakdown.sourceOldestReading': 'oldest value, carried back',
+  'netWorthBreakdown.sourceLedger': 'from transactions',
+  'netWorthBreakdown.sourceDerived': 'derived',
+  'netWorthBreakdown.explain':
+    'Touch the line, or hold and slide along it, to read a month.',
   'accounts.netWorth': 'Net Worth',
   'accounts.customize': 'Customize',
   'accounts.assets': 'Assets {amount}',
@@ -224,10 +255,13 @@ export const en = {
   'accounts.kindLoan': 'Loan',
   'accounts.kindTracking': 'Tracking',
   'accounts.kindAsset': 'Asset',
+  'accounts.kindGiving': 'Giving',
+  'accounts.notInNetWorth': 'never counted in net worth',
 
   'accountDetail.balance': 'Balance',
   'accountDetail.remainingPrincipal': 'Remaining Principal',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
+  'accountDetail.transactionsHeading': 'Transactions · {count}',
   'accountDetail.scheduledHeading': 'Scheduled ({count})',
   'accountDetail.scheduledHint':
     "Dated in the future — doesn't affect balance or budget until its date arrives.",
@@ -246,10 +280,13 @@ export const en = {
   'accountModal.typeMortgage': 'Mortgage',
   'accountModal.typeTracking': 'Tracking',
   'accountModal.typeAsset': 'Asset',
+  'accountModal.typeGiving': 'Giving',
   'accountModal.openingBalanceLabel': 'Starting Balance',
   'accountModal.openingBalanceHint':
     'The balance on the day this account starts in the app. Loans and credit cards go in negative — what you owed back then.',
   'accountModal.currentHouseValueLabel': 'Current House Value',
+  'accountModal.currentReadingHint':
+    'Add an update below to change this — every reading keeps its own date, so the history stays true.',
   'accountModal.currentHouseValueHint':
     'What the home is worth now, your own estimate. Recorded as a dated entry you can add to over time from the account page.',
   'accountModal.currentPrincipalLabel': 'Current Remaining Principal',
@@ -283,18 +320,21 @@ export const en = {
   'accountModal.toolsHeading': 'Tools',
 
   'accountModal.termMonthsPlaceholder': 'e.g. 360',
-  'accountModal.termMonthsHint': 'How long the loan runs: 360 = 30 years, 240 = 20 years.',
+  'accountModal.termMonthsHint':
+    'How long the loan runs: 360 = 30 years, 240 = 20 years.',
   'accountModal.originalPrincipalLabel': 'Amount Borrowed',
   'accountModal.mortgageAmountLabel': 'Mortgage Amount',
   'accountModal.originalPrincipalHint':
     'What you borrowed at signing — not what is left to pay today. Sets the monthly payment and payoff projection, and fills in the starting balance above.',
   'accountModal.originalHousePriceLabel': 'Purchase Price',
   'accountModal.originalHousePricePlaceholder': '0.00 (optional)',
-  'accountModal.originalHousePriceHint': 'What the home cost. Also becomes its first home-value entry.',
+  'accountModal.originalHousePriceHint':
+    'What the home cost. Also becomes its first home-value entry.',
   'accountModal.downPaymentLabel': 'Down Payment',
   'accountModal.downPaymentPending': 'Fill in both fields above',
   'accountModal.downPaymentValue': '{amount} ({percent}% down)',
-  'accountModal.principalExceedsHint': 'Mortgage amount exceeds the purchase price',
+  'accountModal.principalExceedsHint':
+    'Mortgage amount exceeds the purchase price',
   'accountModal.originationDateLabel': 'Origination Date',
   'accountModal.noteLabel': 'Note',
   'accountModal.notePlaceholder': 'Anything the name does not say (optional)',
@@ -307,17 +347,25 @@ export const en = {
   'closedAccounts.empty': 'No closed accounts.',
   'closedAccounts.tapToReopen': 'Tap to reopen',
   'closedAccounts.deleteForever': 'Delete permanently',
-  'closedAccounts.deleteConfirmTitle': 'Delete \'{name}\' and its transactions?',
-  'closedAccounts.deleteConfirmMessage': 'Its transactions are deleted too, and stop counting toward category activity and Unassigned Cash. The other side of any transfer keeps its own entry. This cannot be undone.',
-  'closedAccounts.deleteImpactMessage': 'Its transactions go too — including {amount} of categorised spending, which is what offset the cash that paid this account off. Deleting it leaves those payments behind, so Unassigned Cash drops by that much. Usually you want to keep the account closed instead. This cannot be undone.',
+  'closedAccounts.deleteConfirmTitle': "Delete '{name}' and its transactions?",
+  'closedAccounts.deleteConfirmMessage':
+    'Its transactions are deleted too, and stop counting toward category activity and Unassigned Cash. The other side of any transfer keeps its own entry. This cannot be undone.',
+  'closedAccounts.deleteImpactMessage':
+    'Its transactions go too — including {amount} of categorised spending, which is what offset the cash that paid this account off. Deleting it leaves those payments behind, taking Unassigned Cash to {deleted}. Usually you want to keep the account closed instead. This cannot be undone.',
   'closedAccounts.absorbAction': 'Move to {name}',
   'closedAccounts.deleteAnyway': 'Delete anyway',
-  'closedAccounts.absorbMessage': 'This account holds {amount} of categorised spending. Moving it to {into} keeps that history and collapses the payments between the two, so every balance and Unassigned Cash stay exactly where they are. Deleting instead drops Unassigned by that amount.',
+  'closedAccounts.absorbMessage':
+    'This account holds {amount} of categorised spending. Moving it to {into} keeps that history and collapses the payments between the two, so Unassigned Cash stays at {unassigned}. Deleting instead takes it to {deleted}.',
+  'closedAccounts.absorbShiftMessage':
+    'This account holds {amount} of categorised spending. Moving it to {into} keeps that history, but takes Unassigned Cash from {unassigned} to {absorbed} — what this account still owed, or was opened owing, becomes cash treated as already spent. Deleting instead takes it to {deleted}.',
 
   'houseValueCard.label': 'Home Value',
   'houseValueCard.notSet': 'Not set',
   'houseValueCard.noValueYet': 'No home value recorded yet.',
   'houseValueCard.equity': 'Equity: {amount}',
+  'houseValueCard.owedLabel': 'Owed',
+  'houseValueCard.equityLabel': 'Equity',
+  'houseValueCard.valueLabel': 'Home value',
   'houseValueCard.updateButton': '+ Update Home Value',
 
   'trackingValueCard.label': 'Balance Trend',
@@ -414,6 +462,7 @@ export const en = {
   'babySteps.remaining': '{amount} remaining',
   'babySteps.step3Title': '3–6 months of expenses saved',
   'babySteps.step3Caption': '{current} of ~{target} (avg {avg}/mo × 4)',
+  'babySteps.step3bTitle': 'Save a down payment',
   'babySteps.notEnoughHistory': 'Not enough spending history yet',
   'babySteps.step4Title': 'Invest 15% of income for retirement',
   'babySteps.step4Caption': '{percent}% of income invested (target 15%)',
@@ -430,6 +479,7 @@ export const en = {
   'babySteps.markedDone': '✓ Done',
   'babySteps.emergencyFundAccountsLabel': 'Emergency fund accounts',
   'babySteps.retirementAccountsLabel': 'Retirement accounts',
+  'babySteps.downPaymentAccountsLabel': 'Down payment accounts',
   'babySteps.educationAccountsLabel': "Accounts for kids' education",
   'babySteps.givingCategoriesLabel': 'Categories for giving',
   'babySteps.goalAccountLabel': 'Account to track',
@@ -512,16 +562,80 @@ export const en = {
   'transactions.selectNone': 'Select none',
   'transactions.editPayee': 'Edit Payee',
   'transactions.editPayeeTitle': 'Payee for {count} transactions',
-  'transactions.select': 
-'Select',
+  'transactions.select': 'Select',
   'transactions.allCategories': 'All Categories',
   'transactions.allOthers': 'All Others',
   'transactions.allMonths': 'All Months',
   'transactions.noMatch': 'No transactions match.',
   'transactions.deleteSelected': 'Delete {count} selected',
+  'transactions.allRows': 'All',
+  'transactions.needsPayee': 'No Payee',
+  'transactions.needsCategory': 'Uncategorized',
+  'transactions.needsReview': 'Needs Review',
+
+  'review.title': 'Review',
+  'review.chipAll': 'All {count}',
+  'review.reasonMissingPayee': 'Payee',
+  'review.reasonMissingCategory': 'Category',
+  'review.reasonDuplicate': 'Duplicate',
+  'review.reasonZeroAmount': 'Zero',
+  'review.reasonTransferMissingLeg': 'Unpaired',
+  'review.reasonTransferAmountMismatch': 'Mismatch',
+  'review.reasonTransferSelfNamed': 'Self-named',
+  'review.reasonTransferUnlinked': 'Unlinked',
+  'review.reasonCategoryOverspent': 'Overspent',
+  'review.fundCategory': 'Fund {amount} in {month}',
+  'review.fundShortfall': 'Unassigned cash is {amount} short',
+  'review.explainMissingPayee':
+    'These rows don’t say who was paid. Pick a payee — or, for half of a transfer, name it after the account across from it in one tap.',
+  'review.explainMissingCategory':
+    'Money left a spending account without landing in a category, so it is missing from the budget entirely.',
+  'review.explainDuplicate':
+    'Same account, day, amount, payee and note. Either one event recorded twice — delete one — or two halves of one purchase, which Merge turns into a single row for the total.',
+  'review.explainZeroAmount':
+    'A transaction for nothing at all. Almost always left behind by an import.',
+  'review.explainTransferMissingLeg':
+    'Half of a transfer whose other half was never written: money left one account and arrived nowhere. The fix posts the missing row into the account this one names.',
+  'review.explainTransferAmountMismatch':
+    'Both halves exist but don’t cancel out. The fix makes the other side the exact opposite of the row you are looking at.',
+  'review.explainTransferSelfNamed':
+    'The payee is the row’s own account, which says nothing about where the money went. The fix renames it after the account across from it.',
+  'review.explainTransferUnlinked':
+    'The two halves are correct but nothing ties them together, so neither knows the other exists. The fix links the pair.',
+  'review.explainCategoryOverspent':
+    'This category spent more than it had in that month. Funding assigns the shortfall into that same month, which lifts every month after it. No account balance moves — the money comes out of Unassigned Cash, which drops by the same amount.',
+  'review.fixPostLeg': 'Create matching row',
+  'review.fixMatchAmounts': 'Match amounts',
+  'review.fixNameFromOtherSide': 'Name from other side',
+  'review.fixLinkPair': 'Link to its match',
+  'review.fixMerge': 'Merge into one',
+  'review.fixMergeCount': 'Merge {count} into one',
+  'review.mergeConfirmTitle': 'Merge {count} transactions?',
+  'review.mergeConfirmMessage':
+    'They become a single transaction for their combined amount. This cannot be undone.',
+  'review.setPayeeForSelected': 'Set payee',
+  'review.setCategoryForSelected': 'Set category',
+  'review.fixDelete': 'Delete row',
+  'review.fixSelected': 'Fix {count}',
+  'review.fixApply': 'Fix',
+  'review.fixSelectedConfirmTitle': 'Fix {count} transactions?',
+  'review.fixSelectedConfirmMessage':
+    '{count} of them will be deleted. This cannot be undone.',
+  'review.pickPayee': 'Set a payee',
+  'review.pickCategory': 'Set a category',
+  'review.deleteConfirmTitle': 'Delete this transaction?',
+  'review.fixed': 'Solved',
+  'review.allClear': 'Nothing needs review.',
 
   'budget.spentThisMonth': 'Spent This Month',
   'budget.unassigned': 'Unassigned: {amount}',
+  'budget.breakdownCash': 'Cash & savings',
+  'budget.breakdownEnvelopes': 'Assigned, not yet spent',
+  'budget.breakdownUnassigned': 'Unassigned',
+  'budget.breakdownNote':
+    'What your categories still hold across every month — not only what you assigned this one.',
+  'budget.breakdownCardWarning':
+    '{amount} of this is spending already charged to a credit card. Card spending empties a category without leaving your cash, so that much is spoken for even though it reads as free.',
   'budget.avgLabel': '12 Months Avg',
   'budget.reached': '{percent}% reached',
   'budget.addCategory': 'Add Category',
@@ -594,6 +708,7 @@ export const en = {
   'spend.spending': 'Spending',
   'spend.income': 'Income',
   'spend.payeePlaceholder': 'Payee',
+  'spend.paidFromPlaceholder': 'Paid from account',
   'spend.payeeSearchPlaceholder': 'Search or type a new payee',
   'spend.memoPlaceholder': 'Memo',
   'spend.deleteTransaction': 'Delete Transaction',
@@ -904,27 +1019,46 @@ export const en = {
   'history.open': 'Change History & Snapshots',
   'history.title': 'History',
   'history.snapshotsHeading': 'Snapshots',
-  'history.snapshotsHint': 'A copy of the whole database, taken before anything that rewrites existing rows. Use one when you do not know what went wrong, or when the shape of the data changed rather than its contents.',
+  'history.snapshotsHint':
+    'A copy of the whole database, taken before anything that rewrites existing rows. Use one when you do not know what went wrong, or when the shape of the data changed rather than its contents.',
   'history.noSnapshots': 'None taken yet.',
   'history.snapshotNow': '+ Snapshot Now',
   'history.snapshotManual': 'Taken by hand · {size}',
   'history.snapshotBeforeMigration': 'Before update v{from} → v{to} · {size}',
   'history.restoreSnapshotTitle': 'Restore this snapshot?',
-  'history.restoreSnapshotMessage': 'The whole database goes back to how it was then. Everything since is lost. Close and reopen the app straight after.',
+  'history.restoreSnapshotMessage':
+    'The whole database goes back to how it was then. Everything since is lost. Close and reopen the app straight after.',
   'history.restoredTitle': 'Restored',
   'history.restoredMessage': 'Close and reopen the app to load it.',
   'history.changesHeading': 'Changes',
-  'history.changesHint': 'Every row written, recorded by the database itself — including by updates to the app, which is the kind of change most worth being able to take back. Undoing one is itself recorded, so it can be undone too.',
+  'history.changesHint':
+    'Every row written, recorded by the database itself — including by updates to the app, which is the kind of change most worth being able to take back. Undoing one is itself recorded, so it can be undone too.',
   'history.noChanges': 'Nothing recorded yet.',
+  'history.changeInsert': 'Added to {what}',
+  'history.changeUpdate': 'Edited {what}',
+  'history.changeDelete': 'Removed from {what}',
+  'history.tableAccounts': 'accounts',
+  'history.tableCategories': 'categories',
+  'history.tableCategoryGroups': 'category groups',
+  'history.tableBudgetEntries': 'the budget',
+  'history.tablePayees': 'payees',
+  'history.tableTransactions': 'transactions',
+  'history.tableValueHistory': 'value history',
+  'history.tableRateHistory': 'interest rates',
+  'history.tableScheduled': 'recurring transactions',
+  'history.tableGoals': 'goals',
+  'history.tableUnknown': 'data',
   'history.rowCount': '{count} rows',
   'history.opInsert': 'Added',
   'history.opUpdate': 'Changed',
   'history.opDelete': 'Deleted',
   'history.rewind': 'Rewind to here',
   'history.rewindConfirmTitle': 'Undo {count} changes?',
-  'history.rewindConfirmMessage': 'Everything written from this point on is put back, newest first — use this for an import or a repair, which land as many entries rather than one. It is recorded too, so it can be undone.',
+  'history.rewindConfirmMessage':
+    'Everything written from this point on is put back, newest first — use this for an import or a repair, which land as many entries rather than one. It is recorded too, so it can be undone.',
   'history.undo': 'Undo',
   'history.undoConfirmTitle': 'Undo {count} rows in {table}?',
-  'history.undoConfirmMessage': 'Those rows go back to what they were. This is recorded too, so it can be undone again.',
+  'history.undoConfirmMessage':
+    'Those rows go back to what they were. This is recorded too, so it can be undone again.',
   'nav.history': 'History',
 } as const;

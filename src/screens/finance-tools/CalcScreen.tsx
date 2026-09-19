@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { ExpandingFieldGroup } from './../../components/ui/ExpandingField';
 
 // Shared frame for every calculator: inputs, then results, then whatever
 // table the tool has. The tail spacer clears the tab bar, which these screens
@@ -12,7 +13,9 @@ import { spacing } from '../../theme/spacing';
 export function CalcScreen({ children }: { children: ReactNode }) {
   return (
     <ScreenContainer scroll>
-      {children}
+      {/* Every calculator's pickers unfold in the row's own space, same as
+          the spend form — see components/ui/ExpandingField. */}
+      <ExpandingFieldGroup>{children}</ExpandingFieldGroup>
       <View style={styles.tail} />
     </ScreenContainer>
   );
@@ -21,11 +24,21 @@ export function CalcScreen({ children }: { children: ReactNode }) {
 // Results only mean something once the inputs that drive them are in, so the
 // results card is replaced by a one-line prompt rather than rendering zeros —
 // a screen of $0.00 reads as a broken calculator, not an empty one.
-export function ResultsCard({ ready, children }: { ready: boolean; children: ReactNode }) {
+export function ResultsCard({
+  ready,
+  children,
+}: {
+  ready: boolean;
+  children: ReactNode;
+}) {
   const t = useT();
   return (
     <Card title={t('financeTools.results')}>
-      {ready ? children : <Text style={styles.empty}>{t('financeTools.enterInputs')}</Text>}
+      {ready ? (
+        children
+      ) : (
+        <Text style={styles.empty}>{t('financeTools.enterInputs')}</Text>
+      )}
     </Card>
   );
 }

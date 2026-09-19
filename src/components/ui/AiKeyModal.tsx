@@ -16,6 +16,7 @@ import type { AiVendor } from '../../ai/aiKeys';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { ExpandingFieldGroup } from './ExpandingField';
 
 interface AiKeyModalProps {
   visible: boolean;
@@ -80,62 +81,64 @@ export function AiKeyModal({ visible, onCancel, onSaved }: AiKeyModalProps) {
       onRequestClose={cancel}
     >
       <BottomSheet title={t('aiKeyModal.title')} onClose={cancel}>
-        <View style={styles.form}>
-          <DropdownField
-            compact
-            label={t('aiKeyModal.vendorLabel')}
-            valueLabel={vendorMeta.name}
-          >
-            {(close) => (
-              <>
-                {AI_VENDORS.map((v) => (
-                  <DropdownOption
-                    key={v.code}
-                    label={v.name}
-                    selected={vendor === v.code}
-                    onPress={() => {
-                      setVendor(v.code);
-                      close();
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </DropdownField>
-          <TextField
-            label={t('aiKeyModal.keyLabel')}
-            placeholder={vendorMeta.keyHint}
-            value={secret}
-            onChangeText={setSecret}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-          />
-          <Text style={styles.hint}>
-            {t('aiKeyModal.getKeyHint', { vendor: vendorMeta.name })}{' '}
-            <Text
-              style={styles.linkText}
-              onPress={() => Linking.openURL(vendorMeta.docsUrl)}
+        <ExpandingFieldGroup>
+          <View style={styles.form}>
+            <DropdownField
+              compact
+              label={t('aiKeyModal.vendorLabel')}
+              valueLabel={vendorMeta.name}
             >
-              {t('aiKeyModal.getKeyLink')}
+              {(close) => (
+                <>
+                  {AI_VENDORS.map((v) => (
+                    <DropdownOption
+                      key={v.code}
+                      label={v.name}
+                      selected={vendor === v.code}
+                      onPress={() => {
+                        setVendor(v.code);
+                        close();
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </DropdownField>
+            <TextField
+              label={t('aiKeyModal.keyLabel')}
+              placeholder={vendorMeta.keyHint}
+              value={secret}
+              onChangeText={setSecret}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+            />
+            <Text style={styles.hint}>
+              {t('aiKeyModal.getKeyHint', { vendor: vendorMeta.name })}{' '}
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL(vendorMeta.docsUrl)}
+              >
+                {t('aiKeyModal.getKeyLink')}
+              </Text>
             </Text>
-          </Text>
-          {testing ? (
-            <Text style={styles.hint}>{t('aiKeyModal.testing')}</Text>
-          ) : null}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <Pressable
-            style={styles.saveButton}
-            onPress={save}
-            disabled={testing}
-          >
             {testing ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-            )}
-          </Pressable>
-        </View>
+              <Text style={styles.hint}>{t('aiKeyModal.testing')}</Text>
+            ) : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            <Pressable
+              style={styles.saveButton}
+              onPress={save}
+              disabled={testing}
+            >
+              {testing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+              )}
+            </Pressable>
+          </View>
+        </ExpandingFieldGroup>
       </BottomSheet>
     </Modal>
   );

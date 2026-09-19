@@ -10,7 +10,16 @@ const GUARDED = /^(financeTools|calc[A-Z])/;
 // Strings that are legitimately identical in both languages — acronyms, and
 // the Chinese currency units the 提前还贷 calculator labels its amount toggle
 // with, which are already Chinese in the English dictionary.
-const IDENTICAL_BY_DESIGN = new Set<string>(['%', 'LPR', 'DTI', 'PMI', 'HOA', 'RRSP', '万', '元']);
+const IDENTICAL_BY_DESIGN = new Set<string>([
+  '%',
+  'LPR',
+  'DTI',
+  'PMI',
+  'HOA',
+  'RRSP',
+  '万',
+  '元',
+]);
 
 describe('translations', () => {
   it('defines the same keys in both dictionaries', () => {
@@ -22,7 +31,10 @@ describe('translations', () => {
       .filter((key) => GUARDED.test(key))
       .filter((key) => {
         const source = en[key as keyof typeof en] as string;
-        return zh[key as keyof typeof zh] === source && !IDENTICAL_BY_DESIGN.has(source);
+        return (
+          zh[key as keyof typeof zh] === source &&
+          !IDENTICAL_BY_DESIGN.has(source)
+        );
       });
     expect(untranslated).toEqual([]);
   });
@@ -31,7 +43,8 @@ describe('translations', () => {
     const mismatched = Object.keys(en).filter((key) => {
       const source = en[key as keyof typeof en] as string;
       const target = zh[key as keyof typeof zh] as string;
-      const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort().join(',');
+      const placeholders = (s: string) =>
+        (s.match(/\{\w+\}/g) ?? []).sort().join(',');
       return placeholders(source) !== placeholders(target);
     });
     expect(mismatched).toEqual([]);

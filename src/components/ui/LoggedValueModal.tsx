@@ -23,6 +23,9 @@ interface LoggedValueModalProps {
   onCancel: () => void;
   onSubmit: (value: LoggedValueChange) => void;
   onDelete?: () => void;
+  // Unfold where the button was rather than covering the page — see
+  // FormSheet.
+  inline?: boolean;
 }
 
 // Add/edit one reading in an account's logged history (account_value_history):
@@ -40,6 +43,7 @@ export function LoggedValueModal({
   onCancel,
   onSubmit,
   onDelete,
+  inline,
 }: LoggedValueModalProps) {
   const t = useT();
   const [magnitude, setMagnitude] = useState('');
@@ -57,11 +61,21 @@ export function LoggedValueModal({
 
   const submit = () => {
     if (!magnitude.trim() || !effectiveDate.trim()) return;
-    onSubmit({ value: magnitude.trim(), effectiveDate: effectiveDate.trim(), note: note.trim() });
+    onSubmit({
+      value: magnitude.trim(),
+      effectiveDate: effectiveDate.trim(),
+      note: note.trim(),
+    });
   };
 
   return (
-    <FormSheet visible={visible} title={title} onCancel={onCancel} onSave={submit}>
+    <FormSheet
+      visible={visible}
+      title={title}
+      onCancel={onCancel}
+      onSave={submit}
+      inline={inline}
+    >
       <MoneyField
         label={valueLabel}
         value={magnitude}
@@ -69,7 +83,11 @@ export function LoggedValueModal({
         placeholder={t('common.amountPlaceholder')}
         autoFocus
       />
-      <DateField label={t('common.effectiveDateLabel')} value={effectiveDate} onChange={setEffectiveDate} />
+      <DateField
+        label={t('common.effectiveDateLabel')}
+        value={effectiveDate}
+        onChange={setEffectiveDate}
+      />
       <TextField
         label={t('loggedValueModal.noteLabel')}
         value={note}
@@ -88,6 +106,10 @@ export function LoggedValueModal({
 const styles = StyleSheet.create({
   // Away from Save, at the end of the form — the account editor puts its
   // Close Account link in the same place.
-  deleteRow: { alignItems: 'center', paddingVertical: spacing.sm, marginTop: spacing.md },
+  deleteRow: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
+  },
   deleteText: { color: colors.negative, fontWeight: '600' },
 });

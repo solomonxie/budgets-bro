@@ -19,7 +19,11 @@ import type { LoggedValueChange } from '../../components/ui/LoggedValueModal';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountValueChange, TransactionWithLabels } from '../../domain/types';
+import type {
+  Account,
+  AccountValueChange,
+  TransactionWithLabels,
+} from '../../domain/types';
 
 // The loan as it actually stands, in the balance box (AccountDetailScreen) —
 // one summary line, tap to expand. No what-if inputs: extra-payment
@@ -41,17 +45,24 @@ export function LoanDetailsCard({
 }) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
-  const [readingModal, setReadingModal] = useState<{ editing: AccountValueChange | null } | null>(null);
+  const [readingModal, setReadingModal] = useState<{
+    editing: AccountValueChange | null;
+  } | null>(null);
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const { currentRateBps } = useAccountRateHistory(account.id);
-  const { history: readings, refresh: refreshReadings } = useAccountValueHistory(account.id, 'principal');
+  const { history: readings, refresh: refreshReadings } =
+    useAccountValueHistory(account.id, 'principal');
 
   // On a loan account a payment arrives positive — debt is stored negative,
   // so paying it down moves the balance toward zero, which is the sign
   // remainingPrincipal wants.
   const payments = useMemo(
-    () => transactions.map((tx) => ({ date: tx.date, amountCents: tx.amountCents })),
+    () =>
+      transactions.map((tx) => ({
+        date: tx.date,
+        amountCents: tx.amountCents,
+      })),
     [transactions],
   );
   const principal = useMemo(
@@ -63,6 +74,8 @@ export function LoanDetailsCard({
         openingBalanceCents: account.openingBalanceCents,
         fallbackDate: account.createdAt.slice(0, 10),
         annualRateBps: currentRateBps,
+        termMonths: account.termMonths,
+        asOfDate: currentDateISO(),
         payments,
       }),
     [readings, account, currentRateBps, payments],
@@ -74,9 +87,22 @@ export function LoanDetailsCard({
     const db = await getDb();
     const note = value.note.trim() || null;
     if (readingModal?.editing) {
-      await accountValueHistoryRepo.updateValueChange(db, readingModal.editing.id, valueCents, value.effectiveDate, note);
+      await accountValueHistoryRepo.updateValueChange(
+        db,
+        readingModal.editing.id,
+        valueCents,
+        value.effectiveDate,
+        note,
+      );
     } else {
-      await accountValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate, note, 'principal');
+      await accountValueHistoryRepo.addValueChange(
+        db,
+        account.id,
+        valueCents,
+        value.effectiveDate,
+        note,
+        'principal',
+      );
     }
     bumpDataVersion();
     refreshReadings();
@@ -86,7 +112,10 @@ export function LoanDetailsCard({
   const deleteReading = async () => {
     if (!readingModal?.editing) return;
     const db = await getDb();
-    await accountValueHistoryRepo.deleteValueChange(db, readingModal.editing.id);
+    await accountValueHistoryRepo.deleteValueChange(
+      db,
+      readingModal.editing.id,
+    );
     bumpDataVersion();
     refreshReadings();
     setReadingModal(null);
@@ -101,22 +130,32 @@ export function LoanDetailsCard({
               amount: formatMoney(principal.anchorOwedCents),
               date: principal.anchorDate,
             })
-          : t('loanDetailsCard.sinceOriginHint', { count: principal.paymentsSinceAnchor })}
+          : t('loanDetailsCard.sinceOriginHint', {
+              count: principal.paymentsSinceAnchor,
+            })}
       </Text>
       {!principal.splitInterest && currentRateBps == null ? (
         <Text style={styles.warnHint}>{t('loanDetailsCard.noRateHint')}</Text>
       ) : null}
       {readings.map((reading) => (
-        <Pressable key={reading.id} style={styles.readingRow} onPress={() => setReadingModal({ editing: reading })}>
+        <Pressable
+          key={reading.id}
+          style={styles.readingRow}
+          onPress={() => setReadingModal({ editing: reading })}
+        >
           <View style={styles.readingLeft}>
-            <Text style={styles.readingText}>{formatMoney(reading.valueCents)}</Text>
+            <Text style={styles.readingText}>
+              {formatMoney(reading.valueCents)}
+            </Text>
             {reading.note ? (
               <Text style={styles.readingNote} numberOfLines={1}>
                 {reading.note}
               </Text>
             ) : null}
           </View>
-          <Text style={styles.readingDate}>{t('common.effectivePrefix', { date: reading.effectiveDate })}</Text>
+          <Text style={styles.readingDate}>
+            {t('common.effectivePrefix', { date: reading.effectiveDate })}
+          </Text>
         </Pressable>
       ))}
       <Pressable onPress={() => setReadingModal({ editing: null })}>
@@ -128,13 +167,17 @@ export function LoanDetailsCard({
         valueLabel={t('principalModal.valueLabel')}
         notePlaceholder={t('principalModal.notePlaceholder')}
         initial={{
-          value: readingModal?.editing ? (readingModal.editing.valueCents / 100).toString() : '',
-          effectiveDate: readingModal?.editing?.effectiveDate ?? currentDateISO(),
+          value: readingModal?.editing
+            ? (readingModal.editing.valueCents / 100).toString()
+            : '',
+          effectiveDate:
+            readingModal?.editing?.effectiveDate ?? currentDateISO(),
           note: readingModal?.editing?.note ?? '',
         }}
         onCancel={() => setReadingModal(null)}
         onSubmit={submitReading}
         onDelete={readingModal?.editing ? deleteReading : undefined}
+        inline
       />
     </>
   );
@@ -142,7 +185,10 @@ export function LoanDetailsCard({
   // Without a rate, a term and an amount borrowed there is no payment to
   // schedule and no payoff to project — but a principal reading still works,
   // so the section stays reachable.
-  const hasTerms = currentRateBps != null && account.termMonths != null && account.originalPrincipalCents != null;
+  const hasTerms =
+    currentRateBps != null &&
+    account.termMonths != null &&
+    account.originalPrincipalCents != null;
   if (!hasTerms) {
     return (
       <View style={styles.card}>
@@ -156,30 +202,61 @@ export function LoanDetailsCard({
     );
   }
 
-  const scheduledPaymentCents = monthlyPaymentCents(account.originalPrincipalCents!, currentRateBps!, account.termMonths!);
-  const remainingMonths = remainingMonthsToPayoff(principal.owedCents, currentRateBps!, scheduledPaymentCents);
-  const remainingInterestCents = totalInterestRemainingCents(principal.owedCents, scheduledPaymentCents, remainingMonths);
-  const payoffDate = Number.isFinite(remainingMonths) ? addMonths(currentDateISO(), remainingMonths) : null;
-  const lastPayment = principal.rows.filter((r) => r.amountCents > 0).at(-1) ?? null;
+  const scheduledPaymentCents = monthlyPaymentCents(
+    account.originalPrincipalCents!,
+    currentRateBps!,
+    account.termMonths!,
+  );
+  const remainingMonths = remainingMonthsToPayoff(
+    principal.owedCents,
+    currentRateBps!,
+    scheduledPaymentCents,
+  );
+  const remainingInterestCents = totalInterestRemainingCents(
+    principal.owedCents,
+    scheduledPaymentCents,
+    remainingMonths,
+  );
+  const payoffDate = Number.isFinite(remainingMonths)
+    ? addMonths(currentDateISO(), remainingMonths)
+    : null;
+  const lastPayment =
+    principal.rows.filter((r) => r.amountCents > 0).at(-1) ?? null;
 
   return (
     <View style={styles.card}>
-      <Pressable style={styles.summaryRow} onPress={() => setExpanded((v) => !v)}>
+      <Pressable
+        style={styles.summaryRow}
+        onPress={() => setExpanded((v) => !v)}
+      >
         <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
-            {t('loanDetailsCard.summary', { rate: (currentRateBps! / 100).toFixed(2), payment: formatMoney(scheduledPaymentCents) })}
+            {t('loanDetailsCard.summary', {
+              rate: (currentRateBps! / 100).toFixed(2),
+              payment: formatMoney(scheduledPaymentCents),
+            })}
           </Text>
           <Text style={styles.chevron}>{expanded ? '▾' : '›'}</Text>
         </View>
       </Pressable>
       {expanded ? (
         <>
-          <Row label={t('loanDetailsCard.rateLabel')} value={`${(currentRateBps! / 100).toFixed(2)}%`} />
-          <Row label={t('loanDetailsCard.scheduledPaymentLabel')} value={t('common.perMonth', { amount: formatMoney(scheduledPaymentCents) })} />
+          <Row
+            label={t('loanDetailsCard.rateLabel')}
+            value={`${(currentRateBps! / 100).toFixed(2)}%`}
+          />
+          <Row
+            label={t('loanDetailsCard.scheduledPaymentLabel')}
+            value={t('common.perMonth', {
+              amount: formatMoney(scheduledPaymentCents),
+            })}
+          />
           {lastPayment ? (
             <Row
-              label={t('loanDetailsCard.lastPaymentLabel', { date: lastPayment.date })}
+              label={t('loanDetailsCard.lastPaymentLabel', {
+                date: lastPayment.date,
+              })}
               value={t('loanDetailsCard.splitValue', {
                 interest: formatMoney(lastPayment.interestCents),
                 principal: formatMoney(lastPayment.principalCents),
@@ -197,13 +274,26 @@ export function LoanDetailsCard({
           ) : null}
           <Row
             label={t('loanDetailsCard.projectedPayoffLabel')}
-            value={payoffDate ? t('loanDetailsCard.payoffValue', { date: payoffDate, months: remainingMonths }) : t('loanDetailsCard.paymentTooLow')}
+            value={
+              payoffDate
+                ? t('loanDetailsCard.payoffValue', {
+                    date: payoffDate,
+                    months: remainingMonths,
+                  })
+                : t('loanDetailsCard.paymentTooLow')
+            }
           />
           <Row
             label={t('loanDetailsCard.remainingInterestLabel')}
-            value={Number.isFinite(remainingInterestCents) ? formatMoney(remainingInterestCents) : '—'}
+            value={
+              Number.isFinite(remainingInterestCents)
+                ? formatMoney(remainingInterestCents)
+                : '—'
+            }
           />
-          <Text style={styles.hint}>{t('loanDetailsCard.actualsOnlyHint')}</Text>
+          <Text style={styles.hint}>
+            {t('loanDetailsCard.actualsOnlyHint')}
+          </Text>
           {readingSection}
           <Pressable onPress={() => openEditAccount(account.id)}>
             <Text style={styles.link}>{t('loanDetailsCard.editTerms')}</Text>
@@ -231,15 +321,29 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     gap: spacing.xs,
   },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.textMuted },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
   warnHint: { fontSize: 12, color: colors.negative, lineHeight: 16 },
   link: { color: colors.accent, fontWeight: '600', fontSize: 13, marginTop: 4 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   summaryRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   summaryText: { fontSize: 13, fontWeight: '700', color: colors.text },
   chevron: { fontSize: 14, color: colors.textMuted },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
   rowLabel: { fontSize: 13, color: colors.textMuted },
   rowValue: { fontSize: 13, fontWeight: '700', color: colors.text },
   readingRow: {

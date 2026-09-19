@@ -13,7 +13,11 @@ import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { Account, AccountValueChange, TransactionWithLabels } from '../../domain/types';
+import type {
+  Account,
+  AccountValueChange,
+  TransactionWithLabels,
+} from '../../domain/types';
 
 // Expanded panel under a tracking/savings/cash/asset account's balance box
 // (AccountDetailScreen): value-history chart (ValueHistoryChart), history
@@ -46,7 +50,9 @@ export function TrackingValueDetails({
 }) {
   const t = useT();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const [modal, setModal] = useState<{ editing: AccountValueChange | null } | null>(null);
+  const [modal, setModal] = useState<{
+    editing: AccountValueChange | null;
+  } | null>(null);
 
   const submit = async (value: LoggedValueChange) => {
     const valueCents = Math.round(parseFloat(value.value) * 100);
@@ -54,9 +60,21 @@ export function TrackingValueDetails({
     const db = await getDb();
     const note = value.note.trim() || null;
     if (modal?.editing) {
-      await accountValueHistoryRepo.updateValueChange(db, modal.editing.id, valueCents, value.effectiveDate, note);
+      await accountValueHistoryRepo.updateValueChange(
+        db,
+        modal.editing.id,
+        valueCents,
+        value.effectiveDate,
+        note,
+      );
     } else {
-      await accountValueHistoryRepo.addValueChange(db, account.id, valueCents, value.effectiveDate, note);
+      await accountValueHistoryRepo.addValueChange(
+        db,
+        account.id,
+        valueCents,
+        value.effectiveDate,
+        note,
+      );
     }
     bumpDataVersion();
     refresh();
@@ -72,13 +90,22 @@ export function TrackingValueDetails({
     setModal(null);
   };
 
-
   return (
     <View style={styles.card}>
-      {currentValueCents == null ? <Text style={styles.hint}>{t('trackingValueCard.noValueYet')}</Text> : null}
-      <ValueHistoryChart history={history} transactions={transactions} mode={mode} />
+      {currentValueCents == null ? (
+        <Text style={styles.hint}>{t('trackingValueCard.noValueYet')}</Text>
+      ) : null}
+      <ValueHistoryChart
+        history={history}
+        transactions={transactions}
+        mode={mode}
+      />
       {history.map((h) => (
-        <Pressable key={h.id} style={styles.row} onPress={() => setModal({ editing: h })}>
+        <Pressable
+          key={h.id}
+          style={styles.row}
+          onPress={() => setModal({ editing: h })}
+        >
           <View style={styles.rowLeft}>
             <Text style={styles.rowText}>{formatMoney(h.valueCents)}</Text>
             {h.note ? (
@@ -87,27 +114,41 @@ export function TrackingValueDetails({
               </Text>
             ) : null}
           </View>
-          <Text style={styles.rowDate}>{t('common.effectivePrefix', { date: h.effectiveDate })}</Text>
+          <Text style={styles.rowDate}>
+            {t('common.effectivePrefix', { date: h.effectiveDate })}
+          </Text>
         </Pressable>
       ))}
-      <Pressable style={styles.addBtn} onPress={() => setModal({ editing: null })}>
-        <Text style={styles.addBtnText}>
-          {t(usesLoggedValue(account.type) ? 'trackingValueCard.logValueUpdate' : 'trackingValueCard.logBalanceUpdate')}
-        </Text>
-      </Pressable>
+      {modal == null ? (
+        <Pressable
+          style={styles.addBtn}
+          onPress={() => setModal({ editing: null })}
+        >
+          <Text style={styles.addBtnText}>
+            {t(
+              usesLoggedValue(account.type)
+                ? 'trackingValueCard.logValueUpdate'
+                : 'trackingValueCard.logBalanceUpdate',
+            )}
+          </Text>
+        </Pressable>
+      ) : null}
       <LoggedValueModal
         visible={modal != null}
         title={t('trackingValueModal.title')}
         valueLabel={t('trackingValueModal.totalLabel')}
         notePlaceholder={t('trackingValueModal.notePlaceholder')}
         initial={{
-          value: modal?.editing ? (modal.editing.valueCents / 100).toString() : '',
+          value: modal?.editing
+            ? (modal.editing.valueCents / 100).toString()
+            : '',
           effectiveDate: modal?.editing?.effectiveDate ?? currentDateISO(),
           note: modal?.editing?.note ?? '',
         }}
         onCancel={() => setModal(null)}
         onSubmit={submit}
         onDelete={modal?.editing ? deleteEntry : undefined}
+        inline
       />
     </View>
   );

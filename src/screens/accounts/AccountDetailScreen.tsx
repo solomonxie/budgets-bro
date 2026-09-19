@@ -9,6 +9,11 @@ import { useTransactions } from '../../hooks/useTransactions';
 import { useFutureTransactions } from '../../hooks/useFutureTransactions';
 import { useAccountScheduledTransactions } from '../../hooks/useAccountScheduledTransactions';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
+import { DisclosureChevron } from '../../components/ui/DisclosureChevron';
+import {
+  DropdownField,
+  DropdownOption,
+} from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { getDb } from '../../db/client';
@@ -19,7 +24,16 @@ import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
-import { isLoanLikeType, transactionTakesCategory } from '../../domain/accountKind';
+import {
+  isLoanLikeType,
+  toppedUpByContributions,
+  transactionTakesCategory,
+} from '../../domain/accountKind';
+import {
+  duplicateTransactionIds,
+  matchesReviewFilter,
+} from '../../domain/transactionReview';
+import type { ReviewFilter } from '../../domain/transactionReview';
 import type { AccountType } from '../../domain/types';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { InterestRateDetails } from './InterestRateDetails';
@@ -52,7 +66,10 @@ function categorySubLabel(
   },
   t: (key: TranslationKey) => string,
 ): string | null {
-  if (!transactionTakesCategory(item.accountType, item.transferAccountId != null)) return null;
+  if (
+    !transactionTakesCategory(item.accountType, item.transferAccountId != null)
+  )
+    return null;
   if (item.categoryName)
     return `${item.categoryIcon ? item.categoryIcon + ' ' : ''}${item.categoryName}`;
   return item.amountCents < 0 ? t('common.uncategorized') : null;
@@ -71,7 +88,9 @@ export function AccountDetailScreen() {
   const { accounts, loading } = useAccounts();
   const accountWithBalance = accounts.find((a) => a.account.id === accountId);
   const isMortgage = accountWithBalance?.account.type === 'mortgage';
-  const isTracking = accountWithBalance?.account.type === 'tracking';
+  const isTracking =
+    accountWithBalance != null &&
+    toppedUpByContributions(accountWithBalance.account.type);
   const isAsset = accountWithBalance?.account.type === 'asset';
   const isCreditCard = accountWithBalance?.account.type === 'credit_card';
   const isLoanLike =
@@ -89,6 +108,14 @@ export function AccountDetailScreen() {
   } = useAccountScheduledTransactions(accountId);
   const today = currentDateISO();
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
+  // Open on arrival — the chart is why most people come to this page — but
+  // foldable for the visit, so a long register can be read without it.
+  // Deliberately not remembered: it is a temporary "get out of my way",
+  // not a preference.
+  const [trendExpanded, setTrendExpanded] = useState(true);
+  // Same filter the history page carries — what is missing a payee or a
+  // category, narrowed to this account (see domain/transactionReview).
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter | null>(null);
   const rootNavigation = useNavigation<RootNav>();
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -156,10 +183,33 @@ export function AccountDetailScreen() {
     () => withRunningBalances(transactions, balanceCents),
     [transactions, balanceCents],
   );
+  // Filtered after the running balances are computed — those walk the whole
+  // register backwards from the account's balance, so they have to see every
+  // row whether or not it is shown.
+  const duplicates = useMemo(
+    () => duplicateTransactionIds(transactions),
+    [transactions],
+  );
+  const visibleRows = useMemo(
+    () =>
+      reviewFilter == null
+        ? rows
+        : rows.filter((row) =>
+            matchesReviewFilter(row, reviewFilter, duplicates),
+          ),
+    [rows, reviewFilter, duplicates],
+  );
+  const REVIEW_FILTER_OPTIONS: { value: ReviewFilter; label: string }[] = [
+    { value: 'missingPayee', label: t('transactions.needsPayee') },
+    { value: 'missingCategory', label: t('transactions.needsCategory') },
+    { value: 'any', label: t('transactions.needsReview') },
+  ];
+  const reviewFilterLabel =
+    REVIEW_FILTER_OPTIONS.find((o) => o.value === reviewFilter)?.label ?? '';
 
   const deleteSelected = async () => {
     const db = await getDb();
-    await transactionsRepo.deleteTransactions(db, selectedIds);
+    await transactionsRepo.deleteTransactions(db, boardId, selectedIds);
     exit();
     bumpDataVersion();
   };
@@ -237,22 +287,38 @@ export function AccountDetailScreen() {
                 ) : null}
               </View>
               {isMortgage && accountWithBalance ? (
+                <Pressable
+                  style={styles.trackingValueHeader}
+                  onPress={() => setTrendExpanded((v) => !v)}
+                >
+                  <Text style={styles.trackingValueHeaderText}>
+                    {t('houseValueCard.label')}
+                  </Text>
+                  <DisclosureChevron expanded={trendExpanded} />
+                </Pressable>
+              ) : null}
+              {isMortgage && accountWithBalance && trendExpanded ? (
                 <HouseValueDetails
                   account={accountWithBalance.account}
                   balanceCents={balanceCents}
                   history={valueHistory}
+                  transactions={transactions}
                   currentValueCents={currentValueCents}
                   refresh={refreshValueHistory}
                 />
               ) : null}
               {hasValueHistory && accountWithBalance ? (
-                <View style={styles.trackingValueHeader}>
+                <Pressable
+                  style={styles.trackingValueHeader}
+                  onPress={() => setTrendExpanded((v) => !v)}
+                >
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
-                </View>
+                  <DisclosureChevron expanded={trendExpanded} />
+                </Pressable>
               ) : null}
-              {hasValueHistory && accountWithBalance ? (
+              {hasValueHistory && accountWithBalance && trendExpanded ? (
                 <TrackingValueDetails
                   account={accountWithBalance.account}
                   history={valueHistory}
@@ -263,13 +329,17 @@ export function AccountDetailScreen() {
                 />
               ) : null}
               {showsBalanceTrend && accountWithBalance ? (
-                <View style={styles.trackingValueHeader}>
+                <Pressable
+                  style={styles.trackingValueHeader}
+                  onPress={() => setTrendExpanded((v) => !v)}
+                >
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
-                </View>
+                  <DisclosureChevron expanded={trendExpanded} />
+                </Pressable>
               ) : null}
-              {showsBalanceTrend ? (
+              {showsBalanceTrend && trendExpanded ? (
                 <View style={styles.balanceTrendCard}>
                   <BalanceTrendChart
                     points={balanceTrend}
@@ -325,7 +395,12 @@ export function AccountDetailScreen() {
                               // viewed and hasn't posted, so it is never a
                               // transfer leg of its own.
                               categorySubLabel(
-                                { ...s, accountType: accountWithBalance?.account.type ?? 'cash', transferAccountId: null },
+                                {
+                                  ...s,
+                                  accountType:
+                                    accountWithBalance?.account.type ?? 'cash',
+                                  transferAccountId: null,
+                                },
                                 t,
                               ),
                               t('accountDetail.nextDateLabel', {
@@ -403,9 +478,53 @@ export function AccountDetailScreen() {
                 ) : null}
               </View>
             ) : null}
+            {rows.length > 0 ? (
+              // A section header for the register below, with the filter as
+              // its trailing control — the filter used to hang on its own
+              // between the scheduled card and the first row, touching both
+              // and belonging to neither.
+              <View style={styles.listHeader}>
+                <Text style={styles.listHeaderText}>
+                  {t('accountDetail.transactionsHeading', {
+                    count: visibleRows.length,
+                  })}
+                </Text>
+                <DropdownField
+                  compact
+                  link
+                  label={t('review.title')}
+                  valueLabel={reviewFilterLabel}
+                  placeholder={t('transactions.allRows')}
+                >
+                  {(close) => (
+                    <>
+                      <DropdownOption
+                        label={t('transactions.allRows')}
+                        selected={reviewFilter == null}
+                        onPress={() => {
+                          setReviewFilter(null);
+                          close();
+                        }}
+                      />
+                      {REVIEW_FILTER_OPTIONS.map((o) => (
+                        <DropdownOption
+                          key={o.value}
+                          label={o.label}
+                          selected={reviewFilter === o.value}
+                          onPress={() => {
+                            setReviewFilter(o.value);
+                            close();
+                          }}
+                        />
+                      ))}
+                    </>
+                  )}
+                </DropdownField>
+              </View>
+            ) : null}
           </>
         }
-        data={rows}
+        data={visibleRows}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <Pressable
@@ -472,8 +591,10 @@ export function AccountDetailScreen() {
       {selectMode ? (
         <TransactionSelectionBar
           selectedCount={selectedIds.length}
-          allSelected={selectedIds.length >= rows.length && rows.length > 0}
-          onToggleAll={() => toggleAll(rows.map((r) => r.id))}
+          allSelected={
+            selectedIds.length >= visibleRows.length && visibleRows.length > 0
+          }
+          onToggleAll={() => toggleAll(visibleRows.map((r) => r.id))}
           onSetPayee={setPayeeForSelected}
           onDelete={deleteSelected}
           onDone={exit}
@@ -484,6 +605,22 @@ export function AccountDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  listHeaderText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
   checkbox: {
     width: 20,
     height: 20,

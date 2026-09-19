@@ -7,6 +7,8 @@ const loan = {
   openingBalanceCents: -30_000_000,
   fallbackDate: '2026-01-01',
   annualRateBps: 600,
+  termMonths: null,
+  asOfDate: '2026-12-31',
   payments: [],
 };
 
@@ -21,6 +23,51 @@ describe('remainingPrincipal', () => {
     const result = remainingPrincipal({ ...loan, payments: [{ date: '2026-02-01', amountCents: 200_000 }] });
     // $1,500 of the $2,000 was that month's interest.
     expect(result.owedCents).toBe(29_950_000);
+  });
+
+  it('a mortgage older than the ledger falls back to its own schedule', () => {
+    // Ten years in, with one lonely payment on file: the split walks a
+    // decade of interest onto an untouched principal and comes out owing
+    // more than was borrowed. The contract says otherwise.
+    const result = remainingPrincipal({
+      ...loan,
+      termMonths: 360,
+      asOfDate: '2036-01-01',
+      payments: [{ date: '2036-01-01', amountCents: 200_000 }],
+    });
+    expect(result.owedCents).toBe(25_105_743);
+    expect(result.cappedToSchedule).toBe(true);
+  });
+
+  it('with no term on file an unlogged loan still never grows', () => {
+    const result = remainingPrincipal({
+      ...loan,
+      asOfDate: '2036-01-01',
+      payments: [{ date: '2036-01-01', amountCents: 200_000 }],
+    });
+    expect(result.owedCents).toBe(30_000_000);
+    expect(result.cappedToSchedule).toBe(true);
+  });
+
+  it('lets a drawn-on line of credit grow past what was first borrowed', () => {
+    const result = remainingPrincipal({
+      ...loan,
+      asOfDate: '2026-12-31',
+      payments: [{ date: '2026-06-01', amountCents: -5_000_000 }],
+    });
+    expect(result.owedCents).toBeGreaterThan(35_000_000);
+    expect(result.cappedToSchedule).toBe(false);
+  });
+
+  it('a logged reading is never capped — the statement wins', () => {
+    const result = remainingPrincipal({
+      ...loan,
+      termMonths: 360,
+      asOfDate: '2036-01-01',
+      loggedPrincipal: { valueCents: 29_000_000, effectiveDate: '2035-12-01' },
+    });
+    expect(result.owedCents).toBe(29_000_000);
+    expect(result.cappedToSchedule).toBe(false);
   });
 
   it('a logged reading is ground truth and re-anchors what follows', () => {

@@ -2,6 +2,7 @@ import {
   addMonths,
   buildAmortizationSchedule,
   monthlyPaymentCents,
+  scheduledBalanceCents,
   remainingMonthsToPayoff,
   totalInterestRemainingCents,
 } from './amortization';
@@ -14,6 +15,23 @@ describe('monthlyPaymentCents', () => {
 
   it('divides evenly at 0% interest', () => {
     expect(monthlyPaymentCents(120_000, 0, 12)).toBe(10_000);
+  });
+});
+
+describe('scheduledBalanceCents', () => {
+  it('is the full principal before the first installment and zero after the last', () => {
+    expect(scheduledBalanceCents(10_000_000, 600, 360, 0)).toBe(10_000_000);
+    expect(scheduledBalanceCents(10_000_000, 600, 360, 360)).toBe(0);
+  });
+
+  it('is still most of the loan halfway through a 30yr at 6%', () => {
+    // Early payments are nearly all interest — 15 years in, $71k of the
+    // original $100k is still owed.
+    expect(scheduledBalanceCents(10_000_000, 600, 360, 180)).toBe(7_104_900);
+  });
+
+  it('falls in a straight line at 0%', () => {
+    expect(scheduledBalanceCents(10_000_000, 0, 120, 60)).toBe(5_000_020);
   });
 });
 

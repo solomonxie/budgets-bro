@@ -17,6 +17,26 @@ export function monthlyPaymentCents(principalCents: number, annualRateBps: numbe
   return Math.round((principalCents * r * factor) / (factor - 1));
 }
 
+// What the contract says is still owed `monthsElapsed` installments in — the
+// balance of a loan paid exactly on schedule, never touched by the ledger.
+// Stands in wherever the real payments are unknown: a mortgage taken out
+// years before the board's first transaction has no payments on file for
+// those years, and it did not sit there compounding.
+export function scheduledBalanceCents(
+  principalCents: number,
+  annualRateBps: number,
+  termMonths: number,
+  monthsElapsed: number,
+): number {
+  if (termMonths <= 0 || monthsElapsed <= 0) return principalCents;
+  if (monthsElapsed >= termMonths) return 0;
+  const payment = monthlyPaymentCents(principalCents, annualRateBps, termMonths);
+  const r = monthlyRateFromBps(annualRateBps);
+  if (r === 0) return Math.max(0, principalCents - payment * monthsElapsed);
+  const growth = Math.pow(1 + r, monthsElapsed);
+  return Math.max(0, Math.round(principalCents * growth - (payment * (growth - 1)) / r));
+}
+
 // Months to pay off `balanceCents` at `paymentCents`/month, or Infinity if
 // the payment doesn't even cover the interest accruing each month.
 export function remainingMonthsToPayoff(balanceCents: number, annualRateBps: number, paymentCents: number): number {

@@ -44,6 +44,13 @@ export function monthsBetween(startMonth: string, endMonth: string): string[] {
   return months;
 }
 
+// The last day of a month as a date — for the date math a month string can't
+// do on its own (month lengths differ, and '2026-02-31' is not a date).
+export function lastDateOfMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+
 // Years are 'YYYY' strings — same "sorts and compares as a plain string"
 // property as months, and a month/date string's own first 4 characters.
 export function currentYear(): string {

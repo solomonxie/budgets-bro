@@ -1,63 +1,71 @@
-// Splits a tracking/investment account's manually-logged value history into
-// "deposited" (net of real transactions/transfers posted to the account —
-// contributions minus withdrawals) vs. "gain" (whatever's left once
-// deposits are subtracted from the logged total) for each snapshot date.
-// Gains are derived, not stored — same rule as account balances elsewhere
-// in this app — so there's no new column/mode to keep in sync; this just
-// reads the two tables that already exist (account_value_history,
-// transactions) and lines them up by date. Before the user has logged any
-// real snapshot, every transaction is treated as a deposit on its own —
-// see `impliedValueHistory` below — so there's always a "deposited" line
-// to chart and gain defaults to $0 rather than showing nothing at all.
+// A tracking/investment account's history as a line: what has been paid in
+// ("deposited", the net of real transactions posted to it) against what it
+// is worth ("total"), with the difference falling out as "gain". Gains are
+// derived, not stored — the same rule as account balances elsewhere in this
+// app — so there is no new column to keep in sync; this reads the two
+// tables that already exist (account_value_history, transactions) and lines
+// them up by date.
+//
+// A point per event, valuation or transaction, because both move the line:
+//
+// - on a valuation, the account is worth exactly what was logged, and
+//   whatever that is above the contributions is the gain;
+// - on a transaction, it is worth the last valuation plus everything that
+//   has moved since — the same rule the account's own balance follows (see
+//   accountKind.toppedUpByContributions), so a statement logged in March
+//   and a deposit in April read as the April total, not as March's figure
+//   until someone gets round to logging again;
+// - before the first valuation, the contributions are all there is to go
+//   on and the gain is $0 rather than a guess.
+//
+// Keying only off valuations left an account with one logged statement and
+// a year of contributions as a single point — one point is not a line, and
+// the chart said there was not enough history to draw.
 
 export interface GrowthPoint {
-  date: string; // 'YYYY-MM-DD', one per value_history snapshot
-  totalCents: number; // the logged value itself
-  depositedCents: number; // cumulative transaction amount as of this date
+  date: string; // 'YYYY-MM-DD', one per event
+  totalCents: number; // what the account is worth
+  depositedCents: number; // every contribution paid in up to this date
   gainCents: number; // totalCents - depositedCents; negative on a loss
-}
-
-// Fallback "value history" for an account with no manual log entries yet:
-// treat every transaction as if it had also declared a matching snapshot
-// on its own date (value == cumulative deposits through that date), so
-// gain reads as exactly $0 until a real log entry says otherwise. Collapses
-// same-day transactions into one point so it lines back up with
-// buildGrowthSeries's own same-day grouping (its date <= date sweep would
-// otherwise double-count a later same-day point against an earlier one).
-function impliedValueHistory(transactions: { amountCents: number; date: string }[]): { valueCents: number; effectiveDate: string }[] {
-  const chronological = [...transactions].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  const points: { valueCents: number; effectiveDate: string }[] = [];
-  let running = 0;
-  for (const txn of chronological) {
-    running += txn.amountCents;
-    const last = points[points.length - 1];
-    if (last && last.effectiveDate === txn.date) last.valueCents = running;
-    else points.push({ valueCents: running, effectiveDate: txn.date });
-  }
-  return points;
 }
 
 export function buildGrowthSeries(
   valueHistory: { valueCents: number; effectiveDate: string }[],
   transactions: { amountCents: number; date: string }[],
 ): GrowthPoint[] {
-  const effectiveHistory = valueHistory.length > 0 ? valueHistory : impliedValueHistory(transactions);
-  const chronologicalValues = [...effectiveHistory].sort((a, b) => (a.effectiveDate < b.effectiveDate ? -1 : 1));
-  const chronologicalTxns = [...transactions].sort((a, b) => (a.date < b.date ? -1 : 1));
-
-  let txnIndex = 0;
-  let depositedCents = 0;
-  return chronologicalValues.map((entry) => {
-    while (txnIndex < chronologicalTxns.length && chronologicalTxns[txnIndex].date <= entry.effectiveDate) {
-      depositedCents += chronologicalTxns[txnIndex].amountCents;
-      txnIndex++;
+  const valueByDate = new Map<string, number>();
+  for (const entry of [...valueHistory].sort((a, b) => (a.effectiveDate < b.effectiveDate ? -1 : 1))) {
+    valueByDate.set(entry.effectiveDate, entry.valueCents); // a later reading on the same day wins
+  }
+  // Two running totals per day: what was paid in, and the net movement.
+  // "Deposited" is the money put in — contributions only — so a withdrawal
+  // does not walk the line back down as if the contribution had never
+  // happened, and a pair of rows that cancel out (a transfer recorded on
+  // both sides of the same account) no longer flattens it. The net is what
+  // actually moves the account's worth between valuations.
+  const paidInByDate = new Map<string, number>();
+  const netByDate = new Map<string, number>();
+  for (const txn of transactions) {
+    netByDate.set(txn.date, (netByDate.get(txn.date) ?? 0) + txn.amountCents);
+    if (txn.amountCents > 0) {
+      paidInByDate.set(txn.date, (paidInByDate.get(txn.date) ?? 0) + txn.amountCents);
     }
-    return {
-      date: entry.effectiveDate,
-      totalCents: entry.valueCents,
-      depositedCents,
-      gainCents: entry.valueCents - depositedCents,
-    };
+  }
+  const dates = [...new Set([...valueByDate.keys(), ...netByDate.keys()])].sort();
+
+  let depositedCents = 0;
+  let totalCents = 0;
+  // What the last valuation said the account was worth above its deposits —
+  // carried across the contributions that follow it, since a deposit adds
+  // to the total without changing the gain.
+  let gainCents = 0;
+  return dates.map((date) => {
+    depositedCents += paidInByDate.get(date) ?? 0;
+    totalCents += netByDate.get(date) ?? 0;
+    const logged = valueByDate.get(date);
+    if (logged != null) totalCents = logged;
+    gainCents = totalCents - depositedCents;
+    return { date, totalCents, depositedCents, gainCents };
   });
 }
 

@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
+import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
@@ -25,7 +26,11 @@ import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { InsightsStackParamList } from '../../navigation/types';
+import { useReviewCount } from '../../hooks/useReviewCount';
+import type {
+  InsightsStackParamList,
+  RootStackParamList,
+} from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
 // Flat, domain-shaped: each row is a hub that opens with your real
@@ -51,6 +56,10 @@ export function InsightsScreen() {
     { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
   ];
   const navigation = useNavigation<Nav>();
+  // The review page is a root-stack route, not one of this tab's — it is
+  // reached the same way from the history page.
+  const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const reviewCount = useReviewCount();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
   const { width: windowWidth } = useWindowDimensions();
@@ -58,6 +67,7 @@ export function InsightsScreen() {
     new Set(),
   );
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [scrubIndex, setScrubIndex] = useState<number | null>(null);
   const trendScrollRef = useRef<ScrollView>(null);
 
   const toggleCategoryVisible = (categoryId: number) => {
@@ -195,6 +205,18 @@ export function InsightsScreen() {
     chartHeight - (v / maxValue) * (chartHeight - 8) - 4;
   const yTicks = [maxValue, maxValue / 2, 0];
 
+  // Reading the trend with a finger — the same gesture and marker the net
+  // worth line uses (components/ui/chartScrub). The month under it is
+  // named above the chart, with what was spent in it.
+  const { scrollEnabled: trendScrollEnabled, handlers: trendHandlers } =
+    useChartScrub({
+      count: trendMonths.length,
+      chartWidth,
+      onSelect: setScrubIndex,
+    });
+  const scrubbedMonth =
+    scrubIndex != null ? (trendMonths[scrubIndex] ?? null) : null;
+
   return (
     <ScreenContainer scroll>
       <MonthNav
@@ -260,7 +282,14 @@ export function InsightsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>{t('insights.categoryTrends')}</Text>
-        <Text style={styles.sectionHint}>{t('insights.trendHint')}</Text>
+        {scrubbedMonth != null && scrubIndex != null ? (
+          <Text style={styles.value}>
+            {formatMonthLabel(scrubbedMonth, localeTag(language))} ·{' '}
+            {formatMoney(monthTotals[scrubIndex] ?? 0)}
+          </Text>
+        ) : (
+          <Text style={styles.sectionHint}>{t('insights.trendHint')}</Text>
+        )}
         {trend.series.length === 0 ? (
           <Text style={styles.empty}>{t('insights.notEnoughHistory')}</Text>
         ) : (
@@ -295,12 +324,13 @@ export function InsightsScreen() {
               <ScrollView
                 ref={trendScrollRef}
                 horizontal
+                scrollEnabled={trendScrollEnabled}
                 showsHorizontalScrollIndicator={false}
                 onContentSizeChange={() =>
                   trendScrollRef.current?.scrollToEnd({ animated: false })
                 }
               >
-                <View>
+                <View {...trendHandlers}>
                   <Svg width={chartWidth} height={chartHeight}>
                     {yTicks.map((v) => (
                       <Line
@@ -351,6 +381,13 @@ export function InsightsScreen() {
                         stroke={colors.accent}
                         strokeWidth={1.5}
                         strokeDasharray="6,4"
+                      />
+                    ) : null}
+                    {scrubIndex != null ? (
+                      <ScrubMarker
+                        x={pointX(scrubIndex)}
+                        y={pointY(monthTotals[scrubIndex] ?? 0)}
+                        height={chartHeight}
                       />
                     ) : null}
                   </Svg>
@@ -415,6 +452,20 @@ export function InsightsScreen() {
         <Text style={styles.sectionHint}>{t('insights.utilitiesHint')}</Text>
       </View>
       <View style={styles.card}>
+        {/* Above the rest: everything below reads the ledger, and a number
+            is only worth as much as the rows behind it. */}
+        <Pressable
+          style={[styles.toolRow, styles.toolRowDivider]}
+          onPress={() => rootNavigation.navigate('ReviewTransactions')}
+        >
+          <Text style={styles.toolRowText}>{t('review.title')}</Text>
+          <View style={styles.toolRowRight}>
+            {reviewCount > 0 ? (
+              <Text style={styles.toolRowBadge}>{reviewCount}</Text>
+            ) : null}
+            <Text style={styles.toolRowArrow}>›</Text>
+          </View>
+        </Pressable>
         {UTILITY_ROWS.map((row, i) => (
           <Pressable
             key={row.screen}
@@ -507,4 +558,15 @@ const styles = StyleSheet.create({
   toolRowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
   toolRowText: { fontSize: 15, fontWeight: '600', color: colors.text },
   toolRowArrow: { fontSize: 18, color: colors.textMuted },
+  toolRowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  toolRowBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 999,
+    paddingVertical: 1,
+    paddingHorizontal: 8,
+  },
 });

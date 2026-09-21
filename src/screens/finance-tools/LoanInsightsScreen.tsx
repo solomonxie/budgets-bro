@@ -1,5 +1,5 @@
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import { GuideSection } from '../../components/ui/GuideSection';
+import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { Card } from '../../components/ui/Card';
 import { ResultRow } from '../../components/ui/ResultRow';
 import { FinanceToolList } from './FinanceToolList';
@@ -22,10 +22,7 @@ export function LoanInsightsScreen() {
 
   return (
     <ScreenContainer scroll>
-      <GuideSection
-        heading={t('financeTools.loanGuideHeading')}
-        body={t('financeTools.loanGuideBody')}
-      />
+      <ExperimentalBanner />
       {debts.length > 0 ? (
         <Card title={t('financeTools.yourDebts')}>
           <ResultRow label={t('financeTools.totalOwed')} value={formatMoney(totalOwedCents)} big tone="negative" />

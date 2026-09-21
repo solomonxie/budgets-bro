@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { FinanceToolList } from '../finance-tools/FinanceToolList';
 import { MoneyField } from '../../components/ui/MoneyField';
@@ -347,6 +348,7 @@ export function TaxInsightsScreen() {
 
   return (
     <ScreenContainer scroll>
+      <ExperimentalBanner />
       <GuideSection
         heading={t('taxInsights.guideHeading')}
         body={t('taxInsights.guideBody')}

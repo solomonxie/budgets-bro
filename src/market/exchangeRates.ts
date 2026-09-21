@@ -88,3 +88,33 @@ export function fiveYearsAgoISO(todayISO: string): string {
   const [y, m, d] = todayISO.split('-').map(Number);
   return new Date(Date.UTC(y - 5, m - 1, d)).toISOString().slice(0, 10);
 }
+
+interface LatestResponse {
+  base: string;
+  date: string;
+  rates: Record<string, number>;
+}
+
+/**
+ * Today's published rate from `base` to every currency the ECB lists, in one
+ * request — a list of currencies costs no more than a pair, and adding
+ * another one to it costs nothing at all.
+ */
+export async function fetchLatest(
+  base: string,
+): Promise<{ date: string; rates: Record<string, number> }> {
+  const data = await getJson<LatestResponse>(`${FX_HOST}/latest?from=${base}`);
+  return { date: data.date, rates: { ...data.rates, [base]: 1 } };
+}
+
+/** The rate between any two currencies in a table quoted against one base. */
+export function crossRate(
+  rates: Record<string, number>,
+  from: string,
+  to: string,
+): number | null {
+  const left = rates[from];
+  const right = rates[to];
+  if (!left || !right) return null;
+  return right / left;
+}

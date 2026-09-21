@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { Card } from '../../components/ui/Card';
 import { ResultRow } from '../../components/ui/ResultRow';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -80,6 +81,7 @@ export function CostOfLivingScreen() {
 
   return (
     <ScreenContainer scroll>
+      <ExperimentalBanner />
       <ExpandingFieldGroup>
         <Card title={t('costOfLiving.cityHeading')}>
           <DropdownField

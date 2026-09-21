@@ -18,6 +18,8 @@ export const en = {
   'common.uncategorized': 'Uncategorized',
   'common.noPayee': '(No payee)',
   'common.cannotBeUndone': 'This cannot be undone.',
+  'common.experimental':
+    'Experimental · still being built. Read what this page says as a first draft — more of it is on the way.',
   'common.effectivePrefix': 'effective {date}',
   'common.perMonth': '{amount}/mo',
   'common.amountPlaceholder': '0.00',
@@ -617,9 +619,10 @@ export const en = {
   'investmentGrowth.noDepositsHint':
     'No transactions logged on this account yet, so the whole balance shows as gain. Record deposits/withdrawals as transactions to split the two.',
 
-  'babySteps.introHeading': 'Seven steps, in order',
+  'babySteps.introHeading': 'What the plan is',
   'babySteps.intro':
-    'A fixed order for money decisions: put everything you can spare into one step until it is done, then move to the next. The order matters more than the speed. Nothing here is ticked off by hand where it can be measured — progress is read from the accounts you point each step at.',
+    'A fixed order for money decisions: everything you can spare goes into the step you are on until it is done, and then into the next one. The order matters more than the speed. The seven steps are Dave Ramsey’s — the link at the top of the page is his own account of them; what this page adds is reading them off your accounts instead of your memory.',
+  'babySteps.learnMore': 'Learn more about Dave Ramsey’s 7 Baby Steps →',
   'babySteps.whyHeading': 'Why this order',
   'babySteps.whyBody':
     'Step 1 is a buffer, not a cushion: a small fund stops a flat tyre from becoming fresh debt while you are busy clearing the old kind. Step 2 clears everything but the mortgage, smallest balance first — the point is momentum, not the mathematically optimal interest rate. Step 3 turns the buffer into real cover, three to six months of your own average spending, which is why the target follows your history instead of a round number. Investing waits until Step 4, because a return earned while paying 20% card interest is not a return. Steps 5 to 7 are what the earlier ones buy: a fund for the kids, a house that is finally yours, and money you get to give away.',
@@ -742,9 +745,6 @@ export const en = {
   'transactions.needsCategory': 'Uncategorized',
   'transactions.needsReview': 'Flagged',
 
-  'review.guideHeading': 'What lands here',
-  'review.guideBody':
-    'Rows that look unfinished, gathered so you can deal with them in one pass instead of stumbling on them months later: no category, no payee, a zero amount, a twin posted the same day, or half of a transfer whose other side never arrived. Each card says which of those it is and offers the fix that usually applies. Overspent categories show up too, with the amount they are short and the month to fix it in.',
   'review.guideBottomHeading': 'A flag is an observation, not a rule',
   'review.guideBottomBody':
     'Leave a row exactly as it is and it stays flagged, harmlessly, for as long as you like — nothing here expires, nags, or changes your data on its own. The quick fixes only do what their label says (create the missing half of a transfer, match two amounts, merge same-day twins into one row), and they write through the same paths as editing by hand, so anything they do can be undone from History in Settings.',
@@ -754,15 +754,6 @@ export const en = {
   'purchaseInsights.guideBottomHeading': 'Why bother naming things',
   'purchaseInsights.guideBottomBody':
     'A category tells you groceries cost $600 this month. An item tells you the coffee went from $14 to $19 since spring and that you buy it nine times a quarter. That is the difference between knowing you overspent and knowing on what — and it is the one kind of price history nobody keeps for you, since no shop will show you what the same basket cost a year ago. Items are optional and free-form: name only what is worth watching and leave the rest of the receipt untyped.',
-  'financeTools.mortgageGuideHeading': 'Your mortgages, and the what-ifs',
-  'financeTools.mortgageGuideBody':
-    'At the top, the mortgages you actually have: what is left owing, the rate in force, the home’s logged value, and the equity between them. Below, calculators for the questions an account cannot answer because they are about a loan you have not taken or a payment you have not made — what a house costs to carry, what an extra payment saves, whether refinancing pays for itself, buying against renting.',
-  'financeTools.loanGuideHeading': 'Your debts, and the way out',
-  'financeTools.loanGuideBody':
-    'Every non-mortgage debt you track, what each charges, and what they come to together. The calculators below work on numbers rather than accounts: a full payment schedule, what an extra amount each month does to the finish date, a car loan priced before you sign it, and how much of your income the payments already claim.',
-  'financeTools.investGuideHeading': 'What you hold, and what it could become',
-  'financeTools.investGuideBody':
-    'The total across your investment accounts as last logged — these are figures you copy from a statement, not a live feed, so they are as current as your last entry. The calculators below project forward: what regular contributions compound into, and what a given rate does over years. Projections are arithmetic, not predictions.',
   'taxInsights.guideHeading': 'A year, gathered for tax time',
   'taxInsights.guideBody':
     'Not a return and not advice — this gathers the figures a return tends to ask for, out of the ledger you already keep: what came in and from whom, interest earned and paid, gains on investment accounts, and what you gave away. You say which of your categories mean interest and which mean giving, because only you know how you named them. Everything covers the calendar year shown, and none of it leaves this phone.',
@@ -863,7 +854,7 @@ export const en = {
   'insights.notEnoughHistory': 'Not enough history yet.',
   'insights.avgAxisLabel': 'avg',
   'insights.babySteps': 'Baby Steps',
-  'insights.housing': 'House Hunt',
+  'insights.housing': 'Realtor Insights',
   'houseStatus.watching': 'Watching',
   'houseStatus.viewed': 'Viewed',
   'houseStatus.shortlisted': 'Shortlisted',
@@ -1017,12 +1008,15 @@ export const en = {
   'fx.guideBody':
     'Convert at today’s published rate, then look at the same pair over five years. A converter alone tells you what a transfer costs; the line underneath tells you whether this is a normal week to make it.',
   'fx.converterHeading': 'Convert',
-  'fx.amount': 'Amount',
-  'fx.from': 'From',
-  'fx.to': 'To',
-  'fx.swap': 'Swap ⇅',
+  'fx.addCurrency': '＋ Currency',
+  'fx.addCurrencyTitle': 'Add a currency',
+  'fx.allAdded': 'Every currency the ECB publishes is already on the list.',
+  'fx.converterHint':
+    'Tap a currency to type into it. The rest follow.',
+  'fx.against': 'Against',
+  'fx.addSecondHint':
+    'Add a second currency to see the pair over five years.',
   'fx.rateLine': '1 {from} = {rate} {to}',
-  'fx.samePair': 'Pick two different currencies.',
   'fx.noRateYet': 'No rate yet — pull once with a connection and it is cached.',
   'fx.updating': 'Updating…',
   'fx.updatedOn': 'Rates from {date} · tap to refresh',
@@ -1041,7 +1035,38 @@ export const en = {
     'Above average means your currency buys more than it usually does.',
   'fx.sourceHeading': 'Where the numbers come from',
   'fx.sourceBody':
-    'The European Central Bank’s daily reference rates, via frankfurter.app — free, no account, no key. One request per currency pair per day, made after the page is already on screen, and the answer is kept on this phone so the page works with no signal. The request contains two currency codes and a date range: nothing about you, nothing about your money. Reference rates are mid-market — a bank or a transfer service will give you a worse one, which is the spread you are paying them.',
+    'The European Central Bank’s daily reference rates, via frankfurter.app — free, no account, no key. One request a day for the whole table of rates, one more per pair you chart, both made after the page is already on screen, and the answer is kept on this phone so the page works with no signal. The requests carry nothing but currency codes and a date range: nothing about you, nothing about your money. Reference rates are mid-market — a bank or a transfer service will give you a worse one, which is the spread you are paying them.',
+  'currency.CAD': 'Canadian Dollar',
+  'currency.USD': 'US Dollar',
+  'currency.CNY': 'Chinese Yuan',
+  'currency.EUR': 'Euro',
+  'currency.GBP': 'British Pound',
+  'currency.JPY': 'Japanese Yen',
+  'currency.HKD': 'Hong Kong Dollar',
+  'currency.AUD': 'Australian Dollar',
+  'currency.CHF': 'Swiss Franc',
+  'currency.SGD': 'Singapore Dollar',
+  'currency.KRW': 'South Korean Won',
+  'currency.INR': 'Indian Rupee',
+  'currency.NZD': 'New Zealand Dollar',
+  'currency.MXN': 'Mexican Peso',
+  'currency.BRL': 'Brazilian Real',
+  'currency.SEK': 'Swedish Krona',
+  'currency.NOK': 'Norwegian Krone',
+  'currency.DKK': 'Danish Krone',
+  'currency.PLN': 'Polish Zloty',
+  'currency.CZK': 'Czech Koruna',
+  'currency.HUF': 'Hungarian Forint',
+  'currency.TRY': 'Turkish Lira',
+  'currency.ZAR': 'South African Rand',
+  'currency.THB': 'Thai Baht',
+  'currency.MYR': 'Malaysian Ringgit',
+  'currency.IDR': 'Indonesian Rupiah',
+  'currency.PHP': 'Philippine Peso',
+  'currency.ILS': 'Israeli Shekel',
+  'currency.RON': 'Romanian Leu',
+  'currency.BGN': 'Bulgarian Lev',
+  'currency.ISK': 'Icelandic Krona',
   'insights.purchaseInsights': 'Purchase Insights',
   'purchaseInsights.hint':
     'Every item named on a transaction, ranked by how often you bought it. Tap one for its price over time.',

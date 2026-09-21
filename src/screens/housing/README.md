@@ -3,7 +3,7 @@
 A house hunt has two halves, and only one of them needs the internet.
 
 ```
-HousingInsightsScreen.tsx   (Insights → House Hunt)
+HousingInsightsScreen.tsx   (Insights → Realtor Insights)
 ┌───────────────────────────────┐
 │ Houses card                    │──→ row tap → HouseDetailScreen
 │  (status order, then rating)   │    long-press → pick for comparison

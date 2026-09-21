@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { GuideSection } from '../../components/ui/GuideSection';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import {
   DropdownField,
@@ -30,7 +31,7 @@ import type { CategoryBudgetItem } from '../../hooks/useBudget';
 import { useCategories } from '../../hooks/useCategories';
 import { usePayees } from '../../hooks/usePayees';
 import { useAppStore } from '../../state/useAppStore';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, formatMoneyExact } from '../../domain/money';
 import { currentMonth, formatMonthLabel } from '../../domain/month';
 import { overspentMonths } from '../../domain/budgetMath';
 import * as budgetsRepo from '../../db/repositories/budgetsRepo';
@@ -128,7 +129,7 @@ type OverspentMonth = {
 type ReviewRow =
   { kind: 'txn'; item: WorkItem } | { kind: 'overspent'; item: OverspentMonth };
 
-export function ReviewTransactionsScreen() {
+export function FlaggedTransactionsScreen() {
   const { t, language } = useI18n();
   const navigation = useNavigation<RootNav>();
   const boardId = useAppStore((s) => s.currentBoardId);
@@ -637,7 +638,7 @@ export function ReviewTransactionsScreen() {
               txn.amountCents < 0 ? styles.negative : styles.positive,
             ]}
           >
-            {formatMoney(txn.amountCents)}
+            {formatMoneyExact(txn.amountCents)}
           </Text>
           <RowMenuButton
             items={[
@@ -834,6 +835,21 @@ export function ReviewTransactionsScreen() {
               : `txn-${row.item.txn.id}`
           }
           renderItem={renderRow}
+          // Both explanations scroll with the list rather than pinning: the
+          // rows are the page, and a fixed banner would push them down every
+          // time you came back to it.
+          ListHeaderComponent={
+            <GuideSection
+              heading={t('review.guideHeading')}
+              body={t('review.guideBody')}
+            />
+          }
+          ListFooterComponent={
+            <GuideSection
+              heading={t('review.guideBottomHeading')}
+              body={t('review.guideBottomBody')}
+            />
+          }
           refreshControl={
             <RefreshControl
               refreshing={loading}

@@ -741,8 +741,14 @@ export const en = {
   'transactions.needsPayee': 'No Payee',
   'transactions.needsCategory': 'Uncategorized',
   'transactions.needsReview': 'Needs Review',
+  'transactions.needsReview': 'Flagged',
 
-  'review.title': 'Review',
+  'review.guideHeading': 'What lands here',
+  'review.guideBody':
+    'Rows that look unfinished, gathered so you can deal with them in one pass instead of stumbling on them months later: no category, no payee, a zero amount, a twin posted the same day, or half of a transfer whose other side never arrived. Each card says which of those it is and offers the fix that usually applies. Overspent categories show up too, with the amount they are short and the month to fix it in.',
+  'review.guideBottomHeading': 'A flag is an observation, not a rule',
+  'review.guideBottomBody':
+    'Leave a row exactly as it is and it stays flagged, harmlessly, for as long as you like — nothing here expires, nags, or changes your data on its own. The quick fixes only do what their label says (create the missing half of a transfer, match two amounts, merge same-day twins into one row), and they write through the same paths as editing by hand, so anything they do can be undone from History in Settings.',
   'purchaseInsights.guideHeading': 'Where this comes from',
   'purchaseInsights.guideBody':
     'The Items row on the spend form: type what you actually bought and what each thing cost. Those names collect here, ranked by how often you bought them, with the total spent on each. Tap one for every purchase of it and its price over time.',
@@ -761,6 +767,7 @@ export const en = {
   'taxInsights.guideHeading': 'A year, gathered for tax time',
   'taxInsights.guideBody':
     'Not a return and not advice — this gathers the figures a return tends to ask for, out of the ledger you already keep: what came in and from whom, interest earned and paid, gains on investment accounts, and what you gave away. You say which of your categories mean interest and which mean giving, because only you know how you named them. Everything covers the calendar year shown, and none of it leaves this phone.',
+  'review.title': 'Flagged Transactions',
   'review.chipAll': 'All {count}',
   'review.reasonMissingPayee': 'Payee',
   'review.reasonMissingCategory': 'Category',
@@ -813,6 +820,7 @@ export const en = {
   'review.deleteConfirmTitle': 'Delete this transaction?',
   'review.fixed': 'Solved',
   'review.allClear': 'Nothing needs review.',
+  'review.allClear': 'Nothing is flagged.',
 
   'budget.spentThisMonth': 'Spent This Month',
   'budget.unassigned': 'Unassigned: {amount}',
@@ -821,7 +829,6 @@ export const en = {
   'budget.breakdownAhead': '…of which given to later months',
   'budget.breakdownUnassigned': 'Unassigned',
   'budget.breakdownNote':
-    'What your categories still hold across every month — not only what you assigned this one.',
   'budget.breakdownCardWarning':
     '{amount} of this is spending already charged to a credit card. Card spending empties a category without leaving your cash, so that much is spoken for even though it reads as free.',
   'budget.avgLabel': '12 Months Avg',

@@ -16,7 +16,7 @@ import { useAppStore } from '../state/useAppStore';
 // to go and look at rather than two. Overspent categories are cards there
 // too, so they count here. Every entry point to that page shows the same
 // number from here.
-export function useReviewCount(): number {
+export function useFlaggedCount(): number {
   const [count, setCount] = useState(0);
   const dataVersion = useAppStore((s) => s.dataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);

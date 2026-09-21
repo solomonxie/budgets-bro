@@ -720,7 +720,6 @@ export const zh: Record<keyof typeof en, string> = {
   'transactions.allRows': '全部',
   'transactions.needsPayee': '无收款方',
   'transactions.needsCategory': '未分类',
-  'transactions.needsReview': '待检查',
   'transactions.needsReview': '已标记',
 
   'review.guideHeading': '哪些会出现在这里',
@@ -797,7 +796,6 @@ export const zh: Record<keyof typeof en, string> = {
   'review.pickCategory': '设置分类',
   'review.deleteConfirmTitle': '删除这笔交易？',
   'review.fixed': '已处理',
-  'review.allClear': '没有需要检查的交易。',
   'review.allClear': '没有被标记的交易。',
 
   'budget.spentThisMonth': '本月支出',
@@ -807,6 +805,7 @@ export const zh: Record<keyof typeof en, string> = {
   'budget.breakdownAhead': '……其中分配给之后月份',
   'budget.breakdownUnassigned': '未分配',
   'budget.breakdownNote':
+    '今天手上的现金，减去所有分类（含未来月份）仍持有的金额。无论查看哪个月，这个数字都一样：分配给下个月的钱现在就已经有归属了。',
   'budget.breakdownCardWarning':
     '其中 {amount} 是已经刷在信用卡上的支出。刷卡会清空分类却不动用现金，所以这部分虽然显示为可用，其实已有归属。',
   'budget.avgLabel': '12 个月平均',

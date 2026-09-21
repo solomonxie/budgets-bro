@@ -28,8 +28,10 @@
  NumberField /         tap = the app's own number pad, never the
  UnitAmountField       system keypad
  DateField             Sep 17, 2026  ▾   → wheel picker
- MonthNav              ‹   September 2026   ›   ← label taps to the picker
- MonthPickerModal      a wheel, not a calendar
+ MonthNav              [  ‹  ]  September 2026  [  ›  ]  ← wide steppers; the
+                       label unfolds a wheel in place to jump, and turns
+                       accent while it is open — no chevron, the wheel
+                       under the bar is the affordance
  NumberWheel           spin to a value; the readout taps back to default
  DropdownField         value ▾
  SearchableDropdown    ▾ + search box + "Use “<text>”" to create in place

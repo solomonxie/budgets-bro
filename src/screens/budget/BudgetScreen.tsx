@@ -15,7 +15,6 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
-import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { MonthNav } from '../../components/ui/MonthNav';
 import { CategoryAssignPanel } from './CategoryAssignPanel';
 import { DisclosureChevron } from '../../components/ui/DisclosureChevron';
@@ -132,7 +131,6 @@ export function BudgetScreen() {
     null,
   );
   const [prompt, setPrompt] = useState<PromptState>(null);
-  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
   const saveAssigned = (cents: number) => {
     if (!editingItem) return;
@@ -275,15 +273,9 @@ export function BudgetScreen() {
         label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}
         onNext={() => setMonth(nextMonth(month))}
-        onPressLabel={() => setMonthPickerOpen(true)}
-      />
-      <MonthPickerModal
-        visible={monthPickerOpen}
         month={month}
         onSelect={setMonth}
-        onClose={() => setMonthPickerOpen(false)}
       />
-
       <View style={styles.summaryCard}>
         <View>
           <Text style={styles.summaryLabel}>{t('budget.spentThisMonth')}</Text>

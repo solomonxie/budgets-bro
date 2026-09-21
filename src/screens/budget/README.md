@@ -4,7 +4,6 @@
 BudgetScreen.tsx
 ┌───────────────────────────────┐
 │ MonthNav                       │──→ ../../components/ui/MonthNav.tsx
-│ MonthPickerModal                │──→ ../../components/ui/MonthPickerModal.tsx
 ├───────────────────────────────┤
 │ Summary card (spent, unassigned│──→ inline (same file)
 │ this month, 12-mo avg compare)  │

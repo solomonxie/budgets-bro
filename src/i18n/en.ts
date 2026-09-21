@@ -33,7 +33,6 @@ export const en = {
   'searchableDropdown.useText': 'Use “{text}”',
   'payeePicker.accountBadge': 'Account',
 
-  'monthPickerModal.title': 'Month',
 
   'houseValueModal.title': 'Home Value',
   'houseValueModal.valueLabel': 'Value',

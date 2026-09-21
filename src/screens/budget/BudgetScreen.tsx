@@ -31,7 +31,7 @@ import {
   lastNMonths,
   formatMonthLabel,
 } from '../../domain/month';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, formatMoneyExact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -410,7 +410,7 @@ export function BudgetScreen() {
                 <DisclosureChevron expanded={!collapsed} size={18} />
                 <Text style={styles.groupLabel}>{group.name}</Text>
               </Pressable>
-              <Text style={styles.groupSub}>{formatMoney(subtotal)}</Text>
+              <Text style={styles.groupSub}>{formatMoneyExact(subtotal)}</Text>
               <RowMenuButton
                 items={[
                   {
@@ -502,7 +502,7 @@ export function BudgetScreen() {
                           </Text>
                         </View>
                         <StatusBadge
-                          text={formatMoney(item.balanceCents)}
+                          text={formatMoneyExact(item.balanceCents)}
                           bg={statusColors.bg}
                           fg={statusColors.fg}
                         />

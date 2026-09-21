@@ -30,6 +30,7 @@ export type InsightsStackParamList = {
   InvestmentInsights: undefined;
   TaxInsights: undefined;
   PurchaseInsights: undefined;
+  ExchangeInsights: undefined;
   AiAnalysis: undefined;
   // One route for every calculator — see screens/finance-tools/registry.ts.
   FinanceTool: { tool: FinanceToolId };

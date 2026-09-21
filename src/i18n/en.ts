@@ -575,6 +575,12 @@ export const en = {
   'transactions.needsReview': 'Needs Review',
 
   'review.title': 'Review',
+  'purchaseInsights.guideHeading': 'Where this comes from',
+  'purchaseInsights.guideBody':
+    'The Items row on the spend form: type what you actually bought and what each thing cost. Those names collect here, ranked by how often you bought them, with the total spent on each. Tap one for every purchase of it and its price over time.',
+  'purchaseInsights.guideBottomHeading': 'Why bother naming things',
+  'purchaseInsights.guideBottomBody':
+    'A category tells you groceries cost $600 this month. An item tells you the coffee went from $14 to $19 since spring and that you buy it nine times a quarter. That is the difference between knowing you overspent and knowing on what — and it is the one kind of price history nobody keeps for you, since no shop will show you what the same basket cost a year ago. Items are optional and free-form: name only what is worth watching and leave the rest of the receipt untyped.',
   'review.chipAll': 'All {count}',
   'review.reasonMissingPayee': 'Payee',
   'review.reasonMissingCategory': 'Category',
@@ -671,6 +677,18 @@ export const en = {
   'insights.notEnoughHistory': 'Not enough history yet.',
   'insights.avgAxisLabel': 'avg',
   'insights.babySteps': 'Baby Steps',
+  'insights.purchaseInsights': 'Purchase Insights',
+  'purchaseInsights.hint':
+    'Every item named on a transaction, ranked by how often you bought it. Tap one for its price over time.',
+  'purchaseInsights.empty':
+    'Nothing named yet. Add items to a transaction (the Items row on the spend form) and they collect here.',
+  'purchaseInsights.average': 'avg',
+  'purchaseInsights.latestPrice': 'Latest',
+  'purchaseInsights.timesBought': '{count}×',
+  'purchaseInsights.totalSpent': 'Total {amount}',
+  'purchaseInsights.priceRange': '{min} – {max}',
+  'purchaseInsights.history': 'Every purchase',
+  'purchaseInsights.sameDayCount': '×{count}',
   'insights.taxInsights': 'Tax Insights',
   'insights.utilities': 'Utilities',
   'insights.utilitiesHint': 'Plans and calculators built on your own accounts.',

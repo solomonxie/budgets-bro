@@ -34,7 +34,14 @@ import type {
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
 // Flat, domain-shaped: each row is a hub that opens with your real
 // accounts for that domain and its own calculators underneath.
-type UtilityScreen = 'BabySteps' | 'MortgageInsights' | 'LoanInsights' | 'InvestmentInsights' | 'TaxInsights' | 'AiAnalysis';
+type UtilityScreen =
+  | 'BabySteps'
+  | 'MortgageInsights'
+  | 'LoanInsights'
+  | 'InvestmentInsights'
+  | 'TaxInsights'
+  | 'PurchaseInsights'
+  | 'AiAnalysis';
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
 // order, never cycled.
@@ -48,6 +55,7 @@ export function InsightsScreen() {
   const { t, language } = useI18n();
   const UTILITY_ROWS: { label: string; screen: UtilityScreen }[] = [
     { label: t('insights.babySteps'), screen: 'BabySteps' },
+    { label: t('insights.purchaseInsights'), screen: 'PurchaseInsights' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
     { label: t('insights.loanInsights'), screen: 'LoanInsights' },
     { label: t('insights.investmentInsights'), screen: 'InvestmentInsights' },

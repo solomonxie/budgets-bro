@@ -721,8 +721,14 @@ export const zh: Record<keyof typeof en, string> = {
   'transactions.needsPayee': '无收款方',
   'transactions.needsCategory': '未分类',
   'transactions.needsReview': '待检查',
+  'transactions.needsReview': '已标记',
 
-  'review.title': '待检查交易',
+  'review.guideHeading': '哪些会出现在这里',
+  'review.guideBody':
+    '看起来还没记完的交易会集中到这里，让你一次处理完，而不是几个月后才偶然发现：没有分类、没有收款方、金额为零、同一天记了两笔一模一样的，或是转账只有一半、另一半从未出现。每张卡片都会说明属于哪一种，并给出通常适用的那个修复操作。超支的分类也会出现，并标明差多少、该补在哪个月。',
+  'review.guideBottomHeading': '标记只是提示，不是规则',
+  'review.guideBottomBody':
+    '你完全可以原样留着不动，它会一直安静地标记在这里——这里没有任何东西会过期、催促你，或擅自改动你的数据。快捷修复只做它标签上写的事（补上转账缺失的另一半、让两边金额一致、把同一天的重复合并成一笔），而且走的是与手动编辑相同的写入路径，因此它做过的任何改动都能在「设置 → 修改历史」中撤销。',
   'purchaseInsights.guideHeading': '这些数据从哪来',
   'purchaseInsights.guideBody':
     '来自记账表单上的「物品」一栏：写下你实际买了什么、各自多少钱。这些名称会汇总到这里，按购买次数排序，并显示每项的累计花费。点按任意一项，可看到它的每次购买与价格走势。',
@@ -741,6 +747,7 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.guideHeading': '为报税整理的一年',
   'taxInsights.guideBody':
     '这不是报税表，也不构成税务建议——它只是从你已经在记的账本中，汇总出报税通常会问到的那些数字：收入有多少、来自谁，收到与支付的利息，投资账户的收益，以及你捐出去的钱。哪些分类算利息、哪些算捐赠由你指定，因为只有你知道自己是怎么命名的。所有数据都只覆盖所示的公历年度，且不会离开这台手机。',
+  'review.title': '标记的交易',
   'review.chipAll': '全部 {count}',
   'review.reasonMissingPayee': '收付方',
   'review.reasonMissingCategory': '分类',
@@ -791,6 +798,7 @@ export const zh: Record<keyof typeof en, string> = {
   'review.deleteConfirmTitle': '删除这笔交易？',
   'review.fixed': '已处理',
   'review.allClear': '没有需要检查的交易。',
+  'review.allClear': '没有被标记的交易。',
 
   'budget.spentThisMonth': '本月支出',
   'budget.unassigned': '未分配：{amount}',
@@ -799,7 +807,6 @@ export const zh: Record<keyof typeof en, string> = {
   'budget.breakdownAhead': '……其中分配给之后月份',
   'budget.breakdownUnassigned': '未分配',
   'budget.breakdownNote':
-    '所有分类当前持有的总额（累计所有月份），不只是本月分配的部分。',
   'budget.breakdownCardWarning':
     '其中 {amount} 是已经刷在信用卡上的支出。刷卡会清空分类却不动用现金，所以这部分虽然显示为可用，其实已有归属。',
   'budget.avgLabel': '12 个月平均',

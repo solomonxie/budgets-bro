@@ -25,7 +25,7 @@ import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import { useReviewCount } from '../../hooks/useReviewCount';
+import { useFlaggedCount } from '../../hooks/useFlaggedCount';
 import type {
   InsightsStackParamList,
   RootStackParamList,
@@ -45,6 +45,11 @@ type UtilityScreen =
   | 'CostOfLiving'
   | 'Housing'
   | 'AiAnalysis';
+// The flagged worklist sits in this list too, but lives on the root stack
+// rather than this tab's — reached the same way from the history page.
+type UtilityRow =
+  | { label: string; screen: UtilityScreen; root?: false }
+  | { label: string; screen: 'FlaggedTransactions'; root: true };
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
 // order, never cycled.
@@ -56,8 +61,9 @@ const Y_AXIS_WIDTH = 44;
 
 export function InsightsScreen() {
   const { t, language } = useI18n();
-  const UTILITY_ROWS: { label: string; screen: UtilityScreen }[] = [
+  const UTILITY_ROWS: UtilityRow[] = [
     { label: t('insights.babySteps'), screen: 'BabySteps' },
+    { label: t('review.title'), screen: 'FlaggedTransactions', root: true },
     { label: t('insights.purchaseInsights'), screen: 'PurchaseInsights' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
     { label: t('insights.loanInsights'), screen: 'LoanInsights' },
@@ -72,7 +78,7 @@ export function InsightsScreen() {
   // The review page is a root-stack route, not one of this tab's — it is
   // reached the same way from the history page.
   const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const reviewCount = useReviewCount();
+  const flaggedCount = useFlaggedCount();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
   const { width: windowWidth } = useWindowDimensions();
@@ -458,20 +464,6 @@ export function InsightsScreen() {
         <Text style={styles.sectionHint}>{t('insights.utilitiesHint')}</Text>
       </View>
       <View style={styles.card}>
-        {/* Above the rest: everything below reads the ledger, and a number
-            is only worth as much as the rows behind it. */}
-        <Pressable
-          style={[styles.toolRow, styles.toolRowDivider]}
-          onPress={() => rootNavigation.navigate('ReviewTransactions')}
-        >
-          <Text style={styles.toolRowText}>{t('review.title')}</Text>
-          <View style={styles.toolRowRight}>
-            {reviewCount > 0 ? (
-              <Text style={styles.toolRowBadge}>{reviewCount}</Text>
-            ) : null}
-            <Text style={styles.toolRowArrow}>›</Text>
-          </View>
-        </Pressable>
         {UTILITY_ROWS.map((row, i) => (
           <Pressable
             key={row.screen}
@@ -479,10 +471,21 @@ export function InsightsScreen() {
               styles.toolRow,
               i < UTILITY_ROWS.length - 1 && styles.toolRowDivider,
             ]}
-            onPress={() => navigation.navigate(row.screen)}
+            onPress={() =>
+              row.root
+                ? rootNavigation.navigate(row.screen)
+                : navigation.navigate(row.screen)
+            }
           >
             <Text style={styles.toolRowText}>{row.label}</Text>
-            <Text style={styles.toolRowArrow}>›</Text>
+            <View style={styles.toolRowRight}>
+              {/* A count is only worth as much as the rows behind it, so it
+                  rides on the row itself rather than a separate header. */}
+              {row.root && flaggedCount > 0 ? (
+                <Text style={styles.toolRowBadge}>{flaggedCount}</Text>
+              ) : null}
+              <Text style={styles.toolRowArrow}>›</Text>
+            </View>
           </Pressable>
         ))}
       </View>

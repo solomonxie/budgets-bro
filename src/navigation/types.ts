@@ -32,6 +32,11 @@ export type InsightsStackParamList = {
   PurchaseInsights: undefined;
   ExchangeInsights: undefined;
   CostOfLiving: undefined;
+  Housing: undefined;
+  // No houseId means a new one — same "one form, create or edit" shape the
+  // account sheet uses.
+  HouseDetail: { houseId?: number } | undefined;
+  HouseCompare: { houseIds: number[] };
   AiAnalysis: undefined;
   // One route for every calculator — see screens/finance-tools/registry.ts.
   FinanceTool: { tool: FinanceToolId };

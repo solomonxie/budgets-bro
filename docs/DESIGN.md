@@ -114,6 +114,14 @@ Scope cut for v1: no YNAB-style "Age of Money"/next-month-funding-plan integrati
 ## Core UI
 See [UIUX-DESIGN.md](UIUX-DESIGN.md) — screen-by-screen UI/UX spec plus the conventions it follows.
 
+## App lock (shipped)
+Off by default; Settings → App Lock offers Off · 4-digit passcode · Face ID (labelled Touch ID, or refused outright, per what the phone has enrolled).
+
+- **Where the secrets live**: the Keychain, `WHEN_UNLOCKED_THIS_DEVICE_ONLY` — same boundary as the AI/S3 credentials, so no backup or export path can carry the passcode (see Secrets vs. backups). The mode itself is an `app_settings` row, not a secret.
+- **The passcode is stored as typed, not hashed.** Four digits is ten thousand candidates; a hash of it is decoration. What protects it is iOS's encryption of the Keychain entry.
+- **Biometrics can't lock anyone out**: written under `BIOMETRY_ANY_OR_DEVICE_PASSCODE`, so a face that won't scan falls back to the iPhone's own passcode. There is no app-side recovery for a forgotten *app* passcode by design — reinstalling is the way out, and it takes the data with it.
+- **Locked vs. covered**: locked asks for proof (on cold start, and after 60 seconds away — a lock that challenges every ten-second glance gets switched off, which protects nothing). Covered merely hides the ledger whenever the app isn't frontmost, which is also what iOS photographs for the app switcher.
+
 ## YNAB Data Import
 One-time, manual, user-initiated — not a sync, not bank-linking. Lets someone switch from YNAB without re-entering history.
 

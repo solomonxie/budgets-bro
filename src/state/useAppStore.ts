@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { currentMonth } from '../domain/month';
 import type { Language } from '../i18n';
+import type { LockMode } from '../secure/appLock';
 
 interface AppState {
   currentMonth: string; // 'YYYY-MM'
@@ -11,6 +12,11 @@ interface AppState {
   // does the persisting" split as currentBoardId/useBootstrapActiveBoard.
   language: Language;
   setLanguage: (language: Language) => void;
+
+  // App lock (none / 4-digit passcode / Face ID), restored by useAppLock —
+  // here so Settings changing it re-arms the gate without a remount.
+  lockMode: LockMode;
+  setLockMode: (mode: LockMode) => void;
 
   // Which board (tenant/namespace) every screen reads and writes —
   // persisted separately via useBoards' bootstrap effect, not here (this
@@ -48,6 +54,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   language: 'en',
   setLanguage: (language) => set({ language }),
+
+  lockMode: 'none',
+  setLockMode: (lockMode) => set({ lockMode }),
 
   currentBoardId: 1,
   setCurrentBoardId: (id) => set({ currentBoardId: id }),

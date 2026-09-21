@@ -60,6 +60,13 @@ describe('categoryCaption', () => {
     expect(categoryCaption('overspent', 0, 15000, -4800)).toBe('Overspent by $48');
   });
 
+  it('keeps the cents when a balance is under a dollar', () => {
+    // A category at −40¢ is overspent, and rounding it to whole dollars
+    // reported 'Overspent by $0' beside a red −$0 pill.
+    expect(categoryCaption('overspent', 0, 15000, -40)).toBe('Overspent by $0.40');
+    expect(categoryCaption('fully-spent', 199, 199, 0)).toBe('Fully spent $1.99');
+  });
+
   it('reports not budgeted', () => {
     expect(categoryCaption('unbudgeted', 0, 0, 0)).toBe('Not budgeted');
   });

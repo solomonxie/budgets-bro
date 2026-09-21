@@ -1,4 +1,4 @@
-import { formatMoney } from './money';
+import { formatMoneyExact } from './money';
 
 export type CategoryStatus =
   'overspent' | 'fully-spent' | 'funded' | 'unbudgeted';
@@ -68,6 +68,9 @@ export function categoryStatus(
   return 'funded';
 }
 
+// Exact cents, not whole dollars: a category sitting at −40¢ is overspent,
+// and rounding it to "Overspent by $0" reads as a bug rather than as the
+// forty cents it is.
 export function categoryCaption(
   status: CategoryStatus,
   spentThisMonthCents: number,
@@ -76,14 +79,14 @@ export function categoryCaption(
 ): string {
   switch (status) {
     case 'overspent':
-      return `Overspent by ${formatMoney(-balanceCents)}`;
+      return `Overspent by ${formatMoneyExact(-balanceCents)}`;
     case 'unbudgeted':
       return 'Not budgeted';
     case 'fully-spent':
-      return `Fully spent ${formatMoney(spentThisMonthCents)}`;
+      return `Fully spent ${formatMoneyExact(spentThisMonthCents)}`;
     default:
       return spentThisMonthCents > 0
-        ? `Spent ${formatMoney(spentThisMonthCents)} of ${formatMoney(assignedThisMonthCents)}`
+        ? `Spent ${formatMoneyExact(spentThisMonthCents)} of ${formatMoneyExact(assignedThisMonthCents)}`
         : 'Funded';
   }
 }

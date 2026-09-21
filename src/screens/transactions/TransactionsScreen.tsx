@@ -28,8 +28,8 @@ import { useCategories } from '../../hooks/useCategories';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
-import { formatMoney } from '../../domain/money';
 import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
+import { formatMoneyExact } from '../../domain/money';
 import {
   lastNMonths,
   formatMonthLabel,
@@ -374,7 +374,7 @@ export function TransactionsScreen() {
                     txn.amountCents < 0 ? styles.negative : styles.positive,
                   ]}
                 >
-                  {formatMoney(txn.amountCents)}
+                  {formatMoneyExact(txn.amountCents)}
                 </Text>
               </Pressable>
             ))}

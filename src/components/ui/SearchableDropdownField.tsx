@@ -24,6 +24,10 @@ interface Option {
   // from its neighbours — an account-linked payee posts a transfer rather
   // than just naming who was paid.
   badge?: string;
+  // Shows this row's rename button (only where the caller passed
+  // `onEditOption`) — an account-linked payee is named by its account, so
+  // it opts out.
+  editable?: boolean;
 }
 
 // ~5 option rows tall — fixed regardless of how many results a search
@@ -61,6 +65,10 @@ interface SearchableDropdownFieldProps {
   // what "creating" means (e.g. just accepting the typed name; the payee
   // row itself gets created for real at save time either way).
   onUseText: (text: string) => void;
+  // Per-row rename, offered on `editable` options. Fixing a name where you
+  // notice it is wrong — in the list you are reading — beats hunting the
+  // same name down in a management screen somewhere else.
+  onEditOption?: (option: Option) => void;
   // Same half-height bottom sheet as DropdownField's compact mode — see its
   // doc comment. Off by default (a full-screen page, same as before) since
   // most callers of this one manage a long list.
@@ -82,6 +90,7 @@ export function SearchableDropdownField({
   options,
   onSelect,
   onUseText,
+  onEditOption,
   compact,
   hideLabel,
   row,
@@ -170,6 +179,20 @@ export function SearchableDropdownField({
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{o.badge}</Text>
             </View>
+          ) : null}
+          {onEditOption && o.editable ? (
+            // Nested Pressable: the inner one claims the touch, so editing
+            // never doubles as selecting the row it sits on.
+            <Pressable
+              hitSlop={10}
+              style={styles.edit}
+              onPress={() => {
+                Keyboard.dismiss();
+                onEditOption(o);
+              }}
+            >
+              <Text style={styles.editText}>✎</Text>
+            </Pressable>
           ) : null}
         </Pressable>
       ))}
@@ -341,5 +364,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   badgeText: { fontSize: 11, fontWeight: '700', color: colors.accent },
+  edit: { paddingHorizontal: spacing.sm },
+  editText: { fontSize: 15, color: colors.textMuted },
   useText: { fontSize: 15, color: colors.accent, fontWeight: '600' },
 });

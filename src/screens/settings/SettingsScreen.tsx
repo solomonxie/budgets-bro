@@ -3,17 +3,14 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
-import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { DropdownField } from '../../components/ui/DropdownField';
 import { BackupSection } from './BackupSection';
 import { DataSection } from './DataSection';
 import { HistorySection } from './HistorySection';
 import { useBoards } from '../../hooks/useBoards';
-import { usePayees } from '../../hooks/usePayees';
 import { useLanguageSetting } from '../../hooks/useLanguage';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
-import * as payeesRepo from '../../db/repositories/payeesRepo';
 import {
   listAiKeys,
   addAiKey,
@@ -41,7 +38,6 @@ type ThemePreference = 'dark' | 'light';
 type PromptState =
   | { type: 'newBoard' }
   | { type: 'renameBoard'; boardId: number; initial: string }
-  | { type: 'renamePayee'; payeeId: number; initial: string }
   | null;
 
 export function SettingsScreen() {
@@ -57,12 +53,9 @@ export function SettingsScreen() {
   } = useBoards();
   const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const { payees, refresh: refreshPayees } = usePayees();
   const [prompt, setPrompt] = useState<PromptState>(null);
   const [creatingDemoBoard, setCreatingDemoBoard] = useState(false);
   const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
-  const [selectedPayeeId, setSelectedPayeeId] = useState<number | null>(null);
-  const [payeeNameInput, setPayeeNameInput] = useState('');
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
   const [aiKeys, setAiKeys] = useState<AiKeyMeta[]>([]);
@@ -145,50 +138,8 @@ export function SettingsScreen() {
       await switchBoard(id);
     } else if (prompt?.type === 'renameBoard') {
       await renameBoard(prompt.boardId, value);
-    } else if (prompt?.type === 'renamePayee') {
-      const db = await getDb();
-      await payeesRepo.renamePayee(db, prompt.payeeId, value);
-      setPayeeNameInput(value);
-      refreshPayees();
     }
     setPrompt(null);
-  };
-
-  const selectedPayee = payees.find((p) => p.id === selectedPayeeId) ?? null;
-
-  const selectPayee = (id: number, name: string) => {
-    setSelectedPayeeId(id);
-    setPayeeNameInput(name);
-  };
-
-  const createPayee = async (name: string) => {
-    const db = await getDb();
-    const id = await payeesRepo.findOrCreatePayee(db, boardId, name);
-    refreshPayees();
-    if (id != null) selectPayee(id, name.trim());
-  };
-
-  const deleteSelectedPayee = () => {
-    if (selectedPayeeId == null) return;
-    Alert.alert(
-      t('settings.deletePayeeConfirmTitle', { name: payeeNameInput }),
-      t('settings.deletePayeeConfirmMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const db = await getDb();
-            await payeesRepo.deletePayee(db, selectedPayeeId);
-            setSelectedPayeeId(null);
-            setPayeeNameInput('');
-            refreshPayees();
-            bumpDataVersion();
-          },
-        },
-      ],
-    );
   };
 
   // Always makes a fresh one — deleting the demo board doesn't bring it back
@@ -342,62 +293,6 @@ export function SettingsScreen() {
               </>
             )}
           </DropdownField>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>
-            {t('settings.payeesHeading')}
-          </Text>
-          <SearchableDropdownField
-            compact
-            hideLabel
-            label={t('settings.payeesHeading')}
-            valueLabel={payeeNameInput}
-            placeholder={t('settings.payeeSelectPlaceholder')}
-            searchPlaceholder={t('settings.payeeSearchPlaceholder')}
-            options={payees.map((p) => ({
-              id: p.id,
-              label: p.linkedAccountId != null ? `${p.name} (account)` : p.name,
-            }))}
-            onSelect={(o) =>
-              selectPayee(o.id, o.label.replace(/ \(account\)$/, ''))
-            }
-            onUseText={createPayee}
-          />
-          {selectedPayee != null ? (
-            selectedPayee.linkedAccountId != null ? (
-              <Text style={styles.sectionHint}>
-                {t('settings.payeeLinkedHint')}
-              </Text>
-            ) : (
-              <View style={styles.payeeActions}>
-                <Pressable
-                  style={styles.payeeActionButton}
-                  onPress={() =>
-                    setPrompt({
-                      type: 'renamePayee',
-                      payeeId: selectedPayee.id,
-                      initial: payeeNameInput,
-                    })
-                  }
-                >
-                  <Text style={styles.payeeActionText}>
-                    {t('common.rename')}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={styles.payeeActionButton}
-                  onPress={deleteSelectedPayee}
-                >
-                  <Text
-                    style={[styles.payeeActionText, styles.deletePayeeText]}
-                  >
-                    {t('common.delete')}
-                  </Text>
-                </Pressable>
-              </View>
-            )
-          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -618,15 +513,9 @@ export function SettingsScreen() {
           title={
             prompt?.type === 'newBoard'
               ? t('settings.newBoardTitle')
-              : prompt?.type === 'renamePayee'
-                ? t('settings.renamePayeeTitle')
-                : t('settings.renameBoardTitle')
+              : t('settings.renameBoardTitle')
           }
-          placeholder={
-            prompt?.type === 'renamePayee'
-              ? t('settings.payeeNamePlaceholder')
-              : t('settings.boardNamePlaceholder')
-          }
+          placeholder={t('settings.boardNamePlaceholder')}
           initialValue={prompt && 'initial' in prompt ? prompt.initial : ''}
           onCancel={() => setPrompt(null)}
           onSubmit={submitPrompt}
@@ -717,15 +606,4 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
-  payeeActions: { flexDirection: 'row', gap: spacing.sm },
-  payeeActionButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  payeeActionText: { fontWeight: '600', fontSize: 14, color: colors.text },
-  deletePayeeText: { color: colors.negative },
 });

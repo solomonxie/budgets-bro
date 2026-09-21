@@ -48,6 +48,51 @@ export async function renamePayee(db: SQLiteDatabase, id: number, name: string):
   await db.runAsync('UPDATE payees SET name = ? WHERE id = ?', name, id);
 }
 
+export type RenamePayeeResult = 'renamed' | 'merged' | 'unchanged' | 'nameBelongsToAccount';
+
+// Rename from the transaction form's payee picker, where renaming is the only
+// edit offered: a payee is a name for money you actually moved, so there is
+// no such thing as deleting one — the money still went somewhere, and saying
+// where is a rename. Typing a name that already exists therefore merges,
+// which is the same statement ("these were always the same shop") rather than
+// a second, special operation to find.
+//
+// Merging into an account-linked payee is refused: that name means "a leg
+// posted to this account", and quietly relabelling ordinary spending as a
+// transfer isn't what the user asked for. Account-linked payees are also
+// never renamed here (ensureAccountPayee names them after their account);
+// the picker offers no edit on those rows.
+export async function renameOrMergePayee(
+  db: SQLiteDatabase,
+  boardId: number,
+  id: number,
+  name: string,
+): Promise<RenamePayeeResult> {
+  const trimmed = name.trim();
+  if (!trimmed) return 'unchanged';
+  const current = await getPayee(db, id);
+  if (!current || current.name === trimmed) return 'unchanged';
+
+  const existing = await db.getFirstAsync<PayeeRow>(
+    'SELECT * FROM payees WHERE name = ? AND board_id = ? AND id != ?',
+    trimmed,
+    boardId,
+    id,
+  );
+  if (!existing) {
+    await renamePayee(db, id, trimmed);
+    return 'renamed';
+  }
+  if (existing.linked_account_id != null) return 'nameBelongsToAccount';
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE transactions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
+    await db.runAsync('UPDATE scheduled_transactions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
+    await db.runAsync('DELETE FROM payees WHERE id = ?', id);
+  });
+  return 'merged';
+}
+
 // Manual delete from Settings' payee management — clears the payee off any
 // transaction that used it (foreign_keys is ON, so leaving it set would
 // block the delete) instead of deleting those transactions. Never call this

@@ -32,6 +32,13 @@ export const en = {
 
   'searchableDropdown.useText': 'Use “{text}”',
   'payeePicker.accountBadge': 'Account',
+  'payeePicker.renameTitle': 'Rename payee',
+  'payeePicker.renameHint':
+    'Give it a name already in the list and the two become one payee, on every transaction that used either.',
+  'payeePicker.renamePlaceholder': 'Payee name',
+  'payeePicker.renameBlockedTitle': 'That name belongs to an account',
+  'payeePicker.renameBlockedMessage':
+    'Paying that payee posts a transfer to the account it is named after. Pick a different name.',
 
 
   'houseValueModal.title': 'Home Value',
@@ -65,11 +72,8 @@ export const en = {
   'settings.creatingDemoBoard':
     'Creating demo board — this takes a few seconds…',
   'settings.createDemoBoardFailed': 'Could not create the demo board.',
-  'settings.payeesHeading': 'Manage Payees',
   'settings.payeeSelectPlaceholder': 'Select or create…',
   'settings.payeeSearchPlaceholder': 'Search or type a new payee',
-  'settings.payeeLinkedHint':
-    'Linked to an account — managed automatically, can’t be renamed or deleted here.',
   'settings.appearanceHeading': 'Appearance',
   'settings.themeDark': 'Dark',
   'settings.themeLight': 'Light',
@@ -213,9 +217,7 @@ export const en = {
   'common.less': 'Less',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
-  'settings.renamePayeeTitle': 'Rename Payee',
   'settings.renameBoardTitle': 'Rename Board',
-  'settings.payeeNamePlaceholder': 'Payee name',
   'settings.boardNamePlaceholder': 'e.g. Personal Budget',
   'settings.deleteBoardConfirmTitle': 'Delete "{name}"?',
   'settings.deleteBoardConfirmMessage':
@@ -223,9 +225,6 @@ export const en = {
   'settings.cantDeleteOnlyBoardTitle': 'Can’t delete your only board',
   'settings.cantDeleteOnlyBoardMessage': 'Create another board first.',
   'settings.deleteBoardFailed': 'Could not delete the board.',
-  'settings.deletePayeeConfirmTitle': 'Delete "{name}"?',
-  'settings.deletePayeeConfirmMessage':
-    'Past transactions keep their amounts but lose this payee. This cannot be undone.',
   'settings.importFailed': 'Import failed.',
   'settings.restoreFailed': 'Restore failed.',
   'settings.exportFailedTitle': 'Export failed',

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ScrollView } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { GuideSection } from '../../components/ui/GuideSection';
 import { TextField } from '../../components/ui/TextField';
 import { MoneyField } from '../../components/ui/MoneyField';
 import { BottomSheet } from '../../components/ui/BottomSheet';
@@ -668,6 +669,13 @@ export function BabyStepsScreen() {
   return (
     <ScreenContainer scroll scrollRef={scrollRef}>
       <ExpandingFieldGroup>
+        {/* What the seven steps are, before the first bar — the page is
+            useless to anyone who doesn't know the shape of the plan. The
+            long version waits at the bottom. */}
+        <GuideSection
+          heading={t('babySteps.introHeading')}
+          body={t('babySteps.intro')}
+        />
         <Step
           number={1}
           title={t('babySteps.step1Title')}
@@ -861,6 +869,15 @@ export function BabyStepsScreen() {
           );
         })}
         {goalAccountPickerModal}
+
+        <GuideSection
+          heading={t('babySteps.whyHeading')}
+          body={t('babySteps.whyBody')}
+        />
+        <GuideSection
+          heading={t('babySteps.measuredHeading')}
+          body={t('babySteps.measuredBody')}
+        />
       </ExpandingFieldGroup>
     </ScreenContainer>
   );

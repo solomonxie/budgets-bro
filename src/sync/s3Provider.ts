@@ -1,7 +1,5 @@
 import type { SQLiteDatabase } from '../db/driver';
-import { SignatureV4 } from '@smithy/signature-v4';
-import { HttpRequest } from '@smithy/protocol-http';
-import { Sha256 } from '@aws-crypto/sha256-js';
+import { signS3Request } from './sigv4';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { secureStore } from '../secure/secureStore';
 import * as settingsRepo from '../db/repositories/settingsRepo';
@@ -147,29 +145,14 @@ async function resolveConfig(meta: S3ConfigMeta): Promise<S3Config | null> {
   return creds ? { ...meta, ...creds } : null;
 }
 
-// AWS Signature Version 4 — signed via AWS's own @smithy/signature-v4 (the
-// same signer every AWS SDK uses internally) instead of a hand-rolled HMAC
-// chain, using @aws-crypto/sha256-js (pure JS, no Node/Web Crypto) so it
-// runs on Hermes. `uriEscapePath: false` matches what the real
-// S3 client does — S3's virtual-hosted-style paths aren't re-escaped.
-function signerFor(config: S3Config): SignatureV4 {
-  return new SignatureV4({
-    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-    region: config.region,
-    service: 's3',
-    sha256: Sha256,
-    uriEscapePath: false,
-  });
-}
-
 function nonce(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 // `objectKey: ''` addresses the bucket itself (path "/"), used by the
 // validation checks below. `subresource` signs a bucket sub-resource query
-// (e.g. `publicAccessBlock`) — SigV4 requires it in the canonical query
-// string as `name=` even though the actual request URL omits the `=`.
+// (e.g. `publicAccessBlock`) — it carries an empty value, so both the
+// canonical query string and the URL read `name=`.
 //
 // Every request also gets a unique `x-budgetsbro-nonce` query param, signed like
 // any other. Without it, iOS's URLSession (which fetch sits on top of)
@@ -188,44 +171,36 @@ function nonce(): string {
 // requests ever share a URL, so there's never a stale cache entry to
 // revalidate against, and it incidentally guarantees GET never serves a
 // stale cached copy on restore either.
-async function signRequest(
+function signRequest(
   config: S3Config,
   method: 'PUT' | 'GET' | 'DELETE' | 'HEAD',
   objectKey: string,
   body: Uint8Array | null,
   subresource?: string,
   extraQuery?: Record<string, string>,
-): Promise<{ url: string; headers: Record<string, string> }> {
+): { url: string; headers: Record<string, string> } {
   const hostname = `${config.bucket}.s3.${config.region}.amazonaws.com`;
   const path = objectKey ? `/${objectKey}` : '/';
   const query: Record<string, string> = { 'x-budgetsbro-nonce': nonce(), ...extraQuery };
   if (subresource) query[subresource] = '';
 
-  const request = new HttpRequest({
+  // Signed here rather than by AWS's own signer — see sync/sigv4.ts for why,
+  // and sigv4.test.ts for the proof it produces the same bytes.
+  return signS3Request({
     method,
-    protocol: 'https:',
     hostname,
     path,
     query,
-    headers: { host: hostname },
-    body: body ?? undefined,
+    body,
+    accessKeyId: config.accessKeyId,
+    secretAccessKey: config.secretAccessKey,
+    region: config.region,
+    service: 's3',
   });
-
-  const signed = await signerFor(config).sign(request);
-  const queryString = Object.entries(signed.query as Record<string, string>)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join('&');
-  // `host` is excluded here — fetch derives it from the URL itself (it's a
-  // forbidden header name to set manually), and it's already accounted for
-  // in the signature since it was part of the signed request above.
-  const { host: _host, ...headers } = signed.headers as Record<string, string>;
-
-  return { url: `https://${hostname}${path}?${queryString}`, headers };
 }
 
 async function put(config: S3Config, objectKey: string, body: Uint8Array): Promise<void> {
-  const { url, headers } = await signRequest(config, 'PUT', objectKey, body);
+  const { url, headers } = signRequest(config, 'PUT', objectKey, body);
   // body.slice() copies into a fresh, exactly-sized buffer first — body's
   // own backing ArrayBuffer can be a different byte range than the view
   // (offset/length), which would send different bytes than what was hashed
@@ -241,13 +216,13 @@ async function put(config: S3Config, objectKey: string, body: Uint8Array): Promi
 }
 
 async function del(config: S3Config, objectKey: string): Promise<void> {
-  const { url, headers } = await signRequest(config, 'DELETE', objectKey, null);
+  const { url, headers } = signRequest(config, 'DELETE', objectKey, null);
   const res = await fetch(url, { method: 'DELETE', headers });
   if (!res.ok && res.status !== 404) throw new Error(`S3 DELETE failed: ${res.status} ${await res.text()}`);
 }
 
 async function get(config: S3Config, objectKey: string): Promise<Uint8Array | null> {
-  const { url, headers } = await signRequest(config, 'GET', objectKey, null);
+  const { url, headers } = signRequest(config, 'GET', objectKey, null);
   const res = await fetch(url, { method: 'GET', headers });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`S3 GET failed: ${res.status} ${await res.text()}`);
@@ -267,7 +242,7 @@ async function checkReachable(config: S3Config): Promise<void> {
     // same s3:ListBucket permission as HeadBucket but returns zero keys and
     // AWS's real <Error><Code> (AccessDenied/SignatureDoesNotMatch/etc.) on
     // failure, which the message below now includes.
-    const { url, headers } = await signRequest(config, 'GET', '', null, undefined, { 'list-type': '2', 'max-keys': '0' });
+    const { url, headers } = signRequest(config, 'GET', '', null, undefined, { 'list-type': '2', 'max-keys': '0' });
     res = await fetch(url, { method: 'GET', headers });
   } catch (e) {
     throw new Error(`Bucket unreachable — ${e instanceof Error ? e.message : String(e)}`);
@@ -409,7 +384,7 @@ async function listObjectsPage(
   const query: Record<string, string> = { 'list-type': '2', 'delimiter': '/', 'max-keys': '1000' };
   if (prefix) query.prefix = prefix;
   if (continuationToken) query['continuation-token'] = continuationToken;
-  const { url, headers } = await signRequest(config, 'GET', '', null, undefined, query);
+  const { url, headers } = signRequest(config, 'GET', '', null, undefined, query);
   const res = await fetch(url, { method: 'GET', headers });
   if (!res.ok) throw new Error(`S3 list failed: ${res.status} ${await res.text()}`);
   const xml = await res.text();
@@ -441,7 +416,7 @@ async function listAllKeys(config: S3Config, root: string | undefined): Promise<
     const query: Record<string, string> = { 'list-type': '2', 'max-keys': '1000' };
     if (prefix) query.prefix = prefix;
     if (token) query['continuation-token'] = token;
-    const { url, headers } = await signRequest(config, 'GET', '', null, undefined, query);
+    const { url, headers } = signRequest(config, 'GET', '', null, undefined, query);
     const res = await fetch(url, { method: 'GET', headers });
     if (!res.ok) throw new Error(`S3 list failed: ${res.status} ${await res.text()}`);
     const xml = await res.text();

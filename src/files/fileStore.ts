@@ -10,7 +10,7 @@ import {
   unlink,
   writeFile,
 } from '@dr.pogodin/react-native-fs';
-import { Buffer } from 'buffer';
+import { base64ToBytes, bytesToBase64 } from './bytes';
 
 // The handful of file operations this app actually does, in one place.
 //
@@ -73,14 +73,14 @@ export async function listFiles(dir: string): Promise<FileEntry[]> {
 export async function readBytes(path: string): Promise<Uint8Array | null> {
   if (!(await exists(path))) return null;
   const base64 = await readFile(path, 'base64');
-  return new Uint8Array(Buffer.from(base64, 'base64'));
+  return base64ToBytes(base64);
 }
 
 export async function writeBytes(
   path: string,
   bytes: Uint8Array,
 ): Promise<void> {
-  await writeFile(path, Buffer.from(bytes).toString('base64'), 'base64');
+  await writeFile(path, bytesToBase64(bytes), 'base64');
 }
 
 export async function removePath(path: string): Promise<void> {

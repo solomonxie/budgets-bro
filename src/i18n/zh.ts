@@ -205,6 +205,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreResultTransactions': '交易',
   'settings.exportBoard': '导出当前账本',
   'settings.aboutHeading': '关于',
+  'common.more': '展开',
+  'common.less': '收起',
   'settings.version': '版本',
   'settings.newBoardTitle': '新建账本',
   'settings.renamePayeeTitle': '重命名收款方',

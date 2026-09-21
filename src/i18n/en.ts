@@ -209,6 +209,8 @@ export const en = {
   'settings.restoreResultTransactions': 'Transactions',
   'settings.exportBoard': 'Export this board',
   'settings.aboutHeading': 'About',
+  'common.more': 'More',
+  'common.less': 'Less',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renamePayeeTitle': 'Rename Payee',

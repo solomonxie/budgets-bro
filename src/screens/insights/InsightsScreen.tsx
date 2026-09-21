@@ -13,7 +13,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { MonthNav } from '../../components/ui/MonthNav';
-import { MonthPickerModal } from '../../components/ui/MonthPickerModal';
 import { useInsights } from '../../hooks/useInsights';
 import {
   currentMonth,
@@ -66,7 +65,6 @@ export function InsightsScreen() {
   const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<number>>(
     new Set(),
   );
-  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [scrubIndex, setScrubIndex] = useState<number | null>(null);
   const trendScrollRef = useRef<ScrollView>(null);
 
@@ -223,15 +221,9 @@ export function InsightsScreen() {
         label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}
         onNext={() => setMonth(nextMonth(month))}
-        onPressLabel={() => setMonthPickerOpen(true)}
-      />
-      <MonthPickerModal
-        visible={monthPickerOpen}
         month={month}
         onSelect={setMonth}
-        onClose={() => setMonthPickerOpen(false)}
       />
-
       <View style={styles.card}>
         <Text style={styles.label}>{t('insights.spendingBreakdown')}</Text>
         <Text style={styles.value}>{formatMoney(totalSpentCents)}</Text>

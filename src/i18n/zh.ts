@@ -36,7 +36,6 @@ export const zh: Record<keyof typeof en, string> = {
   'searchableDropdown.useText': '使用「{text}」',
   'payeePicker.accountBadge': '账户',
 
-  'monthPickerModal.title': '月份',
 
   'houseValueModal.title': '房屋价值',
   'houseValueModal.valueLabel': '价值',

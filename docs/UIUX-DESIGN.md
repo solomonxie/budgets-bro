@@ -166,7 +166,7 @@ Sometimes text link style look better than big button, depends on the usage.
 - Dates open the OS spinner from a tap on the field, inside a confirm sheet. Never an inline wheel: nested inside a sheet's own draggable ScrollView it fights the drag-to-dismiss gesture, and a hand-rolled wheel failed twice on "must scroll reliably inside a modal" before the native one just worked.
 - Neither platform has a month-only mode. Reuse the same date spinner and discard the day on Done — a custom year+month wheel would match exactly, but isn't worth re-fighting the scroll problem for.
 - Any numeric field that's a choice rather than typing (a repeat interval) uses the same tapped-open native wheel, not a keyboard field.
-- Month navigation is arrows **plus** a tappable label — stepping one at a time is not a way to reach last March.
+- Month navigation is arrows **plus** a tappable label — stepping one at a time is not a way to reach last March. Size them by use: stepping is the common case, so the arrows are wide slabs and the label unfolds its wheel in place rather than popping a modal over the page it is filtering.
 - Date defaults to today. Short format ("Sep 12") where the year is noise, full format where old dates are the point — opt in per field, never globally.
 - Recurrence picker: show the frequency + interval + weekday builder directly, one view. A preset list (Daily/Weekly/…/Custom) just makes the real builder something you pick "Custom" to reach. Model it on Apple Reminders' shape, and use the one shared component everywhere a schedule is created.
 

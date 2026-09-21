@@ -513,6 +513,7 @@ export function BudgetScreen() {
                     {expanded ? (
                       <CategoryAssignPanel
                         initialCents={item.assignedThisMonthCents}
+                        activityCents={item.activityThisMonthCents}
                         unassignedCents={unassignedCents}
                         lastMonthAssignedCents={
                           prevMonthAssignedByCategory[item.category.id] ?? 0

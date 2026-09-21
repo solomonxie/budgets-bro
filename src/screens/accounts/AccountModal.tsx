@@ -45,24 +45,25 @@ import type {
   AccountType,
   AccountValueChange,
   AccountValueKind,
+  TrackingKind,
 } from '../../domain/types';
+import { TRACKING_KINDS } from '../../domain/types';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
+import { GuideSection } from '../../components/ui/GuideSection';
+import { InfoButton } from '../../components/ui/InfoButton';
+import { ExpandingSection } from '../../components/ui/ExpandingSection';
+import {
+  TYPE_LABEL_KEY,
+  howItWorksKey,
+  trackingKindKey,
+  whatItIsForKey,
+} from './accountTypeGuide';
 import type { ReactNode } from 'react';
 
 // A beat after typing stops — long enough not to write on every keystroke,
 // short enough that leaving the page never races the save.
 const AUTO_SAVE_DELAY_MS = 800;
 
-const TYPE_LABEL_KEY: Record<AccountType, TranslationKey> = {
-  cash: 'accountModal.typeCash',
-  savings: 'accountModal.typeSavings',
-  tracking: 'accountModal.typeTracking',
-  asset: 'accountModal.typeAsset',
-  giving: 'accountModal.typeGiving',
-  loan: 'accountModal.typeLoan',
-  mortgage: 'accountModal.typeMortgage',
-  credit_card: 'accountModal.typeCreditCard',
-};
 const TYPE_VALUES: AccountType[] = [
   'cash',
   'savings',
@@ -81,6 +82,25 @@ const parseCents = (text: string): number | null => {
 
 // Same "one sheet, create or edit" pattern as the transaction modal —
 // "+ Add Account" used to push a full-screen form; this matches it.
+// Every ⓘ on this form is the same shape: a title and one or two
+// paragraphs from the dictionary. The fields here each carry a rule that a
+// one-line hint can't hold — what an opening balance is for, why a loan has
+// readings instead of a balance — and the alternative is a page of prose
+// nobody reads.
+function fieldInfo(
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string,
+  titleKey: TranslationKey,
+  ...bodyKeys: TranslationKey[]
+) {
+  return (
+    <InfoButton
+      title={t(titleKey)}
+      paragraphs={bodyKeys.map((key) => t(key))}
+      closeLabel={t('common.done')}
+    />
+  );
+}
+
 export function AccountModal() {
   const t = useT();
   const TYPE_OPTIONS: { value: AccountType; label: string }[] = TYPE_VALUES.map(
@@ -125,6 +145,9 @@ export function AccountModal() {
     number | null
   >(null);
   const [archivedAt, setArchivedAt] = useState<Account['archivedAt']>(null);
+  // Only meaningful on a tracking account; left as typed for every other
+  // type so switching type back and forth doesn't quietly lose it.
+  const [trackingKind, setTrackingKind] = useState<TrackingKind>('general');
   const [rateModal, setRateModal] = useState<{
     editing: AccountRateChange | null;
   } | null>(null);
@@ -185,6 +208,7 @@ export function AccountModal() {
       setOriginationDate(account.originationDate ?? currentDateISO());
       setNote(account.note ?? '');
       setArchivedAt(account.archivedAt);
+      setTrackingKind(account.trackingKind ?? 'general');
       const houseValueCents = await accountValueHistoryRepo.currentValueCents(
         db,
         editingAccountId,
@@ -290,6 +314,7 @@ export function AccountModal() {
         ? parseCents(originalHousePrice)
         : null,
       note: note.trim() || null,
+      trackingKind: type === 'tracking' ? trackingKind : null,
     };
     // Each figure typed here becomes a reading dated today, and only if it
     // actually changed — re-saving the form otherwise piles up identical rows
@@ -663,6 +688,35 @@ export function AccountModal() {
                 </>
               )}
             </DropdownField>
+            {type === 'tracking' ? (
+              <DropdownField
+                compact
+                label={t('accountModal.trackingKindLabel')}
+                valueLabel={t(trackingKindKey(trackingKind))}
+                info={fieldInfo(
+                  t,
+                  'accountInfo.trackingKindTitle',
+                  'accountInfo.trackingKindBody',
+                  'accountInfo.trackingKindScope',
+                )}
+              >
+                {(closeDropdown) => (
+                  <>
+                    {TRACKING_KINDS.map((kind) => (
+                      <DropdownOption
+                        key={kind}
+                        label={t(trackingKindKey(kind))}
+                        selected={trackingKind === kind}
+                        onPress={() => {
+                          setTrackingKind(kind);
+                          closeDropdown();
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+              </DropdownField>
+            ) : null}
             {/* A loan has no ledger balance to seed: what it owes is a reading
               (latest 'principal' entry, estimated from real payments in
               between — see finance-tools/remainingPrincipal), so asking for
@@ -676,11 +730,23 @@ export function AccountModal() {
                       <ReadingSummary
                         label={t('accountModal.currentHouseValueLabel')}
                         valueCents={loadedHouseValueCents}
+                        info={fieldInfo(
+                          t,
+                          'accountInfo.houseValueTitle',
+                          'accountInfo.houseValueBody',
+                          'accountInfo.houseValueUse',
+                        )}
                         t={t}
                       />
                     ) : (
                       <MoneyField
                         label={t('accountModal.currentHouseValueLabel')}
+                        info={fieldInfo(
+                          t,
+                          'accountInfo.houseValueTitle',
+                          'accountInfo.houseValueBody',
+                          'accountInfo.houseValueUse',
+                        )}
                         value={currentHouseValue}
                         onChangeText={setCurrentHouseValue}
                         placeholder={t('common.amountPlaceholder')}
@@ -690,6 +756,12 @@ export function AccountModal() {
                     {isEditing ? (
                       <ReadingList
                         label={t('accountModal.houseValueHistoryLabel')}
+                        info={fieldInfo(
+                          t,
+                          'accountInfo.houseValueTitle',
+                          'accountInfo.houseValueBody',
+                          'accountInfo.houseValueUse',
+                        )}
                         emptyLabel={t('accountModal.noReadings')}
                         addLabel={t('accountModal.addHouseValue')}
                         readings={houseValueHistory}
@@ -706,12 +778,24 @@ export function AccountModal() {
                   {isEditing ? (
                     <ReadingSummary
                       label={t('accountModal.currentPrincipalLabel')}
+                      info={fieldInfo(
+                        t,
+                        'accountInfo.principalTitle',
+                        'accountInfo.principalBody',
+                        'accountInfo.principalUse',
+                      )}
                       valueCents={loadedPrincipalCents}
                       t={t}
                     />
                   ) : (
                     <MoneyField
                       label={t('accountModal.currentPrincipalLabel')}
+                      info={fieldInfo(
+                        t,
+                        'accountInfo.principalTitle',
+                        'accountInfo.principalBody',
+                        'accountInfo.principalUse',
+                      )}
                       value={currentPrincipal}
                       onChangeText={setCurrentPrincipal}
                       placeholder={t('common.amountPlaceholder')}
@@ -721,6 +805,12 @@ export function AccountModal() {
                   {isEditing ? (
                     <ReadingList
                       label={t('accountModal.principalHistoryLabel')}
+                      info={fieldInfo(
+                        t,
+                        'accountInfo.principalTitle',
+                        'accountInfo.principalBody',
+                        'accountInfo.principalUse',
+                      )}
                       emptyLabel={t('accountModal.noReadings')}
                       addLabel={t('accountModal.addPrincipal')}
                       readings={principalHistory}
@@ -738,12 +828,24 @@ export function AccountModal() {
                 {isEditing ? (
                   <ReadingSummary
                     label={t('accountModal.currentValueLabel')}
+                    info={fieldInfo(
+                      t,
+                      'accountInfo.valueHistoryTitle',
+                      'accountInfo.valueHistoryBody',
+                      'accountInfo.valueHistoryUse',
+                    )}
                     valueCents={loadedHouseValueCents}
                     t={t}
                   />
                 ) : (
                   <MoneyField
                     label={t('accountModal.currentValueLabel')}
+                    info={fieldInfo(
+                      t,
+                      'accountInfo.valueHistoryTitle',
+                      'accountInfo.valueHistoryBody',
+                      'accountInfo.valueHistoryUse',
+                    )}
                     value={currentHouseValue}
                     onChangeText={setCurrentHouseValue}
                     placeholder={t('common.amountPlaceholder')}
@@ -753,6 +855,12 @@ export function AccountModal() {
                 {isEditing ? (
                   <ReadingList
                     label={t('accountModal.valueHistoryLabel')}
+                    info={fieldInfo(
+                      t,
+                      'accountInfo.valueHistoryTitle',
+                      'accountInfo.valueHistoryBody',
+                      'accountInfo.valueHistoryUse',
+                    )}
                     emptyLabel={t('accountModal.noReadings')}
                     addLabel={t('accountModal.addValue')}
                     readings={houseValueHistory}
@@ -767,6 +875,12 @@ export function AccountModal() {
             ) : isEditing ? (
               <MoneyField
                 label={t('accountModal.latestBalanceLabel')}
+                info={fieldInfo(
+                  t,
+                  'accountInfo.latestBalanceTitle',
+                  'accountInfo.latestBalanceBody',
+                  'accountInfo.latestBalanceFlow',
+                )}
                 value={latestBalance}
                 onChangeText={setLatestBalance}
                 placeholder={t('common.amountPlaceholder')}
@@ -775,9 +889,17 @@ export function AccountModal() {
             ) : null}
             {tracksInterestRate ? (
               <>
-                <Text style={styles.sectionLabel}>
-                  {t('accountModal.interestRateHeading')}
-                </Text>
+                <View style={styles.sectionLabelRow}>
+                  <Text style={styles.sectionLabel}>
+                    {t('accountModal.interestRateHeading')}
+                  </Text>
+                  {fieldInfo(
+                    t,
+                    'accountInfo.rateHistoryTitle',
+                    'accountInfo.rateHistoryBody',
+                    'accountInfo.rateHistoryUse',
+                  )}
+                </View>
                 {isEditing ? (
                   <View style={styles.field}>
                     <Text style={styles.label}>
@@ -858,9 +980,17 @@ export function AccountModal() {
             ) : null}
             {isLoanLike ? (
               <>
-                <Text style={styles.sectionLabel}>
-                  {t('accountModal.loanTermsHeading')}
-                </Text>
+                <View style={styles.sectionLabelRow}>
+                  <Text style={styles.sectionLabel}>
+                    {t('accountModal.loanTermsHeading')}
+                  </Text>
+                  {fieldInfo(
+                    t,
+                    'accountInfo.loanTermsTitle',
+                    'accountInfo.loanTermsBody',
+                    'accountInfo.loanTermsBorrowed',
+                  )}
+                </View>
                 <TextField
                   label={t('common.termMonthsLabel')}
                   value={termMonths}
@@ -943,11 +1073,36 @@ export function AccountModal() {
                 style={styles.noteInput}
               />
             )}
+            {/* Folded away under the note: the explanation is worth having
+                on the page someone edits an account on, but it is not worth
+                a screenful every time they open it. */}
+            <ExpandingSection
+              label={t('accountGuide.learnMore', {
+                type: t(TYPE_LABEL_KEY[type]),
+              })}
+              summary=""
+            >
+              <GuideSection
+                heading={t('accountGuide.howHeading')}
+                body={t(howItWorksKey(type))}
+              />
+              <GuideSection
+                heading={t('accountGuide.helpsHeading')}
+                body={t(whatItIsForKey(type))}
+              />
+            </ExpandingSection>
             {isEditing && isLoanLike ? (
               <View style={styles.field}>
-                <Text style={styles.sectionLabel}>
-                  {t('accountModal.toolsHeading')}
-                </Text>
+                <View style={styles.sectionLabelRow}>
+                  <Text style={styles.sectionLabel}>
+                    {t('accountModal.toolsHeading')}
+                  </Text>
+                  {fieldInfo(
+                    t,
+                    'accountInfo.toolsTitle',
+                    'accountInfo.toolsBody',
+                  )}
+                </View>
                 <Pressable
                   style={styles.rateRow}
                   onPress={() => setToolsOpen(true)}
@@ -1020,15 +1175,20 @@ export function AccountModal() {
 function ReadingSummary({
   label,
   valueCents,
+  info,
   t,
 }: {
   label: string;
   valueCents: number | null;
+  info?: ReactNode;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {info}
+      </View>
       <Text style={styles.readingSummaryValue}>
         {valueCents != null
           ? formatMoney(valueCents)
@@ -1043,6 +1203,7 @@ function ReadingList({
   label,
   emptyLabel,
   addLabel,
+  info,
   readings,
   onOpen,
   t,
@@ -1051,6 +1212,7 @@ function ReadingList({
   label: string;
   emptyLabel: string;
   addLabel: string;
+  info?: ReactNode;
   readings: AccountValueChange[];
   onOpen: (editing: AccountValueChange | null) => void;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
@@ -1060,7 +1222,10 @@ function ReadingList({
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {info}
+      </View>
       {readings.length === 0 ? (
         <Text style={styles.hint}>{emptyLabel}</Text>
       ) : null}
@@ -1107,6 +1272,8 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   hint: { fontSize: 12, color: colors.textMuted },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',

@@ -23,6 +23,7 @@ export interface AccountRow {
   origination_date: string | null;
   original_house_price_cents: number | null;
   note: string | null;
+  tracking_kind: string | null;
 }
 
 export interface AccountRateHistoryRow {

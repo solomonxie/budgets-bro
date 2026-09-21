@@ -210,6 +210,95 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.aboutHeading': '关于',
   'common.more': '展开',
   'common.less': '收起',
+  'accountModal.trackingKindLabel': '账户计划类型',
+  'accountModal.trackingKindHint': '此处只列出应用能够准确描述的计划类型，其余一律归为「一般跟踪」。',
+  'trackingKind.general': '一般跟踪',
+  'trackingKind.ca_rrsp': '加拿大 — RRSP',
+  'trackingKind.ca_tfsa': '加拿大 — TFSA',
+  'trackingKind.ca_fhsa': '加拿大 — FHSA',
+  'trackingKind.ca_resp': '加拿大 — RESP',
+  'trackingKind.ca_rrif': '加拿大 — RRIF',
+  'trackingKind.ca_lira': '加拿大 — LIRA',
+  'trackingKind.us_401k': '美国 — 401(k)',
+  'trackingKind.us_ira': '美国 — 传统 IRA',
+  'trackingKind.us_roth_ira': '美国 — Roth IRA',
+  'trackingKind.us_529': '美国 — 529',
+  'accountInfo.trackingKindTitle': '账户计划类型',
+  'accountInfo.trackingKindBody':
+    '用于标明这是哪一类注册账户。它不会改变任何计算——余额就是余额——但它为账户加上标签，也让报表能区分退休计划、首次购房储蓄和子女教育金。',
+  'accountInfo.trackingKindScope':
+    '这里只提供应用能够准确描述其规则的计划类型，且目前不会声称任何供款上限或税务处理。未列出的类型一律保持「一般跟踪」，而不是被归入一个它并不遵循的计划。',
+  'accountInfo.latestBalanceTitle': '当前余额',
+  'accountInfo.latestBalanceBody':
+    '填入银行实际显示的金额。Budgets Bro 会按差额记一笔未分类的调整交易，收款方为「余额调整」，其他内容一概不动。',
+  'accountInfo.latestBalanceFlow':
+    '这笔调整会像任何未分类交易一样进入「未分配现金」，无论是增是减——发现原本并不存在的钱，就必须从预算里消失，而不只是从账户里消失。这里没有单独的对账模式，这就是对账。',
+  'accountInfo.rateHistoryTitle': '利率历史',
+  'accountInfo.rateHistoryBody':
+    '利率是带日期的事实，而不是一个数字。续约或央行调整只会从那一天起生效，之前的一切保持不变，所以这里是一份记录列表，而不是一个会被覆盖的字段。',
+  'accountInfo.rateHistoryUse':
+    '所有推算都会使用当时生效的利率。新增一条变更不会改写已经发生的事，只会让之后的数字正确。可以放心补录过去的日期：某一天适用的，是不晚于那天的最新一条。',
+  'accountInfo.houseValueTitle': '房屋价值',
+  'accountInfo.houseValueBody':
+    '这是你自己对房子价值的估计，想更新时就记录一次。应用不会去抓取任何数据——没有估价服务，没有地址查询，也不会替你猜测。',
+  'accountInfo.houseValueUse':
+    '最近一次记录的价值，会作为与这笔房贷负债相对应的资产计入净资产——正因如此，这个账户显示的是房屋净值，而不只是欠款。',
+  'accountInfo.principalTitle': '剩余本金',
+  'accountInfo.principalBody':
+    '贷款余额并不等于初始金额减去你的还款：在早期，每笔还款中大部分是利息。所以这个数字取自你最近一次记录的对账单金额，再按其后的每笔还款向前推算，每期先覆盖当期利息。',
+  'accountInfo.principalUse':
+    '记录一次读数不会产生任何交易——它是读数，不是账目更正。这也是贷款没有「当前余额」调整的原因：对账单才是事实，两次对账单之间的数字由推算得出。',
+  'accountInfo.valueHistoryTitle': '价值记录',
+  'accountInfo.valueHistoryBody':
+    '这个账户的余额取自你最近一次记录的总额，而非交易累加。请照着对账单抄下总额；不要去填「收益」——收益只在你读数的那一秒成立，而总额是可以核对的事实。',
+  'accountInfo.valueHistoryUse':
+    '买入投入的资金仍记为普通交易，因此图表能区分你投进去的钱和它自己赚到的钱。',
+  'accountInfo.loanTermsTitle': '贷款条款',
+  'accountInfo.loanTermsBody':
+    '这里记的是合同而非账目：贷多久、借了多少、房子多少钱、何时开始。它们决定月供、还清日期和首付数字，且都不会产生任何交易。',
+  'accountInfo.loanTermsBorrowed':
+    '对于当天新办的贷款，「借款金额」与账本「初始余额」是同一个数字；而对于中途才开始记录的贷款则不同——所以它们是两个字段，而不是一个。',
+  'accountInfo.toolsTitle': '还款计划表',
+  'accountInfo.toolsBody':
+    '从现在到结清的每一期还款，拆分为利息与本金，并且完全按你此刻在本页填写的内容计算——包括尚未保存的修改。它呈现的是贷款的实际情况；想算「如果多还一些会怎样」，请使用计算器。',
+  'accountInfo.loanCardTitle': '这笔贷款目前的状况',
+  'accountInfo.loanCardBody':
+    '当前生效的利率、约定的月供、结清日期以及剩余利息——全部依据你记录的内容实时算出，没有任何存储值。修改某个利率或某笔还款，这里的每个数字都会随之变化。',
+  'accountGuide.learnMore': '了解 {type} 账户',
+  'accountGuide.howHeading': '它是如何运作的',
+  'accountGuide.helpsHeading': '它能帮你什么',
+  'accountGuide.cash.how':
+    '支票账户，或者你钱包里的现金。余额 = 初始金额 + 记入的每一笔交易；从中花出去的钱，都会从对应的分类信封里扣除。',
+  'accountGuide.cash.helps':
+    '预算真正发生的地方：只有纳入预算的现金才能分配到各个分类，这才让「食杂还剩 40 元」这句话有意义。',
+  'accountGuide.savings.how':
+    '与现金账户同样的记账方式——初始余额加交易——只是这些钱是存起来的，而非日常花销。利息作为普通收入入账，可标记为「利息」，以便在报表中与劳动收入分开统计。',
+  'accountGuide.savings.helps':
+    '让应急金或专项储蓄清晰可见，又不会让人误以为可以随便花。「财务七步」会读取你指定为应急金的那个账户。',
+  'accountGuide.credit_card.how':
+    '先消费、后还款的卡。余额为负数——即欠款——刷卡消费同样从分类中扣除，因为钱在刷卡那一刻就已承诺出去，而不是等账单来的时候。还款是一笔转账：在现金账户的交易中把收款方选成这张卡，两边会自动同时记账。',
+  'accountGuide.credit_card.helps':
+    '让支出如实呈现。刷卡当天就扣减对应分类，预算不会仅仅因为账单还没到而显得比实际宽裕。',
+  'accountGuide.loan.how':
+    '已借入、正在偿还的钱——车贷、学生贷款、信用额度。余额是剩余本金：以你最近一次记录的数字为准，加上此后的每一笔还款，并先扣除各期利息后推算得出。一笔还款就是账单上那一个金额的一笔交易，无需你手动拆分本金与利息。',
+  'accountGuide.loan.helps':
+    '一处即可看清：究竟还欠多少、这些还款付出了多少利息、若一切不变何时能还清。把某笔交易的收款方指向该账户，还款会自动两边同时记账。',
+  'accountGuide.mortgage.how':
+    '一笔贷款，加上它背后的房子。不时记录一次房产价值，账户就同时承载两面：值多少，以及还欠多少。利率是一份带日期的记录而非单一数字，所以续约只会追加历史，而不会抹掉它。',
+  'accountGuide.mortgage.helps':
+    '无需表格即可回答房贷真正让人关心的两个问题——这套房子有多少已经是我的、债务何时结束——并且计入净资产的是房屋净值，而不是单纯的负债。',
+  'accountGuide.tracking.how':
+    '投资账户：RRSP、TFSA 或券商账户。余额取自你最近一次记录的总价值，而非交易累加——总额是可以照着对账单抄下来的事实，而「收益」只在你读数的那一秒成立。买入的资金仍是普通交易，因此图表能区分你投进去的钱和它自己赚到的钱。',
+  'accountGuide.tracking.helps':
+    '让净资产真实可靠，又不会让人误以为可以拿它来做预算；一眼就能看出余额中有多少是你自己存进去的。',
+  'accountGuide.asset.how':
+    '你拥有、且会随时间贬值的东西——车、手表、设备。它的价值由你自己记录、想更新时再更新，应用不会替你臆测。',
+  'accountGuide.asset.helps':
+    '让净资产两个方向都如实：你拥有的东西会被计入，并且逐年计得更少，同时完全不会影响任何预算分类。',
+  'accountGuide.giving.how':
+    '预留出去用于捐赠的钱——什一奉献、慈善、家庭基金。它像其他信封一样被分配，但单独存放在一个账户中，因而不会算进你可自由支配的钱里。',
+  'accountGuide.giving.helps':
+    '一旦承诺出去，它就不再属于你。这一点会直接呈现在页面上，而不是靠自制力去记住。',
   'settings.version': '版本',
   'settings.newBoardTitle': '新建账本',
   'settings.renameBoardTitle': '重命名账本',
@@ -237,6 +326,17 @@ export const zh: Record<keyof typeof en, string> = {
   'netWorthBreakdown.sourceLedger': '来自交易',
   'netWorthBreakdown.sourceDerived': '推算',
   'netWorthBreakdown.explain': '点按折线，或按住并滑动，查看某个月的构成。',
+  'netWorthInfo.title': '净资产是怎么算出来的',
+  'netWorthInfo.recomputed':
+    '资产减去负债，每次查看都实时重算——任何汇总数字都不会被存起来。改动三月份的某笔交易，曲线上三月的那个点也会随之变化。',
+  'netWorthInfo.assets':
+    '资产：现金、储蓄和支票账户按「初始余额 + 全部交易」计算。投资类与资产类账户按你最近一次记录的价值计算——那是你从对账单抄下来的数字，而非实时行情。有房贷的房屋按其最近一次记录的价值计入。',
+  'netWorthInfo.debts':
+    '负债：各信用卡的欠款；贷款与房贷则取剩余本金——以你最近一次记录的读数为基准，按其后的每笔还款向前推算，每期先覆盖当期利息。整笔还款不会全额冲减本金，因为银行也不是这么算的。',
+  'netWorthInfo.history':
+    '曲线上的每个月，取的是该月末当时的实际情况。对于你当时尚未记录价值的部分，会用你记录过的最早那次读数向前回推，而不是凭空编造——所以早期历史是诚实的估算，而非虚构。触摸曲线可查看某个月，下方的明细会列出构成它的各个账户。',
+  'netWorthInfo.excluded':
+    '在「自定义」中关闭的账户，不会计入其中任何部分，曲线也不例外。',
   'accounts.netWorth': '净资产',
   'accounts.customize': '自定义',
   'accounts.assets': '资产 {amount}',

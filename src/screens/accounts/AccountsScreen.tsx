@@ -15,6 +15,7 @@ import { useAccountValues } from '../../hooks/useAccountValues';
 import { useNetWorthTrend } from '../../hooks/useNetWorthTrend';
 import { BalanceTrendChart } from './BalanceTrendChart';
 import { NetWorthBreakdown } from './NetWorthBreakdown';
+import { InfoButton } from '../../components/ui/InfoButton';
 import { useAppStore } from '../../state/useAppStore';
 import {
   ACCOUNT_KIND_ORDER,
@@ -114,7 +115,22 @@ export function AccountsScreen() {
     <ScreenContainer scroll>
       <View style={styles.netWorthCard}>
         <View style={styles.netWorthHeader}>
-          <Text style={styles.netWorthLabel}>{t('accounts.netWorth')}</Text>
+          <View style={styles.netWorthTitleRow}>
+            <Text style={styles.netWorthLabel}>{t('accounts.netWorth')}</Text>
+            {/* The number is a dozen derivations summed — the ⓘ is where
+                they're spelled out, rather than on the card all the time. */}
+            <InfoButton
+              title={t('netWorthInfo.title')}
+              paragraphs={[
+                t('netWorthInfo.recomputed'),
+                t('netWorthInfo.assets'),
+                t('netWorthInfo.debts'),
+                t('netWorthInfo.history'),
+                t('netWorthInfo.excluded'),
+              ]}
+              closeLabel={t('common.done')}
+            />
+          </View>
           <Pressable onPress={() => setAccountPickerOpen(true)}>
             <Text style={styles.customizeLink}>{t('accounts.customize')}</Text>
           </Pressable>
@@ -306,6 +322,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  netWorthTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   netWorthLabel: {
     fontSize: 12,

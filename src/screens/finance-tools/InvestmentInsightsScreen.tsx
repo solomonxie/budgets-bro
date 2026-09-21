@@ -1,4 +1,5 @@
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { GuideSection } from '../../components/ui/GuideSection';
 import { Card } from '../../components/ui/Card';
 import { ResultRow } from '../../components/ui/ResultRow';
 import { FinanceToolList } from './FinanceToolList';
@@ -18,6 +19,10 @@ export function InvestmentInsightsScreen() {
 
   return (
     <ScreenContainer scroll>
+      <GuideSection
+        heading={t('financeTools.investGuideHeading')}
+        body={t('financeTools.investGuideBody')}
+      />
       {holdings.length > 0 ? (
         <Card title={t('financeTools.yourInvestments')}>
           <ResultRow label={t('financeTools.totalValue')} value={formatMoney(totalCents)} big />

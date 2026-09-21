@@ -1,4 +1,5 @@
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { GuideSection } from '../../components/ui/GuideSection';
 import { Card } from '../../components/ui/Card';
 import { ResultRow } from '../../components/ui/ResultRow';
 import { FinanceToolList } from './FinanceToolList';
@@ -15,6 +16,7 @@ import type { AccountWithBalance } from '../../db/repositories/accountsRepo';
 // card is skipped entirely when there's no mortgage on the board — an empty
 // "you have no mortgage" card is noise on a page that's still useful.
 export function MortgageInsightsScreen() {
+  const t = useT();
   const { accounts } = useAccounts();
   const { ratesByAccountId } = useCurrentRates();
   const { valuesByAccountId } = useAccountValues();
@@ -22,6 +24,10 @@ export function MortgageInsightsScreen() {
 
   return (
     <ScreenContainer scroll>
+      <GuideSection
+        heading={t('financeTools.mortgageGuideHeading')}
+        body={t('financeTools.mortgageGuideBody')}
+      />
       {mortgages.map((m) => (
         <MortgageSummary
           key={m.account.id}

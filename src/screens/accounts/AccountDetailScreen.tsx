@@ -226,13 +226,32 @@ export function AccountDetailScreen() {
             <View style={styles.summaryCard}>
               <View style={styles.summaryTopRow}>
                 <View style={styles.summaryLeft}>
-                  <Text style={styles.summaryLabel}>
-                    {t(
-                      isLoanLike
-                        ? 'accountDetail.remainingPrincipal'
-                        : 'accountDetail.balance',
-                    )}
-                  </Text>
+                  <View style={styles.summaryLabelRow}>
+                    <Text style={styles.summaryLabel}>
+                      {t(
+                        isLoanLike
+                          ? 'accountDetail.remainingPrincipal'
+                          : 'accountDetail.balance',
+                      )}
+                    </Text>
+                    {/* What this kind of account is and what it's for, on the
+                        page where someone is looking at one. Same two
+                        paragraphs the edit form folds away. */}
+                    {accountWithBalance ? (
+                      <InfoButton
+                        title={t('accountGuide.learnMore', {
+                          type: t(
+                            TYPE_LABEL_KEY[accountWithBalance.account.type],
+                          ),
+                        })}
+                        paragraphs={[
+                          t(howItWorksKey(accountWithBalance.account.type)),
+                          t(whatItIsForKey(accountWithBalance.account.type)),
+                        ]}
+                        closeLabel={t('common.done')}
+                      />
+                    ) : null}
+                  </View>
                   <Text
                     style={[
                       styles.summaryValue,

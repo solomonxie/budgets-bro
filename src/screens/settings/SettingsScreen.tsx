@@ -273,6 +273,27 @@ export function SettingsScreen() {
   return (
     <ScreenContainer scroll modal>
       <ExpandingFieldGroup>
+        {/* First thing on the page, before anything configurable: what the
+            app does with your money data, said once and in full. The Backup
+            ⓘ and the Bank Sync card below are the same promise in detail. */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.privacyHeading')}
+          </Text>
+          <View style={styles.group}>
+            <View style={styles.row}>
+              <View style={styles.rowMain}>
+                <Text style={styles.rowTitle}>
+                  {t('settings.privacyTitle')}
+                </Text>
+                <Text style={styles.statementParagraph}>
+                  {t('settings.privacyBody')}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>
             {t('settings.boardsHeading')}
@@ -586,6 +607,31 @@ export function SettingsScreen() {
           <HistorySection />
         </DataSection>
 
+        {/* No switch, no "coming soon" — a section that exists only to say
+            why the feature everyone asks for isn't here. It sits under Data
+            because that's where someone goes looking for it. */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.bankHeading')}
+          </Text>
+          <View style={styles.group}>
+            <View style={styles.row}>
+              <View style={styles.rowMain}>
+                <Text style={styles.rowTitle}>{t('settings.bankTitle')}</Text>
+                <Text style={styles.statementParagraph}>
+                  {t('settings.bankAwareness')}
+                </Text>
+                <Text style={styles.statementParagraph}>
+                  {t('settings.bankPrivacy')}
+                </Text>
+                <Text style={styles.statementParagraph}>
+                  {t('settings.bankImport')}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>
             {t('settings.aboutHeading')}
@@ -733,6 +779,12 @@ const styles = StyleSheet.create({
   radioActive: { borderColor: colors.accent, backgroundColor: colors.accent },
   rowTitle: { fontSize: 15, color: colors.text },
   rowValue: { fontSize: 13, color: colors.textMuted },
+  statementParagraph: {
+    fontSize: 13,
+    color: colors.textMuted,
+    lineHeight: 19,
+    marginTop: spacing.xs,
+  },
   addLink: { alignItems: 'center', paddingVertical: spacing.sm },
   addLinkText: { color: colors.accent, fontWeight: '700' },
   segmented: {

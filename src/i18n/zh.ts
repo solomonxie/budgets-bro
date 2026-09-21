@@ -219,6 +219,10 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreResultTransactions': '交易',
   'settings.exportBoard': '导出当前账本',
   'settings.aboutHeading': '关于',
+  'settings.privacyHeading': '隐私即设计',
+  'settings.privacyTitle': '你的财务数据始终属于你。',
+  'settings.privacyBody':
+    '所有数据都在这台 iPhone 上的一个文件里，也都在本机算出——断网也照常使用。Budgets Bro 没有服务器、无需账号，任何信息都不会传给本应用的开发者。数据只会去你让它去的地方：备份用你自己的 iCloud 或 S3，AI 分析用你自己的密钥。密钥保存在钥匙串中，备份从不包含。整个账本随时可导出；删除应用，数据也一并消失。',
   'common.more': '展开',
   'common.less': '收起',
   'accountModal.trackingKindLabel': '账户计划类型',
@@ -330,6 +334,14 @@ export const zh: Record<keyof typeof en, string> = {
   'lock.biometricFailed': '未能识别，请重试。',
   'lock.noBiometryTitle': '本机尚未录入生物识别',
   'lock.noBiometryMessage': '请先在 iOS 设置中启用 Face ID 或 Touch ID，或在此改用数字密码。',
+  'settings.bankHeading': '银行同步',
+  'settings.bankTitle': '不连银行。这是有意为之。',
+  'settings.bankAwareness':
+    '手动记一笔只要五秒，而就在这五秒里，你会意识到自己花了什么。这份"意识到"才是重点。银行自动入账替你省下了打字，也一并拿走了这份意识——最后留下的，是一本整齐却没人看过的账。',
+  'settings.bankPrivacy':
+    '隐私上也要付出代价。银行同步要经过一家中间公司，你的银行登录凭据就存在它的服务器上——等于把所有账户的长期访问权交到别人手里。本应用没有服务器，这样的东西也就无处存放。',
+  'settings.bankImport':
+    '导入历史数据是另一回事，而且完全支持：在上方「数据」中导入 YNAB 导出文件。那只是你主动交出的一个文件，而不是你银行的钥匙。',
   'settings.version': '版本',
   'settings.newBoardTitle': '新建账本',
   'settings.renameBoardTitle': '重命名账本',

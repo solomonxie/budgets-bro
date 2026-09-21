@@ -224,6 +224,10 @@ export const en = {
   'settings.restoreResultTransactions': 'Transactions',
   'settings.exportBoard': 'Export this board',
   'settings.aboutHeading': 'About',
+  'settings.privacyHeading': 'Privacy by Design',
+  'settings.privacyTitle': 'Your money data stays yours.',
+  'settings.privacyBody':
+    'Everything lives in one file on this iPhone and is worked out here — the app runs fine with the network off. There is no Budgets Bro server and no account, so nothing ever reaches whoever made this app. Your data goes only where you send it: your own iCloud or S3 for backups, your own key for an AI analysis. Keys stay in the Keychain, never in a backup. Export the board any time; delete the app and the data goes with it.',
   'common.more': 'More',
   'common.less': 'Less',
   'accountModal.trackingKindLabel': 'Plan type',
@@ -337,6 +341,14 @@ export const en = {
   'lock.noBiometryTitle': 'Nothing enrolled on this iPhone',
   'lock.noBiometryMessage':
     'Set up Face ID or Touch ID in iOS Settings first, or use a passcode here instead.',
+  'settings.bankHeading': 'Bank Sync',
+  'settings.bankTitle': 'No bank connection. On purpose.',
+  'settings.bankAwareness':
+    'Typing a purchase in takes five seconds, and in those five seconds you notice what you spent. That noticing is the whole point. A bank feed does the typing and takes the noticing with it — you end up with a tidy record nobody read.',
+  'settings.bankPrivacy':
+    'It would cost privacy too. Bank feeds run through a middleman company that keeps your bank login on its servers — permanent access to every account you have, in someone else’s hands. This app has no servers, so there is nowhere for that to sit.',
+  'settings.bankImport':
+    'Bringing in history is different, and it works: import a YNAB export under Data above. That is one file you chose to hand over, not a key to your bank.',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renameBoardTitle': 'Rename Board',

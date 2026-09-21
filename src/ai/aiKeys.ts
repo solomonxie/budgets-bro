@@ -16,7 +16,7 @@ export type AiVendor =
 export type AiKeyStrategy = 'sequential' | 'round_robin';
 
 // Display name, a short hint about what the key looks like, and where to
-// go make one — shown in AiKeyModal so "add a key" doesn't require already
+// go make one — shown in AiKeyForm so connecting one doesn't require already
 // knowing each vendor's console. keyHint doubles as the field's masked
 // placeholder.
 export interface AiVendorMeta {

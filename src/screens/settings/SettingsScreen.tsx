@@ -33,7 +33,7 @@ import {
   aiVendorName,
 } from '../../ai/aiKeys';
 import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
-import { AiKeyModal } from '../../components/ui/AiKeyModal';
+import { AiKeyForm } from '../../components/ui/AiKeyForm';
 import { AiKeyHistoryModal } from '../../components/ui/AiKeyHistoryModal';
 import { ResultToast } from '../../components/ui/ResultToast';
 import type { AppExportImportResult } from '../../import/appExportImporter';
@@ -43,6 +43,7 @@ import { useT, LANGUAGES } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
+import { InfoButton } from '../../components/ui/InfoButton';
 
 const THEME_KEY = 'theme_preference';
 type ThemePreference = 'dark' | 'light';
@@ -81,7 +82,7 @@ export function SettingsScreen() {
   } | null>(null);
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
   const [aiKeys, setAiKeys] = useState<AiKeyMeta[]>([]);
-  const [aiKeyModalOpen, setAiKeyModalOpen] = useState(false);
+  const [addingAiKey, setAddingAiKey] = useState(false);
   const [aiKeyHistory, setAiKeyHistory] = useState<AiKeyMeta | null>(null);
   const [aiKeyStrategy, setAiKeyStrategyState] =
     useState<AiKeyStrategy>('sequential');
@@ -158,7 +159,7 @@ export function SettingsScreen() {
     const db = await getDb();
     await addAiKey(db, vendor, secret);
     setAiKeys(await listAiKeys(db));
-    setAiKeyModalOpen(false);
+    setAddingAiKey(false);
   };
 
   const confirmRemoveAiKey = (key: AiKeyMeta) => {
@@ -455,9 +456,22 @@ export function SettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionHeading}>
-              {t('settings.aiKeysHeading')}
-            </Text>
+            <View style={styles.headingWithInfo}>
+              <Text style={styles.sectionHeading}>
+                {t('settings.aiKeysHeading')}
+              </Text>
+              <InfoButton
+                title={t('aiInfo.title')}
+                paragraphs={[
+                  t('aiInfo.what'),
+                  t('aiInfo.ownAccount'),
+                  t('aiInfo.whereToRegister'),
+                  t('aiInfo.cost'),
+                  t('aiInfo.privacy'),
+                ]}
+                closeLabel={t('common.done')}
+              />
+            </View>
             {/* Only meaningful once there's more than one key to fall back to. */}
             {aiKeys.length > 1 ? (
               <Pressable
@@ -540,17 +554,21 @@ export function SettingsScreen() {
               ))}
             </View>
           ) : null}
-          <Pressable
-            style={styles.addLink}
-            onPress={() => setAiKeyModalOpen(true)}
-          >
-            <Text style={styles.addLinkText}>{t('settings.addAiKeyLink')}</Text>
-          </Pressable>
-          <AiKeyModal
-            visible={aiKeyModalOpen}
-            onCancel={() => setAiKeyModalOpen(false)}
-            onSaved={addAiKeyRow}
-          />
+          {addingAiKey ? (
+            <AiKeyForm
+              onSaved={addAiKeyRow}
+              onCancel={() => setAddingAiKey(false)}
+            />
+          ) : (
+            <Pressable
+              style={styles.addLink}
+              onPress={() => setAddingAiKey(true)}
+            >
+              <Text style={styles.addLinkText}>
+                {t('settings.addAiKeyLink')}
+              </Text>
+            </Pressable>
+          )}
           <AiKeyHistoryModal
             aiKey={aiKeyHistory}
             onClose={() => setAiKeyHistory(null)}
@@ -657,6 +675,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: colors.textMuted,
+  },
+  headingWithInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   sectionHeadingRow: {
     flexDirection: 'row',

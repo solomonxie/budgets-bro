@@ -34,6 +34,7 @@ function mapRow(row: AccountRow): Account {
     originationDate: row.origination_date,
     originalHousePriceCents: row.original_house_price_cents,
     note: row.note,
+    trackingKind: (row.tracking_kind as Account['trackingKind']) ?? null,
   };
 }
 
@@ -163,13 +164,14 @@ export interface AccountInput {
   originationDate?: string | null;
   originalHousePriceCents?: number | null;
   note?: string | null;
+  trackingKind?: string | null;
 }
 
 export async function createAccount(db: SQLiteDatabase, boardId: number, input: AccountInput): Promise<number> {
   const onBudget = usesLoggedValue(input.type) ? 0 : 1;
   const result = await db.runAsync(
-    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     boardId,
     input.name,
     input.type,
@@ -181,6 +183,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     input.originationDate ?? null,
     input.originalHousePriceCents ?? null,
     input.note ?? null,
+    input.trackingKind ?? null,
   );
   const id = result.lastInsertRowId;
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
@@ -191,7 +194,7 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
   const onBudget = usesLoggedValue(input.type) ? 0 : 1;
   await db.runAsync(
     `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
-       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?, note = ?
+       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?, note = ?, tracking_kind = ?
      WHERE id = ?`,
     input.name,
     input.type,
@@ -202,6 +205,7 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
     input.originationDate ?? null,
     input.originalHousePriceCents ?? null,
     input.note ?? null,
+    input.trackingKind ?? null,
     id,
   );
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);

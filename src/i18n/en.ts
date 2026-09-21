@@ -215,6 +215,96 @@ export const en = {
   'settings.aboutHeading': 'About',
   'common.more': 'More',
   'common.less': 'Less',
+  'accountModal.trackingKindLabel': 'Plan type',
+  'accountModal.trackingKindHint':
+    'Only plans the app can describe are listed. Anything else stays General.',
+  'trackingKind.general': 'General tracking',
+  'trackingKind.ca_rrsp': 'Canada — RRSP',
+  'trackingKind.ca_tfsa': 'Canada — TFSA',
+  'trackingKind.ca_fhsa': 'Canada — FHSA',
+  'trackingKind.ca_resp': 'Canada — RESP',
+  'trackingKind.ca_rrif': 'Canada — RRIF',
+  'trackingKind.ca_lira': 'Canada — LIRA',
+  'trackingKind.us_401k': 'US — 401(k)',
+  'trackingKind.us_ira': 'US — Traditional IRA',
+  'trackingKind.us_roth_ira': 'US — Roth IRA',
+  'trackingKind.us_529': 'US — 529',
+  'accountInfo.trackingKindTitle': 'Plan type',
+  'accountInfo.trackingKindBody':
+    'What kind of registered account this is. It does not change any arithmetic — a balance is a balance — but it labels the account and lets reports tell a retirement plan apart from a first-home savings plan or a child’s education fund.',
+  'accountInfo.trackingKindScope':
+    'Only plans whose rules the app could actually describe are offered, and nothing here claims a contribution limit or a tax treatment yet. Anything not listed stays General tracking rather than being filed under a plan it does not follow.',
+  'accountInfo.latestBalanceTitle': 'Current balance',
+  'accountInfo.latestBalanceBody':
+    'Type what the bank actually says. Budgets Bro posts one uncategorized adjustment for the difference, payee "Balance Adjustment", and leaves everything else alone.',
+  'accountInfo.latestBalanceFlow':
+    'That adjustment runs through Unassigned Cash like any other uncategorized transaction, up or down — money that turns out not to exist has to leave the budget, not just the account. There is no separate reconciliation mode: this is it.',
+  'accountInfo.rateHistoryTitle': 'Interest rate history',
+  'accountInfo.rateHistoryBody':
+    'A rate is a fact with a date on it, not one number. A renewal or a central-bank move changes it from that day forward and leaves everything before it alone, so the history is a list rather than a field you overwrite.',
+  'accountInfo.rateHistoryUse':
+    'Every projection reads the rate that was in force at the time. Adding a change rewrites nothing that already happened — it just makes what comes next right. Backdate freely: the latest effective date on or before a day is the one that applies.',
+  'accountInfo.houseValueTitle': 'Home value',
+  'accountInfo.houseValueBody':
+    'Your own estimate of what the place is worth, logged whenever you feel like updating it. Nothing is fetched — no valuation service, no address lookup, no guess by us.',
+  'accountInfo.houseValueUse':
+    'The latest logged value is what net worth counts as the asset against this mortgage’s debt, which is what lets the account show equity instead of only what you owe.',
+  'accountInfo.principalTitle': 'Remaining principal',
+  'accountInfo.principalBody':
+    'A loan’s balance is not the opening figure plus your payments: early on, most of a payment is interest. So this number is the last statement figure you logged, carried forward by every payment since, each one covering that period’s interest first.',
+  'accountInfo.principalUse':
+    'Logging a reading writes no transaction — it is a reading, not a ledger correction. That is why a loan has no "current balance" adjustment: the statement is the truth, and the estimate between statements is derived.',
+  'accountInfo.valueHistoryTitle': 'Value log',
+  'accountInfo.valueHistoryBody':
+    'This account’s balance is the latest total you logged, not a sum of transactions. Copy the total off a statement; never type a gain — a gain is only true for the second you read it, while a total is a fact you can check.',
+  'accountInfo.valueHistoryUse':
+    'Contributions stay ordinary transactions, so the chart can separate the money you put in from the money it earned.',
+  'accountInfo.loanTermsTitle': 'Loan terms',
+  'accountInfo.loanTermsBody':
+    'The contract rather than the ledger: how long it runs, what was borrowed, what the place cost, when it started. They drive the payment, the payoff date and the down-payment figure, and none of them posts a transaction.',
+  'accountInfo.loanTermsBorrowed':
+    'Amount borrowed and the ledger’s starting balance are the same number for a loan taken out on day one, and different for one you started tracking part-paid — which is why they are two fields rather than one.',
+  'accountInfo.toolsTitle': 'Amortization schedule',
+  'accountInfo.toolsBody':
+    'Every payment from here to the end, split into interest and principal, built from the fields on this page exactly as you have typed them — including edits you have not saved yet. It shows the loan as it is; for "what if I paid more", use the calculators.',
+  'accountInfo.loanCardTitle': 'Where this loan stands',
+  'accountInfo.loanCardBody':
+    'The rate in force, the scheduled payment, the date it ends and what the remaining interest costs — all worked out from what you have logged, none of it stored. Change a rate or a payment and every figure here moves with it.',
+  'accountGuide.learnMore': 'Learn more about a {type} account',
+  'accountGuide.howHeading': 'How this works',
+  'accountGuide.helpsHeading': 'What it’s good for',
+  'accountGuide.cash.how':
+    'A chequing account, or the notes in your wallet. Its balance is the opening figure plus every transaction you post to it, and anything you spend from it comes out of a category envelope.',
+  'accountGuide.cash.helps':
+    'This is where budgeting actually happens: only on-budget cash can be assigned to categories, which is what makes "$40 left in Groceries" mean something.',
+  'accountGuide.savings.how':
+    'The same ledger as a cash account — opening balance plus transactions — for money set aside rather than spent day to day. Interest lands as an ordinary inflow you can flag as interest, so it can be reported separately from earned income.',
+  'accountGuide.savings.helps':
+    'Keeps an emergency fund or a sinking fund visible without pretending it is spendable. Baby Steps reads whichever account you name as your emergency fund.',
+  'accountGuide.credit_card.how':
+    'A card you pay later. Its balance is negative — what you owe — and spending on it still comes out of a category, because the money is committed the moment you tap, not when the statement arrives. Paying the bill is a transfer: choose the card as the payee on a transaction from your cash account and both sides are posted for you.',
+  'accountGuide.credit_card.helps':
+    'Spending stays honest. A card charge reduces its category today, so the budget never looks healthier than it is just because the bill has not landed yet.',
+  'accountGuide.loan.how':
+    'Money borrowed and being paid back — a car loan, a student loan, a line of credit. Its balance is the remaining principal, worked out from the last figure you logged plus every payment since, with each period’s interest taken off first. A payment is one transaction for the amount the statement shows; you are never asked to split principal from interest by hand.',
+  'accountGuide.loan.helps':
+    'One place to see what is actually left owing, what the payments are costing in interest, and the date it disappears if nothing changes. Point a transaction at this account as its payee and the payment posts on both sides at once.',
+  'accountGuide.mortgage.how':
+    'A loan, plus the home behind it. Log the property’s value now and then and the account carries both sides: what it is worth, and what is left owing. Interest rates are a dated list rather than one number, so a renewal adds to the history instead of erasing it.',
+  'accountGuide.mortgage.helps':
+    'Answers the two questions a mortgage actually raises — how much of this house is mine, and when does the debt end — without a spreadsheet, and folds equity rather than raw debt into your net worth.',
+  'accountGuide.tracking.how':
+    'An investment account: RRSP, TFSA, a brokerage. Its balance is the latest total value you logged, not a sum of transactions — a total is a fact you copy off a statement, while a gain is only true for the second you read it. Contributions stay ordinary transactions, so the chart can separate money you put in from money it earned.',
+  'accountGuide.tracking.helps':
+    'Net worth stays real without pretending you can budget from it, and one look tells you how much of the balance you actually deposited.',
+  'accountGuide.asset.how':
+    'Something you own that loses value over time — a car, a watch, equipment. Its worth is a figure you log and revisit whenever you care to, not something the app guesses at.',
+  'accountGuide.asset.helps':
+    'Keeps net worth honest in both directions: what you own counts, and it counts for less each year, without ever touching a budget category.',
+  'accountGuide.giving.how':
+    'Money set aside to give away — tithing, charity, a family fund. It is assigned like any other envelope, but held in an account of its own so it is not counted among the money you are free to spend.',
+  'accountGuide.giving.helps':
+    'Once it is promised, it is not yours. This makes that visible on the page instead of leaving it to willpower.',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renameBoardTitle': 'Rename Board',
@@ -243,6 +333,17 @@ export const en = {
   'netWorthBreakdown.sourceDerived': 'derived',
   'netWorthBreakdown.explain':
     'Touch the line, or hold and slide along it, to read a month.',
+  'netWorthInfo.title': 'How net worth is worked out',
+  'netWorthInfo.recomputed':
+    'Assets minus debts, worked out from scratch every time you look — no total is stored anywhere. Correct a transaction from March and March’s point on the line moves with it.',
+  'netWorthInfo.assets':
+    'Assets: cash, savings and chequing accounts count as their opening balance plus every transaction. Investment and asset accounts count as the latest value you logged — a figure you copied off a statement, never a live quote. A mortgaged home counts at its latest logged value.',
+  'netWorthInfo.debts':
+    'Debts: what each credit card owes, and for a loan or mortgage the remaining principal — your last logged reading carried forward by the payments since, each one covering that period’s interest first. The full payment never comes off the principal, because that is not what the bank does either.',
+  'netWorthInfo.history':
+    'Each month on the line uses what was true at that month’s end. Where you had logged no value yet, the oldest reading you did log is carried back rather than invented — so early history is an honest estimate, not a fabrication. Touch the line to read one month, and the breakdown underneath names the accounts that made it.',
+  'netWorthInfo.excluded':
+    'Accounts you switched off under Customize are left out of all of it, the line included.',
   'accounts.netWorth': 'Net Worth',
   'accounts.customize': 'Customize',
   'accounts.assets': 'Assets {amount}',

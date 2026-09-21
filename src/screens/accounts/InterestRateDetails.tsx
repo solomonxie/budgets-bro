@@ -5,6 +5,7 @@ import * as accountRateHistoryRepo from '../../db/repositories/accountRateHistor
 import { useAppStore } from '../../state/useAppStore';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { RateChangeModal } from '../../components/ui/RateChangeModal';
+import { InfoButton } from '../../components/ui/InfoButton';
 import type { RateChangeValue } from '../../components/ui/RateChangeModal';
 import { currentDateISO } from '../../domain/month';
 import { useT } from '../../i18n';
@@ -72,6 +73,14 @@ export function InterestRateDetails({ accountId }: { accountId: number }) {
         <Text style={styles.label}>
           {t('accountModal.interestRateHeading')}
         </Text>
+        <InfoButton
+          title={t('accountInfo.rateHistoryTitle')}
+          paragraphs={[
+            t('accountInfo.rateHistoryBody'),
+            t('accountInfo.rateHistoryUse'),
+          ]}
+          closeLabel={t('common.done')}
+        />
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
             {currentRateBps == null

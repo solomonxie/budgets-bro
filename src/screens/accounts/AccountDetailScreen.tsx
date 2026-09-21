@@ -4,6 +4,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { InfoButton } from '../../components/ui/InfoButton';
+import {
+  TYPE_LABEL_KEY,
+  howItWorksKey,
+  trackingKindKey,
+  whatItIsForKey,
+} from './accountTypeGuide';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useFutureTransactions } from '../../hooks/useFutureTransactions';
@@ -234,6 +241,19 @@ export function AccountDetailScreen() {
                   >
                     {formatMoney(balanceCents)}
                   </Text>
+                  {/* Which registered plan this is, where there is one —
+                      an RRSP and a TFSA hold the same kind of balance and
+                      mean quite different things. */}
+                  {accountWithBalance?.account.trackingKind &&
+                  accountWithBalance.account.trackingKind !== 'general' ? (
+                    <Text style={styles.planLabel}>
+                      {t(
+                        trackingKindKey(
+                          accountWithBalance.account.trackingKind,
+                        ),
+                      )}
+                    </Text>
+                  ) : null}
                   {latestGrowth ? (
                     <View style={styles.depositGainRow}>
                       <Text style={styles.depositedText}>
@@ -273,6 +293,14 @@ export function AccountDetailScreen() {
                   <Text style={styles.trackingValueHeaderText}>
                     {t('houseValueCard.label')}
                   </Text>
+                  <InfoButton
+                    title={t('accountInfo.houseValueTitle')}
+                    paragraphs={[
+                      t('accountInfo.houseValueBody'),
+                      t('accountInfo.houseValueUse'),
+                    ]}
+                    closeLabel={t('common.done')}
+                  />
                   <DisclosureChevron expanded={trendExpanded} />
                 </Pressable>
               ) : null}
@@ -294,6 +322,14 @@ export function AccountDetailScreen() {
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
+                  <InfoButton
+                    title={t('accountInfo.valueHistoryTitle')}
+                    paragraphs={[
+                      t('accountInfo.valueHistoryBody'),
+                      t('accountInfo.valueHistoryUse'),
+                    ]}
+                    closeLabel={t('common.done')}
+                  />
                   <DisclosureChevron expanded={trendExpanded} />
                 </Pressable>
               ) : null}
@@ -315,6 +351,14 @@ export function AccountDetailScreen() {
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
+                  <InfoButton
+                    title={t('accountInfo.valueHistoryTitle')}
+                    paragraphs={[
+                      t('accountInfo.valueHistoryBody'),
+                      t('accountInfo.valueHistoryUse'),
+                    ]}
+                    closeLabel={t('common.done')}
+                  />
                   <DisclosureChevron expanded={trendExpanded} />
                 </Pressable>
               ) : null}
@@ -610,6 +654,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   summaryLeft: { gap: spacing.xs },
+  summaryLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  planLabel: { fontSize: 12, fontWeight: '600', color: colors.accent },
   summaryRight: { alignItems: 'flex-end', gap: spacing.xs },
   summaryLabel: {
     fontSize: 12,

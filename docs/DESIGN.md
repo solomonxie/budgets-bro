@@ -11,6 +11,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 - AI analysis using the user's own API key, called directly from device to provider.
 - SQLite as the single on-device source of truth; iCloud and S3 as optional backup targets.
 - Zero backend servers operated by Budgets Bro — client-only app, for both cost and privacy.
+- Lightweight and blazing fast: small install, instant to open, no spinner for anything the phone can do itself. See Size and speed budget below.
 
 ## Non-goals (MVP cut lines)
 - Multi-device real-time sync (backups are point-in-time export/restore, not live sync)
@@ -154,6 +155,53 @@ The AI API key and S3 credentials are provider credentials, not money data, and 
 - **Auto Backup (Android)**: `android.allowBackup` is `false` — no OS-level backup path exists for this app at all, implicit or otherwise; money data only leaves the device via the explicit backup flows below.
 - **App's own export/backup** (`exportBoardZip`, iCloud/S3 backup): dumps only board-scoped SQLite tables (accounts, categories, budget entries, payees, transactions) — never touches secureStore, so a restored backup can never carry a key.
 
+## Size and speed budget
+Lightweight and instant is a requirement, not a nice-to-have — see
+[`AGENTS.md`](../AGENTS.md) for the rules that hold it. Measured on a Release
+device build, 2026-09-19:
+
+| | measured | budget |
+|---|---|---|
+| installed on device | **17 MB** | < 25 MB |
+| zipped (download proxy) | **7.2 MB** | < 12 MB |
+| `main.jsbundle` | 3.38 MB Hermes bytecode | < 4 MB |
+| JS source in the bundle | 4.80 MB | — |
+| app binary / `React.framework` / `hermesvm` | 3.3 / 5.6 / 2.3 MB stripped | fixed floor |
+
+Two thirds of an unstripped build is debug symbols (29 MB → 17 MB), and
+Xcode's own `STRIP_INSTALLED_PRODUCT` only reaches the app binary, not the
+three embedded frameworks. `scripts/install-ios-device.sh` therefore strips
+all four after the build, re-signs each with the identity the build used, and
+installs the result **only if `codesign --verify --deep --strict` passes** —
+otherwise it installs the untouched build and says so.
+
+Bundle by package: `react-native` 2.0 MB, own `src/` ~1.4 MB,
+`react-native-svg` 257 KB, `@react-navigation/*` ~400 KB, `jszip` 95 KB,
+`http-status-codes` 58 KB + `buffer` 57 KB (both dragged in by
+`@dr.pogodin/react-native-fs` — the next 115 KB to reclaim, and only
+reachable by replacing that library, since `src/files/bytes.ts` already
+means none of our own code imports them).
+
+Reproduce:
+```
+du -sh /tmp/budgetsbro-device/Build/Products/Release-iphoneos/BudgetsBro.app
+npx react-native bundle --platform ios --dev false --entry-file index.ts \
+  --bundle-output /tmp/bb.bundle --sourcemap-output /tmp/bb.map
+# then sum sourcesContent lengths in /tmp/bb.map, grouped by node_modules package
+```
+
+Runtime shape:
+- **Startup**: Hermes bytecode (no JS parse), SQLite opened once behind a
+  cached promise, WAL + `synchronous = NORMAL`, and `migrate` costs one
+  `PRAGMA user_version` when there is nothing to run.
+- **Invalidation is global**: every write bumps `dataVersion` and every
+  mounted read hook refetches. Fine at a personal ledger's size, and the
+  reason each hook's query must stay narrow — it runs again after every save.
+- **The whole-board reads** are `useTransactions` (the list), `useFlaggedCount`
+  (badge: list + transfer audit + month totals) and the Flagged Transactions
+  page. Those pages are *about* every row; nothing else may join the payee,
+  category and account labels onto the board to render a subset of it.
+
 ## Storage/backup architecture
 - **SQLite** = source of truth. Library: `expo-sqlite` (works under Expo managed workflow + EAS builds, no custom native linking). `op-sqlite`/SQLCipher deferred until at-rest encryption is required.
 - **iCloud backup**: export of the SQLite file into the app's iCloud container (Expo config plugin + entitlement, buildable via EAS).
@@ -178,7 +226,7 @@ The AI API key and S3 credentials are provider credentials, not money data, and 
 | Styling | RN `StyleSheet` + design-tokens file | Avoids Tailwind/NativeWind weight for MVP |
 | Secure storage | expo-secure-store | Keychain-backed, for AI API key + S3 credentials |
 | AI calls | Direct `fetch` to provider REST endpoints | Avoids heavy SDKs, keeps payload (aggregate/detailed) under app's control |
-| S3 signing | aws4fetch | Lightweight SigV4 signer, keeps backup backend-less |
+| S3 signing | own `sync/sigv4.ts` over `@noble/hashes` | AWS's own signer cost 341 KB of bundle for four calls; the replacement is checked against its output in `sigv4.test.ts` |
 | Testing | Jest (`jest-expo`) | Unit tests for calculators & budget math only |
 | Build/submit | Local `xcodebuild` + `devicectl`; EAS only for over-the-air/TestFlight | Everyday path is a Release build straight onto the phone (`npm run ios`) |
 | Lint/format | ESLint + Prettier | Baseline consistency for solo maintainer |
@@ -218,6 +266,6 @@ or supports.
 ## Risks / open questions
 - expo-sqlite has no built-in migration framework — needs a small homegrown versioned migration runner.
 - iCloud container entitlement under Expo config plugins + EAS build needs a spike to confirm it doesn't force a bare-workflow eject.
-- aws4fetch relies on WebCrypto — needs verification/polyfill under Hermes, spike in the backup milestone.
+- ~~aws4fetch relies on WebCrypto~~ — settled: signing is pure JS over `@noble/hashes`, so nothing depends on WebCrypto under Hermes.
 - Cutting bank-linking, CSV import, and multi-currency may feel too lean for some users — explicitly deferred to post-MVP roadmap.
 - App Store privacy label must disclose that transaction data can be sent to a user-chosen AI provider and to user-chosen iCloud/S3 backup targets.

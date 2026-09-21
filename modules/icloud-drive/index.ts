@@ -1,5 +1,5 @@
 import { NativeModules } from 'react-native';
-import { Buffer } from 'buffer';
+import { base64ToBytes, bytesToBase64 } from '../../src/files/bytes';
 
 // Keys are relative paths inside the app's own folder in iCloud Drive —
 // `<YYYYMMDD>-<board-slug>.zip`, one per board per day (src/sync/backupPath.ts).
@@ -45,11 +45,11 @@ const wrapped: ICloudDriveModule | null = native
       getStatus: () => native.getStatus(),
       getContainerPath: () => native.getContainerPath(),
       write: (key, data) =>
-        native.write(key, Buffer.from(data).toString('base64')),
+        native.write(key, bytesToBase64(data)),
       list: () => native.list(),
       read: async (key) => {
         const base64 = await native.read(key);
-        return base64 == null ? null : new Uint8Array(Buffer.from(base64, 'base64'));
+        return base64 == null ? null : base64ToBytes(base64);
       },
       remove: (key) => native.remove(key),
     }

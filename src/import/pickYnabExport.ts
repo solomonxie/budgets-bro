@@ -6,7 +6,7 @@ import {
 } from '@react-native-documents/picker';
 import JSZip from 'jszip';
 import { readBytes } from '../files/fileStore';
-import { Buffer } from 'buffer';
+import { bytesToUtf8 } from '../files/bytes';
 
 // The picker's own "user backed out" error, told apart from a real one.
 function isCancel(e: unknown): boolean {
@@ -55,5 +55,5 @@ export async function pickYnabExport(): Promise<PickedYnabExport | null> {
     };
   }
 
-  return { registerCsv: Buffer.from(bytes).toString('utf8'), planCsv: '' };
+  return { registerCsv: bytesToUtf8(bytes), planCsv: '' };
 }

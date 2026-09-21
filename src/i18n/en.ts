@@ -617,6 +617,15 @@ export const en = {
   'investmentGrowth.noDepositsHint':
     'No transactions logged on this account yet, so the whole balance shows as gain. Record deposits/withdrawals as transactions to split the two.',
 
+  'babySteps.introHeading': 'Seven steps, in order',
+  'babySteps.intro':
+    'A fixed order for money decisions: put everything you can spare into one step until it is done, then move to the next. The order matters more than the speed. Nothing here is ticked off by hand where it can be measured — progress is read from the accounts you point each step at.',
+  'babySteps.whyHeading': 'Why this order',
+  'babySteps.whyBody':
+    'Step 1 is a buffer, not a cushion: a small fund stops a flat tyre from becoming fresh debt while you are busy clearing the old kind. Step 2 clears everything but the mortgage, smallest balance first — the point is momentum, not the mathematically optimal interest rate. Step 3 turns the buffer into real cover, three to six months of your own average spending, which is why the target follows your history instead of a round number. Investing waits until Step 4, because a return earned while paying 20% card interest is not a return. Steps 5 to 7 are what the earlier ones buy: a fund for the kids, a house that is finally yours, and money you get to give away.',
+  'babySteps.measuredHeading': 'How this page knows',
+  'babySteps.measuredBody':
+    'Each step reads the accounts you choose for it — emergency fund, retirement, down payment — so the bars move when your ledger does, not when you say so. The steps with nothing to measure are yours to mark done. Add your own goals at the bottom when the seven do not cover something you are saving for; they work the same way, and can be linked to an account to track themselves.',
   'babySteps.step1Title': '$1,000 starter emergency fund',
   'babySteps.step2Title': 'Pay off all debt (except the mortgage)',
   'babySteps.remaining': '{amount} remaining',
@@ -740,6 +749,18 @@ export const en = {
   'purchaseInsights.guideBottomHeading': 'Why bother naming things',
   'purchaseInsights.guideBottomBody':
     'A category tells you groceries cost $600 this month. An item tells you the coffee went from $14 to $19 since spring and that you buy it nine times a quarter. That is the difference between knowing you overspent and knowing on what — and it is the one kind of price history nobody keeps for you, since no shop will show you what the same basket cost a year ago. Items are optional and free-form: name only what is worth watching and leave the rest of the receipt untyped.',
+  'financeTools.mortgageGuideHeading': 'Your mortgages, and the what-ifs',
+  'financeTools.mortgageGuideBody':
+    'At the top, the mortgages you actually have: what is left owing, the rate in force, the home’s logged value, and the equity between them. Below, calculators for the questions an account cannot answer because they are about a loan you have not taken or a payment you have not made — what a house costs to carry, what an extra payment saves, whether refinancing pays for itself, buying against renting.',
+  'financeTools.loanGuideHeading': 'Your debts, and the way out',
+  'financeTools.loanGuideBody':
+    'Every non-mortgage debt you track, what each charges, and what they come to together. The calculators below work on numbers rather than accounts: a full payment schedule, what an extra amount each month does to the finish date, a car loan priced before you sign it, and how much of your income the payments already claim.',
+  'financeTools.investGuideHeading': 'What you hold, and what it could become',
+  'financeTools.investGuideBody':
+    'The total across your investment accounts as last logged — these are figures you copy from a statement, not a live feed, so they are as current as your last entry. The calculators below project forward: what regular contributions compound into, and what a given rate does over years. Projections are arithmetic, not predictions.',
+  'taxInsights.guideHeading': 'A year, gathered for tax time',
+  'taxInsights.guideBody':
+    'Not a return and not advice — this gathers the figures a return tends to ask for, out of the ledger you already keep: what came in and from whom, interest earned and paid, gains on investment accounts, and what you gave away. You say which of your categories mean interest and which mean giving, because only you know how you named them. Everything covers the calendar year shown, and none of it leaves this phone.',
   'review.chipAll': 'All {count}',
   'review.reasonMissingPayee': 'Payee',
   'review.reasonMissingCategory': 'Category',

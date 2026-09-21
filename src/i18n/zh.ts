@@ -600,6 +600,15 @@ export const zh: Record<keyof typeof en, string> = {
   'investmentGrowth.noDepositsHint':
     '此账户还没有记录任何交易，因此全部余额都显示为盈利。将存入/取出记为交易即可区分两者。',
 
+  'babySteps.introHeading': '七个步骤，按顺序来',
+  'babySteps.intro':
+    '一套固定顺序的理财决策：把能挤出的钱全部投入当前这一步，完成后再进入下一步。顺序比速度更重要。凡是能被计算出来的，这里都不靠手动打勾——进度直接读取你为每一步指定的账户。',
+  'babySteps.whyHeading': '为什么是这个顺序',
+  'babySteps.whyBody':
+    '第 1 步是缓冲，不是靠垫：一笔小额储备能让爆胎不至于在你清理旧债时又变成新债。第 2 步清掉除房贷外的所有负债，从余额最小的开始——要的是势头，而不是利率上最优的算法。第 3 步把缓冲变成真正的保障：三到六个月你自己的平均开支，所以目标金额跟随你的历史数据，而非一个整数。投资要等到第 4 步，因为一边付着 20% 的信用卡利息一边赚到的收益并不算收益。第 5 到第 7 步，正是前面几步换来的：给孩子的教育金、终于完全属于自己的房子，以及可以拿来给予他人的钱。',
+  'babySteps.measuredHeading': '这一页的数据从哪来',
+  'babySteps.measuredBody':
+    '每一步都读取你为它选定的账户——应急金、退休、首付——所以进度条随账本变动，而不是随你的说法变动。那些无法计算的步骤，由你自己标记完成。如果这七步没有涵盖你正在存钱的目标，可在页面底部添加自定义目标；它们的运作方式相同，也可关联某个账户自动跟踪。',
   'babySteps.step1Title': '1,000 美元启动应急基金',
   'babySteps.step2Title': '还清所有债务（房贷除外）',
   'babySteps.remaining': '剩余 {amount}',
@@ -720,6 +729,18 @@ export const zh: Record<keyof typeof en, string> = {
   'purchaseInsights.guideBottomHeading': '为什么值得写下物品',
   'purchaseInsights.guideBottomBody':
     '分类只能告诉你这个月食杂花了 600 元；物品能告诉你咖啡从春天的 14 元涨到了 19 元，而你一个季度要买九次。这就是「知道超支了」和「知道超在哪」的区别——而且这种价格历史别人不会替你记录，没有哪家店会告诉你同样一篮东西一年前值多少钱。物品是可选的、自由填写的：只记下值得盯的那几样，收据上其余的不必输入。',
+  'financeTools.mortgageGuideHeading': '你的房贷，以及各种假设',
+  'financeTools.mortgageGuideBody':
+    '上方是你真实持有的房贷：还欠多少、当前执行利率、你记录的房屋价值，以及两者之间的净值。下方则是账户本身无法回答的问题所用的计算器——因为它们针对的是你尚未办理的贷款或尚未发生的还款：一套房子的持有成本、多还一笔能省多少、转贷是否划算、买房与租房的比较。',
+  'financeTools.loanGuideHeading': '你的负债，以及还清的路径',
+  'financeTools.loanGuideBody':
+    '这里列出你跟踪的每一笔非房贷负债、各自的利率，以及它们的总和。下方的计算器处理的是数字而非账户：完整的还款计划表、每月多还一些能把还清日期提前多久、签约前先算清楚的车贷，以及这些还款已经占去你收入的多大比例。',
+  'financeTools.investGuideHeading': '你持有什么，它又可能变成什么',
+  'financeTools.investGuideBody':
+    '这是你各投资账户最近一次记录的总额——这些数字是你从对账单抄下来的，而非实时行情，因此它们的新旧取决于你最后一次录入的时间。下方的计算器则向前推演：持续定投会复利成多少、某个收益率在若干年后意味着什么。推演只是算术，不是预测。',
+  'taxInsights.guideHeading': '为报税整理的一年',
+  'taxInsights.guideBody':
+    '这不是报税表，也不构成税务建议——它只是从你已经在记的账本中，汇总出报税通常会问到的那些数字：收入有多少、来自谁，收到与支付的利息，投资账户的收益，以及你捐出去的钱。哪些分类算利息、哪些算捐赠由你指定，因为只有你知道自己是怎么命名的。所有数据都只覆盖所示的公历年度，且不会离开这台手机。',
   'review.chipAll': '全部 {count}',
   'review.reasonMissingPayee': '收付方',
   'review.reasonMissingCategory': '分类',

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   Keyboard,
   Modal,
@@ -80,6 +81,11 @@ interface SearchableDropdownFieldProps {
   hideLabel?: boolean;
   // Renders as a row of a FieldCard — see DropdownField's `row`.
   row?: boolean;
+  // Draws the field itself, for a caller that needs it beside something
+  // else (the purchase-items row puts a price and a remove next to it).
+  // The unfolded list still belongs to this component, so it spans the
+  // caller's full width instead of the narrow column the field sits in.
+  renderField?: (open: () => void, expanded: boolean) => ReactNode;
 }
 
 export function SearchableDropdownField({
@@ -94,6 +100,7 @@ export function SearchableDropdownField({
   compact,
   hideLabel,
   row,
+  renderField,
 }: SearchableDropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -201,7 +208,9 @@ export function SearchableDropdownField({
 
   return (
     <View>
-      {row ? (
+      {renderField ? (
+        renderField(openPicker, inline?.expanded ?? open)
+      ) : row ? (
         <FieldRow
           label={label}
           value={valueLabel}

@@ -78,13 +78,7 @@ export function NumberPad({
           style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
           onPress={action.onPress}
         >
-          <Text
-            style={[
-              styles.wordKeyText,
-              key === RIGHT && styles.wordKeyTextAccent,
-            ]}
-            numberOfLines={1}
-          >
+          <Text style={styles.wordKeyText} numberOfLines={1}>
             {action.label}
           </Text>
         </Pressable>
@@ -142,7 +136,7 @@ export function NumberPad({
   );
 }
 
-const GAP = 7;
+const GAP = 6;
 
 const styles = StyleSheet.create({
   pad: { gap: GAP },
@@ -155,7 +149,10 @@ const styles = StyleSheet.create({
   // lights a rounded patch under your thumb.
   key: {
     flex: 1,
-    height: 60,
+    // 52, not 60: with a Purchase items row on the spend form the pad was
+    // being pushed half off the bottom of a 14-sized screen. Still well over
+    // the 44pt a thumb needs.
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 16,
@@ -170,7 +167,8 @@ const styles = StyleSheet.create({
   submitKeyText: { fontSize: 17, fontWeight: '700', color: '#fff' },
   // No box of their own: they are keys of the same grid as the digits, and
   // outlining them made two odd little buttons floating in a row of plain
-  // glyphs. Weight and colour carry the difference instead.
+  // glyphs. Both stay muted — Save is the one thing down here that should
+  // pull the eye, and a second tinted word beside it made the bottom row
+  // read as three competing buttons.
   wordKeyText: { fontSize: 15, fontWeight: '600', color: colors.textMuted },
-  wordKeyTextAccent: { color: colors.accent },
 });

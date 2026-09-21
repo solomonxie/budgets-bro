@@ -94,8 +94,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 58,
-    paddingVertical: 10,
+    // Tight enough that a six-row form still leaves the spend page's pad
+    // fully on screen, tall enough to stay a comfortable target.
+    minHeight: 48,
+    paddingVertical: 7,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },

@@ -110,6 +110,8 @@ export interface Transaction {
   date: string; // 'YYYY-MM-DD'
   transferAccountId: number | null;
   importId: string | null;
+  // `key=value` pairs in one string — see domain/purchaseItems.ts.
+  purchaseItems: string | null;
   createdAt: string;
   updatedAt: string;
 }

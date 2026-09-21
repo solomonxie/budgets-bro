@@ -16,6 +16,7 @@ const txn = (over: Partial<TransactionWithLabels>): TransactionWithLabels => ({
   date: '2026-09-01',
   transferAccountId: null,
   importId: null,
+  purchaseItems: null,
   createdAt: '',
   updatedAt: '',
   payeeName: 'Cafe',

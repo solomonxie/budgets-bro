@@ -139,3 +139,57 @@ export interface CustomGoalRow {
 export interface CustomGoalJoinRow extends CustomGoalRow {
   linked_balance_cents: number | null;
 }
+
+export interface HouseRow {
+  id: number;
+  board_id: number;
+  name: string;
+  address: string | null;
+  city: string | null;
+  community: string | null;
+  listing_url: string | null;
+  status: string;
+  rating: number | null;
+  viewed_on: string | null;
+  asking_price_cents: number | null;
+  assessed_value_cents: number | null;
+  strata_fee_cents: number | null;
+  property_tax_annual_cents: number | null;
+  property_type: string | null;
+  beds: number | null;
+  baths: number | null;
+  floor_area_sqft: number | null;
+  lot_sqft: number | null;
+  levels: number | null;
+  year_built: number | null;
+  parking: string | null;
+  orientation: string | null;
+  roof_age_years: number | null;
+  furnace_age_years: number | null;
+  water_tank_age_years: number | null;
+  windows: string | null;
+  renovations: string | null;
+  issues: string | null;
+  school_catchment: string | null;
+  commute_minutes: number | null;
+  transit: string | null;
+  noise: string | null;
+  neighbourhood: string | null;
+  pros: string | null;
+  cons: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommunityPriceRow {
+  id: number;
+  board_id: number;
+  city: string;
+  community: string;
+  property_type: string | null;
+  as_of_month: string;
+  benchmark_price_cents: number;
+  note: string | null;
+  created_at: string;
+}

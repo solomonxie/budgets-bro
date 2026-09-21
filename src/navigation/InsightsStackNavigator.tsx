@@ -12,6 +12,9 @@ import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { PurchaseInsightsScreen } from '../screens/insights/PurchaseInsightsScreen';
 import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
 import { CostOfLivingScreen } from '../screens/insights/CostOfLivingScreen';
+import { HousingInsightsScreen } from '../screens/housing/HousingInsightsScreen';
+import { HouseDetailScreen } from '../screens/housing/HouseDetailScreen';
+import { HouseCompareScreen } from '../screens/housing/HouseCompareScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
 import type { InsightsStackParamList } from './types';
@@ -55,6 +58,21 @@ export function InsightsStackNavigator() {
         name="CostOfLiving"
         component={CostOfLivingScreen}
         options={{ title: t('insights.costOfLiving') }}
+      />
+      <Stack.Screen
+        name="Housing"
+        component={HousingInsightsScreen}
+        options={{ title: t('insights.housing') }}
+      />
+      <Stack.Screen
+        name="HouseDetail"
+        component={HouseDetailScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="HouseCompare"
+        component={HouseCompareScreen}
+        options={{ title: t('housing.compareGuideHeading') }}
       />
       <Stack.Screen
         name="FinanceTool"

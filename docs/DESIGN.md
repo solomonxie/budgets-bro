@@ -16,7 +16,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 
 ## Non-goals (MVP cut lines)
 - Multi-device real-time sync (backups are point-in-time export/restore, not live sync)
-- Bank-linking / Plaid / automatic transaction import (a one-time YNAB data import is in scope — see below — but it's manual and user-initiated, not a live bank sync)
+- Bank-linking / Plaid / automatic transaction import — not a deferral, a position; see [No bank automation](#no-bank-automation). A one-time YNAB data import is in scope (below), but it's manual and user-initiated, not a live bank sync
 - Multi-user, family, or shared budgets
 - Android (iOS-only initially)
 - Push notifications, reminders (recurring-transaction *templates* are in scope post-MVP — see Recurring Transactions below — but posting them happens lazily on app open, not via a push/background job)
@@ -121,6 +121,13 @@ Off by default; Settings → App Lock offers Off · 4-digit passcode · Face ID 
 - **The passcode is stored as typed, not hashed.** Four digits is ten thousand candidates; a hash of it is decoration. What protects it is iOS's encryption of the Keychain entry.
 - **Biometrics can't lock anyone out**: written under `BIOMETRY_ANY_OR_DEVICE_PASSCODE`, so a face that won't scan falls back to the iPhone's own passcode. There is no app-side recovery for a forgotten *app* passcode by design — reinstalling is the way out, and it takes the data with it.
 - **Locked vs. covered**: locked asks for proof (on cold start, and after 60 seconds away — a lock that challenges every ten-second glance gets switched off, which protects nothing). Covered merely hides the ledger whenever the app isn't frontmost, which is also what iOS photographs for the app switcher.
+
+## No bank automation
+Permanent, not deferred, and said in the app itself — Settings → Bank Sync carries this in one card, because it is the feature everyone asks for and a blank space doesn't answer them.
+
+- **Automation takes away the part that does the work.** Typing a transaction costs five seconds and buys one moment of noticing what was just spent. That moment is the product. A feed that files everything leaves a tidy ledger nobody read and a budget nobody decided — the awareness, not the bookkeeping, is what changes behaviour.
+- **It costs privacy quietly.** A bank feed runs through an aggregator holding the user's bank login on a third-party server: one more company with standing access to every account they own. Zero backend (above) is not compatible with that, and no amount of care on our side would be.
+- **Bulk entry is a different question and is supported**: the YNAB import, and eventually a generic bank-CSV mapping import (Backlog). A file the user chose to export and hand over is theirs to check; a standing connection isn't.
 
 ## YNAB Data Import
 One-time, manual, user-initiated — not a sync, not bank-linking. Lets someone switch from YNAB without re-entering history.

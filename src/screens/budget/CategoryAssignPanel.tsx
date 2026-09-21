@@ -16,6 +16,9 @@ import { spacing } from '../../theme/spacing';
 
 interface CategoryAssignPanelProps {
   initialCents: number;
+  // This month's spending, for showing what the category will hold once the
+  // typed figure is saved.
+  activityCents: number;
   unassignedCents: number;
   lastMonthAssignedCents: number;
   rolloverCents: number;
@@ -49,6 +52,7 @@ interface CategoryAssignPanelProps {
 // should never reach by accident.
 export function CategoryAssignPanel({
   initialCents,
+  activityCents,
   unassignedCents,
   lastMonthAssignedCents,
   rolloverCents,
@@ -64,12 +68,22 @@ export function CategoryAssignPanel({
     amountFromCents(initialCents),
   );
   const [error, setError] = useState<string | null>(null);
+  const typed = formatAmountExpression(amount);
 
   // Raising this category's assignment draws from unassigned cash — capped
   // at what's currently unassigned plus whatever's already here. Lowering it
   // is always allowed, even when Unassigned is already negative: that is the
   // only way to claw it back.
   const availableCents = unassignedCents + initialCents;
+
+  // What the category ends up holding if this is saved: what rolled in from
+  // earlier months, plus what is being typed, less what has already gone out
+  // this month. The field itself is only *this month's assignment* — a flow,
+  // not the balance — which is why it reads $0 on a category that has $800
+  // carried over, and why it must never be pre-filled with that $800: saving
+  // it would hand the category another $800 on top.
+  const resultingBalanceCents =
+    rolloverCents + amountCents(amount) + activityCents;
 
   const done = () => {
     const cents = amountCents(amount);
@@ -89,7 +103,14 @@ export function CategoryAssignPanel({
       <Text style={styles.label}>
         {t('assignedAmountModal.assignedThisMonth')}
       </Text>
-      <Text style={styles.amount}>{formatAmountExpression(amount)}</Text>
+      <Text style={[styles.amount, !typed && styles.amountPlaceholder]}>
+        {typed || formatMoney(0)}
+      </Text>
+      <Text style={styles.hint}>
+        {t('assignedAmountModal.availableAfter', {
+          amount: formatMoney(resultingBalanceCents),
+        })}
+      </Text>
       {rolloverCents !== 0 ? (
         <Text style={styles.hint}>
           {t('assignedAmountModal.rolloverHint', {
@@ -120,22 +141,20 @@ export function CategoryAssignPanel({
       />
       <View style={styles.actions}>
         <Pressable
-          style={styles.iconButton}
+          style={({ pressed }) => [styles.actionKey, pressed && styles.actionKeyPressed]}
           onPress={() => onMove('up')}
           accessibilityLabel={t('budget.moveUp')}
-          hitSlop={8}
         >
-          <Text style={styles.iconText}>↑</Text>
+          <Text style={styles.actionText}>↑</Text>
         </Pressable>
         <Pressable
-          style={styles.iconButton}
+          style={({ pressed }) => [styles.actionKey, pressed && styles.actionKeyPressed]}
           onPress={() => onMove('down')}
           accessibilityLabel={t('budget.moveDown')}
-          hitSlop={8}
         >
-          <Text style={styles.iconText}>↓</Text>
+          <Text style={styles.actionText}>↓</Text>
         </Pressable>
-        <View style={styles.menuButton}>
+        <View style={styles.actionKey}>
           <RowMenuButton items={menuItems} />
         </View>
       </View>
@@ -158,6 +177,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
+  amountPlaceholder: { color: colors.textMuted },
   amount: {
     fontSize: 36,
     fontWeight: '700',
@@ -172,32 +192,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
-  // The three category controls, left-aligned in one cluster — the pad above
-  // already owns the right-hand side, and spreading these to both edges made
-  // the panel read as two unrelated toolbars.
+  // Read as one more row of the pad above, because that is what it is:
+  // same widths, same flat keys, same patch lighting under the thumb. Three
+  // outlined chips huddled at the left read as a second, unrelated toolbar
+  // bolted under a borderless keyboard.
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
+    gap: 6,
+    marginTop: 6,
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+  actionKey: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconText: { fontSize: 16, color: colors.text, lineHeight: 20 },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  actionKeyPressed: { backgroundColor: colors.surface },
+  actionText: { fontSize: 18, color: colors.textMuted, lineHeight: 22 },
 });

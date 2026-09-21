@@ -53,6 +53,7 @@ export const zh: Record<keyof typeof en, string> = {
   'stubScreen.comingSoon': '即将上线——该页面仍在设计中。',
 
   'assignedAmountModal.assignedThisMonth': '本月已分配',
+  'assignedAmountModal.availableAfter': '调整后可用：{amount}',
   'assignedAmountModal.unassignedHint':
     '未分配：{unassigned}   ·   上月：{lastMonth}',
   'assignedAmountModal.rolloverHint': '结转：{amount}',

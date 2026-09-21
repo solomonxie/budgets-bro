@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from '../../db/driver';
-import { nextMonth, currentDateISO } from '../../domain/month';
+import { nextMonth, currentDateISO, currentMonth } from '../../domain/month';
 import {
   categoryBalanceCents,
   unassignedCashCents,
@@ -14,6 +14,8 @@ import {
   MONTHLY_ASSIGNED_BY_CATEGORY,
   MONTHLY_ACTIVITY_BY_CATEGORY,
   TOTAL_ASSIGNED_THROUGH_MONTH,
+  TOTAL_ASSIGNED_ALL_MONTHS,
+  TOTAL_ASSIGNED_AFTER_MONTH,
   TOTAL_ACTIVITY_THROUGH_MONTH,
   CASH_ACCOUNTS_BALANCE_THROUGH_MONTH,
   CREDIT_CARD_BALANCE_THROUGH_MONTH,
@@ -117,6 +119,14 @@ export async function totalActivityByMonth(
   return map;
 }
 
+// Assigned in every month there is an entry for, including future ones.
+export async function totalAssigned(
+  db: SQLiteDatabase,
+  boardId: number,
+): Promise<number> {
+  return sumOrZero(db, TOTAL_ASSIGNED_ALL_MONTHS, boardId);
+}
+
 export async function totalAssignedThroughMonth(
   db: SQLiteDatabase,
   boardId: number,
@@ -157,18 +167,12 @@ export async function cashAccountsBalanceThroughMonth(
 }
 
 // Unassigned Cash as the budget screen shows it, for callers that want the
-// one number rather than the three totals behind it.
-export async function unassignedCashThroughMonth(
+// one number rather than the totals behind it.
+export async function unassignedCashNow(
   db: SQLiteDatabase,
   boardId: number,
-  throughMonth: string,
 ): Promise<number> {
-  const [assigned, activity, cash] = await Promise.all([
-    totalAssignedThroughMonth(db, boardId, throughMonth),
-    totalActivityThroughMonth(db, boardId, throughMonth),
-    cashAccountsBalanceThroughMonth(db, boardId, throughMonth),
-  ]);
-  return unassignedCashCents(cash, categoryBalanceCents(assigned, activity));
+  return (await unassignedBreakdown(db, boardId)).unassignedCents;
 }
 
 // Every category's month-by-month assigned and activity, for walking a
@@ -223,6 +227,10 @@ export interface UnassignedBreakdown {
   // What every category still holds between them — assigned minus spent,
   // all time, not just this month.
   envelopesCents: number;
+  // The slice of the above promised to months after this one. Usually the
+  // whole answer to "why is Unassigned negative?" — money given to next
+  // month has left today's pile, and nothing else on screen says where.
+  assignedAheadCents: number;
   unassignedCents: number;
   // Owed on credit cards, as a positive number. Spending on a card empties
   // an envelope without touching cash, so this much of `unassignedCents` is
@@ -233,15 +241,24 @@ export interface UnassignedBreakdown {
 // The arithmetic behind Unassigned Cash, so the number can be checked
 // rather than taken on faith — it is cumulative across every month, which
 // is not what "unassigned" sounds like.
+// Deliberately not a function of the month on screen. Unassigned cash is a
+// stock, not a flow: there is one pile of money, and either it has a job
+// today or it doesn't. Scoping it to the month being browsed answered a
+// different question — "had this been assigned yet, as of September?" — and
+// the same dollars then read as free in September and spoken for in
+// October, which is an invitation to assign them twice.
+//
+// So: cash and activity as of today, assignments across every month there is
+// an entry for, future ones included.
 export async function unassignedBreakdown(
   db: SQLiteDatabase,
   boardId: number,
-  throughMonth: string,
 ): Promise<UnassignedBreakdown> {
+  const throughMonth = currentMonth();
   const endExclusive = `${nextMonth(throughMonth)}-01`;
   const today = currentDateISO();
-  const [assigned, activity, cashCents, cardBalance] = await Promise.all([
-    totalAssignedThroughMonth(db, boardId, throughMonth),
+  const [assigned, activity, cashCents, cardBalance, assignedAheadCents] = await Promise.all([
+    totalAssigned(db, boardId),
     totalActivityThroughMonth(db, boardId, throughMonth),
     cashAccountsBalanceThroughMonth(db, boardId, throughMonth),
     sumOrZero(
@@ -252,11 +269,13 @@ export async function unassignedBreakdown(
       endExclusive,
       today,
     ),
+    sumOrZero(db, TOTAL_ASSIGNED_AFTER_MONTH, throughMonth, boardId),
   ]);
   const envelopesCents = categoryBalanceCents(assigned, activity);
   return {
     cashCents,
     envelopesCents,
+    assignedAheadCents,
     unassignedCents: unassignedCashCents(cashCents, envelopesCents),
     cardDebtCents: Math.max(0, -cardBalance),
   };

@@ -740,7 +740,6 @@ export const en = {
   'transactions.allRows': 'All',
   'transactions.needsPayee': 'No Payee',
   'transactions.needsCategory': 'Uncategorized',
-  'transactions.needsReview': 'Needs Review',
   'transactions.needsReview': 'Flagged',
 
   'review.guideHeading': 'What lands here',
@@ -819,7 +818,6 @@ export const en = {
   'review.pickCategory': 'Set a category',
   'review.deleteConfirmTitle': 'Delete this transaction?',
   'review.fixed': 'Solved',
-  'review.allClear': 'Nothing needs review.',
   'review.allClear': 'Nothing is flagged.',
 
   'budget.spentThisMonth': 'Spent This Month',
@@ -829,6 +827,7 @@ export const en = {
   'budget.breakdownAhead': '…of which given to later months',
   'budget.breakdownUnassigned': 'Unassigned',
   'budget.breakdownNote':
+    'Cash you hold today, less what your categories still hold across every month — future ones included. The same figure whichever month you are looking at: money assigned to next month is already spoken for.',
   'budget.breakdownCardWarning':
     '{amount} of this is spending already charged to a credit card. Card spending empties a category without leaving your cash, so that much is spoken for even though it reads as free.',
   'budget.avgLabel': '12 Months Avg',

@@ -23,6 +23,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
+import * as payeesRepo from '../../db/repositories/payeesRepo';
 import * as scheduledTransactionsRepo from '../../db/repositories/scheduledTransactionsRepo';
 import {
   DropdownField,
@@ -30,6 +31,7 @@ import {
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
+import { PromptModal } from '../../components/ui/PromptModal';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import {
@@ -104,6 +106,13 @@ function AddTransactionForm() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [memo, setMemo] = useState('');
+  // The payee row's ✎, mid-picker. Renaming is the only edit a payee has:
+  // it names money that did move, so there is nothing to delete, and giving
+  // it a name already in the list merges the two (payeesRepo).
+  const [renamingPayee, setRenamingPayee] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const realAccounts = accounts;
   // A loan/mortgage row is half of a payment pair, and every leg names the
   // account across from it, never itself (migration 027). So the payee here
@@ -260,6 +269,29 @@ function AddTransactionForm() {
       id,
     );
     if (lastCategoryId != null) setCategoryId(lastCategoryId);
+  };
+
+  const submitPayeeRename = async (name: string) => {
+    if (!renamingPayee) return;
+    const db = await getDb();
+    const result = await payeesRepo.renameOrMergePayee(
+      db,
+      boardId,
+      renamingPayee.id,
+      name,
+    );
+    if (result === 'nameBelongsToAccount') {
+      Alert.alert(
+        t('payeePicker.renameBlockedTitle'),
+        t('payeePicker.renameBlockedMessage'),
+      );
+      return;
+    }
+    // The form holds the payee by name, not id, so a rename of the one
+    // currently picked has to follow it here too.
+    if (payee === renamingPayee.name) setPayee(name.trim());
+    setRenamingPayee(null);
+    bumpDataVersion();
   };
 
   const save = async () => {
@@ -445,8 +477,14 @@ function AddTransactionForm() {
                       p.linkedAccountId != null
                         ? t('payeePicker.accountBadge')
                         : undefined,
+                    // An account-linked payee is named by its account and
+                    // renamed with it (payeesRepo.ensureAccountPayee).
+                    editable: p.linkedAccountId == null,
                   }))}
                   onSelect={(o) => selectPayee(o.label, o.id)}
+                  onEditOption={(o) =>
+                    setRenamingPayee({ id: o.id, name: o.label })
+                  }
                   onUseText={isLoanAccount ? () => {} : setPayee}
                 />
               )}
@@ -613,6 +651,20 @@ function AddTransactionForm() {
           </View>
         </TouchableWithoutFeedback>
       </ScrollView>
+      {/* Mounted only while renaming: every picker on this page unfolds in
+          place, and the form's test asserts no Modal exists until something
+          actually asks for one. */}
+      {renamingPayee ? (
+        <PromptModal
+          visible
+          title={t('payeePicker.renameTitle')}
+          hint={t('payeePicker.renameHint')}
+          placeholder={t('payeePicker.renamePlaceholder')}
+          initialValue={renamingPayee.name}
+          onCancel={() => setRenamingPayee(null)}
+          onSubmit={submitPayeeRename}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

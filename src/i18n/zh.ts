@@ -35,6 +35,12 @@ export const zh: Record<keyof typeof en, string> = {
 
   'searchableDropdown.useText': '使用「{text}」',
   'payeePicker.accountBadge': '账户',
+  'payeePicker.renameTitle': '重命名收款方',
+  'payeePicker.renameHint': '改成列表中已有的名字，两者会合并为同一个收款方，此前用过任意一个的交易都会归到一起。',
+  'payeePicker.renamePlaceholder': '收款方名称',
+  'payeePicker.renameBlockedTitle': '该名称属于某个账户',
+  'payeePicker.renameBlockedMessage':
+    '付给该收款方会向同名账户记一笔转账。请换一个名称。',
 
 
   'houseValueModal.title': '房屋价值',
@@ -66,11 +72,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.createDemoBoard': '创建演示账本',
   'settings.creatingDemoBoard': '正在创建演示账本——需要几秒钟……',
   'settings.createDemoBoardFailed': '无法创建演示账本。',
-  'settings.payeesHeading': '管理收款方',
   'settings.payeeSelectPlaceholder': '选择或创建…',
   'settings.payeeSearchPlaceholder': '搜索或输入新的收款方',
-  'settings.payeeLinkedHint':
-    '已关联到某个账户——由系统自动管理，无法在此重命名或删除。',
   'settings.appearanceHeading': '外观',
   'settings.themeDark': '深色',
   'settings.themeLight': '浅色',
@@ -209,9 +212,7 @@ export const zh: Record<keyof typeof en, string> = {
   'common.less': '收起',
   'settings.version': '版本',
   'settings.newBoardTitle': '新建账本',
-  'settings.renamePayeeTitle': '重命名收款方',
   'settings.renameBoardTitle': '重命名账本',
-  'settings.payeeNamePlaceholder': '收款方名称',
   'settings.boardNamePlaceholder': '例如 个人预算',
   'settings.deleteBoardConfirmTitle': '删除「{name}」？',
   'settings.deleteBoardConfirmMessage':
@@ -219,9 +220,6 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.cantDeleteOnlyBoardTitle': '无法删除唯一的账本',
   'settings.cantDeleteOnlyBoardMessage': '请先创建另一个账本。',
   'settings.deleteBoardFailed': '无法删除账本。',
-  'settings.deletePayeeConfirmTitle': '删除「{name}」？',
-  'settings.deletePayeeConfirmMessage':
-    '以往交易会保留金额，但会失去此收款方信息。此操作无法撤销。',
   'settings.importFailed': '导入失败。',
   'settings.restoreFailed': '还原失败。',
   'settings.exportFailedTitle': '导出失败',

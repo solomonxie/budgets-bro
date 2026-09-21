@@ -9,6 +9,9 @@ interface PromptModalProps {
   visible: boolean;
   title: string;
   placeholder?: string;
+  // One line under the title, for a rule the field can't state by itself
+  // (renaming a payee to a name already in use merges the two).
+  hint?: string;
   initialValue?: string;
   onCancel: () => void;
   onSubmit: (value: string) => void;
@@ -17,7 +20,7 @@ interface PromptModalProps {
 // Single-text-field modal shared by "new group", "new category", "rename
 // group", and "rename category" — no icon field, the user types an emoji
 // straight into the name if they want one.
-export function PromptModal({ visible, title, placeholder, initialValue = '', onCancel, onSubmit }: PromptModalProps) {
+export function PromptModal({ visible, title, placeholder, hint, initialValue = '', onCancel, onSubmit }: PromptModalProps) {
   const t = useT();
   const [value, setValue] = useState(initialValue);
 
@@ -34,6 +37,7 @@ export function PromptModal({ visible, title, placeholder, initialValue = '', on
   return (
     <CardModal visible={visible} onCancel={onCancel}>
       <Text style={styles.title}>{title}</Text>
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       <TextInput
         style={styles.input}
         value={value}
@@ -58,6 +62,7 @@ export function PromptModal({ visible, title, placeholder, initialValue = '', on
 
 const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
+  hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,

@@ -50,7 +50,7 @@ export function useBudget(month: string) {
       budgetsRepo.cumulativeActivityByCategory(db, boardId, month),
       budgetsRepo.assignedThisMonthByCategory(db, boardId, month),
       budgetsRepo.activityThisMonthByCategory(db, boardId, month),
-      budgetsRepo.unassignedBreakdown(db, boardId, month),
+      budgetsRepo.unassignedBreakdown(db, boardId),
     ]);
 
     const byGroup: Record<number, CategoryBudgetItem[]> = {};

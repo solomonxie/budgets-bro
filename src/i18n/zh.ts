@@ -613,6 +613,7 @@ export const zh: Record<keyof typeof en, string> = {
   'budget.unassigned': '未分配：{amount}',
   'budget.breakdownCash': '现金与储蓄',
   'budget.breakdownEnvelopes': '已分配未支出',
+  'budget.breakdownAhead': '……其中分配给之后月份',
   'budget.breakdownUnassigned': '未分配',
   'budget.breakdownNote':
     '所有分类当前持有的总额（累计所有月份），不只是本月分配的部分。',

@@ -282,10 +282,10 @@ export function BudgetScreen() {
           <Text style={styles.summaryValue}>
             {formatMoney(totalSpentCents)}
           </Text>
-          {/* Tappable: "unassigned" is a cumulative figure across every
-              month, which is not what the word sounds like — the arithmetic
-              under it is the only way to tell whether it is describing what
-              you think it is. */}
+          {/* Tappable: this is cash you hold *today* against every month's
+              assignments, so it reads the same whichever month is on screen
+              — which is not what the word sounds like next to a month
+              picker. The arithmetic under it is the only way to tell. */}
           <Pressable onPress={() => setBreakdownOpen((v) => !v)} hitSlop={6}>
             <Text
               style={[
@@ -342,6 +342,16 @@ export function BudgetScreen() {
               {`−${formatMoney(breakdown.envelopesCents)}`}
             </Text>
           </View>
+          {breakdown.assignedAheadCents !== 0 ? (
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>
+                {t('budget.breakdownAhead')}
+              </Text>
+              <Text style={styles.breakdownValue}>
+                {formatMoney(breakdown.assignedAheadCents)}
+              </Text>
+            </View>
+          ) : null}
           <View style={[styles.breakdownRow, styles.breakdownTotalRow]}>
             <Text style={styles.breakdownTotalLabel}>
               {t('budget.breakdownUnassigned')}

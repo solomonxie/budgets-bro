@@ -56,6 +56,20 @@ export const MONTHLY_ACTIVITY_BY_CATEGORY = `
 
 export const TOTAL_ASSIGNED_THROUGH_MONTH = 'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month <= ? AND board_id = ?';
 
+// Every month's assignments, months ahead of today included. Money given to
+// next month is spoken for now — there is one pile of cash, and asking "was
+// it assigned yet?" as of a month you are merely browsing describes the same
+// dollars twice (see budgetsRepo.unassignedBreakdown).
+export const TOTAL_ASSIGNED_ALL_MONTHS =
+  'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE board_id = ?';
+
+// The slice of the above that belongs to months still ahead. Shown in the
+// breakdown because it is the usual answer to "why is Unassigned negative?"
+// — money promised to a later month is gone from today's pile, and nothing
+// else on the Budget screen says where it went.
+export const TOTAL_ASSIGNED_AFTER_MONTH =
+  'SELECT SUM(assigned_cents) as total FROM budget_entries WHERE month > ? AND board_id = ?';
+
 // Ungrouped version of CUMULATIVE_ACTIVITY: total categorized activity
 // across every category, used with TOTAL_ASSIGNED_THROUGH_MONTH to get one
 // combined "Available" balance for all categories at once.

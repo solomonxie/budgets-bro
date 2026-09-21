@@ -632,6 +632,7 @@ export const en = {
   'budget.unassigned': 'Unassigned: {amount}',
   'budget.breakdownCash': 'Cash & savings',
   'budget.breakdownEnvelopes': 'Assigned, not yet spent',
+  'budget.breakdownAhead': '…of which given to later months',
   'budget.breakdownUnassigned': 'Unassigned',
   'budget.breakdownNote':
     'What your categories still hold across every month — not only what you assigned this one.',

@@ -17,7 +17,6 @@ export function ClosedAccountsScreen() {
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const dataVersion = useAppStore((s) => s.dataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
-  const month = useAppStore((s) => s.currentMonth);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
 
   // A closed account still counts: its categorised transactions are still
@@ -62,11 +61,7 @@ export function ClosedAccountsScreen() {
     const intoId = await accountsRepo.likelyAbsorbingAccountId(db, accountId);
     const into =
       intoId != null ? await accountsRepo.getAccount(db, intoId) : null;
-    const unassignedCents = await budgetsRepo.unassignedCashThroughMonth(
-      db,
-      boardId,
-      month,
-    );
+    const unassignedCents = await budgetsRepo.unassignedCashNow(db, boardId);
     const absorbDeltaCents = into
       ? ((await accountsRepo.previewAbsorb(db, accountId, into.id))
           ?.unassignedDeltaCents ?? 0)

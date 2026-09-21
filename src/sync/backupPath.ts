@@ -66,3 +66,18 @@ export function staleBackupKeys(keys: string[], boardName: string, keepLatest: n
   const mine = sortBackupKeys(keys, boardName);
   return keepLatest <= 0 ? mine : mine.slice(0, Math.max(0, mine.length - keepLatest));
 }
+
+// A name typed by hand in a browser's "back up here", made safe to use as a
+// key: no slashes (the name goes under the folder being browsed, it doesn't
+// pick its own), no leading dots, always .zip, never empty. Not the same job
+// as slugifyBoardName — this one keeps what was typed, spaces and all, since
+// the user is naming a file they will read later.
+export function sanitizeBackupFileName(name: string, fallback: string): string {
+  const base = name
+    .replace(/[\\/]+/g, '-')
+    .replace(/^[.\-\s]+/, '')
+    .trim()
+    .slice(0, 120);
+  if (base === '') return fallback;
+  return /\.zip$/i.test(base) ? base : `${base}.zip`;
+}

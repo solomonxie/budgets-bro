@@ -142,7 +142,7 @@ export const en = {
   'backup.restore': 'Restore',
   's3Browser.restoreConfirmTitle': 'Restore from {name}?',
   's3Browser.restoreConfirmMessage':
-    'It comes back as a new board alongside your current one, which is left untouched — switch between them in Settings.',
+    'It comes back as a new board and the app switches to it. The board you are on now is left untouched — switch back any time in Settings.',
   's3Browser.restoreNotFound': 'That file is no longer in the bucket.',
   'aiHistory.hint':
     'Every request this key has sent, exactly as it went out. Kept on this device only — the last 50 per key, never included in a backup.',
@@ -167,11 +167,25 @@ export const en = {
   'backup.icloud': 'iCloud Drive',
   'backup.icloudLocation': 'In Files → iCloud Drive → Budgets Bro',
   'backup.deleteConnection': 'Delete Connection',
+  'backup.saveCopyHere': '+ Back Up This Board Here',
+  'backup.saveCopyTitle': 'Name this backup',
+  'backup.saveCopyFailed': 'Could not write the backup.',
   'backup.never': 'never synced',
   'backup.justNow': 'just now',
   'backup.minutesAgo': '{count} min ago',
   'backup.hoursAgo': '{count} h ago',
   'backup.daysAgo': '{count} d ago',
+  'backup.infoTitle': 'How a backup keeps this yours',
+  'backup.infoNoServer':
+    'Your board lives in one SQLite file on this iPhone. There is no Budgets Bro server — no account, no login, nothing of yours sitting on a machine we run, because we run none.',
+  'backup.infoDestination':
+    'A backup is a full copy of one board, zipped on this device and written straight to storage you already own: your iCloud Drive, or your S3 bucket under your own keys. Device to your storage, with nothing of ours in between.',
+  'backup.infoSecrets':
+    'Keys are never in a backup. Your AI and S3 credentials live in the iOS Keychain, marked this-device-only, so iOS excludes them from device backups and never moves them to a new phone. A backup reads only board tables — accounts, categories, budgets, payees, transactions.',
+  'backup.infoFullCopy':
+    'Every sync writes the whole board, not a change since last time, so the newest file is always complete on its own. Nothing depends on a chain of earlier ones being intact.',
+  'backup.infoRestore':
+    'Restoring never overwrites. A restored zip arrives as a new board beside the ones you have, so opening the wrong file costs you nothing. Dated automatic backups are pruned as they age; a copy you name yourself is kept.',
   'settings.importYnab': 'Import from YNAB',
   'settings.restoreCategories': 'Restore Categories from YNAB',
   'settings.dataHeading': 'Data',

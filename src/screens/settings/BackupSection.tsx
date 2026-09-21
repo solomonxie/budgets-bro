@@ -10,7 +10,9 @@ import {
 import { S3ConfigModal } from '../../components/ui/S3ConfigModal';
 import { S3BrowserModal } from '../../components/ui/S3BrowserModal';
 import { ICloudBrowserModal } from '../../components/ui/ICloudBrowserModal';
+import { InfoButton } from '../../components/ui/InfoButton';
 import { useAppStore } from '../../state/useAppStore';
+import { useBoards } from '../../hooks/useBoards';
 import { getDb } from '../../db/client';
 import { addS3Config, listS3Configs } from '../../sync/s3Provider';
 import type { S3ConfigInput, S3ConfigMeta } from '../../sync/s3Provider';
@@ -89,6 +91,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
   // A restore writes rows straight into the database, so every screen
   // reading it has to be told.
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const { switchBoard } = useBoards();
   const t = useT();
   const [configs, setConfigs] = useState<S3ConfigMeta[]>([]);
   const [icloudStatus, setICloudStatus] = useState<ICloudStatus>('available');
@@ -187,6 +190,15 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
     }
   };
 
+  // A restored backup arrives as a board of its own, and landing back on
+  // the board you were already on makes a successful restore look like
+  // nothing happened — so the app moves to the new one, which is also where
+  // you can see whether the file was the one you wanted.
+  const openRestoredBoard = async (restoredBoardId: number) => {
+    await switchBoard(restoredBoardId);
+    bumpDataVersion();
+  };
+
   const addBucket = async (input: S3ConfigInput) => {
     const db = await getDb();
     const id = await addS3Config(db, input);
@@ -197,7 +209,20 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionHeading}>{t('backup.heading')}</Text>
+      <View style={styles.sectionHeadingRow}>
+        <Text style={styles.sectionHeading}>{t('backup.heading')}</Text>
+        <InfoButton
+          title={t('backup.infoTitle')}
+          paragraphs={[
+            t('backup.infoNoServer'),
+            t('backup.infoDestination'),
+            t('backup.infoSecrets'),
+            t('backup.infoFullCopy'),
+            t('backup.infoRestore'),
+          ]}
+          closeLabel={t('common.done')}
+        />
+      </View>
       <Text style={styles.sectionHint}>{t('backup.hint')}</Text>
 
       <View style={styles.group}>
@@ -251,17 +276,21 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
       />
       <S3BrowserModal
         config={browsing}
+        boardId={boardId}
+        boardName={boardName}
         onClose={() => setBrowsing(null)}
         onDeleted={() => {
           setBrowsing(null);
           refresh();
         }}
-        onRestored={bumpDataVersion}
+        onRestored={openRestoredBoard}
       />
       <ICloudBrowserModal
         visible={browsingICloud}
+        boardId={boardId}
+        boardName={boardName}
         onClose={() => setBrowsingICloud(false)}
-        onRestored={bumpDataVersion}
+        onRestored={openRestoredBoard}
       />
     </View>
   );
@@ -269,6 +298,11 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
 
 const styles = StyleSheet.create({
   section: { gap: spacing.xs, marginBottom: spacing.md },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   sectionHeading: {
     fontSize: 12,
     fontWeight: '700',

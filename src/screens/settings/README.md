@@ -55,34 +55,45 @@ SettingsScreen.tsx
 
 ## BackupSection
 
-One list of destinations, each with its own `⋯`. Replaced three separate
-sections (AWS S3 · Local Backup · Cloud Sync) whose global auto-sync switch and
-two full-width buttons sat a screen away from the connections they acted on.
+One list of destinations, each a bare switch: on means every change is backed
+up there. Replaced three sections (AWS S3 · Local Backup · Cloud Sync) whose
+global auto-sync switch and two full-width buttons sat a screen away from the
+connections they acted on. The on-device destination is gone — same sandbox as
+the database, so deleting the app took both.
 
 ```
-BACKUP
-Every sync writes a full copy of this board…
+BACKUP  ⓘ                                   → InfoButton: how a backup stays
+Every sync writes a full copy of this board…  yours (no server, your storage,
+                                              secrets excluded, full copies,
+                                              restore is additive)
 
 ┌────────────────────────────────────────┐
-│ my-bucket                           ⋯  │  tap → S3BrowserModal
-│ s3://my-bucket/budget · 2 h ago         │
+│ iCloud Drive                      [on] │  tap → ICloudBrowserModal
+│ In Files → iCloud Drive → Budgets Bro   │
 ├────────────────────────────────────────┤
-│ This device                         ⋯  │
-│ In the app's own files · Off            │
+│ my-bucket                         [on] │  tap → S3BrowserModal
+│ s3://my-bucket/budget · 2 h ago         │
 └────────────────────────────────────────┘
              + Add S3 Backup                 → S3ConfigModal
-
-  ⋯  ✓ Auto-sync          per destination, not one global switch
-     Sync Now             this destination only; ignores Auto-sync
-     Restore Latest       confirms, then a NEW board
-     ─────────────
-     Delete Connection    S3 only, red, last
 ```
 
-- Last synced rides the row's subtitle, so it's readable without opening the menu.
+Both browsers are the same page over different storage (shared row list:
+`../../components/ui/BackupFileList.tsx`):
+
+```
+┌── file listing ────────────────────────┐
+│ 20260919-main.zip          Restore     │  → new board, switched to
+│ before-ynab.zip            Restore     │
+└────────────────────────────────────────┘
+      + Back Up This Board Here             → PromptModal for the name
+                                              (../../components/ui/BackupSaveLink.tsx)
+```
+
+- Restore never overwrites: the zip becomes a board of its own (`importAppExport`) and the app switches to it, via `onRestored(boardId)` → `useBoards().switchBoard`.
+- "Back up here" is the manual counterpart to the dated automatic backup — a name you'll recognise later ("before the YNAB import"), landing in the S3 folder being browsed / the iCloud folder. Typed names are never pruned; pruning only matches the automatic shape (`sync/backupPath.ts`).
+- Last synced rides the row's subtitle, so it's readable without opening anything.
 - Adding a bucket kicks off its first sync immediately — otherwise it stays empty until the next change, which could be days.
-- Row-level spinner and inline error; a manual sync never fails silently.
-- The local row's own menu carries "Keep a copy here" — being off is a state of that destination, not a separate section.
+- "Delete Connection" lives in the S3 browser's `⋯`, one level down from the switch: rare and destructive.
 
 ## DataSection
 

@@ -12,8 +12,14 @@ import {
 import { ScreenContainer } from './ScreenContainer';
 import { RowMenuButton } from './RowMenuButton';
 import { BackupFileList } from './BackupFileList';
+import { BackupSaveLink } from './BackupSaveLink';
 import { getDb } from '../../db/client';
-import { downloadS3Object, listS3Objects, removeS3Config } from '../../sync/s3Provider';
+import {
+  downloadS3Object,
+  listS3Objects,
+  removeS3Config,
+  uploadS3Object,
+} from '../../sync/s3Provider';
 import { parseBackupZip } from '../../sync/parseBackupZip';
 import { importAppExport } from '../../import/appExportImporter';
 import type { S3ConfigMeta, S3ListEntry } from '../../sync/s3Provider';
@@ -23,10 +29,15 @@ import { spacing } from '../../theme/spacing';
 
 interface S3BrowserModalProps {
   config: S3ConfigMeta | null;
+  // The board a manual backup here copies — the one being used, not one of
+  // the restored ones.
+  boardId: number;
+  boardName: string;
   onClose: () => void;
   onDeleted: () => void;
-  // Fired after a restore has written rows, so the screen behind can reload.
-  onRestored?: () => void;
+  // Fired after a restore, with the new board it landed in — the screen
+  // behind switches to it and reloads.
+  onRestored?: (boardId: number) => void;
 }
 
 function basename(fullPrefixOrKey: string): string {
@@ -60,6 +71,8 @@ function formatSize(bytes: number): string {
 // behind a deliberate tap, instead of in a menu next to the switch.
 export function S3BrowserModal({
   config,
+  boardId,
+  boardName,
   onClose,
   onDeleted,
   onRestored,
@@ -71,6 +84,9 @@ export function S3BrowserModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoringKey, setRestoringKey] = useState<string | null>(null);
+  // Bumped after writing a backup here, so the listing shows the file that
+  // was just uploaded without making the user leave and come back.
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     if (!config) return;
@@ -98,7 +114,7 @@ export function S3BrowserModal({
     return () => {
       cancelled = true;
     };
-  }, [config, path]);
+  }, [config, path, reloadToken]);
 
   if (!config) return null;
 
@@ -119,10 +135,10 @@ export function S3BrowserModal({
       ],
     );
 
-  // A restore merges rows in rather than wiping first (see
-  // appExportImporter), which is why it is safe to offer next to a listing —
-  // but it is still another copy of the board landing on top of this one, so
-  // it asks first and names the file.
+  // A restore never touches the board in use: the zip comes back as a board
+  // of its own (see appExportImporter) and the app switches to it, so a file
+  // opened out of curiosity costs nothing but a switch back. It still asks
+  // first, and names the file it is about to open.
   const confirmRestore = (key: string) => {
     if (!config) return;
     Alert.alert(t('s3Browser.restoreConfirmTitle', { name: basename(key) }), t('s3Browser.restoreConfirmMessage'), [
@@ -136,8 +152,8 @@ export function S3BrowserModal({
             const db = await getDb();
             const bytes = await downloadS3Object(db, config.id, key);
             if (!bytes) throw new Error(t('s3Browser.restoreNotFound'));
-            await importAppExport(db, await parseBackupZip(bytes));
-            onRestored?.();
+            const imported = await importAppExport(db, await parseBackupZip(bytes));
+            onRestored?.(imported.boardId);
             onClose();
           } catch (e) {
             setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
@@ -239,6 +255,21 @@ export function S3BrowserModal({
           </ScrollView>
         ) : null}
 
+        {/* Outside the listing, because plenty of buckets are set up
+            write-only: not being able to read what is there is no reason not
+            to be able to put something there. Lands in the folder being
+            browsed, which is the only place "here" could mean. */}
+        {loading ? null : (
+          <BackupSaveLink
+            boardId={boardId}
+            boardName={boardName}
+            onSave={async (bytes, fileName) => {
+              const db = await getDb();
+              await uploadS3Object(db, config.id, [...path, fileName].join('/'), bytes);
+            }}
+            onSaved={() => setReloadToken((n) => n + 1)}
+          />
+        )}
       </ScreenContainer>
     </Modal>
   );

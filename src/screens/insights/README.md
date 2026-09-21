@@ -4,7 +4,6 @@
 InsightsScreen.tsx
 ┌───────────────────────────────┐
 │ MonthNav                       │──→ ../../components/ui/MonthNav.tsx
-│ MonthPickerModal                │──→ ../../components/ui/MonthPickerModal.tsx
 ├───────────────────────────────┤
 │ Spending breakdown card         │──→ inline (stacked bar, same file)
 ├───────────────────────────────┤

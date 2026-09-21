@@ -23,18 +23,17 @@ import { monthlyBalanceTrend } from '../../domain/balanceTrend';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
 import { useAppStore } from '../../state/useAppStore';
 import {
   isLoanLikeType,
   toppedUpByContributions,
-  transactionTakesCategory,
-} from '../../domain/accountKind';
+  } from '../../domain/accountKind';
 import {
   duplicateTransactionIds,
   matchesReviewFilter,
 } from '../../domain/transactionReview';
 import type { ReviewFilter } from '../../domain/transactionReview';
-import type { AccountType } from '../../domain/types';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { InterestRateDetails } from './InterestRateDetails';
 import { HouseValueDetails } from './HouseValueDetails';
@@ -48,7 +47,6 @@ import type {
   AccountsStackParamList,
   RootStackParamList,
 } from '../../navigation/types';
-import type { TranslationKey } from '../../i18n';
 
 // Nothing at all for a row that doesn't take a category — a savings
 // withdrawal or a transfer isn't "Uncategorized", it's simply not the kind
@@ -56,25 +54,6 @@ import type { TranslationKey } from '../../i18n';
 // before that rule (see domain/accountKind). Money coming in carries no
 // category by design either, so "Uncategorized" is only for an outflow that
 // genuinely lost one.
-function categorySubLabel(
-  item: {
-    categoryIcon: string | null;
-    categoryName: string | null;
-    amountCents: number;
-    accountType: AccountType;
-    transferAccountId: number | null;
-  },
-  t: (key: TranslationKey) => string,
-): string | null {
-  if (
-    !transactionTakesCategory(item.accountType, item.transferAccountId != null)
-  )
-    return null;
-  if (item.categoryName)
-    return `${item.categoryIcon ? item.categoryIcon + ' ' : ''}${item.categoryName}`;
-  return item.amountCents < 0 ? t('common.uncategorized') : null;
-}
-
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountDetail'>;
 // Add Transaction lives on the root stack, above this one.
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -389,27 +368,20 @@ export function AccountDetailScreen() {
                           <Text style={styles.payee}>
                             {s.payeeName ?? t('common.noPayee')}
                           </Text>
-                          <Text style={styles.sub}>
-                            {[
-                              // A schedule belongs to the account being
-                              // viewed and hasn't posted, so it is never a
-                              // transfer leg of its own.
-                              categorySubLabel(
-                                {
-                                  ...s,
-                                  accountType:
-                                    accountWithBalance?.account.type ?? 'cash',
-                                  transferAccountId: null,
-                                },
-                                t,
-                              ),
-                              t('accountDetail.nextDateLabel', {
-                                date: s.nextDate,
-                              }),
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </Text>
+                          {/* A schedule belongs to the account being viewed
+                              and hasn't posted, so it is never a transfer leg
+                              of its own. */}
+                          <TransactionSubLabel
+                            row={{
+                              ...s,
+                              accountType:
+                                accountWithBalance?.account.type ?? 'cash',
+                              transferAccountId: null,
+                            }}
+                            suffix={t('accountDetail.nextDateLabel', {
+                              date: s.nextDate,
+                            })}
+                          />
                         </View>
                         <Text
                           style={[
@@ -456,11 +428,7 @@ export function AccountDetailScreen() {
                           <Text style={styles.payee}>
                             {item.payeeName ?? t('common.noPayee')}
                           </Text>
-                          <Text style={styles.sub}>
-                            {[categorySubLabel(item, t), item.date]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </Text>
+                          <TransactionSubLabel row={item} suffix={item.date} />
                         </View>
                         <Text
                           style={[
@@ -550,11 +518,7 @@ export function AccountDetailScreen() {
               <Text style={styles.payee}>
                 {item.payeeName ?? t('common.noPayee')}
               </Text>
-              <Text style={styles.sub}>
-                {[categorySubLabel(item, t), item.date]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
+              <TransactionSubLabel row={item} suffix={item.date} />
               {item.memo ? (
                 <Text style={styles.memo} numberOfLines={1}>
                   {item.memo}

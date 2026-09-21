@@ -17,7 +17,6 @@ import {
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
-import { transactionTakesCategory } from '../../domain/accountKind';
 import {
   duplicateTransactionIds,
   matchesReviewFilter,
@@ -30,6 +29,7 @@ import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { formatMoney } from '../../domain/money';
+import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
 import {
   lastNMonths,
   formatMonthLabel,
@@ -358,20 +358,10 @@ export function TransactionsScreen() {
                   <Text style={styles.payee}>
                     {txn.payeeName ?? t('common.noPayee')}
                   </Text>
-                  {/* Nothing for a row a category doesn't apply to — a
-                      savings withdrawal or a transfer isn't "Uncategorized",
-                      and an old row can still carry a category from before
-                      that rule (see domain/accountKind). */}
-                  {transactionTakesCategory(
-                    txn.accountType,
-                    txn.transferAccountId != null,
-                  ) &&
-                  (txn.categoryName || txn.amountCents < 0) ? (
-                    <Text style={styles.sub}>
-                      {txn.categoryIcon ? `${txn.categoryIcon} ` : ''}
-                      {txn.categoryName ?? t('common.uncategorized')}
-                    </Text>
-                  ) : null}
+                  {/* What the row is, when the payee doesn't say: its
+                      category, or "Income" for money arriving, or nothing at
+                      all for a transfer leg (see domain/transactionLabel). */}
+                  <TransactionSubLabel row={txn} />
                   {txn.memo ? (
                     <Text style={styles.memo} numberOfLines={1}>
                       {txn.memo}

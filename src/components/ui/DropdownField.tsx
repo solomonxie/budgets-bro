@@ -44,9 +44,12 @@ interface DropdownFieldProps {
   // input makes it look like something to fill in. `placeholder` carries the
   // unfiltered state ("All categories"), so no separate label is drawn.
   link?: boolean;
+  // An ⓘ beside the label, for a picker whose options need a paragraph to
+  // explain — same slot TextField carries.
+  info?: ReactNode;
 }
 
-export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link }: DropdownFieldProps) {
+export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link, info }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const pendingRef = useRef<(() => void) | null>(null);
@@ -95,7 +98,12 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
         <FieldRow label={label} value={valueLabel} onPress={openPicker} expanded={inline?.expanded} />
       ) : (
         <>
-          {label && !hideLabel ? <Text style={styles.label}>{label}</Text> : null}
+          {label && !hideLabel ? (
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>{label}</Text>
+              {info}
+            </View>
+          ) : null}
           <Pressable style={styles.field} onPress={openPicker}>
             <Text style={[styles.valueText, !valueLabel && styles.placeholder]} numberOfLines={1}>
               {valueLabel || placeholder}
@@ -167,6 +175,7 @@ export function DropdownGroupLabel({ label }: { label: string }) {
 }
 
 const styles = StyleSheet.create({
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 6 },
   field: {
     flexDirection: 'row',

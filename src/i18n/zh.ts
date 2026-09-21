@@ -140,7 +140,7 @@ export const zh: Record<keyof typeof en, string> = {
   'backup.restore': '恢复',
   's3Browser.restoreConfirmTitle': '从 {name} 恢复？',
   's3Browser.restoreConfirmMessage':
-    '它会作为一个新账本恢复，当前账本保持不变——可在设置中切换。',
+    '它会作为一个新账本恢复，并自动切换过去。当前账本保持不变——随时可在设置中切回。',
   's3Browser.restoreNotFound': '该文件已不在存储桶中。',
   'aiHistory.hint':
     '这个密钥发出的每一次请求，原样保存。只存在本机 —— 每个密钥保留最近 50 条，备份中不包含。',
@@ -165,11 +165,25 @@ export const zh: Record<keyof typeof en, string> = {
   'backup.icloud': 'iCloud 云盘',
   'backup.icloudLocation': '在「文件」→ iCloud 云盘 → Budgets Bro',
   'backup.deleteConnection': '删除该连接',
+  'backup.saveCopyHere': '+ 把当前账本备份到这里',
+  'backup.saveCopyTitle': '为这个备份命名',
+  'backup.saveCopyFailed': '备份写入失败。',
   'backup.never': '从未同步',
   'backup.justNow': '刚刚',
   'backup.minutesAgo': '{count} 分钟前',
   'backup.hoursAgo': '{count} 小时前',
   'backup.daysAgo': '{count} 天前',
+  'backup.infoTitle': '备份如何让数据始终属于你',
+  'backup.infoNoServer':
+    '你的账本就是这台 iPhone 上的一个 SQLite 文件。Budgets Bro 没有服务器——没有账号，无需登录，你的数据不会存放在我们运行的任何机器上，因为我们没有任何机器。',
+  'backup.infoDestination':
+    '一次备份就是某个账本的完整副本：在本机打包成 zip，直接写入你自己的存储——你的 iCloud Drive，或用你自己的密钥访问的 S3 存储桶。从设备直达你的存储，中间没有我们。',
+  'backup.infoSecrets':
+    '备份中从不包含密钥。AI 与 S3 凭据保存在 iOS 钥匙串中，并标记为仅限本机，因此 iOS 不会将其纳入设备备份，也不会迁移到新手机。备份只读取账本表——账户、分类、预算、收款方、交易。',
+  'backup.infoFullCopy':
+    '每次同步写入的都是整个账本，而不是与上次的差异，所以最新的那个文件本身就是完整的，不依赖此前任何一次备份是否完好。',
+  'backup.infoRestore':
+    '恢复不会覆盖。恢复的 zip 会成为一个新账本，与现有账本并列，所以选错文件也没有任何代价。自动备份按日期定期清理；你自己命名的副本会一直保留。',
   'settings.importYnab': '从 YNAB 导入',
   'settings.restoreCategories': '从 YNAB 恢复分类',
   'settings.dataHeading': '数据',

@@ -204,20 +204,35 @@ choice flips on upgrade.
 
 - Tapping an S3 row opens its browser, which also owns "Delete Connection" —
   rare and destructive, so one level down behind a deliberate tap.
-- iCloud and This device rows aren't tappable; there's nothing under them.
+- The iCloud row opens the same browser over its folder. "What is actually up
+  there" is the same question wherever the files live.
+
+## Manual backup, from the browser
+Automatic backups name themselves `<YYYYMMDD>-<board-slug>.zip`, which is
+right for a history nobody reads until they need it and wrong for the copy
+taken deliberately before something risky. So each browser ends in "Back Up
+This Board Here": type a name, and the same zip lands under it — in the S3
+folder being browsed, or the iCloud folder. Typed names are outside the
+automatic shape, so pruning never touches them (`backupPath.ts`).
 
 ## Restore
-**There is no manual restore from a destination.** Two paths cover it:
+Three paths, none of which overwrites a board:
 
+- **From a destination, by hand**: every file in either browser restores in
+  place — download, `parseBackupZip`, `importAppExport`. It arrives as a
+  board of its own and the app switches to it, so a file opened out of
+  curiosity costs a switch back and nothing else. Listing-only was the
+  earlier answer, on the reasoning that restoring goes through "Import a
+  backup" — but that means getting the object onto the phone first, which is
+  no use when the phone is what you have.
 - **iCloud, automatic** (`autoRestore.ts`): deleting the app takes the
-  database with it, and `localProvider`'s zip sits in the same sandbox and
-  dies alongside it — iCloud is the only destination that outlives a
+  database with it — iCloud is the only destination that outlives a
   reinstall. So a fresh install pulls its board back by itself, once, before
   the demo board seeds. No prompt: on first launch the user has no context
   for the question, and getting their data back is the entire point of
   having backed it up.
-- **Everything else, by hand**: the "Import a backup" link under the backup
-  destinations takes a zip the user picked and overrides anything.
+- **From a file the user picked**: the "Import a backup" link under the
+  backup destinations, same importer.
 - New Google Drive section: "Connect"/"Disconnect", shows connected
   account email once linked.
 - Per-provider: "Auto-sync" toggle (default on once configured), "Last

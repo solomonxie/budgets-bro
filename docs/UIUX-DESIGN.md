@@ -312,6 +312,8 @@ Browse (tap a connection) — one level at a time, the same screen pushing itsel
 - Can never navigate above the connection's configured prefix — that prefix is the connection.
 - Hold the footer back until the listing resolves; if stats fail, hide the line rather than showing an error banner.
 - File row is read-only unless the file is genuinely actionable — then a tap does that thing directly rather than opening an info-only sheet.
+- A destination browser ends in the same centered accent add-link the forms use, writing a copy *here* under a name the user types. Automatic backups name themselves by date; the copy taken before something risky wants to be called "before the YNAB import".
+- Restoring a file from a browser is offered next to the listing, not sent off to a file picker — the whole point of browsing a destination from the phone is that the phone is what you have.
 
 `⋯` — same menu at every level, acting on the connection, not the folder:
 

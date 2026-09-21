@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react';
 import type { TranslationKey } from '../../i18n';
 import { MortgageScreen } from './MortgageScreen';
+import { CanadianPurchaseScreen } from './CanadianPurchaseScreen';
+import { RequiredIncomeScreen } from './RequiredIncomeScreen';
 import { MortgagePayoffScreen, LoanPayoffScreen } from './PayoffScreen';
 import { AffordabilityScreen } from './AffordabilityScreen';
 import { ChinaPrepaymentScreen } from './ChinaPrepaymentScreen';
@@ -14,6 +16,8 @@ import { CompoundInterestScreen } from './CompoundInterestScreen';
 import { TaxSavingsScreen } from './TaxSavingsScreen';
 
 export type FinanceToolId =
+  | 'canadaPurchase'
+  | 'requiredIncome'
   | 'mortgage'
   | 'mortgagePayoff'
   | 'houseAffordability'
@@ -43,6 +47,8 @@ export interface FinanceToolEntry {
 // Single source of truth for both the router and the hub lists: adding a tool
 // is one entry here, shipping it is swapping `Screen` off null.
 export const FINANCE_TOOLS: FinanceToolEntry[] = [
+  { id: 'canadaPurchase', hub: 'mortgage', titleKey: 'calcCanadaPurchase.title', subtitleKey: 'calcCanadaPurchase.subtitle', Screen: CanadianPurchaseScreen },
+  { id: 'requiredIncome', hub: 'mortgage', titleKey: 'calcRequiredIncome.title', subtitleKey: 'calcRequiredIncome.subtitle', Screen: RequiredIncomeScreen },
   { id: 'mortgage', hub: 'mortgage', titleKey: 'calcMortgage.title', subtitleKey: 'calcMortgage.subtitle', Screen: MortgageScreen },
   { id: 'mortgagePayoff', hub: 'mortgage', titleKey: 'calcPayoff.title', subtitleKey: 'calcPayoff.subtitle', Screen: MortgagePayoffScreen },
   { id: 'houseAffordability', hub: 'mortgage', titleKey: 'calcAffordability.title', subtitleKey: 'calcAffordability.subtitle', Screen: AffordabilityScreen },

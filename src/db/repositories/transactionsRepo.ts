@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from '../../db/driver';
 import type { TransactionJoinRow } from '../schema';
 import type { AccountType, TransactionWithLabels } from '../../domain/types';
+import type { PurchaseItemRow } from '../../domain/purchaseInsights';
 import { currentDateISO } from '../../domain/month';
 import { findOrCreatePayee, getPayee, pruneUnusedPayees } from './payeesRepo';
 import {
@@ -8,6 +9,7 @@ import {
   INSERT_TRANSACTION,
   UPDATE_TRANSACTION,
   LAST_CATEGORY_FOR_PAYEE,
+  SELECT_PURCHASE_ITEMS,
 } from '../../../databases/queries/transactions';
 
 function mapRow(row: TransactionJoinRow): TransactionWithLabels {
@@ -21,6 +23,7 @@ function mapRow(row: TransactionJoinRow): TransactionWithLabels {
     date: row.date,
     transferAccountId: row.transfer_account_id,
     importId: row.import_id,
+    purchaseItems: row.purchase_items,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     payeeName: row.payee_name,
@@ -79,6 +82,25 @@ export async function listTransactions(
   return rows.map(mapRow);
 }
 
+// Only what named something, and only the three columns that say what it
+// was — the whole-board read this replaces carried a payee, category and
+// account label for every row, none of which an item's name or price is.
+export async function listPurchaseItemRows(
+  db: SQLiteDatabase,
+  boardId: number,
+): Promise<PurchaseItemRow[]> {
+  const rows = await db.getAllAsync<{
+    id: number;
+    date: string;
+    purchase_items: string | null;
+  }>(SELECT_PURCHASE_ITEMS, boardId, currentDateISO());
+  return rows.map((row) => ({
+    id: row.id,
+    date: row.date,
+    purchaseItems: row.purchase_items,
+  }));
+}
+
 export async function getTransaction(
   db: SQLiteDatabase,
   id: number,
@@ -108,6 +130,9 @@ export interface CreateTransactionInput {
   memo: string | null;
   amountCents: number; // signed
   date: string;
+  // `key=value` pairs in one string — see domain/purchaseItems.ts. Omitted
+  // means none, which on an update clears whatever was there.
+  purchaseItems?: string | null;
   // Tags this as belonging to an Income-typed account's earnings — see
   // migration 021. Undefined/null for anything that isn't income.
 }
@@ -218,6 +243,7 @@ export async function createTransaction(
       input.date,
       null,
       null,
+      input.purchaseItems ?? null,
     );
     insertedId = result.lastInsertRowId;
     await postLinkedAccountLeg(db, boardId, insertedId, { ...input, payeeId });
@@ -250,6 +276,7 @@ export async function updateTransaction(
     input.memo,
     input.amountCents,
     input.date,
+    input.purchaseItems ?? null,
     input.id,
   );
   await syncPartnerLeg(db, boardId, { ...input, payeeId }, partnerId);

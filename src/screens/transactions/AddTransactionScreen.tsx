@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -34,12 +34,16 @@ import { SearchableDropdownField } from '../../components/ui/SearchableDropdownF
 import { PromptModal } from '../../components/ui/PromptModal';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
+import { ExpandingSection, SubSection } from '../../components/ui/ExpandingSection';
 import {
   isLoanLikeType,
   isSpendingAccountType,
 } from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
+import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
+import { usePurchaseInsights } from '../../hooks/usePurchaseInsights';
+import { parsePurchaseItems } from '../../domain/purchaseItems';
 import { RepeatField } from '../../components/ui/RepeatField';
 import { useT } from '../../i18n';
 import {
@@ -60,6 +64,12 @@ const DEFAULT_RULE: RecurrenceRule = {
   intervalN: 1,
   daysOfWeekMask: null,
 };
+
+// One line, up to about six: a note long enough to need scrolling inside a
+// box is a note that should push the form instead. Measured on the text
+// alone now that the memo is a card row rather than an outlined box.
+const MEMO_MIN_HEIGHT = 21;
+const MEMO_MAX_HEIGHT = 120;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddTransaction'>;
 type Route = RouteProp<RootStackParamList, 'AddTransaction'>;
@@ -113,6 +123,53 @@ function AddTransactionForm() {
     id: number;
     name: string;
   } | null>(null);
+  const [purchaseItems, setPurchaseItems] = useState<string | null>(null);
+  // Grows with what is typed into it, between one line and about six.
+  const [memoHeight, setMemoHeight] = useState(MEMO_MIN_HEIGHT);
+  const memoRef = useRef<View>(null);
+  const { names: itemNames } = usePurchaseInsights();
+
+  // The item inputs sit near the bottom of a long form, so the keyboard
+  // opens straight over the row just tapped. Nothing scrolls a focused
+  // input into view on its own here — the row lives inside a picker panel
+  // unfolded mid-card — so the row says where it is and the page scrolls by
+  // exactly the overlap.
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const rowToReveal = useRef<View | null>(null);
+
+  const revealNode = useCallback((node: View | null, keyboardTop: number) => {
+    node?.measureInWindow((_x, y, _w, height) => {
+      const overlap = y + height + spacing.md - keyboardTop;
+      if (overlap > 0)
+        scrollRef.current?.scrollTo({
+          y: scrollY.current + overlap,
+          animated: true,
+        });
+    });
+  }, []);
+
+  // Two ways in: the keyboard is already up (switching between item rows),
+  // or it is about to come up and its height isn't known until it does.
+  const revealRow = useCallback(
+    (node: View | null) => {
+      rowToReveal.current = node;
+      const metrics = Keyboard.metrics();
+      if (node && metrics)
+        setTimeout(() => revealNode(node, metrics.screenY), 60);
+    },
+    [revealNode],
+  );
+
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', (e) => {
+      const node = rowToReveal.current;
+      // After the avoiding-view has finished lifting, or the measurement is
+      // of where the row used to be.
+      if (node) setTimeout(() => revealNode(node, e.endCoordinates.screenY), 60);
+    });
+    return () => sub.remove();
+  }, [revealNode]);
   const realAccounts = accounts;
   // A loan/mortgage row is half of a payment pair, and every leg names the
   // account across from it, never itself (migration 027). So the payee here
@@ -187,6 +244,7 @@ function AddTransactionForm() {
       setCategoryId(txn.categoryId);
       setAccountId(txn.accountId);
       setMemo(txn.memo ?? '');
+      setPurchaseItems(txn.purchaseItems);
       setDate(txn.date);
     })();
   }, [editingTransactionId]);
@@ -332,6 +390,7 @@ function AddTransactionForm() {
         memo: memo || null,
         amountCents: signedCents,
         date,
+        purchaseItems,
       };
       if (editingTransactionId != null) {
         await transactionsRepo.updateTransaction(db, boardId, {
@@ -369,6 +428,11 @@ function AddTransactionForm() {
       },
     ]);
   };
+
+  // What the collapsed Advanced row shows: whatever items were named.
+  const advancedSummary = parsePurchaseItems(purchaseItems)
+    .map((item) => item.key)
+    .join(', ');
 
   const dateLabel = t(
     isScheduled ? 'addTransactionModal.startDateLabel' : 'common.date',
@@ -435,6 +499,11 @@ function AddTransactionForm() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
+        onScroll={(e) => {
+          scrollY.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.scrollContent,
           // The home indicator sits over the last few points of the screen,
@@ -583,19 +652,57 @@ function AddTransactionForm() {
                 value={date}
                 onChange={setDate}
               />
-              {/* Multiline: return inserts a newline instead of closing the
-                  keyboard, and the text starts at the top of the row rather
-                  than floating in the middle of it. Dismissal is by tapping
-                  off it or dragging the form. */}
-              <TextInput
-                style={styles.memoRow}
-                placeholder={t('spend.memoPlaceholder')}
-                value={memo}
-                onChangeText={setMemo}
-                placeholderTextColor={colors.textMuted}
-                keyboardAppearance="dark"
-                multiline
-              />
+              {/* A row of the card like any other — a note is typed on most
+                  spends, which is one tap too many behind Advanced. Reads as
+                  a field row: placeholder alone until there is a note, then
+                  the label above it. */}
+              <View ref={memoRef} style={styles.memoRow}>
+                {memo ? (
+                  <Text style={styles.memoLabel}>{t('spend.memoSection')}</Text>
+                ) : null}
+                {/* Multiline, and the row follows the text rather than
+                    scrolling inside a fixed two lines. */}
+                <TextInput
+                  style={[styles.memoInput, { height: memoHeight }]}
+                  placeholder={t('spend.memoPlaceholder')}
+                  value={memo}
+                  onChangeText={setMemo}
+                  onContentSizeChange={(e) =>
+                    setMemoHeight(
+                      Math.min(
+                        MEMO_MAX_HEIGHT,
+                        Math.max(
+                          MEMO_MIN_HEIGHT,
+                          e.nativeEvent.contentSize.height,
+                        ),
+                      ),
+                    )
+                  }
+                  placeholderTextColor={colors.textMuted}
+                  keyboardAppearance="dark"
+                  multiline
+                  onFocus={() => revealRow(memoRef.current)}
+                  onBlur={() => revealRow(null)}
+                />
+              </View>
+              {/* Only on a real row: the scheduled-transaction table has no
+                  items column, so a template would drop them silently — and
+                  with items gone there is nothing left behind Advanced. */}
+              {isScheduled ? null : (
+                <ExpandingSection
+                  label={t('spend.advanced')}
+                  summary={advancedSummary}
+                >
+                  <SubSection label={t('spend.itemsSection')}>
+                    <PurchaseItemsField
+                      value={purchaseItems}
+                      onChange={setPurchaseItems}
+                      nameOptions={itemNames}
+                      onRevealRow={revealRow}
+                    />
+                  </SubSection>
+                </ExpandingSection>
+              )}
             </FieldCard>
             {isScheduled ? (
               <>
@@ -673,22 +780,26 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   amountHeader: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     gap: spacing.sm,
   },
+  // Big, because it is the only thing on this page the pad is editing — but
+  // no bigger than leaves the card's rows and the whole pad on screen at
+  // once. Shrinks itself to fit a long figure (adjustsFontSizeToFit above),
+  // so the size is a ceiling.
   amount: {
-    fontSize: 52,
+    fontSize: 56,
     fontWeight: '700',
     textAlign: 'center',
     color: colors.text,
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   amountPlaceholder: { color: colors.textMuted },
   scrollContent: { flexGrow: 1 },
   // Grows into leftover space but never shrinks below its content — same as
   // FieldCard's `grow`: an unfolded picker pushes the pad past the bottom of
   // the screen and the page scrolls to it.
-  form: { flexGrow: 1, flexShrink: 0, padding: spacing.md, gap: spacing.md },
+  form: { flexGrow: 1, flexShrink: 0, padding: spacing.md, gap: spacing.sm },
   scheduledPill: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -738,17 +849,20 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
-  // The card's last row, typed into in place — no box of its own. It takes
-  // the leftover height so the pad below it doesn't move between accounts
-  // (see FieldCard's `grow`).
+  // Sized like FieldRow, because it is one: same padding, same minimum, the
+  // note itself where a picked value would sit.
   memoRow: {
-    flex: 1,
-    minHeight: 58,
-    textAlignVertical: 'top',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingVertical: 7,
     paddingHorizontal: spacing.md,
+  },
+  memoLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },
+  memoInput: {
+    padding: 0,
     fontSize: 16,
     color: colors.text,
+    textAlignVertical: 'top',
   },
   deleteButton: {
     alignItems: 'center',

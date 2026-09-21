@@ -148,6 +148,13 @@ Sometimes text link style look better than big button, depends on the usage.
 - Default a required field to the last-used (or only) value instead of blank, and drop the now-impossible "None" option.
 - Short date format ("Sep 12") where the year is noise; full format where old dates are the point.
 - Keep a draft of any failed form attempt — retyping a secret from a password manager after every failure is the pain to remove.
+- A form's optional half lives behind one **Advanced** row that looks and behaves like any other picker row (label, summary of what is inside, chevron that turns). Inside it, labelled sub-sections — Purchase items, whatever comes next — so growing the form costs a sub-section, not another always-visible row. The collapsed row's value is the data itself (the item names), never a count. What most entries fill in stays an always-visible row: a memo behind Advanced was one tap too many. Hide the section entirely when the current mode leaves nothing inside it.
+- A picker unfolded *inside* a section gets its own one-open-row group, or opening it would fold the section away underneath it.
+- A picker whose field has to share its line with something else (an item's price and remove) draws its own field and keeps its unfolded list under the *whole* row, never inside the narrow column the field sits in.
+- A free-text field whose values repeat (an item name) is a searchable picker over what the board has already seen, with type-your-own as the first option — the payee field's treatment. Picking beats typing because it is what stops one thing being recorded under three spellings.
+- A multiline note box grows with its content between one line and about six; past that the form should scroll, not the box.
+- On a form tall enough to scroll, a text field near the bottom must scroll itself clear of the keyboard on focus — measure the row against the keyboard frame and scroll by the overlap. Nothing does this for a field inside a picker panel unfolded mid-card.
+- The number pad and field rows are sized so the pad stays fully on screen on the smallest supported phone with every row showing. When a new row is added to a form, that budget is what gets re-checked.
 
 
 ### Date, month & wheel pickers

@@ -1,5 +1,5 @@
 import { act, create } from 'react-test-renderer';
-import { Modal, Text } from 'react-native';
+import { Modal, Text, TextInput } from 'react-native';
 import { AddTransactionScreen } from './AddTransactionScreen';
 
 // Every picker on this page unfolds in the row's own space (see
@@ -30,6 +30,14 @@ jest.mock('../../hooks/useCategories', () => ({
     categories: [{ id: 10, name: 'Groceries', groupId: 1, icon: null }],
   }),
 }));
+jest.mock('../../hooks/usePurchaseInsights', () => ({
+  usePurchaseInsights: () => ({
+    items: [],
+    names: ['Olive oil'],
+    transactions: [],
+    loading: false,
+  }),
+}));
 jest.mock('../../hooks/usePayees', () => ({
   usePayees: () => ({
     payees: [{ id: 5, name: 'Costco', linkedAccountId: null }],
@@ -41,6 +49,13 @@ function texts(root: ReturnType<typeof create>): string[] {
     const c = t.props.children;
     return typeof c === 'string' ? [c] : [];
   });
+}
+
+function placeholders(root: ReturnType<typeof create>): string[] {
+  return root.root
+    .findAllByType(TextInput)
+    .map((i) => i.props.placeholder)
+    .filter((p): p is string => typeof p === 'string');
 }
 
 function pressRow(root: ReturnType<typeof create>, label: string) {
@@ -55,7 +70,7 @@ function pressRow(root: ReturnType<typeof create>, label: string) {
 }
 
 describe('AddTransactionScreen', () => {
-  it.each(['Payee', 'Category', 'Account', 'Date'])(
+  it.each(['Payee', 'Category', 'Account', 'Date', 'Advanced'])(
     '%s unfolds in place, presenting no Modal',
     (label) => {
       let root!: ReturnType<typeof create>;
@@ -81,5 +96,36 @@ describe('AddTransactionScreen', () => {
     expect(shown).toContain('Groceries');
     // The form is still there behind it — that's the whole point.
     expect(shown).toContain('Account');
+  });
+
+  it('Advanced holds the items, folded until asked for; the memo does not', () => {
+    let root!: ReturnType<typeof create>;
+    act(() => {
+      root = create(<AddTransactionScreen />);
+    });
+    // The memo is a row of the card, on screen with the rest of the form.
+    expect(placeholders(root)).toContain('Memo');
+    expect(texts(root)).not.toContain('Purchase items');
+
+    pressRow(root, 'Advanced');
+    const shown = texts(root);
+    expect(shown).toContain('Purchase items');
+    // The form above it is still there — the section unfolds in place.
+    expect(shown).toContain('Account');
+  });
+
+  it('an item name picker unfolds inside Advanced, keeping it open', () => {
+    let root!: ReturnType<typeof create>;
+    act(() => {
+      root = create(<AddTransactionScreen />);
+    });
+    pressRow(root, 'Advanced');
+    pressRow(root, '+ Add item');
+    pressRow(root, 'Item');
+
+    const shown = texts(root);
+    expect(shown).toContain('Olive oil');
+    expect(shown).toContain('Purchase items');
+    expect(root.root.findAllByType(Modal)).toHaveLength(0);
   });
 });

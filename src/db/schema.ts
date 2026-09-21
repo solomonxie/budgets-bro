@@ -89,6 +89,7 @@ export interface TransactionRow {
   date: string;
   transfer_account_id: number | null;
   import_id: string | null;
+  purchase_items: string | null;
   created_at: string;
   updated_at: string;
 }

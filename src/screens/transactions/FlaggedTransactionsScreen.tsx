@@ -835,15 +835,9 @@ export function FlaggedTransactionsScreen() {
               : `txn-${row.item.txn.id}`
           }
           renderItem={renderRow}
-          // Both explanations scroll with the list rather than pinning: the
-          // rows are the page, and a fixed banner would push them down every
-          // time you came back to it.
-          ListHeaderComponent={
-            <GuideSection
-              heading={t('review.guideHeading')}
-              body={t('review.guideBody')}
-            />
-          }
+          // The explanation scrolls with the list rather than pinning, and
+          // sits under it: the rows are the page, and anything above them
+          // pushed them down every time you came back to it.
           ListFooterComponent={
             <GuideSection
               heading={t('review.guideBottomHeading')}

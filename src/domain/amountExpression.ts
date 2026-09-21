@@ -113,8 +113,8 @@ export function pressAmountKey(
   return { ...expr, digits: (expr.digits + key).replace(/^0+(?=\d)/, '') };
 }
 
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toLocaleString('en-US', {
+function formatCents(cents: number, symbol: string): string {
+  return `${symbol}${(cents / 100).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -122,9 +122,14 @@ function formatCents(cents: number): string {
 
 // What the big number at the top of the page reads — the whole expression
 // while one is being built ("$55.00 + $36.00"), empty when nothing is typed
-// so the placeholder can show through.
-export function formatAmountExpression(expr: AmountExpression): string {
-  const right = expr.digits ? formatCents(digitsToCents(expr.digits)) : '';
+// so the placeholder can show through. `symbol` is the ledger's dollar
+// unless the caller is typing in some other money, or in none: the exchange
+// page names the currency on the row instead, and passes ''.
+export function formatAmountExpression(
+  expr: AmountExpression,
+  symbol = '$',
+): string {
+  const right = expr.digits ? formatCents(digitsToCents(expr.digits), symbol) : '';
   if (expr.leftCents == null || expr.operator == null) return right;
-  return `${formatCents(expr.leftCents)} ${expr.operator} ${right}`.trimEnd();
+  return `${formatCents(expr.leftCents, symbol)} ${expr.operator} ${right}`.trimEnd();
 }

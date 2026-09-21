@@ -47,7 +47,7 @@
 		<true/>
 	</dict>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
+	<string>Face ID unlocks Budgets Bro. Your budget never leaves this iPhone.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.com.solomonxie.budgetsbro</key>

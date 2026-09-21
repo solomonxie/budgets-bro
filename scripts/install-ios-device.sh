@@ -22,6 +22,35 @@ xcodebuild -workspace "ios/$SCHEME.xcworkspace" -scheme "$SCHEME" \
   -configuration Release -destination "id=$UDID" \
   -allowProvisioningUpdates -derivedDataPath "$DERIVED" build
 
-xcrun devicectl device install app --device "$UDID" \
-  "$DERIVED/Build/Products/Release-iphoneos/$SCHEME.app"
+APP="$DERIVED/Build/Products/Release-iphoneos/$SCHEME.app"
+
+# Debug symbols are two thirds of what lands on the phone: 28MB installs as
+# 16MB once the app binary and the three embedded frameworks are stripped.
+# Stripping invalidates every signature it touches, so each one is signed
+# again with the identity the build already used, and the result is only
+# installed if it verifies — otherwise the untouched build is.
+STRIPPED="$DERIVED/Build/Products/Release-iphoneos/$SCHEME-stripped.app"
+IDENTITY=$(codesign -dvv "$APP" 2>&1 | awk -F'= *' '/^Authority=/{print $2; exit}')
+if [ -n "$IDENTITY" ]; then
+  rm -rf "$STRIPPED"
+  cp -R "$APP" "$STRIPPED"
+  for framework in "$STRIPPED"/Frameworks/*.framework; do
+    [ -d "$framework" ] || continue
+    name=$(basename "$framework" .framework)
+    strip -rSTx "$framework/$name" 2>/dev/null || true
+    codesign --force --preserve-metadata=identifier,entitlements,flags \
+      --sign "$IDENTITY" "$framework" >/dev/null 2>&1 || true
+  done
+  strip -rSTx "$STRIPPED/$SCHEME" 2>/dev/null || true
+  codesign --force --preserve-metadata=identifier,entitlements,flags \
+    --sign "$IDENTITY" "$STRIPPED" >/dev/null 2>&1 || true
+  if codesign --verify --deep --strict "$STRIPPED" >/dev/null 2>&1; then
+    APP="$STRIPPED"
+    echo "Installing stripped build ($(du -sh "$STRIPPED" | cut -f1))."
+  else
+    echo "Strip left an invalid signature — installing the unstripped build." >&2
+  fi
+fi
+
+xcrun devicectl device install app --device "$UDID" "$APP"
 xcrun devicectl device process launch --device "$UDID" "$BUNDLE_ID"

@@ -22,8 +22,8 @@ import { withRunningBalances } from '../../domain/register';
 import { monthlyBalanceTrend } from '../../domain/balanceTrend';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO } from '../../domain/month';
-import { formatMoney } from '../../domain/money';
 import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
+import { formatMoney, formatMoneyExact } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import {
   isLoanLikeType,
@@ -391,7 +391,7 @@ export function AccountDetailScreen() {
                               : styles.positive,
                           ]}
                         >
-                          {formatMoney(s.amountCents)}
+                          {formatMoneyExact(s.amountCents)}
                         </Text>
                         {s.nextDate <= today ? (
                           <Pressable
@@ -438,7 +438,7 @@ export function AccountDetailScreen() {
                               : styles.positive,
                           ]}
                         >
-                          {formatMoney(item.amountCents)}
+                          {formatMoneyExact(item.amountCents)}
                         </Text>
                       </Pressable>
                     ))}
@@ -532,7 +532,7 @@ export function AccountDetailScreen() {
                   item.amountCents < 0 ? styles.negative : styles.positive,
                 ]}
               >
-                {formatMoney(item.amountCents)}
+                {formatMoneyExact(item.amountCents)}
               </Text>
               {/* A loan's balance is its remaining principal, derived — not a
                   running sum of these rows (see accountsRepo), so a
@@ -540,7 +540,7 @@ export function AccountDetailScreen() {
                   walking backwards from an unrelated total. */}
               {isLoanLike ? null : (
                 <Text style={styles.running}>
-                  {formatMoney(item.runningBalanceCents)}
+                  {formatMoneyExact(item.runningBalanceCents)}
                 </Text>
               )}
             </View>

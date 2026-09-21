@@ -15,6 +15,7 @@ import { useAppStore } from '../../state/useAppStore';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { LoggedValueModal } from '../../components/ui/LoggedValueModal';
+import { InfoButton } from '../../components/ui/InfoButton';
 import type { LoggedValueChange } from '../../components/ui/LoggedValueModal';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -193,6 +194,14 @@ export function LoanDetailsCard({
     return (
       <View style={styles.card}>
         <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
+        <InfoButton
+          title={t('accountInfo.loanCardTitle')}
+          paragraphs={[
+            t('accountInfo.loanCardBody'),
+            t('accountInfo.principalBody'),
+          ]}
+          closeLabel={t('common.done')}
+        />
         <Text style={styles.hint}>{t('loanDetailsCard.addHint')}</Text>
         <Pressable onPress={() => openEditAccount(account.id)}>
           <Text style={styles.link}>{t('loanDetailsCard.addTerms')}</Text>
@@ -230,6 +239,14 @@ export function LoanDetailsCard({
         onPress={() => setExpanded((v) => !v)}
       >
         <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
+        <InfoButton
+          title={t('accountInfo.loanCardTitle')}
+          paragraphs={[
+            t('accountInfo.loanCardBody'),
+            t('accountInfo.principalBody'),
+          ]}
+          closeLabel={t('common.done')}
+        />
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
             {t('loanDetailsCard.summary', {

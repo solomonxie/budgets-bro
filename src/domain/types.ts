@@ -38,7 +38,29 @@ export interface Account {
   // Free-text, any account type — why this account exists, which branch it
   // is with, whatever the name alone doesn't say.
   note: string | null;
+  // Which registered plan a tracking account is (RRSP, TFSA, 401(k)…), or
+  // null / 'general' for one that is just an investment account. Only plans
+  // the app can describe are offered — see TRACKING_KINDS.
+  trackingKind: TrackingKind | null;
 }
+
+// Closed set: a plan is listed once its rules are worth naming on screen.
+// Everything else stays 'general' rather than being half-supported.
+export const TRACKING_KINDS = [
+  'general',
+  'ca_rrsp',
+  'ca_tfsa',
+  'ca_fhsa',
+  'ca_resp',
+  'ca_rrif',
+  'ca_lira',
+  'us_401k',
+  'us_ira',
+  'us_roth_ira',
+  'us_529',
+] as const;
+
+export type TrackingKind = (typeof TRACKING_KINDS)[number];
 
 export interface AccountRateChange {
   id: number;

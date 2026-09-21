@@ -82,14 +82,25 @@ export const en = {
   'settings.languageHeading': 'Language',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
-  'settings.aiKeysHeading': 'AI Keys',
+  'settings.aiKeysHeading': 'AI Connections',
+  'aiInfo.title': 'Bringing your own AI',
+  'aiInfo.what':
+    'AI Analysis can read your budget and answer questions about it in plain language — where the money went, whether a month is unusual, what a plan looks like. It only runs when you ask it to, on the page you ask it from.',
+  'aiInfo.ownAccount':
+    'There is no AI built into this app, and no subscription to it. You open an account with an AI provider, copy the access key they give you, and paste it here. The app then talks to that provider as you, straight from this iPhone.',
+  'aiInfo.whereToRegister':
+    'Sign up free at any of them and create a key: OpenAI (platform.openai.com), Anthropic (console.anthropic.com), Google Gemini (aistudio.google.com), Groq (console.groq.com), Mistral (console.mistral.ai). Pick a provider in the form below and the link takes you to the right page.',
+  'aiInfo.cost':
+    'You pay that provider directly for what you use, usually a fraction of a cent per question, and you can see every charge in their dashboard. Nothing is billed through this app, because there is nothing here to bill through.',
+  'aiInfo.privacy':
+    'Your key is kept in this iPhone’s Keychain and is never included in a backup. A question sends only the figures needed to answer it, and Privacy Mode strips payee names and memos before it goes. Nothing is sent anywhere until you press the button.',
   'settings.aiKeysHint':
-    'Used by AI Analysis. Sent straight from this device to the chosen vendor when you run an analysis — never stored or seen by us. Keys never leave this device, including in backups. Add more than one to fall back automatically if one hits a rate limit or runs out of usage. Tap a key to see exactly what it sent.',
-  'settings.aiKeyRequestCount': '{count} requests sent',
-  'settings.addAiKeyLink': '+ Add AI Key',
-  'settings.deleteAiKeyConfirmTitle': 'Delete this key?',
+    'Connect your own AI account and AI Analysis can use it. Add more than one and it falls back to the next when one runs out. Tap a connection to see exactly what it sent.',
+  'settings.aiKeyRequestCount': '{count} questions sent',
+  'settings.addAiKeyLink': '+ Connect an AI',
+  'settings.deleteAiKeyConfirmTitle': 'Disconnect this AI?',
   'settings.deleteAiKeyConfirmMessage':
-    'AI Analysis will stop using it immediately.',
+    'AI Analysis stops using it immediately. Your account with that provider is untouched.',
   'settings.aiKeyStrategySequential': 'Sequential',
   'settings.aiKeyStrategyRoundRobin': 'Round robin',
   'settings.s3AccessKeyLabel': 'Access Key ID',
@@ -117,13 +128,13 @@ export const en = {
   's3ConfigModal.draftsHint':
     'From past attempts — tap to refill, ✕ to remove.',
 
-  'aiKeyModal.title': 'Add AI Key',
-  'aiKeyModal.vendorLabel': 'Vendor',
-  'aiKeyModal.keyLabel': 'API key',
-  'aiKeyModal.getKeyHint': "Don't have a {vendor} key yet?",
+  'aiKeyModal.title': 'Connect an AI',
+  'aiKeyModal.vendorLabel': 'Provider',
+  'aiKeyModal.keyLabel': 'Access key',
+  'aiKeyModal.getKeyHint': "Don't have a {vendor} account yet?",
   'aiKeyModal.getKeyLink': 'Get one →',
-  'aiKeyModal.missingKey': 'Enter a key.',
-  'aiKeyModal.testing': 'Testing the key…',
+  'aiKeyModal.missingKey': 'Paste your access key.',
+  'aiKeyModal.testing': 'Checking the connection…',
   'aiKeyModal.testFailed': 'Could not connect: {error}',
   's3Browser.title': 'Browse Bucket',
   's3Browser.up': '..',

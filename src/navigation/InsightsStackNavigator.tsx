@@ -11,6 +11,7 @@ import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
 import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { PurchaseInsightsScreen } from '../screens/insights/PurchaseInsightsScreen';
 import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
+import { CostOfLivingScreen } from '../screens/insights/CostOfLivingScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
 import type { InsightsStackParamList } from './types';
@@ -49,6 +50,11 @@ export function InsightsStackNavigator() {
         name="ExchangeInsights"
         component={ExchangeInsightsScreen}
         options={{ title: t('insights.exchangeInsights') }}
+      />
+      <Stack.Screen
+        name="CostOfLiving"
+        component={CostOfLivingScreen}
+        options={{ title: t('insights.costOfLiving') }}
       />
       <Stack.Screen
         name="FinanceTool"

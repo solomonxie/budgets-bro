@@ -31,6 +31,7 @@ export type InsightsStackParamList = {
   TaxInsights: undefined;
   PurchaseInsights: undefined;
   ExchangeInsights: undefined;
+  CostOfLiving: undefined;
   AiAnalysis: undefined;
   // One route for every calculator — see screens/finance-tools/registry.ts.
   FinanceTool: { tool: FinanceToolId };

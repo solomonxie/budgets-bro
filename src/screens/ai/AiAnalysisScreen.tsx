@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { TextField } from '../../components/ui/TextField';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -188,6 +189,7 @@ export function AiAnalysisScreen() {
 
   return (
     <ScreenContainer scroll>
+      <ExperimentalBanner />
       <View style={styles.card}>
         <Text style={styles.title}>{t('aiAnalysis.profileHeading')}</Text>
         <Text style={styles.hint}>{t('aiAnalysis.profileHint')}</Text>

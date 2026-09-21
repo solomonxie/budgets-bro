@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { Card } from '../../components/ui/Card';
 import { ResultRow } from '../../components/ui/ResultRow';
 import { GuideSection } from '../../components/ui/GuideSection';
@@ -54,6 +55,7 @@ export function HousingInsightsScreen() {
 
   return (
     <ScreenContainer scroll>
+      <ExperimentalBanner />
       <Card title={t('housing.shortlistHeading')}>
         {houses.length === 0 ? (
           <Text style={styles.muted}>{t('housing.empty')}</Text>

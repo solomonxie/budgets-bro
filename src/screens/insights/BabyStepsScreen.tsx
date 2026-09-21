@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ScrollView } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
@@ -29,6 +29,11 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
+
+// Whose plan this is. The page reads the seven steps off your ledger; it
+// does not try to be the book.
+const BABY_STEPS_URL =
+  'https://www.ramseysolutions.com/dave-ramsey-7-baby-steps';
 
 // Board-scoped — each board has its own account links, categories and
 // checkboxes. `emergencyFundKey` is legacy (a single shared account for
@@ -669,13 +674,16 @@ export function BabyStepsScreen() {
   return (
     <ScreenContainer scroll scrollRef={scrollRef}>
       <ExpandingFieldGroup>
-        {/* What the seven steps are, before the first bar — the page is
-            useless to anyone who doesn't know the shape of the plan. The
-            long version waits at the bottom. */}
-        <GuideSection
-          heading={t('babySteps.introHeading')}
-          body={t('babySteps.intro')}
-        />
+        {/* One line above the first bar, not a paragraph: anyone who wants
+            the shape of the plan before the numbers can have it from the
+            man who wrote it, and everyone else gets straight to their own
+            progress. The prose waits at the bottom. */}
+        <Pressable
+          hitSlop={8}
+          onPress={() => Linking.openURL(BABY_STEPS_URL)}
+        >
+          <Text style={styles.learnMore}>{t('babySteps.learnMore')}</Text>
+        </Pressable>
         <Step
           number={1}
           title={t('babySteps.step1Title')}
@@ -873,6 +881,10 @@ export function BabyStepsScreen() {
         <GuideSection
           heading={t('babySteps.whyHeading')}
           body={t('babySteps.whyBody')}
+        />
+        <GuideSection
+          heading={t('babySteps.introHeading')}
+          body={t('babySteps.intro')}
         />
         <GuideSection
           heading={t('babySteps.measuredHeading')}
@@ -1133,6 +1145,12 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
   statusPillTextDone: { color: '#fff' },
   linkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
+  learnMore: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+    marginBottom: spacing.md,
+  },
   deleteLinkText: { fontSize: 12, fontWeight: '700', color: colors.negative },
   targetEditRow: {
     flexDirection: 'row',

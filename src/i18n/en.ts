@@ -50,6 +50,7 @@ export const en = {
   'stubScreen.comingSoon': 'Coming soon — this screen is still being designed.',
 
   'assignedAmountModal.assignedThisMonth': 'Assigned this month',
+  'assignedAmountModal.availableAfter': 'Available after: {amount}',
   'assignedAmountModal.unassignedHint':
     'Unassigned: {unassigned}   ·   Last month: {lastMonth}',
   'assignedAmountModal.rolloverHint': 'Carried over: {amount}',

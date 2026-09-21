@@ -82,13 +82,24 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.languageHeading': '语言',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
-  'settings.aiKeysHeading': 'AI 密钥',
+  'settings.aiKeysHeading': 'AI 连接',
+  'aiInfo.title': '用你自己的 AI',
+  'aiInfo.what':
+    'AI 分析可以读取你的预算，并用日常语言回答关于它的问题——钱都去了哪、这个月是否异常、接下来该怎么安排。它只在你主动点击时运行，且只在你发起的那一页上运行。',
+  'aiInfo.ownAccount':
+    '本应用内不含任何 AI，也不向你收取订阅费。你在某家 AI 服务商开通账户，把它给你的访问密钥粘贴到这里，应用便以你的身份、从这台 iPhone 直接与该服务商通信。',
+  'aiInfo.whereToRegister':
+    '在以下任意一家免费注册并创建密钥：OpenAI（platform.openai.com）、Anthropic（console.anthropic.com）、Google Gemini（aistudio.google.com）、Groq（console.groq.com）、Mistral（console.mistral.ai）。在下方表单中选择服务商，链接会直接带你到对应页面。',
+  'aiInfo.cost':
+    '费用由你直接支付给该服务商，通常每次提问不到一分钱，且每一笔都能在他们的后台查到。本应用不经手任何账单，因为它根本没有可经手的地方。',
+  'aiInfo.privacy':
+    '密钥保存在这台 iPhone 的钥匙串中，任何备份都不会包含它。每次提问只发送回答该问题所需的数字，开启「隐私模式」后还会先抹去收款方名称与备注。在你按下按钮之前，什么都不会被发送。',
   'settings.aiKeysHint':
-    '用于 AI 分析。仅在你运行分析时从本设备直接发送给所选服务商——我们不会存储或查看。密钥本身不会离开本设备，备份中也不包含。可添加多个密钥，一个触发速率限制或用量耗尽时自动切换到下一个。点按某个密钥可查看它具体发送了什么。',
-  'settings.aiKeyRequestCount': '已发送 {count} 次请求',
-  'settings.addAiKeyLink': '+ 添加 AI 密钥',
-  'settings.deleteAiKeyConfirmTitle': '删除此密钥？',
-  'settings.deleteAiKeyConfirmMessage': 'AI 分析将立即停止使用它。',
+    '连接你自己的 AI 账户后，AI 分析即可使用它。可添加多个，一个用尽时自动切换到下一个。点按某个连接可查看它具体发送了什么。',
+  'settings.aiKeyRequestCount': '已提问 {count} 次',
+  'settings.addAiKeyLink': '+ 连接一个 AI',
+  'settings.deleteAiKeyConfirmTitle': '断开这个 AI？',
+  'settings.deleteAiKeyConfirmMessage': 'AI 分析会立即停止使用它。你在该服务商的账户不受影响。',
   'settings.aiKeyStrategySequential': '顺序使用',
   'settings.aiKeyStrategyRoundRobin': '轮询使用',
   'settings.s3AccessKeyLabel': 'Access Key ID',

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { BackupFileList } from './BackupFileList';
+import { BackupSaveLink } from './BackupSaveLink';
 import ICloudDrive from '../../../modules/icloud-drive';
 import { parseBackupZip } from '../../sync/parseBackupZip';
 import { importAppExport } from '../../import/appExportImporter';
@@ -21,12 +22,19 @@ import { colors } from '../../theme/colors';
 // about this destination.
 export function ICloudBrowserModal({
   visible,
+  boardId,
+  boardName,
   onClose,
   onRestored,
 }: {
   visible: boolean;
+  // The board a manual backup here copies — the one being used, not one of
+  // the restored ones.
+  boardId: number;
+  boardName: string;
   onClose: () => void;
-  onRestored?: () => void;
+  // Fired after a restore, with the new board it landed in.
+  onRestored?: (boardId: number) => void;
 }) {
   const t = useT();
   const [keys, setKeys] = useState<string[]>([]);
@@ -64,8 +72,8 @@ export function ICloudBrowserModal({
           try {
             const bytes = await ICloudDrive?.read(key);
             if (!bytes) throw new Error(t('s3Browser.restoreNotFound'));
-            await importAppExport(await getDb(), await parseBackupZip(bytes));
-            onRestored?.();
+            const imported = await importAppExport(await getDb(), await parseBackupZip(bytes));
+            onRestored?.(imported.boardId);
             onClose();
           } catch (e) {
             setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
@@ -103,6 +111,18 @@ export function ICloudBrowserModal({
               restoring: restoringKey === key,
               onRestore: restoringKey == null ? () => confirmRestore(key) : undefined,
             }))}
+          />
+          {/* A named copy sits beside the dated ones and is never pruned
+              with them — pruning only recognises the automatic shape (see
+              sync/backupPath.ts). */}
+          <BackupSaveLink
+            boardId={boardId}
+            boardName={boardName}
+            onSave={async (bytes, fileName) => {
+              if (!ICloudDrive) throw new Error(t('backup.icloudNotReady'));
+              await ICloudDrive.write(fileName, bytes);
+            }}
+            onSaved={refresh}
           />
         </ScrollView>
       </ScreenContainer>

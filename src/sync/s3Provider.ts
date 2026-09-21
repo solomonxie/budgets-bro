@@ -506,6 +506,27 @@ export async function downloadS3Object(db: SQLiteDatabase, configId: string, key
   return get(config, joinKey(meta.keyPrefix, key));
 }
 
+// Writes one object into a saved bucket under a name the user typed, at the
+// folder they are browsing — through the same joinKey as every other write,
+// so it lands inside the configured keyPrefix and nowhere else.
+//
+// Separate from the CloudProvider's own `upload`, which names the object
+// itself from the board and the date (see backupPath.ts). This one exists
+// because "back this up before I do something" wants a name you will
+// recognise later, not today's date.
+export async function uploadS3Object(
+  db: SQLiteDatabase,
+  configId: string,
+  key: string,
+  bytes: Uint8Array,
+): Promise<void> {
+  const meta = (await listS3Configs(db)).find((c) => c.id === configId);
+  if (!meta) throw new Error('S3 config not found');
+  const config = await resolveConfig(meta);
+  if (!config) throw new Error(`S3 config "${meta.bucket}" is missing its credentials`);
+  await put(config, joinKey(meta.keyPrefix, key), bytes);
+}
+
 // Deletes objects the user picked by key — the only path in the app that
 // removes anything from a bucket. Automatic pruning deliberately does not
 // happen here (see toProvider's keepLatest), so this stays a thing the user

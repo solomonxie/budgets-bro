@@ -2,6 +2,7 @@ import {
   backupKey,
   isBackupKeyForBoard,
   latestBackupKey,
+  sanitizeBackupFileName,
   slugifyBoardName,
   sortBackupKeys,
   staleBackupKeys,
@@ -128,5 +129,22 @@ describe('sortBackupKeys', () => {
       '20260910-main.zip',
       '20260912-main.zip',
     ]);
+  });
+});
+
+describe('sanitizeBackupFileName', () => {
+  it('keeps a typed name as typed, adding only the extension', () => {
+    expect(sanitizeBackupFileName('Before the move', 'fallback.zip')).toBe('Before the move.zip');
+    expect(sanitizeBackupFileName('already.ZIP', 'fallback.zip')).toBe('already.ZIP');
+  });
+
+  it('cannot name a folder or climb out of the one being browsed', () => {
+    expect(sanitizeBackupFileName('../../etc/passwd', 'fallback.zip')).toBe('etc-passwd.zip');
+    expect(sanitizeBackupFileName('a/b', 'fallback.zip')).toBe('a-b.zip');
+  });
+
+  it('falls back when nothing usable was typed', () => {
+    expect(sanitizeBackupFileName('   ', 'fallback.zip')).toBe('fallback.zip');
+    expect(sanitizeBackupFileName('...', 'fallback.zip')).toBe('fallback.zip');
   });
 });

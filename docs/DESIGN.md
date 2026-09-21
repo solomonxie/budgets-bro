@@ -221,7 +221,7 @@ Runtime shape:
 ## Storage/backup architecture
 - **SQLite** = source of truth. Library: `expo-sqlite` (works under Expo managed workflow + EAS builds, no custom native linking). `op-sqlite`/SQLCipher deferred until at-rest encryption is required.
 - **iCloud backup**: export of the SQLite file into the app's iCloud container (Expo config plugin + entitlement, buildable via EAS).
-- **S3 backup**: user provisions their own bucket + scoped IAM credentials. No backend to presign requests, so the app signs S3 REST calls client-side with `aws4fetch`, keeping the app backend-less.
+- **S3 backup**: user provisions their own bucket + scoped IAM credentials. No backend to presign requests, so the app signs S3 REST calls client-side in `sync/sigv4.ts` — ~60 lines of HMAC chain over `@noble/hashes`, keeping the app backend-less.
 - **Backup format**: primary = raw SQLite file copy; secondary/optional = JSON export for portability.
 - **Restore**: pick a backup source → download → validate schema-version tag → full replace of local DB (destructive-and-confirmed, no merge/dedupe for MVP).
 - **S3 credential validation, on save, before the key is accepted** (fail closed — reject and explain, don't silently store an unusable/unsafe credential):

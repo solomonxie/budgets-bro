@@ -69,5 +69,5 @@ export type RootStackParamList = {
   Settings: undefined;
   // The whole-board cleanup worklist, opened from the history page — every
   // transaction missing a payee or category, duplicated or zero.
-  ReviewTransactions: undefined;
+  FlaggedTransactions: undefined;
 };

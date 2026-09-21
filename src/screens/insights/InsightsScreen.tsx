@@ -43,6 +43,7 @@ type UtilityScreen =
   | 'PurchaseInsights'
   | 'ExchangeInsights'
   | 'CostOfLiving'
+  | 'Housing'
   | 'AiAnalysis';
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
@@ -64,6 +65,7 @@ export function InsightsScreen() {
     { label: t('insights.taxInsights'), screen: 'TaxInsights' },
     { label: t('insights.exchangeInsights'), screen: 'ExchangeInsights' },
     { label: t('insights.costOfLiving'), screen: 'CostOfLiving' },
+    { label: t('insights.housing'), screen: 'Housing' },
     { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
   ];
   const navigation = useNavigation<Nav>();

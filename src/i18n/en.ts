@@ -305,6 +305,27 @@ export const en = {
     'Money set aside to give away — tithing, charity, a family fund. It is assigned like any other envelope, but held in an account of its own so it is not counted among the money you are free to spend.',
   'accountGuide.giving.helps':
     'Once it is promised, it is not yours. This makes that visible on the page instead of leaving it to willpower.',
+  'settings.lockHeading': 'App Lock',
+  'settings.lockHint':
+    'Asked for when you open the app, and again after a minute away. Your budget is hidden in the app switcher whenever the lock is on.',
+  'lock.modeNone': 'Off',
+  'lock.modePasscode': 'Passcode',
+  'lock.modeBiometricUnavailable': 'Face ID',
+  'lock.appName': 'Budgets Bro',
+  'lock.unlock': 'Unlock',
+  'lock.passcodeTitle': 'Enter your passcode',
+  'lock.passcodeWrong': 'Wrong passcode',
+  'lock.passcodeMismatch': 'Those didn’t match — start again',
+  'lock.setPasscodeTitle': 'Set a 4-digit passcode',
+  'lock.confirmPasscodeTitle': 'Enter it again',
+  'lock.setPasscodeHint':
+    'Kept in this iPhone’s Keychain, never in a backup. Forget it and the only way back in is reinstalling, which erases the data with it.',
+  'lock.biometricTitle': 'Budgets Bro is locked',
+  'lock.biometricPrompt': 'Unlock Budgets Bro',
+  'lock.biometricFailed': 'Not recognised. Try again.',
+  'lock.noBiometryTitle': 'Nothing enrolled on this iPhone',
+  'lock.noBiometryMessage':
+    'Set up Face ID or Touch ID in iOS Settings first, or use a passcode here instead.',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renameBoardTitle': 'Rename Board',

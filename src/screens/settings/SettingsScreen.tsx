@@ -9,6 +9,18 @@ import { DataSection } from './DataSection';
 import { HistorySection } from './HistorySection';
 import { useBoards } from '../../hooks/useBoards';
 import { useLanguageSetting } from '../../hooks/useLanguage';
+import { writeLockMode } from '../../hooks/useAppLock';
+import {
+  biometryName,
+  clearLockSecrets,
+  clearPasscode,
+  enableBiometricLock,
+  authenticateBiometric,
+  setPasscode,
+} from '../../secure/appLock';
+import type { LockMode } from '../../secure/appLock';
+import { PasscodeEntry } from '../../components/ui/PasscodeEntry';
+import { CardModal } from '../../components/ui/CardModal';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import {
@@ -58,6 +70,16 @@ export function SettingsScreen() {
   const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
+  const lockMode = useAppStore((s) => s.lockMode);
+  const setLockMode = useAppStore((s) => s.setLockMode);
+  // Null when this phone has no biometrics enrolled — the third option then
+  // says so rather than offering a lock that can never open.
+  const [biometry, setBiometry] = useState<string | null>(null);
+  // Two passes: type a code, type it again. `first` holds the first pass.
+  const [settingPasscode, setSettingPasscode] = useState<{
+    first: string | null;
+  } | null>(null);
+  const [passcodeError, setPasscodeError] = useState<string | null>(null);
   const [aiKeys, setAiKeys] = useState<AiKeyMeta[]>([]);
   const [aiKeyModalOpen, setAiKeyModalOpen] = useState(false);
   const [aiKeyHistory, setAiKeyHistory] = useState<AiKeyMeta | null>(null);
@@ -77,8 +99,54 @@ export function SettingsScreen() {
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
       setAiKeys(await listAiKeys(db));
       setAiKeyStrategyState(await getAiKeyStrategy(db));
+      setBiometry(await biometryName());
     })();
   }, []);
+
+  // Switching the lock off clears both secrets; switching it on proves the
+  // new lock works *before* it is saved, so nobody ends up holding a key
+  // that doesn't turn.
+  const selectLockMode = async (next: LockMode) => {
+    if (next === lockMode) return;
+    if (next === 'passcode') {
+      setPasscodeError(null);
+      setSettingPasscode({ first: null });
+      return;
+    }
+    if (next === 'biometric') {
+      if (!biometry) {
+        Alert.alert(t('lock.noBiometryTitle'), t('lock.noBiometryMessage'));
+        return;
+      }
+      await enableBiometricLock();
+      if (!(await authenticateBiometric(t('lock.biometricPrompt')))) return;
+      await clearPasscode();
+      await writeLockMode('biometric');
+      setLockMode('biometric');
+      return;
+    }
+    await clearLockSecrets();
+    await writeLockMode('none');
+    setLockMode('none');
+  };
+
+  const submitNewPasscode = async (code: string) => {
+    if (settingPasscode?.first == null) {
+      setPasscodeError(null);
+      setSettingPasscode({ first: code });
+      return;
+    }
+    if (settingPasscode.first !== code) {
+      setPasscodeError(t('lock.passcodeMismatch'));
+      setSettingPasscode({ first: null });
+      return;
+    }
+    await setPasscode(code);
+    await writeLockMode('passcode');
+    setLockMode('passcode');
+    setSettingPasscode(null);
+    setPasscodeError(null);
+  };
 
   const selectTheme = async (next: ThemePreference) => {
     setTheme(next);
@@ -354,6 +422,38 @@ export function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionHeading}>
+            {t('settings.lockHeading')}
+          </Text>
+          <View style={styles.segmented}>
+            {(['none', 'passcode', 'biometric'] as const).map((opt) => (
+              <Pressable
+                key={opt}
+                style={[
+                  styles.segment,
+                  lockMode === opt && styles.segmentActive,
+                ]}
+                onPress={() => selectLockMode(opt)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    lockMode === opt && styles.segmentTextActive,
+                  ]}
+                >
+                  {opt === 'none'
+                    ? t('lock.modeNone')
+                    : opt === 'passcode'
+                      ? t('lock.modePasscode')
+                      : (biometry ?? t('lock.modeBiometricUnavailable'))}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.sectionHint}>{t('settings.lockHint')}</Text>
+        </View>
+
+        <View style={styles.section}>
           <View style={styles.sectionHeadingRow}>
             <Text style={styles.sectionHeading}>
               {t('settings.aiKeysHeading')}
@@ -507,6 +607,30 @@ export function SettingsScreen() {
           }
           onDismiss={() => setRestoreResult(null)}
         />
+
+        <CardModal
+          visible={settingPasscode != null}
+          onCancel={() => {
+            setSettingPasscode(null);
+            setPasscodeError(null);
+          }}
+        >
+          <PasscodeEntry
+            title={t(
+              settingPasscode?.first == null
+                ? 'lock.setPasscodeTitle'
+                : 'lock.confirmPasscodeTitle',
+            )}
+            subtitle={t('lock.setPasscodeHint')}
+            error={passcodeError}
+            onComplete={submitNewPasscode}
+            onCancel={() => {
+              setSettingPasscode(null);
+              setPasscodeError(null);
+            }}
+            cancelLabel={t('common.cancel')}
+          />
+        </CardModal>
 
         <PromptModal
           visible={prompt != null}

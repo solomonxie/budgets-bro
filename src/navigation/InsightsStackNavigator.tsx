@@ -10,6 +10,7 @@ import { financeTool } from '../screens/finance-tools/registry';
 import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
 import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { PurchaseInsightsScreen } from '../screens/insights/PurchaseInsightsScreen';
+import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
 import type { InsightsStackParamList } from './types';
@@ -44,7 +45,12 @@ export function InsightsStackNavigator() {
         component={PurchaseInsightsScreen}
         options={{ title: t('insights.purchaseInsights') }}
       />
+      <Stack.Screen
+        name="ExchangeInsights"
+        component={ExchangeInsightsScreen}
+        options={{ title: t('insights.exchangeInsights') }}
       />
+      <Stack.Screen
         name="FinanceTool"
         component={FinanceToolScreen}
         options={({ route }) => ({ title: t(financeTool(route.params.tool).titleKey) })}

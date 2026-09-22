@@ -10,6 +10,7 @@ import { financeTool } from '../screens/finance-tools/registry';
 import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
 import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { PurchaseInsightsScreen } from '../screens/insights/PurchaseInsightsScreen';
+import { PayeeInsightsScreen } from '../screens/insights/PayeeInsightsScreen';
 import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
 import { CostOfLivingScreen } from '../screens/insights/CostOfLivingScreen';
 import { HousingInsightsScreen } from '../screens/housing/HousingInsightsScreen';
@@ -48,6 +49,11 @@ export function InsightsStackNavigator() {
         name="PurchaseInsights"
         component={PurchaseInsightsScreen}
         options={{ title: t('insights.purchaseInsights') }}
+      />
+      <Stack.Screen
+        name="PayeeInsights"
+        component={PayeeInsightsScreen}
+        options={{ title: t('insights.payeeInsights') }}
       />
       <Stack.Screen
         name="ExchangeInsights"

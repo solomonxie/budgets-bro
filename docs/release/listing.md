@@ -7,7 +7,7 @@ Drafts below are ready to paste. `TODO` = only you can supply it.
 | Field | Value |
 |---|---|
 | Name (30 chars) | `Budgets Bro` |
-| Subtitle (30) | `Envelope budgeting, offline` |
+| Subtitle (30) | `Zero-based budgeting, offline` |
 | Bundle ID | `com.solomonxie.budgetsbro` |
 | SKU | `budgetsbro-ios` |
 | Primary language | English (U.S.) |
@@ -29,18 +29,18 @@ Drafts below are ready to paste. `TODO` = only you can supply it.
 ## Promotional text (170 chars, editable without review)
 
 ```
-Your money, your phone. Envelope budgeting with no account, no subscription, and no server — plus mortgage, interest, and payoff calculators built in.
+Your money, your phone. Zero-based budgeting — every dollar assigned before the month starts, with no account, no subscription, and no server.
 ```
 
 ## Description (4000 chars)
 
 ```
-Budgets Bro is envelope budgeting that stays on your iPhone. Give every dollar a job, watch the categories rather than the balance, and know before the month starts where the money is going.
+Budgets Bro is zero-based budgeting that stays on your iPhone. Give every dollar a job before the month starts, watch the categories rather than the balance, and know where the money is going before it goes.
 
 No account. No subscription. No server holding your ledger.
 
 BUDGETING
-• Zero-based, envelope-style budgeting — assign every dollar until nothing is left over
+• Zero-based budgeting — assign every dollar to a category envelope until nothing is left unassigned
 • Accounts, transactions, payees, and categories, with running balances
 • Flagged transactions for anything that needs a second look
 • Multi-currency: type in one currency, read the totals in the rest

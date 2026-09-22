@@ -1565,3 +1565,19 @@ export const en = {
     'Those rows go back to what they were. This is recorded too, so it can be undone again.',
   'nav.history': 'History',
 } as const;
+  'babySteps.step1Blurb':
+    'Save it fast and in cash, before anything else. Ramsey’s reason: while you are still in debt, a flat tyre or a broken boiler you cannot cover simply becomes more debt.',
+  'babySteps.step2Blurb':
+    'The debt snowball — list every debt but the house smallest to largest, pay the minimum on all of them, and attack the smallest with everything you have. Roll each cleared payment into the next. Ignoring interest rates is the point: “personal finance is 80% behaviour and only 20% head knowledge.”',
+  'babySteps.step3Blurb':
+    'With nothing going to lenders, take the starter fund up to three to six months of your own expenses. This is the step that turns a crisis into an inconvenience.',
+  'babySteps.step3bBlurb':
+    'Ramsey’s half-step between 3 and 4, for anyone still renting: save the down payment in cash before you buy. His rule of thumb is 10–20% down on a 15-year fixed-rate mortgage, with a payment no more than 25% of your monthly take-home pay.',
+  'babySteps.step4Blurb':
+    '15% of gross household income, and only 15% — the next two steps still need feeding. Investing waits until here because a return earned while paying card interest is not a return.',
+  'babySteps.step5Blurb':
+    'Your own retirement first, then the kids — an ESA or 529 rather than student loans. The order is deliberate: they can borrow for college, you cannot borrow for retirement.',
+  'babySteps.step6Blurb':
+    'Every spare dollar at the mortgage, the last debt standing. A house with no payment on it is what the first five steps were buying.',
+  'babySteps.step7Blurb':
+    'Build wealth, be outrageously generous, and leave an inheritance for your children’s children. “Live like no one else, so later you can live and give like no one else.”',

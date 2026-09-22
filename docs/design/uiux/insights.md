@@ -40,7 +40,8 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
 ## Baby Steps  `insights/BabyStepsScreen.tsx`
 
 Each step reads real accounts and categories; a step with nothing linked
-falls back to a manual pill rather than a wrong number.
+falls back to a manual pill rather than a wrong number. Under every step's
+numbers, a short brief of the step in Dave Ramsey's own terms.
 
 ```
  ‹          Baby Steps
@@ -49,12 +50,18 @@ falls back to a manual pill rather than a wrong number.
  Emergency fund accounts              2 accounts ▾
  Step 2: Pay off all debt (except the mortgage)
  ▇▇▇▇▇▇▇▇▇░░░░░░░░░░░  $820.45 remaining
+ Save it fast and in cash, before anything else…   ← stepNBlurb, every step
  Step 3: 3–6 months of expenses saved
  ▇▇▇▇▇░░░░░░░░░░░░░░░  $18,000 of ~$34,880 (avg $8,720/mo × 4)
  Not enough spending history yet                   ← when it can't compute
  Step 4: Invest 15% of income for retirement
  ▇▇▇▇▇▇░░░░░░░░░░░░░░  5% of income invested (target 15%)
  Retirement accounts                  1 accounts ▾
+ Step 3.5: Save a down payment                     ← renters only; hidden
+ ▇▇▇▇▇▇░░░░░░░░░░░░░░  $22,000 of $50,000            once a mortgage exists
+ Target: $50,000 (edit)      Down payment accounts  ▾
+                                                   ( Mark Done ) until one
+                                                     is linked
  Not tracked yet                                   ( Mark Done )
  Step 5: Save for kids' college fund
  Target: $50,000 (edit)      Accounts for kids' education   ▾

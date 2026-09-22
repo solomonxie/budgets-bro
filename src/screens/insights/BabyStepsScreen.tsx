@@ -67,9 +67,16 @@ const RETIREMENT_NAME_PATTERN =
   /401\s*\(?k\)?|403\s*\(?b\)?|\bira\b|\brrsp\b|\btfsa\b|pension|retirement/i;
 
 interface ManualSteps {
+  step3b: boolean;
   step5: boolean;
   step7: boolean;
 }
+
+const NO_MANUAL_STEPS: ManualSteps = {
+  step3b: false,
+  step5: false,
+  step7: false,
+};
 
 function trailingThreeMonthWindow() {
   const month = currentMonth();
@@ -91,13 +98,15 @@ function toggleId(ids: number[], id: number): number[] {
 }
 
 // Dave Ramsey's 7 Baby Steps, with progress computed from real ledger data
-// where possible. Steps 1/3/4/5 link to one or more accounts the user
+// where possible. Steps 1/3/3.5/4/5 link to one or more accounts the user
 // picks (Step 4 tries to auto-detect a retirement account by name first);
 // Step 7 reads the giving categories picked for it plus every giving
 // account on the board. Any step with
 // nothing linked yet falls back to a manual "Mark Done" checkbox. Each
 // link is a small inline text link (not a boxed field) that opens a
 // bottom sheet to pick — kept inline with the step's own progress caption.
+// Under every step's numbers sits a short brief in Ramsey's own terms, so
+// the plan explains itself where you are reading it.
 export function BabyStepsScreen() {
   const t = useT();
   const { accounts } = useAccounts();
@@ -122,10 +131,7 @@ export function BabyStepsScreen() {
   const [avgMonthlyIncomeCents, setAvgMonthlyIncomeCents] = useState(0);
   const [avgMonthlyRetirementCents, setAvgMonthlyRetirementCents] = useState(0);
   const [donationCentsThisYear, setDonationCentsThisYear] = useState(0);
-  const [manual, setManual] = useState<ManualSteps>({
-    step5: false,
-    step7: false,
-  });
+  const [manual, setManual] = useState<ManualSteps>(NO_MANUAL_STEPS);
   const [editingStep5Target, setEditingStep5Target] = useState(false);
   const [step5TargetInput, setStep5TargetInput] = useState('');
   const [editingStep3bTarget, setEditingStep3bTarget] = useState(false);
@@ -212,7 +218,7 @@ export function BabyStepsScreen() {
         await settingsRepo.getJsonSetting<ManualSteps>(
           db,
           manualStepsKey(boardId),
-          { step5: false, step7: false },
+          NO_MANUAL_STEPS,
         ),
       );
 
@@ -687,6 +693,7 @@ export function BabyStepsScreen() {
         <Step
           number={1}
           title={t('babySteps.step1Title')}
+          blurb={t('babySteps.step1Blurb')}
           current={step1Cents}
           target={STARTER_FUND_CENTS}
           pickerTrigger={step1Picker.trigger}
@@ -695,6 +702,7 @@ export function BabyStepsScreen() {
         <Step
           number={2}
           title={t('babySteps.step2Title')}
+          blurb={t('babySteps.step2Blurb')}
           current={nonMortgageDebtCents === 0 ? 1 : 0}
           target={1}
           captionOverride={
@@ -708,6 +716,7 @@ export function BabyStepsScreen() {
         <Step
           number={3}
           title={t('babySteps.step3Title')}
+          blurb={t('babySteps.step3Blurb')}
           current={step3Cents}
           target={fullEmergencyFundTargetCents}
           pickerTrigger={step3Picker.trigger}
@@ -724,32 +733,45 @@ export function BabyStepsScreen() {
         {step3Picker.modal}
         {isRenting ? (
           <>
-            <Step
-              number={3.5}
-              title={t('babySteps.step3bTitle')}
-              current={step3bCents}
-              target={step3bTargetCents}
-              pickerTrigger={step3bPicker.trigger}
-              captionSuffix={
-                editingStep3bTarget ? null : (
-                  <Text
-                    style={styles.linkText}
-                    onPress={startEditingStep3bTarget}
-                  >
-                    {t('babySteps.editTarget', {
-                      target: formatMoney(step3bTargetCents),
-                    })}
-                  </Text>
-                )
-              }
-              footer={editingStep3bTarget ? step3bTargetEditRow() : null}
-            />
+            {step3bAccountIds.length > 0 ? (
+              <Step
+                number={3.5}
+                title={t('babySteps.step3bTitle')}
+                blurb={t('babySteps.step3bBlurb')}
+                current={step3bCents}
+                target={step3bTargetCents}
+                pickerTrigger={step3bPicker.trigger}
+                captionSuffix={
+                  editingStep3bTarget ? null : (
+                    <Text
+                      style={styles.linkText}
+                      onPress={startEditingStep3bTarget}
+                    >
+                      {t('babySteps.editTarget', {
+                        target: formatMoney(step3bTargetCents),
+                      })}
+                    </Text>
+                  )
+                }
+                footer={editingStep3bTarget ? step3bTargetEditRow() : null}
+              />
+            ) : (
+              <ManualStep
+                number={3.5}
+                title={t('babySteps.step3bTitle')}
+                blurb={t('babySteps.step3bBlurb')}
+                checked={manual.step3b}
+                onToggle={() => toggleManual('step3b')}
+                pickerTrigger={step3bPicker.trigger}
+              />
+            )}
             {step3bPicker.modal}
           </>
         ) : null}
         <Step
           number={4}
           title={t('babySteps.step4Title')}
+          blurb={t('babySteps.step4Blurb')}
           current={retirementPercent}
           target={RETIREMENT_TARGET_PERCENT}
           pickerTrigger={step4Picker.trigger}
@@ -768,6 +790,7 @@ export function BabyStepsScreen() {
           <Step
             number={5}
             title={t('babySteps.step5Title')}
+            blurb={t('babySteps.step5Blurb')}
             current={step5Cents}
             target={step5TargetCents}
             pickerTrigger={step5Picker.trigger}
@@ -786,6 +809,7 @@ export function BabyStepsScreen() {
           <ManualStep
             number={5}
             title={t('babySteps.step5Title')}
+            blurb={t('babySteps.step5Blurb')}
             checked={manual.step5}
             onToggle={() => toggleManual('step5')}
             pickerTrigger={step5Picker.trigger}
@@ -795,6 +819,7 @@ export function BabyStepsScreen() {
         <Step
           number={6}
           title={t('babySteps.step6Title')}
+          blurb={t('babySteps.step6Blurb')}
           current={mortgageDebtCents === 0 ? 1 : 0}
           target={1}
           captionOverride={
@@ -809,6 +834,7 @@ export function BabyStepsScreen() {
           <StatStep
             number={7}
             title={t('babySteps.step7Title')}
+            blurb={t('babySteps.step7Blurb')}
             caption={t('babySteps.step7Caption', {
               amount: formatMoney(donationCentsThisYear),
               year: currentYear,
@@ -819,6 +845,7 @@ export function BabyStepsScreen() {
           <ManualStep
             number={7}
             title={t('babySteps.step7Title')}
+            blurb={t('babySteps.step7Blurb')}
             checked={manual.step7}
             onToggle={() => toggleManual('step7')}
             pickerTrigger={step7Picker.trigger}
@@ -988,6 +1015,7 @@ export function BabyStepsScreen() {
 function Step({
   number,
   title,
+  blurb,
   current,
   target,
   captionOverride,
@@ -997,6 +1025,8 @@ function Step({
 }: {
   number: number;
   title: string;
+  // Dave Ramsey's own reasoning for the step, under its numbers.
+  blurb?: string;
   current: number;
   target: number;
   captionOverride?: string;
@@ -1034,6 +1064,7 @@ function Step({
       ) : (
         <Text style={styles.hint}>{captionText}</Text>
       )}
+      {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
       {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
       {footer}
     </View>
@@ -1045,11 +1076,13 @@ function Step({
 function StatStep({
   number,
   title,
+  blurb,
   caption,
   pickerTrigger,
 }: {
   number: number;
   title: string;
+  blurb?: string;
   caption: string;
   pickerTrigger?: ReactNode;
 }) {
@@ -1060,6 +1093,7 @@ function StatStep({
         {t('babySteps.stepPrefix', { number, title })}
       </Text>
       <Text style={styles.hint}>{caption}</Text>
+      {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
       {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
     </View>
   );
@@ -1068,12 +1102,14 @@ function StatStep({
 function ManualStep({
   number,
   title,
+  blurb,
   checked,
   onToggle,
   pickerTrigger,
 }: {
   number: number;
   title: string;
+  blurb?: string;
   checked: boolean;
   onToggle: () => void;
   pickerTrigger?: ReactNode;
@@ -1096,6 +1132,7 @@ function ManualStep({
           </Text>
         </View>
       </Pressable>
+      {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
       <Text style={styles.hint}>{pickerTrigger}</Text>
     </View>
   );
@@ -1112,6 +1149,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+  blurb: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
   captionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -41,6 +41,7 @@ type UtilityScreen =
   | 'InvestmentInsights'
   | 'TaxInsights'
   | 'PurchaseInsights'
+  | 'PayeeInsights'
   | 'ExchangeInsights'
   | 'CostOfLiving'
   | 'Housing'
@@ -62,9 +63,10 @@ const Y_AXIS_WIDTH = 44;
 export function InsightsScreen() {
   const { t, language } = useI18n();
   const UTILITY_ROWS: UtilityRow[] = [
-    { label: t('insights.babySteps'), screen: 'BabySteps' },
-    { label: t('review.title'), screen: 'FlaggedTransactions', root: true },
+    { label: t('insights.payeeInsights'), screen: 'PayeeInsights' },
     { label: t('insights.purchaseInsights'), screen: 'PurchaseInsights' },
+    { label: t('review.title'), screen: 'FlaggedTransactions', root: true },
+    { label: t('insights.babySteps'), screen: 'BabySteps' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
     { label: t('insights.loanInsights'), screen: 'LoanInsights' },
     { label: t('insights.investmentInsights'), screen: 'InvestmentInsights' },

@@ -23,17 +23,37 @@ InsightsScreen.tsx
 
 BabyStepsScreen.tsx
 ┌───────────────────────────────┐
-│ Emergency fund account picker   │──→ inline; Chip × N from
-│ (Chip row)                      │    ../../components/ui/Chip.tsx
+│ Step 1–7, each a card:           │──→ inline, local Step() helper;
+│  title · ProgressBar · amount    │    ProgressBar from
+│  · Ramsey brief · account or     │    ../../components/ui/ProgressBar.tsx
+│  category picker link            │    pickers open a BottomSheet
 ├───────────────────────────────┤
-│ Step 1, 2, 3 (auto, from ledger)│──→ inline, local Step() helper;
-│  each: ProgressBar               │    ProgressBar from
-│                                  │    ../../components/ui/ProgressBar.tsx
+│ Step 3.5 (down payment)          │──→ renters only — hidden once the
+│                                  │    board has a mortgage account
 ├───────────────────────────────┤
-│ Step 4, 5 (manual checkbox)      │──→ inline, local ManualStep() helper
+│ Step 7 (no fixed target)         │──→ inline, local StatStep()
 ├───────────────────────────────┤
-│ Step 6 (auto — mortgage payoff)  │──→ inline, Step()
+│ Steps 3.5 / 5 / 7 with nothing   │──→ inline, local ManualStep():
+│  linked yet                      │    a "Mark Done" pill instead
 ├───────────────────────────────┤
-│ Step 7 (manual checkbox)         │──→ inline, ManualStep()
+│ Your Goals (custom, inline edit) │──→ useCustomGoals + customGoalsRepo
+└───────────────────────────────┘
+
+PayeeInsightsScreen.tsx
+┌───────────────────────────────┐
+│ Top payee card                   │──→ usePayeeInsights (12-month window)
+│  name · total · share · bars     │    → domain/payeeInsights.summarizePayees
+│                                  │    chart: PayeeMonthlyChart.tsx
+├───────────────────────────────┤
+│ Everyone else, ranked by spend   │──→ row tap expands that payee's whole
+│                                  │    history in place, scrolled sideways
+├───────────────────────────────┤
+│ Unnamed-spending footnote        │──→ spending with no payee, never ranked
 └───────────────────────────────┘
 ```
+
+PurchaseInsightsScreen.tsx is the same layout, per item instead of per
+payee: most-bought item in the top card with its price trend already open,
+everything else ranked below and expanding in place. Both cards and rows
+share the one set of styles, so a change to one page's shape belongs in
+both.

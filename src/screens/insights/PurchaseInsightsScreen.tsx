@@ -10,6 +10,11 @@ import {
   purchaseItemHistory,
   purchaseItemTrend,
 } from '../../domain/purchaseInsights';
+import type {
+  PurchaseItemDay,
+  PurchaseItemSummary,
+  PurchaseItemTrend,
+} from '../../domain/purchaseInsights';
 import { formatMoneyExact } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -22,7 +27,9 @@ type RootNav = NativeStackNavigationProp<RootStackParamList>;
 // often, because that is what makes a price worth watching — a thing bought
 // once has no trend to read.
 //
-// A row opens in place rather than pushing a page: the ranking is the frame
+// Same shape as Payee Insights: the top of the ranking gets a card of its
+// own, already open, because that one answer is what the page is for. The
+// rest open in place rather than pushing a page — the ranking is the frame
 // of reference for whatever you opened, and losing it to a detail screen
 // means coming back and finding your place again.
 export function PurchaseInsightsScreen() {
@@ -31,6 +38,12 @@ export function PurchaseInsightsScreen() {
   const { items, transactions, loading } = usePurchaseInsights();
   const [openName, setOpenName] = useState<string | null>(null);
 
+  const top = items[0] ?? null;
+  const topHistory = useMemo(
+    () => (top ? purchaseItemHistory(transactions, top.name) : []),
+    [top, transactions],
+  );
+  const topTrend = useMemo(() => purchaseItemTrend(topHistory), [topHistory]);
   const history = useMemo(
     () => (openName ? purchaseItemHistory(transactions, openName) : []),
     [openName, transactions],
@@ -43,6 +56,9 @@ export function PurchaseInsightsScreen() {
         <Text style={styles.hint}>{t('purchaseInsights.empty')}</Text>
       </ScreenContainer>
     );
+  if (!top) return <ScreenContainer />;
+
+  const rest = items.slice(1);
 
   return (
     <ScreenContainer>
@@ -52,80 +68,80 @@ export function PurchaseInsightsScreen() {
           body={t('purchaseInsights.guideBody')}
         />
         <Text style={styles.hint}>{t('purchaseInsights.hint')}</Text>
-        <View style={styles.card}>
-          {items.map((item, i) => {
-            const open = openName === item.name;
-            return (
-              <View key={item.name}>
-                {i > 0 ? <View style={styles.divider} /> : null}
-                <Pressable
-                  style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-                  onPress={() => setOpenName(open ? null : item.name)}
-                >
-                  <View style={styles.rowText}>
-                    <Text style={styles.name} numberOfLines={1}>
-                      {item.displayName}
-                    </Text>
-                    <Text style={styles.sub} numberOfLines={1}>
-                      {t('purchaseInsights.timesBought', { count: item.count })}
-                      {' · '}
-                      {t('purchaseInsights.totalSpent', {
-                        amount: formatMoneyExact(item.totalCents),
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.rowRight}>
-                    <Text style={styles.price}>{formatMoneyExact(item.avgCents)}</Text>
-                    <Text style={styles.priceLabel}>
-                      {t('purchaseInsights.average')}
-                    </Text>
-                  </View>
-                  <Text style={[styles.chevron, open && styles.chevronOpen]}>›</Text>
-                </Pressable>
-                {open ? (
-                  <View style={styles.panel}>
-                    <PurchaseItemTrendChart trend={trend} />
-                    {item.minCents !== item.maxCents ? (
-                      <Text style={styles.range}>
-                        {t('purchaseInsights.priceRange', {
-                          min: formatMoneyExact(item.minCents),
-                          max: formatMoneyExact(item.maxCents),
-                        })}
-                      </Text>
-                    ) : null}
-                    <Text style={styles.historyLabel}>
-                      {t('purchaseInsights.history')}
-                    </Text>
-                    {history.map((day) => (
-                      <Pressable
-                        key={day.date}
-                        style={({ pressed }) => [
-                          styles.historyRow,
-                          pressed && styles.rowPressed,
-                        ]}
-                        onPress={() =>
-                          rootNavigation.navigate('AddTransaction', {
-                            transactionId: day.transactionIds[0],
-                          })
-                        }
-                      >
-                        <Text style={styles.historyDate}>{day.date}</Text>
-                        {day.count > 1 ? (
-                          <Text style={styles.historyCount}>
-                            {t('purchaseInsights.sameDayCount', { count: day.count })}
-                          </Text>
-                        ) : null}
-                        <Text style={styles.historyPrice}>
-                          {formatMoneyExact(day.priceCents)}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
+
+        <View style={styles.topCard}>
+          <Text style={styles.topLabel}>{t('purchaseInsights.topItem')}</Text>
+          <Text style={styles.topName} numberOfLines={1}>
+            {top.displayName}
+          </Text>
+          <Text style={styles.topSub}>
+            {t('purchaseInsights.timesBought', { count: top.count })}
+            {' · '}
+            {t('purchaseInsights.totalSpent', {
+              amount: formatMoneyExact(top.totalCents),
+            })}
+          </Text>
+          {itemDetail(top, topTrend, topHistory)}
         </View>
+
+        {rest.length > 0 ? (
+          <>
+            <Text style={styles.sectionLabel}>
+              {t('purchaseInsights.othersHeading')}
+            </Text>
+            <View style={styles.card}>
+              {rest.map((item, i) => {
+                const open = openName === item.name;
+                return (
+                  <View key={item.name}>
+                    {i > 0 ? <View style={styles.divider} /> : null}
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.row,
+                        pressed && styles.rowPressed,
+                      ]}
+                      onPress={() => setOpenName(open ? null : item.name)}
+                    >
+                      <View style={styles.rowText}>
+                        <Text style={styles.name} numberOfLines={1}>
+                          {item.displayName}
+                        </Text>
+                        <Text style={styles.sub} numberOfLines={1}>
+                          {t('purchaseInsights.timesBought', {
+                            count: item.count,
+                          })}
+                          {' · '}
+                          {t('purchaseInsights.totalSpent', {
+                            amount: formatMoneyExact(item.totalCents),
+                          })}
+                        </Text>
+                      </View>
+                      <View style={styles.rowRight}>
+                        <Text style={styles.price}>
+                          {formatMoneyExact(item.avgCents)}
+                        </Text>
+                        <Text style={styles.priceLabel}>
+                          {t('purchaseInsights.average')}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.chevron, open && styles.chevronOpen]}
+                      >
+                        ›
+                      </Text>
+                    </Pressable>
+                    {open ? (
+                      <View style={styles.panel}>
+                        {itemDetail(item, trend, history)}
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+
         <GuideSection
           heading={t('purchaseInsights.guideBottomHeading')}
           body={t('purchaseInsights.guideBottomBody')}
@@ -133,11 +149,82 @@ export function PurchaseInsightsScreen() {
       </ScrollView>
     </ScreenContainer>
   );
+
+  // The same block whether it is the top card's or an opened row's — a
+  // price over time, the spread it has moved through, and every purchase
+  // behind both, each one a way back to the transaction it came from.
+  function itemDetail(
+    item: PurchaseItemSummary,
+    itemTrend: PurchaseItemTrend,
+    itemHistory: PurchaseItemDay[],
+  ) {
+    return (
+      <>
+        <PurchaseItemTrendChart trend={itemTrend} />
+        {item.minCents !== item.maxCents ? (
+          <Text style={styles.range}>
+            {t('purchaseInsights.priceRange', {
+              min: formatMoneyExact(item.minCents),
+              max: formatMoneyExact(item.maxCents),
+            })}
+          </Text>
+        ) : null}
+        <Text style={styles.historyLabel}>{t('purchaseInsights.history')}</Text>
+        {itemHistory.map((day) => (
+          <Pressable
+            key={day.date}
+            style={({ pressed }) => [
+              styles.historyRow,
+              pressed && styles.rowPressed,
+            ]}
+            onPress={() =>
+              rootNavigation.navigate('AddTransaction', {
+                transactionId: day.transactionIds[0],
+              })
+            }
+          >
+            <Text style={styles.historyDate}>{day.date}</Text>
+            {day.count > 1 ? (
+              <Text style={styles.historyCount}>
+                {t('purchaseInsights.sameDayCount', { count: day.count })}
+              </Text>
+            ) : null}
+            <Text style={styles.historyPrice}>
+              {formatMoneyExact(day.priceCents)}
+            </Text>
+          </Pressable>
+        ))}
+      </>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.xl, gap: spacing.sm },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  topCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  topLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.accent,
+  },
+  topName: { fontSize: 22, fontWeight: '700', color: colors.text },
+  topSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.xs },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
   card: {
     backgroundColor: colors.surface,
     borderRadius: 18,

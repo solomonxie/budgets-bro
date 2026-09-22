@@ -612,20 +612,36 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.measuredBody':
     '每一步都读取你为它选定的账户——应急金、退休、首付——所以进度条随账本变动，而不是随你的说法变动。那些无法计算的步骤，由你自己标记完成。如果这七步没有涵盖你正在存钱的目标，可在页面底部添加自定义目标；它们的运作方式相同，也可关联某个账户自动跟踪。',
   'babySteps.step1Title': '1,000 美元启动应急基金',
+  'babySteps.step1Blurb':
+    '先于一切，尽快存下这笔现金。Ramsey 的理由：债务未清时，一次爆胎、一台坏掉的电器，只要手上没现金，就又是一笔新债。',
   'babySteps.step2Title': '还清所有债务（房贷除外）',
+  'babySteps.step2Blurb':
+    '债务雪球法——把房贷以外的债务按余额从小到大排列，其余只还最低还款，集中火力攻最小的一笔；还清一笔，就把那份还款滚进下一笔。刻意不看利率高低：“理财八成靠行为，只有两成靠知识。”',
   'babySteps.remaining': '剩余 {amount}',
   'babySteps.step3Title': '储备 3–6 个月的生活支出',
+  'babySteps.step3Blurb':
+    '不再有钱流向债主之后，把启动基金加到你自己 3–6 个月的支出水平。这一步的作用，是把一场危机变成一点麻烦。',
   'babySteps.step3Caption': '{current} / 约 {target}（月均支出 {avg} × 4）',
   'babySteps.step3bTitle': '攒够首付',
+  'babySteps.step3bBlurb':
+    'Ramsey 在第 3 步和第 4 步之间为租房者加的半步：买房前先用现金攒够首付。他的经验法则是首付 10–20%、选 15 年固定利率房贷，且月供不超过每月到手收入的 25%。',
   'babySteps.notEnoughHistory': '支出历史数据不足',
   'babySteps.step4Title': '将 15% 的收入投资于退休储蓄',
+  'babySteps.step4Blurb':
+    '家庭税前收入的 15%，而且就是 15%——后面两步还要用钱。投资之所以排在这里，是因为一边付着信用卡利息一边赚的收益，算不上收益。',
   'babySteps.step4Caption': '已投入收入的 {percent}%（目标 15%）',
   'babySteps.step4NoAccounts': '尚未关联账户',
   'babySteps.step5Title': '为孩子的大学基金储蓄',
+  'babySteps.step5Blurb':
+    '先管好自己的退休，再管孩子的学费——用教育储蓄账户，而不是助学贷款。这个顺序是有意的：孩子上学可以借钱，你的退休借不到。',
   'babySteps.editTarget': '目标：{target}（编辑）',
   'babySteps.step6Title': '提前还清房贷',
+  'babySteps.step6Blurb':
+    '把每一分余钱砸向房贷，它是最后一笔债。一套没有月供的房子，正是前五步买来的东西。',
   'babySteps.step6Done': '已完成（或无房贷）',
   'babySteps.step7Title': '积累财富并回馈社会',
+  'babySteps.step7Blurb':
+    '积累财富、慷慨地给予，并为子孙留下产业。“现在过别人不愿过的日子，以后才能过别人过不上的日子，并且给得起。”',
   'babySteps.step7Caption': '{year} 年已捐赠 {amount}',
   'babySteps.stepPrefix': '第 {number} 步：{title}',
   'babySteps.progressCaption': '{current} / {target}',
@@ -1048,8 +1064,31 @@ export const zh: Record<keyof typeof en, string> = {
   'purchaseInsights.timesBought': '{count} 次',
   'purchaseInsights.totalSpent': '合计 {amount}',
   'purchaseInsights.priceRange': '{min} – {max}',
+  'purchaseInsights.topItem': '买得最多',
+  'purchaseInsights.othersHeading': '其他物品',
   'purchaseInsights.history': '每次购买',
   'purchaseInsights.sameDayCount': '×{count}',
+  'insights.payeeInsights': '收款方洞察',
+  'payeeInsights.guideHeading': '钱都付给了谁',
+  'payeeInsights.guideBody':
+    '这是分类的另一面：不是「花在哪类事上」，而是「最后进了谁的口袋」。你在支出中记过名字的每一个收款方，按过去一年花掉的金额排序，每一个都有自己的逐月柱状图。转账、收入和跟踪账户不计入——这里只算从预算内账户流出的钱。',
+  'payeeInsights.guideBottomHeading': '这一页怎么用',
+  'payeeInsights.guideBottomBody':
+    '分类告诉你「买菜每月 600」，然后你就无从下手了。收款方会告诉你：其中三分之二给了同一家店、这笔账从开春起每个月都在涨、而那个你早忘了的订阅已经悄悄扣掉 240。能叫出名字的支出，才是你能做决定的支出：柱子告诉你哪几个月不正常，占比告诉你这个收款方值不值得细看，而一条你认不出名字的平直曲线，通常就是该退订的东西。',
+  'payeeInsights.window': '最近 {months} 个月',
+  'payeeInsights.topPayee': '最大收款方',
+  'payeeInsights.totalOverWindow': '{amount} · 占支出 {percent}%',
+  'payeeInsights.paymentsCount': '{count} 笔',
+  'payeeInsights.perMonth': '{amount}/月',
+  'payeeInsights.shareOfSpending': '占支出 {percent}%',
+  'payeeInsights.lastMonthUp': '上个月比它自己的平均水平高出 {percent}%。',
+  'payeeInsights.lastMonthDown': '上个月比它自己的平均水平低了 {percent}%。',
+  'payeeInsights.othersHeading': '其他收款方',
+  'payeeInsights.rowDetail': '全部历史 · 每笔 {average}，分布在有付款的 {months} 个月里。',
+  'payeeInsights.unnamed':
+    '还有 {amount} 的支出没有记收款方，因此不在这一页上。在支出表单里补上名字，它就会进入排行。',
+  'payeeInsights.empty':
+    '还没有收款方。在交易里记下你付给了谁，这里就会按月列出他们各自花掉了多少。',
   'insights.taxInsights': '税务洞察',
   'insights.utilities': '实用工具',
   'insights.utilitiesHint': '基于你自己账户的规划与计算器。',
@@ -1516,19 +1555,3 @@ export const zh: Record<keyof typeof en, string> = {
     '这些行会恢复成原来的样子。此操作同样会被记录，可以再撤销。',
   'nav.history': '历史记录',
 };
-  'babySteps.step1Blurb':
-    '先于一切，尽快存下这笔现金。Ramsey 的理由：债务未清时，一次爆胎、一台坏掉的电器，只要手上没现金，就又是一笔新债。',
-  'babySteps.step2Blurb':
-    '债务雪球法——把房贷以外的债务按余额从小到大排列，其余只还最低还款，集中火力攻最小的一笔；还清一笔，就把那份还款滚进下一笔。刻意不看利率高低：“理财八成靠行为，只有两成靠知识。”',
-  'babySteps.step3Blurb':
-    '不再有钱流向债主之后，把启动基金加到你自己 3–6 个月的支出水平。这一步的作用，是把一场危机变成一点麻烦。',
-  'babySteps.step3bBlurb':
-    'Ramsey 在第 3 步和第 4 步之间为租房者加的半步：买房前先用现金攒够首付。他的经验法则是首付 10–20%、选 15 年固定利率房贷，且月供不超过每月到手收入的 25%。',
-  'babySteps.step4Blurb':
-    '家庭税前收入的 15%，而且就是 15%——后面两步还要用钱。投资之所以排在这里，是因为一边付着信用卡利息一边赚的收益，算不上收益。',
-  'babySteps.step5Blurb':
-    '先管好自己的退休，再管孩子的学费——用教育储蓄账户，而不是助学贷款。这个顺序是有意的：孩子上学可以借钱，你的退休借不到。',
-  'babySteps.step6Blurb':
-    '把每一分余钱砸向房贷，它是最后一笔债。一套没有月供的房子，正是前五步买来的东西。',
-  'babySteps.step7Blurb':
-    '积累财富、慷慨地给予，并为子孙留下产业。“现在过别人不愿过的日子，以后才能过别人过不上的日子，并且给得起。”',

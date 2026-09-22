@@ -54,3 +54,19 @@ export const INCOME_BY_PAYEE_IN_RANGE = `
   GROUP BY t.payee_id
   ORDER BY total DESC
 `;
+
+// Who the money went to, month by month — the payee equivalent of
+// SPENDING_BY_CATEGORY_OVER_MONTHS, and the same definition of spending
+// (negative, not a transfer, on-budget, already happened) so the two pages
+// can be read against each other. Rows with no payee come back as one
+// unnamed bucket; the caller reports it separately rather than ranking it,
+// since a blank is not somebody you pay.
+export const SPENDING_BY_PAYEE_OVER_MONTHS = `
+  SELECT t.payee_id, p.name as payee_name, substr(t.date, 1, 7) as month,
+         SUM(-t.amount_cents) as total, COUNT(t.id) as count
+  FROM transactions t
+  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+  LEFT JOIN payees p ON p.id = t.payee_id
+  WHERE t.amount_cents < 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ?
+  GROUP BY t.payee_id, month
+`;

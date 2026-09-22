@@ -6,6 +6,7 @@ import {
   EARLIEST_TRANSACTION_MONTH,
   INCOME_AND_SPENDING_IN_RANGE,
   INCOME_BY_PAYEE_IN_RANGE,
+  SPENDING_BY_PAYEE_OVER_MONTHS,
 } from '../../../databases/queries/reports';
 
 export interface CategorySpend {
@@ -198,4 +199,29 @@ export async function incomeByPayeeInRange(
     currentDateISO(),
   );
   return rows.map((r) => ({ payeeId: r.payee_id, payeeName: r.payee_name, totalCents: r.total }));
+}
+
+export interface PayeeTrendPoint {
+  payeeId: number | null;
+  name: string | null;
+  month: string;
+  spentCents: number;
+  count: number;
+}
+
+// Raw (payee, month) spend points across `months` — Payee Insights ranks
+// these and plots each payee's own series, the same pivot-in-memory shape
+// spendingByCategoryOverMonths feeds the category trend.
+export async function spendingByPayeeOverMonths(db: SQLiteDatabase, boardId: number, months: string[]): Promise<PayeeTrendPoint[]> {
+  if (months.length === 0) return [];
+  const start = `${months[0]}-01`;
+  const endExclusive = `${nextMonth(months[months.length - 1])}-01`;
+  const rows = await db.getAllAsync<{ payee_id: number | null; payee_name: string | null; month: string; total: number; count: number }>(
+    SPENDING_BY_PAYEE_OVER_MONTHS,
+    start,
+    endExclusive,
+    currentDateISO(),
+    boardId,
+  );
+  return rows.map((r) => ({ payeeId: r.payee_id, name: r.payee_name, month: r.month, spentCents: r.total, count: r.count }));
 }

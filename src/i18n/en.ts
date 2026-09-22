@@ -630,20 +630,36 @@ export const en = {
   'babySteps.measuredBody':
     'Each step reads the accounts you choose for it — emergency fund, retirement, down payment — so the bars move when your ledger does, not when you say so. The steps with nothing to measure are yours to mark done. Add your own goals at the bottom when the seven do not cover something you are saving for; they work the same way, and can be linked to an account to track themselves.',
   'babySteps.step1Title': '$1,000 starter emergency fund',
+  'babySteps.step1Blurb':
+    'Save it fast and in cash, before anything else. Ramsey’s reason: while you are still in debt, a flat tyre or a broken boiler you cannot cover simply becomes more debt.',
   'babySteps.step2Title': 'Pay off all debt (except the mortgage)',
+  'babySteps.step2Blurb':
+    'The debt snowball — list every debt but the house smallest to largest, pay the minimum on all of them, and attack the smallest with everything you have. Roll each cleared payment into the next. Ignoring interest rates is the point: “personal finance is 80% behaviour and only 20% head knowledge.”',
   'babySteps.remaining': '{amount} remaining',
   'babySteps.step3Title': '3–6 months of expenses saved',
+  'babySteps.step3Blurb':
+    'With nothing going to lenders, take the starter fund up to three to six months of your own expenses. This is the step that turns a crisis into an inconvenience.',
   'babySteps.step3Caption': '{current} of ~{target} (avg {avg}/mo × 4)',
   'babySteps.step3bTitle': 'Save a down payment',
+  'babySteps.step3bBlurb':
+    'Ramsey’s half-step between 3 and 4, for anyone still renting: save the down payment in cash before you buy. His rule of thumb is 10–20% down on a 15-year fixed-rate mortgage, with a payment no more than 25% of your monthly take-home pay.',
   'babySteps.notEnoughHistory': 'Not enough spending history yet',
   'babySteps.step4Title': 'Invest 15% of income for retirement',
+  'babySteps.step4Blurb':
+    '15% of gross household income, and only 15% — the next two steps still need feeding. Investing waits until here because a return earned while paying card interest is not a return.',
   'babySteps.step4Caption': '{percent}% of income invested (target 15%)',
   'babySteps.step4NoAccounts': 'Not tracked yet',
   'babySteps.step5Title': "Save for kids' college fund",
+  'babySteps.step5Blurb':
+    'Your own retirement first, then the kids — an ESA or 529 rather than student loans. The order is deliberate: they can borrow for college, you cannot borrow for retirement.',
   'babySteps.editTarget': 'Target: {target} (edit)',
   'babySteps.step6Title': 'Pay off the mortgage early',
+  'babySteps.step6Blurb':
+    'Every spare dollar at the mortgage, the last debt standing. A house with no payment on it is what the first five steps were buying.',
   'babySteps.step6Done': 'Done (or no mortgage)',
   'babySteps.step7Title': 'Build wealth and give',
+  'babySteps.step7Blurb':
+    'Build wealth, be outrageously generous, and leave an inheritance for your children’s children. “Live like no one else, so later you can live and give like no one else.”',
   'babySteps.step7Caption': '{amount} given in {year}',
   'babySteps.stepPrefix': 'Step {number}: {title}',
   'babySteps.progressCaption': '{current} of {target}',
@@ -1077,8 +1093,32 @@ export const en = {
   'purchaseInsights.timesBought': '{count}×',
   'purchaseInsights.totalSpent': 'Total {amount}',
   'purchaseInsights.priceRange': '{min} – {max}',
+  'purchaseInsights.topItem': 'Most bought',
+  'purchaseInsights.othersHeading': 'Everything else',
   'purchaseInsights.history': 'Every purchase',
   'purchaseInsights.sameDayCount': '×{count}',
+  'insights.payeeInsights': 'Payee Insights',
+  'payeeInsights.guideHeading': 'Who the money goes to',
+  'payeeInsights.guideBody':
+    'The other half of a category: not what kind of spending it was, but whose hand it ended up in. Every payee you have named on a spend, ranked by what they cost you over the last year, each with its own month-by-month bars. Transfers, income and tracking accounts stay out of it — this is money leaving an on-budget account.',
+  'payeeInsights.guideBottomHeading': 'What to do with it',
+  'payeeInsights.guideBottomBody':
+    'A category tells you groceries cost $600 a month and leaves you nowhere to go. A payee tells you two thirds of it goes to one shop, that the bill has climbed every month since spring, and that the quiet subscription you forgot about has taken $240 while you were not looking. Spending you can name is spending you can decide about: the bars say which months were unusual, the share says whether one payee is worth a second look at all, and a flat line at a number you do not recognise is usually something to cancel.',
+  'payeeInsights.window': 'Last {months} months',
+  'payeeInsights.topPayee': 'Top payee',
+  'payeeInsights.totalOverWindow': '{amount} · {percent}% of spending',
+  'payeeInsights.paymentsCount': '{count} payments',
+  'payeeInsights.perMonth': '{amount}/mo',
+  'payeeInsights.shareOfSpending': '{percent}% of spend',
+  'payeeInsights.lastMonthUp': 'Last month ran {percent}% above their own average.',
+  'payeeInsights.lastMonthDown': 'Last month ran {percent}% below their own average.',
+  'payeeInsights.othersHeading': 'Everyone else',
+  'payeeInsights.rowDetail':
+    'All time · {average} a payment, across {months} months with a payment in them.',
+  'payeeInsights.unnamed':
+    '{amount} of spending named no payee, so it is not on this page. Add one on the spend form and it joins the ranking.',
+  'payeeInsights.empty':
+    'No payees yet. Name who you paid on a transaction and they collect here, with what they cost you month by month.',
   'insights.taxInsights': 'Tax Insights',
   'insights.utilities': 'Utilities',
   'insights.utilitiesHint': 'Plans and calculators built on your own accounts.',
@@ -1565,19 +1605,3 @@ export const en = {
     'Those rows go back to what they were. This is recorded too, so it can be undone again.',
   'nav.history': 'History',
 } as const;
-  'babySteps.step1Blurb':
-    'Save it fast and in cash, before anything else. Ramsey’s reason: while you are still in debt, a flat tyre or a broken boiler you cannot cover simply becomes more debt.',
-  'babySteps.step2Blurb':
-    'The debt snowball — list every debt but the house smallest to largest, pay the minimum on all of them, and attack the smallest with everything you have. Roll each cleared payment into the next. Ignoring interest rates is the point: “personal finance is 80% behaviour and only 20% head knowledge.”',
-  'babySteps.step3Blurb':
-    'With nothing going to lenders, take the starter fund up to three to six months of your own expenses. This is the step that turns a crisis into an inconvenience.',
-  'babySteps.step3bBlurb':
-    'Ramsey’s half-step between 3 and 4, for anyone still renting: save the down payment in cash before you buy. His rule of thumb is 10–20% down on a 15-year fixed-rate mortgage, with a payment no more than 25% of your monthly take-home pay.',
-  'babySteps.step4Blurb':
-    '15% of gross household income, and only 15% — the next two steps still need feeding. Investing waits until here because a return earned while paying card interest is not a return.',
-  'babySteps.step5Blurb':
-    'Your own retirement first, then the kids — an ESA or 529 rather than student loans. The order is deliberate: they can borrow for college, you cannot borrow for retirement.',
-  'babySteps.step6Blurb':
-    'Every spare dollar at the mortgage, the last debt standing. A house with no payment on it is what the first five steps were buying.',
-  'babySteps.step7Blurb':
-    'Build wealth, be outrageously generous, and leave an inheritance for your children’s children. “Live like no one else, so later you can live and give like no one else.”',

@@ -43,6 +43,7 @@
   },
   "scripts": {
     "ios": "scripts/install-ios-device.sh",
+    "release:ios": "scripts/release-ios.sh",
     "test": "jest",
     "lint": "eslint ."
   },

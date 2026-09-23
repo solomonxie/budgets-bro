@@ -15,7 +15,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0365D42F8B96F10F7E1CCB44 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = BudgetsBro/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		0365D42F8B96F10F7E1CCB44 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = BudgetsBro/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* BudgetsBro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BudgetsBro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = BudgetsBro/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BudgetsBro/Info.plist; sourceTree = "<group>"; };
@@ -46,7 +46,6 @@
 				EBEDA61DCFA89C6CBD981D00 /* Pods-BudgetsBro.debug.xcconfig */,
 				DDE2D15F4F0AA18C2DE631B0 /* Pods-BudgetsBro.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -304,7 +303,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "BudgetsBro/BudgetsBro-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -336,7 +335,7 @@
 				PRODUCT_NAME = BudgetsBro;
 				SWIFT_OBJC_BRIDGING_HEADER = "BudgetsBro/BudgetsBro-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;

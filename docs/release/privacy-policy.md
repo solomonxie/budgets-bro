@@ -30,4 +30,4 @@ Deleting the app removes the local database. Backups you created in your own iCl
 Material changes to this policy will be published here with a new date.
 
 ## Contact
-TODO — support email address.
+Questions or requests: https://github.com/solomonxie/budgets-bro/issues

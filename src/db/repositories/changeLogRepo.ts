@@ -35,32 +35,99 @@ function parse(json: string | null): Record<string, unknown> | null {
   }
 }
 
+export interface ChangeGroupPage {
+  groups: ChangeGroup[];
+  // Pass this back as `beforeSeq` for the next page; null means there is none.
+  nextBeforeSeq: number | null;
+}
+
 // Grouped by the second they happened in, which is as fine-grained as the
 // trigger's own `datetime('now')` gets — and conveniently the granularity a
 // single action happens at.
+//
+// Paged by scanning backward from `beforeSeq` in a bounded window rather than
+// grouping the whole log: History is opened often, on phones several years
+// old, and the log is generous about how long it holds on to rows (see
+// `pruneChangeLog`) — a screen that group-bys all of it on every open is the
+// "read the whole board to render part of it" mistake this app can't afford.
+// A group can straddle the edge of a window, so a window is widened and
+// retried until it holds a full page's worth of *complete* groups, or runs
+// out of log to look at.
 export async function listChangeGroups(
   db: SQLiteDatabase,
-  limit = 100,
-): Promise<ChangeGroup[]> {
-  // The sample is the group's own first row: what it looked like after the
-  // change, or — for a delete, where there is no "after" — what was lost.
-  const rows = await db.getAllAsync<
-    Omit<ChangeGroup, 'sampleName'> & { sample: string | null }
-  >(
-    `SELECT g.at, g.tbl as "table", g.op, g.count, g.firstSeq, g.lastSeq,
-            COALESCE(first.after, first.before) as sample
-     FROM (
-       SELECT at, tbl, op, COUNT(*) as count, MIN(seq) as firstSeq, MAX(seq) as lastSeq
-       FROM change_log GROUP BY at, tbl, op
-     ) g
-     JOIN change_log first ON first.seq = g.firstSeq
-     ORDER BY g.firstSeq DESC LIMIT ?`,
-    limit,
-  );
-  return rows.map(({ sample, ...group }) => ({
-    ...group,
-    sampleName: nameOf(sample),
-  }));
+  beforeSeq?: number,
+  pageSize = 30,
+): Promise<ChangeGroupPage> {
+  let windowSize = pageSize * 4;
+  for (;;) {
+    const recent = await db.getAllAsync<{
+      seq: number;
+      at: string;
+      tbl: string;
+      op: ChangeLogEntry['op'];
+      before: string | null;
+      after: string | null;
+    }>(
+      `SELECT seq, at, tbl, op, before, after FROM change_log
+       WHERE seq < ? ORDER BY seq DESC LIMIT ?`,
+      beforeSeq ?? Number.MAX_SAFE_INTEGER,
+      windowSize,
+    );
+    if (recent.length === 0) return { groups: [], nextBeforeSeq: null };
+
+    const exhausted = recent.length < windowSize;
+    const windowFloor = recent[recent.length - 1].seq;
+
+    const byKey = new Map<
+      string,
+      Omit<ChangeGroup, 'sampleName'> & { sample: string | null }
+    >();
+    // Walked newest-first, so the last update to a group's firstSeq/sample is
+    // always its actual first (earliest) row — what it looked like when the
+    // change started.
+    for (const r of recent) {
+      const key = `${r.at}\u0000${r.tbl}\u0000${r.op}`;
+      const g = byKey.get(key);
+      if (g) {
+        g.count += 1;
+        g.firstSeq = Math.min(g.firstSeq, r.seq);
+        g.lastSeq = Math.max(g.lastSeq, r.seq);
+        if (r.seq === g.firstSeq) g.sample = r.after ?? r.before;
+      } else {
+        byKey.set(key, {
+          at: r.at,
+          table: r.tbl,
+          op: r.op,
+          count: 1,
+          firstSeq: r.seq,
+          lastSeq: r.seq,
+          sample: r.after ?? r.before,
+        });
+      }
+    }
+
+    let groups = [...byKey.values()].sort((a, b) => b.firstSeq - a.firstSeq);
+    // A group sitting on the window's floor may continue further back than
+    // this window looked — incomplete, so it isn't page-worthy yet.
+    if (!exhausted) {
+      groups = groups.filter((g) => g.firstSeq > windowFloor);
+    }
+
+    if (groups.length >= pageSize || exhausted) {
+      const page = groups.slice(0, pageSize);
+      const hasMore = groups.length > pageSize || !exhausted;
+      const last = page[page.length - 1];
+      return {
+        groups: page.map(({ sample, ...g }) => ({
+          ...g,
+          sampleName: nameOf(sample),
+        })),
+        nextBeforeSeq: hasMore && last ? last.firstSeq : null,
+      };
+    }
+
+    windowSize *= 4;
+  }
 }
 
 // Only a name, and only where the row has one — an amount or a date out of

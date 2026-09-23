@@ -19,6 +19,8 @@
 		13B07F961A680F5B00A75B9A /* BudgetsBro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BudgetsBro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = BudgetsBro/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BudgetsBro/Info.plist; sourceTree = "<group>"; };
+		5161A7E01A0B4C2D00DEB001 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		5161A7E01A0B4C2D00DEB002 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = BudgetsBro/SplashScreen.storyboard; sourceTree = "<group>"; };
 		DDE2D15F4F0AA18C2DE631B0 /* Pods-BudgetsBro.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BudgetsBro.release.xcconfig"; path = "Target Support Files/Pods-BudgetsBro/Pods-BudgetsBro.release.xcconfig"; sourceTree = "<group>"; };
 		E26559F78CCEABE71C1C72A4 /* libPods-BudgetsBro.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-BudgetsBro.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -86,6 +88,8 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				0A1A0B7C73CA591E2ED981B5 /* Pods */,
+				5161A7E01A0B4C2D00DEB001 /* Debug.xcconfig */,
+				5161A7E01A0B4C2D00DEB002 /* Release.xcconfig */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -272,13 +276,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = EBEDA61DCFA89C6CBD981D00 /* Pods-BudgetsBro.debug.xcconfig */;
+			baseConfigurationReference = 5161A7E01A0B4C2D00DEB001 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = BudgetsBro/BudgetsBro.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Z3VPHM3BJL;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -310,13 +313,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DDE2D15F4F0AA18C2DE631B0 /* Pods-BudgetsBro.release.xcconfig */;
+			baseConfigurationReference = 5161A7E01A0B4C2D00DEB002 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = BudgetsBro/BudgetsBro.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Z3VPHM3BJL;
 				INFOPLIST_FILE = BudgetsBro/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (

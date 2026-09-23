@@ -24,6 +24,7 @@ App Store Connect paths start at **Apps → Budgets Bro → Distribution →**.
 ## 2. Xcode
 
 - [ ] Xcode → Settings → **Accounts** → signed in with the developer Apple ID; the team shows under it.
+- [ ] `cp ios/Local.xcconfig.example ios/Local.xcconfig`, set your Team ID (developer.apple.com → Membership). Gitignored — never commit it.
 - [ ] `cd ios && pod install` succeeds.
 
 ## 3–4. Bundle ID and iCloud container

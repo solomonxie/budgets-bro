@@ -80,7 +80,7 @@ src/receipts/importReceipt.ts  orchestrator: OCR → AI → parse → insert
 src/hooks/useReceiptInbox.ts   Linking + AppState → drain
 src/domain/receiptParse.ts     pure: JSON repair ladder, coercion, memo, import id
 src/domain/purchaseItems.ts    pure: the key-value string format
-src/domain/purchaseInsights.ts pure: aggregation for the Insights page
+src/domain/trackedPrices.ts pure: aggregation for the Insights page
 ```
 
 `ReceiptInboxStore.swift` must stay pure Foundation — the extension target
@@ -105,7 +105,7 @@ receipt path: a few things are worth tracking by price over time (oil, beef,
 a car repair) whether or not a receipt was ever photographed, and one typed
 `Oil=8.40` feeds the analysis below exactly like a parsed one.
 
-**Purchase Insights** (Insights → Purchase Insights) aggregates priced items
+**Tracked Prices** (Insights → Tracked Prices) aggregates priced items
 across the whole board: every distinct item ranked by how often it was bought,
 each expanding in place to a price trend chart with the trailing-average
 benchmark line, plus its purchase history (date, price, count). Grouping is by

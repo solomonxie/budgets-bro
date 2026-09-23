@@ -3,8 +3,8 @@ import { getDb } from '../db/client';
 import * as reportsRepo from '../db/repositories/reportsRepo';
 import type { PayeeTrendPoint } from '../db/repositories/reportsRepo';
 import { currentMonth, monthsBetween } from '../domain/month';
-import { summarizePayees } from '../domain/payeeInsights';
-import type { PayeeSummary } from '../domain/payeeInsights';
+import { summarizePayees } from '../domain/payeeTrend';
+import type { PayeeSummary } from '../domain/payeeTrend';
 import { useAppStore } from '../state/useAppStore';
 
 // The ranking, the shares and the top payee's bars all cover a year — the
@@ -14,7 +14,7 @@ import { useAppStore } from '../state/useAppStore';
 // once you are looking at one of them, "since when" is the question.
 export const PAYEE_WINDOW_MONTHS = 12;
 
-export function usePayeeInsights() {
+export function usePayeeTrend() {
   const [points, setPoints] = useState<PayeeTrendPoint[]>([]);
   const [allMonths, setAllMonths] = useState<string[]>([currentMonth()]);
   const [loading, setLoading] = useState(true);

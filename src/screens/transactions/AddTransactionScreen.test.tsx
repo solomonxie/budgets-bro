@@ -30,8 +30,8 @@ jest.mock('../../hooks/useCategories', () => ({
     categories: [{ id: 10, name: 'Groceries', groupId: 1, icon: null }],
   }),
 }));
-jest.mock('../../hooks/usePurchaseInsights', () => ({
-  usePurchaseInsights: () => ({
+jest.mock('../../hooks/useTrackedPrices', () => ({
+  useTrackedPrices: () => ({
     items: [],
     names: ['Olive oil'],
     transactions: [],

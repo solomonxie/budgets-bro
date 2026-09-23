@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
-import type { PurchaseItemTrend } from '../../domain/purchaseInsights';
+import type { PurchaseItemTrend } from '../../domain/trackedPrices';
 import { formatMoneyExact } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -55,11 +55,11 @@ export function PurchaseItemTrendChart({ trend }: { trend: PurchaseItemTrend }) 
           {formatMoneyExact((selected ?? latest).priceCents)}
         </Text>
         <Text style={styles.headlineLabel}>
-          {selected ? selected.date : t('purchaseInsights.latestPrice')}
+          {selected ? selected.date : t('trackedPrices.latestPrice')}
         </Text>
         {benchmarkCents != null ? (
           <Text style={styles.benchmark}>
-            {t('purchaseInsights.average')} {formatMoneyExact(benchmarkCents)}
+            {t('trackedPrices.average')} {formatMoneyExact(benchmarkCents)}
           </Text>
         ) : null}
       </View>

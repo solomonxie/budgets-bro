@@ -1,4 +1,4 @@
-import { payeeMonthOverAverage, summarizePayees } from './payeeInsights';
+import { payeeMonthOverAverage, summarizePayees } from './payeeTrend';
 import type { PayeeTrendPoint } from '../db/repositories/reportsRepo';
 
 const months = ['2026-07', '2026-08', '2026-09'];
@@ -67,7 +67,32 @@ describe('summarizePayees', () => {
       months,
     );
     expect(totalCents).toBe(2000);
-    expect(payees[0].series).toHaveLength(3);
+    // Trimmed to this payee's first payment within the window, not the
+    // window's own start.
+    expect(payees[0].series).toEqual([{ month: '2026-09', spentCents: 2000 }]);
+  });
+
+  it('trims leading months before the payee\'s first payment', () => {
+    const { payees } = summarizePayees(
+      [point(1, 'New Gym', '2026-09', 5000)],
+      months,
+    );
+    expect(payees[0].series).toEqual([{ month: '2026-09', spentCents: 5000 }]);
+  });
+
+  it('keeps a zero month that falls after the first payment', () => {
+    const { payees } = summarizePayees(
+      [
+        point(1, 'Quarterly Bill', '2026-07', 9000),
+        point(1, 'Quarterly Bill', '2026-09', 9000),
+      ],
+      months,
+    );
+    expect(payees[0].series).toEqual([
+      { month: '2026-07', spentCents: 9000 },
+      { month: '2026-08', spentCents: 0 },
+      { month: '2026-09', spentCents: 9000 },
+    ]);
   });
 });
 

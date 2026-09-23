@@ -5,16 +5,16 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { PurchaseItemTrendChart } from './PurchaseItemTrendChart';
-import { usePurchaseInsights } from '../../hooks/usePurchaseInsights';
+import { useTrackedPrices } from '../../hooks/useTrackedPrices';
 import {
   purchaseItemHistory,
   purchaseItemTrend,
-} from '../../domain/purchaseInsights';
+} from '../../domain/trackedPrices';
 import type {
   PurchaseItemDay,
   PurchaseItemSummary,
   PurchaseItemTrend,
-} from '../../domain/purchaseInsights';
+} from '../../domain/trackedPrices';
 import { formatMoneyExact } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -27,15 +27,15 @@ type RootNav = NativeStackNavigationProp<RootStackParamList>;
 // often, because that is what makes a price worth watching — a thing bought
 // once has no trend to read.
 //
-// Same shape as Payee Insights: the top of the ranking gets a card of its
+// Same shape as Payee Trend: the top of the ranking gets a card of its
 // own, already open, because that one answer is what the page is for. The
 // rest open in place rather than pushing a page — the ranking is the frame
 // of reference for whatever you opened, and losing it to a detail screen
 // means coming back and finding your place again.
-export function PurchaseInsightsScreen() {
+export function TrackedPricesScreen() {
   const t = useT();
   const rootNavigation = useNavigation<RootNav>();
-  const { items, transactions, loading } = usePurchaseInsights();
+  const { items, transactions, loading } = useTrackedPrices();
   const [openName, setOpenName] = useState<string | null>(null);
 
   const top = items[0] ?? null;
@@ -53,7 +53,7 @@ export function PurchaseInsightsScreen() {
   if (!loading && items.length === 0)
     return (
       <ScreenContainer>
-        <Text style={styles.hint}>{t('purchaseInsights.empty')}</Text>
+        <Text style={styles.hint}>{t('trackedPrices.empty')}</Text>
       </ScreenContainer>
     );
   if (!top) return <ScreenContainer />;
@@ -64,20 +64,20 @@ export function PurchaseInsightsScreen() {
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content}>
         <GuideSection
-          heading={t('purchaseInsights.guideHeading')}
-          body={t('purchaseInsights.guideBody')}
+          heading={t('trackedPrices.guideHeading')}
+          body={t('trackedPrices.guideBody')}
         />
-        <Text style={styles.hint}>{t('purchaseInsights.hint')}</Text>
+        <Text style={styles.hint}>{t('trackedPrices.hint')}</Text>
 
         <View style={styles.topCard}>
-          <Text style={styles.topLabel}>{t('purchaseInsights.topItem')}</Text>
+          <Text style={styles.topLabel}>{t('trackedPrices.topItem')}</Text>
           <Text style={styles.topName} numberOfLines={1}>
             {top.displayName}
           </Text>
           <Text style={styles.topSub}>
-            {t('purchaseInsights.timesBought', { count: top.count })}
+            {t('trackedPrices.timesBought', { count: top.count })}
             {' · '}
-            {t('purchaseInsights.totalSpent', {
+            {t('trackedPrices.totalSpent', {
               amount: formatMoneyExact(top.totalCents),
             })}
           </Text>
@@ -87,7 +87,7 @@ export function PurchaseInsightsScreen() {
         {rest.length > 0 ? (
           <>
             <Text style={styles.sectionLabel}>
-              {t('purchaseInsights.othersHeading')}
+              {t('trackedPrices.othersHeading')}
             </Text>
             <View style={styles.card}>
               {rest.map((item, i) => {
@@ -107,11 +107,11 @@ export function PurchaseInsightsScreen() {
                           {item.displayName}
                         </Text>
                         <Text style={styles.sub} numberOfLines={1}>
-                          {t('purchaseInsights.timesBought', {
+                          {t('trackedPrices.timesBought', {
                             count: item.count,
                           })}
                           {' · '}
-                          {t('purchaseInsights.totalSpent', {
+                          {t('trackedPrices.totalSpent', {
                             amount: formatMoneyExact(item.totalCents),
                           })}
                         </Text>
@@ -121,7 +121,7 @@ export function PurchaseInsightsScreen() {
                           {formatMoneyExact(item.avgCents)}
                         </Text>
                         <Text style={styles.priceLabel}>
-                          {t('purchaseInsights.average')}
+                          {t('trackedPrices.average')}
                         </Text>
                       </View>
                       <Text
@@ -143,8 +143,8 @@ export function PurchaseInsightsScreen() {
         ) : null}
 
         <GuideSection
-          heading={t('purchaseInsights.guideBottomHeading')}
-          body={t('purchaseInsights.guideBottomBody')}
+          heading={t('trackedPrices.guideBottomHeading')}
+          body={t('trackedPrices.guideBottomBody')}
         />
       </ScrollView>
     </ScreenContainer>
@@ -163,13 +163,13 @@ export function PurchaseInsightsScreen() {
         <PurchaseItemTrendChart trend={itemTrend} />
         {item.minCents !== item.maxCents ? (
           <Text style={styles.range}>
-            {t('purchaseInsights.priceRange', {
+            {t('trackedPrices.priceRange', {
               min: formatMoneyExact(item.minCents),
               max: formatMoneyExact(item.maxCents),
             })}
           </Text>
         ) : null}
-        <Text style={styles.historyLabel}>{t('purchaseInsights.history')}</Text>
+        <Text style={styles.historyLabel}>{t('trackedPrices.history')}</Text>
         {itemHistory.map((day) => (
           <Pressable
             key={day.date}
@@ -186,7 +186,7 @@ export function PurchaseInsightsScreen() {
             <Text style={styles.historyDate}>{day.date}</Text>
             {day.count > 1 ? (
               <Text style={styles.historyCount}>
-                {t('purchaseInsights.sameDayCount', { count: day.count })}
+                {t('trackedPrices.sameDayCount', { count: day.count })}
               </Text>
             ) : null}
             <Text style={styles.historyPrice}>

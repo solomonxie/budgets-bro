@@ -39,10 +39,10 @@ BabyStepsScreen.tsx
 │ Your Goals (custom, inline edit) │──→ useCustomGoals + customGoalsRepo
 └───────────────────────────────┘
 
-PayeeInsightsScreen.tsx
+PayeeTrendScreen.tsx
 ┌───────────────────────────────┐
-│ Top payee card                   │──→ usePayeeInsights (12-month window)
-│  name · total · share · bars     │    → domain/payeeInsights.summarizePayees
+│ Top payee card                   │──→ usePayeeTrend (12-month window)
+│  name · total · share · bars     │    → domain/payeeTrend.summarizePayees
 │                                  │    chart: PayeeMonthlyChart.tsx
 ├───────────────────────────────┤
 │ Everyone else, ranked by spend   │──→ row tap expands that payee's whole
@@ -52,7 +52,7 @@ PayeeInsightsScreen.tsx
 └───────────────────────────────┘
 ```
 
-PurchaseInsightsScreen.tsx is the same layout, per item instead of per
+TrackedPricesScreen.tsx is the same layout, per item instead of per
 payee: most-bought item in the top card with its price trend already open,
 everything else ranked below and expanding in place. Both cards and rows
 share the one set of styles, so a change to one page's shape belongs in

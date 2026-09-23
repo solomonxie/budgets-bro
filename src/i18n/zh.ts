@@ -743,11 +743,11 @@ export const zh: Record<keyof typeof en, string> = {
   'review.guideBottomHeading': '标记只是提示，不是规则',
   'review.guideBottomBody':
     '你完全可以原样留着不动，它会一直安静地标记在这里——这里没有任何东西会过期、催促你，或擅自改动你的数据。快捷修复只做它标签上写的事（补上转账缺失的另一半、让两边金额一致、把同一天的重复合并成一笔），而且走的是与手动编辑相同的写入路径，因此它做过的任何改动都能在「设置 → 修改历史」中撤销。',
-  'purchaseInsights.guideHeading': '这些数据从哪来',
-  'purchaseInsights.guideBody':
+  'trackedPrices.guideHeading': '这些数据从哪来',
+  'trackedPrices.guideBody':
     '来自记账表单上的「物品」一栏：写下你实际买了什么、各自多少钱。这些名称会汇总到这里，按购买次数排序，并显示每项的累计花费。点按任意一项，可看到它的每次购买与价格走势。',
-  'purchaseInsights.guideBottomHeading': '为什么值得写下物品',
-  'purchaseInsights.guideBottomBody':
+  'trackedPrices.guideBottomHeading': '为什么值得写下物品',
+  'trackedPrices.guideBottomBody':
     '分类只能告诉你这个月食杂花了 600 元；物品能告诉你咖啡从春天的 14 元涨到了 19 元，而你一个季度要买九次。这就是「知道超支了」和「知道超在哪」的区别——而且这种价格历史别人不会替你记录，没有哪家店会告诉你同样一篮东西一年前值多少钱。物品是可选的、自由填写的：只记下值得盯的那几样，收据上其余的不必输入。',
   'taxInsights.guideHeading': '为报税整理的一年',
   'taxInsights.guideBody':
@@ -1056,38 +1056,42 @@ export const zh: Record<keyof typeof en, string> = {
   'currency.RON': '罗马尼亚列伊',
   'currency.BGN': '保加利亚列弗',
   'currency.ISK': '冰岛克朗',
-  'insights.purchaseInsights': '消费洞察',
-  'purchaseInsights.hint': '交易里记下的每件物品，按购买次数排序。点开看价格变化。',
-  'purchaseInsights.empty': '还没有记录物品。在支出表单的「物品」一栏添加，之后会汇总到这里。',
-  'purchaseInsights.average': '均价',
-  'purchaseInsights.latestPrice': '最近',
-  'purchaseInsights.timesBought': '{count} 次',
-  'purchaseInsights.totalSpent': '合计 {amount}',
-  'purchaseInsights.priceRange': '{min} – {max}',
-  'purchaseInsights.topItem': '买得最多',
-  'purchaseInsights.othersHeading': '其他物品',
-  'purchaseInsights.history': '每次购买',
-  'purchaseInsights.sameDayCount': '×{count}',
-  'insights.payeeInsights': '收款方洞察',
-  'payeeInsights.guideHeading': '钱都付给了谁',
-  'payeeInsights.guideBody':
+  'insights.trackedPrices': '价格追踪',
+  'trackedPrices.hint': '交易里记下的每件物品，按购买次数排序。点开看价格变化。',
+  'trackedPrices.empty': '还没有记录物品。在支出表单的「物品」一栏添加，之后会汇总到这里。',
+  'trackedPrices.average': '均价',
+  'trackedPrices.latestPrice': '最近',
+  'trackedPrices.timesBought': '{count} 次',
+  'trackedPrices.totalSpent': '合计 {amount}',
+  'trackedPrices.priceRange': '{min} – {max}',
+  'trackedPrices.topItem': '买得最多',
+  'trackedPrices.othersHeading': '其他物品',
+  'trackedPrices.history': '每次购买',
+  'trackedPrices.sameDayCount': '×{count}',
+  'insights.payeeTrend': '收款方趋势',
+  'payeeTrend.guideHeading': '钱都付给了谁',
+  'payeeTrend.guideBody':
     '这是分类的另一面：不是「花在哪类事上」，而是「最后进了谁的口袋」。你在支出中记过名字的每一个收款方，按过去一年花掉的金额排序，每一个都有自己的逐月柱状图。转账、收入和跟踪账户不计入——这里只算从预算内账户流出的钱。',
-  'payeeInsights.guideBottomHeading': '这一页怎么用',
-  'payeeInsights.guideBottomBody':
+  'payeeTrend.guideBottomHeading': '这一页怎么用',
+  'payeeTrend.guideBottomBody':
     '分类告诉你「买菜每月 600」，然后你就无从下手了。收款方会告诉你：其中三分之二给了同一家店、这笔账从开春起每个月都在涨、而那个你早忘了的订阅已经悄悄扣掉 240。能叫出名字的支出，才是你能做决定的支出：柱子告诉你哪几个月不正常，占比告诉你这个收款方值不值得细看，而一条你认不出名字的平直曲线，通常就是该退订的东西。',
-  'payeeInsights.window': '最近 {months} 个月',
-  'payeeInsights.topPayee': '最大收款方',
-  'payeeInsights.totalOverWindow': '{amount} · 占支出 {percent}%',
-  'payeeInsights.paymentsCount': '{count} 笔',
-  'payeeInsights.perMonth': '{amount}/月',
-  'payeeInsights.shareOfSpending': '占支出 {percent}%',
-  'payeeInsights.lastMonthUp': '上个月比它自己的平均水平高出 {percent}%。',
-  'payeeInsights.lastMonthDown': '上个月比它自己的平均水平低了 {percent}%。',
-  'payeeInsights.othersHeading': '其他收款方',
-  'payeeInsights.rowDetail': '全部历史 · 每笔 {average}，分布在有付款的 {months} 个月里。',
-  'payeeInsights.unnamed':
+  'payeeTrend.window': '最近 {months} 个月',
+  'payeeTrend.topPayee': '最大收款方',
+  'payeeTrend.totalOverWindow': '{amount} · 占支出 {percent}%',
+  'payeeTrend.paymentsCount': '{count} 笔',
+  'payeeTrend.perMonth': '{amount}/月',
+  'payeeTrend.avgPerMonth': '月均 {amount}',
+  'payeeTrend.shareOfSpending': '占支出 {percent}%',
+  'payeeTrend.lastMonthUp': '上个月比它自己的平均水平高出 {percent}%。',
+  'payeeTrend.lastMonthDown': '上个月比它自己的平均水平低了 {percent}%。',
+  'payeeTrend.othersHeading': '其他收款方',
+  'payeeTrend.smallerPayments': '其余的（占比较小）',
+  'payeeTrend.payeeCount': '{count} 个收款方',
+  'payeeTrend.rowDetail':
+    '全部历史平均每笔 {average}，跨越 {months} 个月（含无付款的月份）。',
+  'payeeTrend.unnamed':
     '还有 {amount} 的支出没有记收款方，因此不在这一页上。在支出表单里补上名字，它就会进入排行。',
-  'payeeInsights.empty':
+  'payeeTrend.empty':
     '还没有收款方。在交易里记下你付给了谁，这里就会按月列出他们各自花掉了多少。',
   'insights.taxInsights': '税务洞察',
   'insights.utilities': '实用工具',

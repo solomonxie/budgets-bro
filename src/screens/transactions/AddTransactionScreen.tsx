@@ -42,7 +42,7 @@ import {
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
 import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
-import { usePurchaseInsights } from '../../hooks/usePurchaseInsights';
+import { useTrackedPrices } from '../../hooks/useTrackedPrices';
 import { parsePurchaseItems } from '../../domain/purchaseItems';
 import { RepeatField } from '../../components/ui/RepeatField';
 import { useT } from '../../i18n';
@@ -127,7 +127,7 @@ function AddTransactionForm() {
   // Grows with what is typed into it, between one line and about six.
   const [memoHeight, setMemoHeight] = useState(MEMO_MIN_HEIGHT);
   const memoRef = useRef<View>(null);
-  const { names: itemNames } = usePurchaseInsights();
+  const { names: itemNames } = useTrackedPrices();
 
   // The item inputs sit near the bottom of a long form, so the keyboard
   // opens straight over the row just tapped. Nothing scrolls a focused

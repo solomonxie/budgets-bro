@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from '../../db/driver';
 import type { TransactionJoinRow } from '../schema';
 import type { AccountType, TransactionWithLabels } from '../../domain/types';
-import type { PurchaseItemRow } from '../../domain/purchaseInsights';
+import type { PurchaseItemRow } from '../../domain/trackedPrices';
 import { currentDateISO } from '../../domain/month';
 import { findOrCreatePayee, getPayee, pruneUnusedPayees } from './payeesRepo';
 import {

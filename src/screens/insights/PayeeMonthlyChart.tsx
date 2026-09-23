@@ -10,7 +10,7 @@ import Svg, { Line, Rect } from 'react-native-svg';
 import { useChartScrub } from '../../components/ui/chartScrub';
 import { formatMonthShort } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
-import type { PayeeMonth } from '../../domain/payeeInsights';
+import type { PayeeMonth } from '../../domain/payeeTrend';
 import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -18,6 +18,10 @@ import { spacing } from '../../theme/spacing';
 const CHART_HEIGHT = 88;
 const MIN_BAR_SLOT = 34;
 const BAR_GAP = 2;
+// The benchmark line is a recent typical month, not a whole-history one — a
+// payee with three years behind it shouldn't have that history dragging an
+// average that's meant to say "what does this cost me lately".
+const AVERAGE_WINDOW_MONTHS = 12;
 
 // What one payee costs, month by month. Bars rather than a line: these are
 // separate monthly totals with a real zero, and a month you paid them
@@ -42,8 +46,12 @@ export function PayeeMonthlyChart({ series }: { series: PayeeMonth[] }) {
   if (series.length === 0) return null;
 
   const maxCents = Math.max(...series.map((m) => m.spentCents));
+  // Series already starts at this payee's first payment, so the last 12
+  // months of it is never padded with months from before that.
+  const recentMonths = series.slice(-AVERAGE_WINDOW_MONTHS);
   const averageCents = Math.round(
-    series.reduce((sum, m) => sum + m.spentCents, 0) / series.length,
+    recentMonths.reduce((sum, m) => sum + m.spentCents, 0) /
+      recentMonths.length,
   );
   const slot = chartWidth / series.length;
   const barWidth = Math.max(4, slot - BAR_GAP * 2);
@@ -65,7 +73,9 @@ export function PayeeMonthlyChart({ series }: { series: PayeeMonth[] }) {
           {formatMonthShort(shown.month, locale)} ’{shown.month.slice(2, 4)}
         </Text>
         <Text style={styles.benchmark}>
-          {t('payeeInsights.perMonth', { amount: formatMoney(averageCents) })}
+          {t('payeeTrend.avgPerMonth', {
+            amount: formatMoney(averageCents),
+          })}
         </Text>
       </View>
       <ScrollView

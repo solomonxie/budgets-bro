@@ -9,8 +9,8 @@ import { FinanceToolScreen } from '../screens/finance-tools/FinanceToolScreen';
 import { financeTool } from '../screens/finance-tools/registry';
 import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
 import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
-import { PurchaseInsightsScreen } from '../screens/insights/PurchaseInsightsScreen';
-import { PayeeInsightsScreen } from '../screens/insights/PayeeInsightsScreen';
+import { TrackedPricesScreen } from '../screens/insights/TrackedPricesScreen';
+import { PayeeTrendScreen } from '../screens/insights/PayeeTrendScreen';
 import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
 import { CostOfLivingScreen } from '../screens/insights/CostOfLivingScreen';
 import { HousingInsightsScreen } from '../screens/housing/HousingInsightsScreen';
@@ -46,14 +46,14 @@ export function InsightsStackNavigator() {
       />
       <Stack.Screen name="TaxInsights" component={TaxInsightsScreen} options={{ title: t('insights.taxInsights') }} />
       <Stack.Screen
-        name="PurchaseInsights"
-        component={PurchaseInsightsScreen}
-        options={{ title: t('insights.purchaseInsights') }}
+        name="TrackedPrices"
+        component={TrackedPricesScreen}
+        options={{ title: t('insights.trackedPrices') }}
       />
       <Stack.Screen
-        name="PayeeInsights"
-        component={PayeeInsightsScreen}
-        options={{ title: t('insights.payeeInsights') }}
+        name="PayeeTrend"
+        component={PayeeTrendScreen}
+        options={{ title: t('insights.payeeTrend') }}
       />
       <Stack.Screen
         name="ExchangeInsights"

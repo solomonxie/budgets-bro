@@ -29,8 +29,8 @@ export type InsightsStackParamList = {
   LoanInsights: undefined;
   InvestmentInsights: undefined;
   TaxInsights: undefined;
-  PurchaseInsights: undefined;
-  PayeeInsights: undefined;
+  TrackedPrices: undefined;
+  PayeeTrend: undefined;
   ExchangeInsights: undefined;
   CostOfLiving: undefined;
   Housing: undefined;

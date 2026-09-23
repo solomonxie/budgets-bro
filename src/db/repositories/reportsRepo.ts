@@ -209,7 +209,7 @@ export interface PayeeTrendPoint {
   count: number;
 }
 
-// Raw (payee, month) spend points across `months` — Payee Insights ranks
+// Raw (payee, month) spend points across `months` — Payee Trend ranks
 // these and plots each payee's own series, the same pivot-in-memory shape
 // spendingByCategoryOverMonths feeds the category trend.
 export async function spendingByPayeeOverMonths(db: SQLiteDatabase, boardId: number, months: string[]): Promise<PayeeTrendPoint[]> {

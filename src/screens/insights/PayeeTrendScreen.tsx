@@ -3,9 +3,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { PayeeMonthlyChart } from './PayeeMonthlyChart';
-import { usePayeeInsights } from '../../hooks/usePayeeInsights';
-import { payeeMonthOverAverage } from '../../domain/payeeInsights';
-import type { PayeeSummary } from '../../domain/payeeInsights';
+import { usePayeeTrend } from '../../hooks/usePayeeTrend';
+import { payeeMonthOverAverage } from '../../domain/payeeTrend';
+import type { PayeeSummary } from '../../domain/payeeTrend';
 import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -17,13 +17,13 @@ import { spacing } from '../../theme/spacing';
 // stop buying them there.
 //
 // Top payee gets the chart open, because that one answer is what the page
-// is for. The rest open in place, the same as Purchase Insights: the
+// is for. The rest open in place, the same as Tracked Prices: the
 // ranking is the frame of reference, and pushing a detail page would cost
 // you your place in it.
-export function PayeeInsightsScreen() {
+export function PayeeTrendScreen() {
   const t = useT();
   const { payees, unnamedCents, totalCents, months, history, loading } =
-    usePayeeInsights();
+    usePayeeTrend();
   const [openId, setOpenId] = useState<number | null>(null);
 
   if (loading) return <ScreenContainer />;
@@ -31,45 +31,56 @@ export function PayeeInsightsScreen() {
   if (payees.length === 0)
     return (
       <ScreenContainer>
-        <Text style={styles.hint}>{t('payeeInsights.empty')}</Text>
+        <Text style={styles.hint}>{t('payeeTrend.empty')}</Text>
       </ScreenContainer>
     );
 
   const [top, ...rest] = payees;
-  const share = (payee: PayeeSummary) =>
-    totalCents > 0 ? Math.round((payee.totalCents / totalCents) * 100) : 0;
+  const shareRatio = (payee: PayeeSummary) =>
+    totalCents > 0 ? payee.totalCents / totalCents : 0;
+  const share = (payee: PayeeSummary) => Math.round(shareRatio(payee) * 100);
   const topChange = payeeMonthOverAverage(top);
+
+  // Below 1% each, a dozen of these say nothing on their own — they're worth
+  // seeing as one line, not a scroll of names nobody would recognise a
+  // pattern in.
+  const visibleRest = rest.filter((payee) => shareRatio(payee) >= 0.01);
+  const smallRest = rest.filter((payee) => shareRatio(payee) < 0.01);
+  const smallTotalCents = smallRest.reduce((sum, p) => sum + p.totalCents, 0);
+  const smallCount = smallRest.reduce((sum, p) => sum + p.count, 0);
+  const smallSharePercent =
+    totalCents > 0 ? Math.round((smallTotalCents / totalCents) * 100) : 0;
 
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content}>
         <GuideSection
-          heading={t('payeeInsights.guideHeading')}
-          body={t('payeeInsights.guideBody')}
+          heading={t('payeeTrend.guideHeading')}
+          body={t('payeeTrend.guideBody')}
         />
         <Text style={styles.hint}>
-          {t('payeeInsights.window', { months: months.length })}
+          {t('payeeTrend.window', { months: months.length })}
         </Text>
 
         <View style={styles.topCard}>
-          <Text style={styles.topLabel}>{t('payeeInsights.topPayee')}</Text>
+          <Text style={styles.topLabel}>{t('payeeTrend.topPayee')}</Text>
           <Text style={styles.topName} numberOfLines={1}>
             {top.name}
           </Text>
           <Text style={styles.topSub}>
-            {t('payeeInsights.totalOverWindow', {
+            {t('payeeTrend.totalOverWindow', {
               amount: formatMoney(top.totalCents),
               percent: share(top),
             })}
             {' · '}
-            {t('payeeInsights.paymentsCount', { count: top.count })}
+            {t('payeeTrend.paymentsCount', { count: top.count })}
           </Text>
           <PayeeMonthlyChart series={top.series} />
           {topChange != null ? (
             <Text style={styles.hint}>
               {topChange >= 0
-                ? t('payeeInsights.lastMonthUp', { percent: topChange })
-                : t('payeeInsights.lastMonthDown', {
+                ? t('payeeTrend.lastMonthUp', { percent: topChange })
+                : t('payeeTrend.lastMonthDown', {
                     percent: Math.abs(topChange),
                   })}
             </Text>
@@ -79,10 +90,10 @@ export function PayeeInsightsScreen() {
         {rest.length > 0 ? (
           <>
             <Text style={styles.sectionLabel}>
-              {t('payeeInsights.othersHeading')}
+              {t('payeeTrend.othersHeading')}
             </Text>
             <View style={styles.card}>
-              {rest.map((payee, i) => {
+              {visibleRest.map((payee, i) => {
                 const open = openId === payee.payeeId;
                 return (
                   <View key={payee.payeeId}>
@@ -99,11 +110,11 @@ export function PayeeInsightsScreen() {
                           {payee.name}
                         </Text>
                         <Text style={styles.sub} numberOfLines={1}>
-                          {t('payeeInsights.paymentsCount', {
+                          {t('payeeTrend.paymentsCount', {
                             count: payee.count,
                           })}
                           {' · '}
-                          {t('payeeInsights.perMonth', {
+                          {t('payeeTrend.perMonth', {
                             amount: formatMoney(payee.perMonthCents),
                           })}
                         </Text>
@@ -113,7 +124,7 @@ export function PayeeInsightsScreen() {
                           {formatMoney(payee.totalCents)}
                         </Text>
                         <Text style={styles.amountLabel}>
-                          {t('payeeInsights.shareOfSpending', {
+                          {t('payeeTrend.shareOfSpending', {
                             percent: share(payee),
                           })}
                         </Text>
@@ -130,12 +141,12 @@ export function PayeeInsightsScreen() {
                           series={(history.get(payee.payeeId) ?? payee).series}
                         />
                         <Text style={styles.hint}>
-                          {t('payeeInsights.rowDetail', {
+                          {t('payeeTrend.rowDetail', {
                             average: formatMoney(
                               (history.get(payee.payeeId) ?? payee).avgCents,
                             ),
                             months: (history.get(payee.payeeId) ?? payee)
-                              .monthsPaid,
+                              .series.length,
                           })}
                         </Text>
                       </View>
@@ -143,21 +154,52 @@ export function PayeeInsightsScreen() {
                   </View>
                 );
               })}
+              {smallRest.length > 0 ? (
+                <View>
+                  {visibleRest.length > 0 ? <View style={styles.divider} /> : null}
+                  <View style={styles.row}>
+                    <View style={styles.rowText}>
+                      <Text style={styles.name} numberOfLines={1}>
+                        {t('payeeTrend.smallerPayments')}
+                      </Text>
+                      <Text style={styles.sub} numberOfLines={1}>
+                        {t('payeeTrend.payeeCount', {
+                          count: smallRest.length,
+                        })}
+                        {' · '}
+                        {t('payeeTrend.paymentsCount', {
+                          count: smallCount,
+                        })}
+                      </Text>
+                    </View>
+                    <View style={styles.rowRight}>
+                      <Text style={styles.amount}>
+                        {formatMoney(smallTotalCents)}
+                      </Text>
+                      <Text style={styles.amountLabel}>
+                        {t('payeeTrend.shareOfSpending', {
+                          percent: smallSharePercent,
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
             </View>
           </>
         ) : null}
 
         {unnamedCents > 0 ? (
           <Text style={styles.hint}>
-            {t('payeeInsights.unnamed', {
+            {t('payeeTrend.unnamed', {
               amount: formatMoney(unnamedCents),
             })}
           </Text>
         ) : null}
 
         <GuideSection
-          heading={t('payeeInsights.guideBottomHeading')}
-          body={t('payeeInsights.guideBottomBody')}
+          heading={t('payeeTrend.guideBottomHeading')}
+          body={t('payeeTrend.guideBottomBody')}
         />
       </ScrollView>
     </ScreenContainer>

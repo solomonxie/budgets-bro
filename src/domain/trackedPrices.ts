@@ -14,7 +14,7 @@ export interface PurchaseItemRow {
 // What the ledger knows about a *thing* rather than a transaction: every
 // priced purchase item (see purchaseItems.ts), collected across the board and
 // ranked by how often it was bought. Pure — the DB read lives in
-// hooks/usePurchaseInsights, the same split as aiAnalysis.ts.
+// hooks/useTrackedPrices, the same split as aiAnalysis.ts.
 //
 // Only pairs whose value is money count. `Warranty=2 years` stays on its
 // transaction and out of here: a price is what makes an item comparable with

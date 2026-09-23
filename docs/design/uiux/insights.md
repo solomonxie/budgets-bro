@@ -29,8 +29,8 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
  empty   Not enough history yet.
  UTILITIES
  Plans and calculators built on your own accounts.
- Payee Insights                                    ›
- Purchase Insights                                 ›
+ Payee Trend                                    ›
+ Tracked Prices                                 ›
  Flagged Transactions                            3 ›
  Baby Steps                                        ›
  Mortgage Insights                                 ›
@@ -77,7 +77,7 @@ numbers, a short brief of the step in Dave Ramsey's own terms.
  (empty note when there are none)
 ```
 
-## Payee Insights  `insights/PayeeInsightsScreen.tsx`
+## Payee Trend  `insights/PayeeTrendScreen.tsx`
 
 Who the money went to. The ranking, the shares and the top payee's bars
 cover the last 12 months (fewer on a younger board); an opened row shows
@@ -87,7 +87,7 @@ excluded), so it reads against the category breakdown. Spending that named
 no payee is reported at the foot, never ranked.
 
 ```
- ‹        Payee Insights
+ ‹        Payee Trend
  <guide: the other half of a category>
  Last 12 months
  ┌──────────────────────────────────────────────────┐

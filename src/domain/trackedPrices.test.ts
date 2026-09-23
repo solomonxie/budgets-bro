@@ -3,7 +3,7 @@ import {
   purchaseItemNames,
   purchaseItemTrend,
   summarizePurchaseItems,
-} from './purchaseInsights';
+} from './trackedPrices';
 import type { TransactionWithLabels } from './types';
 
 const txn = (

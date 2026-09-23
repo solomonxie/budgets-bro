@@ -10,12 +10,12 @@ before any of the iOS work below exists.
 - [x] T1.5 `components/ui/PurchaseItemsField.tsx` — folded row reading `Items (3)` via the existing `useExpandingField()`; expanded, one key/value pair per row, delete per row, an "Add item" link — see `src/components/ui/ExpandingField.tsx` — depends: T1.2
 - [x] T1.6 Wire into Add/Edit Transaction + i18n in both dictionaries — see `src/screens/transactions/AddTransactionScreen.tsx` — depends: T1.3, T1.5
 
-## Phase 2: Purchase Insights
+## Phase 2: Tracked Prices
 Reads whatever wrote the items. Depends only on Phase 1.
 
-- [x] T2.1 `domain/purchaseInsights.ts` (+ test) — `summarizePurchaseItems` ranked by purchase count, `purchaseItemHistory`, `purchaseItemTrend` with the trailing-average benchmark; grouping by trimmed lower-cased name, most-used spelling displayed — see `src/domain/purchaseInsights.ts` — depends: T1.2
-- [x] T2.2 `hooks/usePurchaseInsights.ts` — one `listTransactions` read keyed on `dataVersion` + board, same shape as `useInsights` — see `src/hooks/useInsights.ts` — depends: T2.1
-- [x] T2.3 `screens/insights/PurchaseInsightsScreen.tsx` — ranked list, each row expanding in place into the trend chart and the purchase history (date, price, count), each history row tappable through to its transaction — depends: T2.2
+- [x] T2.1 `domain/trackedPrices.ts` (+ test) — `summarizePurchaseItems` ranked by purchase count, `purchaseItemHistory`, `purchaseItemTrend` with the trailing-average benchmark; grouping by trimmed lower-cased name, most-used spelling displayed — see `src/domain/trackedPrices.ts` — depends: T1.2
+- [x] T2.2 `hooks/useTrackedPrices.ts` — one `listTransactions` read keyed on `dataVersion` + board, same shape as `useInsights` — see `src/hooks/useInsights.ts` — depends: T2.1
+- [x] T2.3 `screens/insights/TrackedPricesScreen.tsx` — ranked list, each row expanding in place into the trend chart and the purchase history (date, price, count), each history row tappable through to its transaction — depends: T2.2
 - [x] T2.4 `screens/insights/PurchaseItemTrendChart.tsx` — SVG polyline + dashed benchmark line, wired to `useChartScrub` like every other chart — see `src/screens/accounts/BalanceTrendChart.tsx` — depends: T2.1
 - [x] T2.5 Navigation + entry row — `InsightsStackParamList`, a `Stack.Screen`, a `UTILITY_ROWS` entry, i18n — see `src/screens/insights/InsightsScreen.tsx` — depends: T2.3
 

@@ -1,7 +1,7 @@
 import type { PayeeTrendPoint } from '../db/repositories/reportsRepo';
 
 // Who you actually pay, over a window of months. Pure — the DB read lives
-// in hooks/usePayeeInsights, the same split purchaseInsights.ts uses.
+// in hooks/usePayeeTrend, the same split trackedPrices.ts uses.
 //
 // A category says "groceries, $600". A payee says "that one shop, $380 of
 // it, every month since March". That is the difference between a budget
@@ -31,7 +31,7 @@ export interface PayeeSummary {
   series: PayeeMonth[];
 }
 
-export interface PayeeInsights {
+export interface PayeeTrend {
   payees: PayeeSummary[];
   // Spending that named nobody. Reported, never ranked: a blank is not
   // somebody you pay, and the number is only here to say how much of the
@@ -46,7 +46,7 @@ export interface PayeeInsights {
 export function summarizePayees(
   points: PayeeTrendPoint[],
   months: string[],
-): PayeeInsights {
+): PayeeTrend {
   const byPayee = new Map<number, PayeeTrendPoint[]>();
   let unnamedCents = 0;
   let totalCents = 0;
@@ -80,15 +80,25 @@ export function summarizePayees(
         (latest, p) => (p.month > latest ? p.month : latest),
         group[0].month,
       ),
-      series: months.map((month) => ({
-        month,
-        spentCents: spentByMonth.get(month) ?? 0,
-      })),
+      series: trimBeforeFirstPayment(
+        months.map((month) => ({
+          month,
+          spentCents: spentByMonth.get(month) ?? 0,
+        })),
+      ),
     });
   }
 
   payees.sort((a, b) => b.totalCents - a.totalCents || b.count - a.count);
   return { payees, unnamedCents, totalCents };
+}
+
+// A payee didn't exist before its own first payment — a graph zero-filled
+// back to the board's earliest month, or the window's first month, is mostly
+// bars saying so and nothing else.
+function trimBeforeFirstPayment(series: PayeeMonth[]): PayeeMonth[] {
+  const firstPaid = series.findIndex((m) => m.spentCents > 0);
+  return firstPaid <= 0 ? series : series.slice(firstPaid);
 }
 
 // A payee's last month against its own average over the months before it,

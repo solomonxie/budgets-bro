@@ -764,11 +764,11 @@ export const en = {
   'review.guideBottomHeading': 'A flag is an observation, not a rule',
   'review.guideBottomBody':
     'Leave a row exactly as it is and it stays flagged, harmlessly, for as long as you like — nothing here expires, nags, or changes your data on its own. The quick fixes only do what their label says (create the missing half of a transfer, match two amounts, merge same-day twins into one row), and they write through the same paths as editing by hand, so anything they do can be undone from History in Settings.',
-  'purchaseInsights.guideHeading': 'Where this comes from',
-  'purchaseInsights.guideBody':
+  'trackedPrices.guideHeading': 'Where this comes from',
+  'trackedPrices.guideBody':
     'The Items row on the spend form: type what you actually bought and what each thing cost. Those names collect here, ranked by how often you bought them, with the total spent on each. Tap one for every purchase of it and its price over time.',
-  'purchaseInsights.guideBottomHeading': 'Why bother naming things',
-  'purchaseInsights.guideBottomBody':
+  'trackedPrices.guideBottomHeading': 'Why bother naming things',
+  'trackedPrices.guideBottomBody':
     'A category tells you groceries cost $600 this month. An item tells you the coffee went from $14 to $19 since spring and that you buy it nine times a quarter. That is the difference between knowing you overspent and knowing on what — and it is the one kind of price history nobody keeps for you, since no shop will show you what the same basket cost a year ago. Items are optional and free-form: name only what is worth watching and leave the rest of the receipt untyped.',
   'taxInsights.guideHeading': 'A year, gathered for tax time',
   'taxInsights.guideBody':
@@ -1083,41 +1083,44 @@ export const en = {
   'currency.RON': 'Romanian Leu',
   'currency.BGN': 'Bulgarian Lev',
   'currency.ISK': 'Icelandic Krona',
-  'insights.purchaseInsights': 'Purchase Insights',
-  'purchaseInsights.hint':
+  'insights.trackedPrices': 'Tracked Prices',
+  'trackedPrices.hint':
     'Every item named on a transaction, ranked by how often you bought it. Tap one for its price over time.',
-  'purchaseInsights.empty':
+  'trackedPrices.empty':
     'Nothing named yet. Add items to a transaction (the Items row on the spend form) and they collect here.',
-  'purchaseInsights.average': 'avg',
-  'purchaseInsights.latestPrice': 'Latest',
-  'purchaseInsights.timesBought': '{count}×',
-  'purchaseInsights.totalSpent': 'Total {amount}',
-  'purchaseInsights.priceRange': '{min} – {max}',
-  'purchaseInsights.topItem': 'Most bought',
-  'purchaseInsights.othersHeading': 'Everything else',
-  'purchaseInsights.history': 'Every purchase',
-  'purchaseInsights.sameDayCount': '×{count}',
-  'insights.payeeInsights': 'Payee Insights',
-  'payeeInsights.guideHeading': 'Who the money goes to',
-  'payeeInsights.guideBody':
+  'trackedPrices.average': 'avg',
+  'trackedPrices.latestPrice': 'Latest',
+  'trackedPrices.timesBought': '{count}×',
+  'trackedPrices.totalSpent': 'Total {amount}',
+  'trackedPrices.priceRange': '{min} – {max}',
+  'trackedPrices.topItem': 'Most bought',
+  'trackedPrices.othersHeading': 'Everything else',
+  'trackedPrices.history': 'Every purchase',
+  'trackedPrices.sameDayCount': '×{count}',
+  'insights.payeeTrend': 'Payee Trend',
+  'payeeTrend.guideHeading': 'Who the money goes to',
+  'payeeTrend.guideBody':
     'The other half of a category: not what kind of spending it was, but whose hand it ended up in. Every payee you have named on a spend, ranked by what they cost you over the last year, each with its own month-by-month bars. Transfers, income and tracking accounts stay out of it — this is money leaving an on-budget account.',
-  'payeeInsights.guideBottomHeading': 'What to do with it',
-  'payeeInsights.guideBottomBody':
+  'payeeTrend.guideBottomHeading': 'What to do with it',
+  'payeeTrend.guideBottomBody':
     'A category tells you groceries cost $600 a month and leaves you nowhere to go. A payee tells you two thirds of it goes to one shop, that the bill has climbed every month since spring, and that the quiet subscription you forgot about has taken $240 while you were not looking. Spending you can name is spending you can decide about: the bars say which months were unusual, the share says whether one payee is worth a second look at all, and a flat line at a number you do not recognise is usually something to cancel.',
-  'payeeInsights.window': 'Last {months} months',
-  'payeeInsights.topPayee': 'Top payee',
-  'payeeInsights.totalOverWindow': '{amount} · {percent}% of spending',
-  'payeeInsights.paymentsCount': '{count} payments',
-  'payeeInsights.perMonth': '{amount}/mo',
-  'payeeInsights.shareOfSpending': '{percent}% of spend',
-  'payeeInsights.lastMonthUp': 'Last month ran {percent}% above their own average.',
-  'payeeInsights.lastMonthDown': 'Last month ran {percent}% below their own average.',
-  'payeeInsights.othersHeading': 'Everyone else',
-  'payeeInsights.rowDetail':
-    'All time · {average} a payment, across {months} months with a payment in them.',
-  'payeeInsights.unnamed':
+  'payeeTrend.window': 'Last {months} months',
+  'payeeTrend.topPayee': 'Top payee',
+  'payeeTrend.totalOverWindow': '{amount} · {percent}% of spending',
+  'payeeTrend.paymentsCount': '{count} payments',
+  'payeeTrend.perMonth': '{amount}/mo',
+  'payeeTrend.avgPerMonth': 'avg {amount}/mo',
+  'payeeTrend.shareOfSpending': '{percent}% of spend',
+  'payeeTrend.lastMonthUp': 'Last month ran {percent}% above their own average.',
+  'payeeTrend.lastMonthDown': 'Last month ran {percent}% below their own average.',
+  'payeeTrend.othersHeading': 'Everyone else',
+  'payeeTrend.smallerPayments': 'All the rest (smaller payments)',
+  'payeeTrend.payeeCount': '{count} payees',
+  'payeeTrend.rowDetail':
+    'All time avg {average} per payment, across {months} months, including months with no payment.',
+  'payeeTrend.unnamed':
     '{amount} of spending named no payee, so it is not on this page. Add one on the spend form and it joins the ranking.',
-  'payeeInsights.empty':
+  'payeeTrend.empty':
     'No payees yet. Name who you paid on a transaction and they collect here, with what they cost you month by month.',
   'insights.taxInsights': 'Tax Insights',
   'insights.utilities': 'Utilities',

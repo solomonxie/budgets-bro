@@ -4,15 +4,15 @@ import * as transactionsRepo from '../db/repositories/transactionsRepo';
 import {
   purchaseItemNames,
   summarizePurchaseItems,
-} from '../domain/purchaseInsights';
-import type { PurchaseItemRow } from '../domain/purchaseInsights';
+} from '../domain/trackedPrices';
+import type { PurchaseItemRow } from '../domain/trackedPrices';
 import { useAppStore } from '../state/useAppStore';
 
 // Ranked in memory: purchase items live in a column on the transaction rather
 // than a table of their own, so there is nothing for SQL to group by. The read
 // is narrow though — the rows that named something, three columns, no joins —
 // and the same rows serve the per-item history the page opens on demand.
-export function usePurchaseInsights() {
+export function useTrackedPrices() {
   const [transactions, setTransactions] = useState<PurchaseItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const dataVersion = useAppStore((s) => s.dataVersion);

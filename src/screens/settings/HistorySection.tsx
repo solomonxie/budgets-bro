@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -69,19 +69,45 @@ function formatBytes(bytes: number): string {
 // many rows, a migration that cleared a column. Reach for a snapshot when you
 // don't, or when what went wrong was the shape of the database rather than
 // its contents, which no row-level undo can put right.
+const PAGE_SIZE = 30;
+
 export function HistorySection() {
   const t = useT();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const [open, setOpen] = useState(false);
   const [groups, setGroups] = useState<ChangeGroup[]>([]);
+  const [nextBeforeSeq, setNextBeforeSeq] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [snapshots, setSnapshots] = useState<DbSnapshot[]>([]);
   const [busy, setBusy] = useState(false);
 
+  // Undo/rewind/prune all shift the log around under whatever page is on
+  // screen, so a refresh starts back at page one rather than trying to
+  // reconcile a cursor against a log that just changed underneath it.
   const refresh = useCallback(async () => {
     const db = await getDb();
-    setGroups(await changeLogRepo.listChangeGroups(db));
+    const page = await changeLogRepo.listChangeGroups(db, undefined, PAGE_SIZE);
+    setGroups(page.groups);
+    setNextBeforeSeq(page.nextBeforeSeq);
     setSnapshots(await listSnapshots());
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || nextBeforeSeq == null) return;
+    setLoadingMore(true);
+    try {
+      const db = await getDb();
+      const page = await changeLogRepo.listChangeGroups(
+        db,
+        nextBeforeSeq,
+        PAGE_SIZE,
+      );
+      setGroups((prev) => [...prev, ...page.groups]);
+      setNextBeforeSeq(page.nextBeforeSeq);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, nextBeforeSeq]);
 
   useEffect(() => {
     if (open) refresh();
@@ -212,53 +238,67 @@ export function HistorySection() {
             )}
           </View>
 
-          <ScrollView>
-            <Text style={styles.heading}>{t('history.snapshotsHeading')}</Text>
-            <Text style={styles.hint}>{t('history.snapshotsHint')}</Text>
-            {snapshots.length === 0 ? (
-              <Text style={styles.hint}>{t('history.noSnapshots')}</Text>
-            ) : null}
-            {snapshots.map((snapshot) => (
-              <View key={snapshot.name} style={styles.row}>
-                <View style={styles.rowMain}>
-                  <Text style={styles.rowTitle}>
-                    {new Date(snapshot.takenAt).toLocaleString()}
-                  </Text>
-                  <Text style={styles.rowSub}>
-                    {snapshot.fromVersion === snapshot.toVersion
-                      ? t('history.snapshotManual', {
-                          size: formatBytes(snapshot.sizeBytes),
-                        })
-                      : t('history.snapshotBeforeMigration', {
-                          from: snapshot.fromVersion,
-                          to: snapshot.toVersion,
-                          size: formatBytes(snapshot.sizeBytes),
-                        })}
-                  </Text>
-                </View>
+          <FlatList
+            data={groups}
+            keyExtractor={(group) => `${group.firstSeq}`}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListHeaderComponent={
+              <>
+                <Text style={styles.heading}>
+                  {t('history.snapshotsHeading')}
+                </Text>
+                <Text style={styles.hint}>{t('history.snapshotsHint')}</Text>
+                {snapshots.length === 0 ? (
+                  <Text style={styles.hint}>{t('history.noSnapshots')}</Text>
+                ) : null}
+                {snapshots.map((snapshot) => (
+                  <View key={snapshot.name} style={styles.row}>
+                    <View style={styles.rowMain}>
+                      <Text style={styles.rowTitle}>
+                        {new Date(snapshot.takenAt).toLocaleString()}
+                      </Text>
+                      <Text style={styles.rowSub}>
+                        {snapshot.fromVersion === snapshot.toVersion
+                          ? t('history.snapshotManual', {
+                              size: formatBytes(snapshot.sizeBytes),
+                            })
+                          : t('history.snapshotBeforeMigration', {
+                              from: snapshot.fromVersion,
+                              to: snapshot.toVersion,
+                              size: formatBytes(snapshot.sizeBytes),
+                            })}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => confirmRestoreSnapshot(snapshot)}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.action}>{t('backup.restore')}</Text>
+                    </Pressable>
+                  </View>
+                ))}
                 <Pressable
-                  onPress={() => confirmRestoreSnapshot(snapshot)}
-                  hitSlop={8}
+                  style={styles.addBtn}
+                  onPress={snapshotNow}
+                  disabled={busy}
                 >
-                  <Text style={styles.action}>{t('backup.restore')}</Text>
+                  <Text style={styles.addBtnText}>
+                    {t('history.snapshotNow')}
+                  </Text>
                 </Pressable>
-              </View>
-            ))}
-            <Pressable
-              style={styles.addBtn}
-              onPress={snapshotNow}
-              disabled={busy}
-            >
-              <Text style={styles.addBtnText}>{t('history.snapshotNow')}</Text>
-            </Pressable>
 
-            <Text style={styles.heading}>{t('history.changesHeading')}</Text>
-            <Text style={styles.hint}>{t('history.changesHint')}</Text>
-            {groups.length === 0 ? (
-              <Text style={styles.hint}>{t('history.noChanges')}</Text>
-            ) : null}
-            {groups.map((group) => (
-              <View key={`${group.firstSeq}`} style={styles.row}>
+                <Text style={styles.heading}>
+                  {t('history.changesHeading')}
+                </Text>
+                <Text style={styles.hint}>{t('history.changesHint')}</Text>
+                {groups.length === 0 ? (
+                  <Text style={styles.hint}>{t('history.noChanges')}</Text>
+                ) : null}
+              </>
+            }
+            renderItem={({ item: group }) => (
+              <View style={styles.row}>
                 <View style={styles.rowMain}>
                   {/* What was touched, in the app's own words rather than
                       the table's — "Edited accounts", not "update /
@@ -297,8 +337,13 @@ export function HistorySection() {
                   <Text style={styles.action}>{t('history.rewind')}</Text>
                 </Pressable>
               </View>
-            ))}
-          </ScrollView>
+            )}
+            ListFooterComponent={
+              loadingMore ? (
+                <ActivityIndicator style={styles.footerSpinner} />
+              ) : null
+            }
+          />
         </ScreenContainer>
       </Modal>
     </>
@@ -347,4 +392,5 @@ const styles = StyleSheet.create({
   action: { color: colors.accent, fontWeight: '600', fontSize: 13 },
   addBtn: { alignItems: 'center', paddingVertical: spacing.sm },
   addBtnText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
+  footerSpinner: { paddingVertical: spacing.md },
 });

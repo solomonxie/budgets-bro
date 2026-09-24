@@ -16,6 +16,7 @@ import type { ActualPayment } from '../../finance-tools/paymentSplit';
 import * as payeesRepo from './payeesRepo';
 import * as accountRateHistoryRepo from './accountRateHistoryRepo';
 import * as accountValueHistoryRepo from './accountValueHistoryRepo';
+import * as categoriesRepo from './categoriesRepo';
 import type { DatedReading } from './accountValueHistoryRepo';
 
 function mapRow(row: AccountRow): Account {
@@ -35,6 +36,7 @@ function mapRow(row: AccountRow): Account {
     originalHousePriceCents: row.original_house_price_cents,
     note: row.note,
     trackingKind: (row.tracking_kind as Account['trackingKind']) ?? null,
+    loanPaymentCategoryId: row.loan_payment_category_id ?? null,
   };
 }
 
@@ -165,13 +167,19 @@ export interface AccountInput {
   originalHousePriceCents?: number | null;
   note?: string | null;
   trackingKind?: string | null;
+  loanPaymentCategoryId?: number | null;
 }
 
 export async function createAccount(db: SQLiteDatabase, boardId: number, input: AccountInput): Promise<number> {
   const onBudget = usesLoggedValue(input.type) ? 0 : 1;
+  let loanPaymentCategoryId = input.loanPaymentCategoryId ?? null;
+  if (isLoanLikeType(input.type) && loanPaymentCategoryId == null) {
+    const groupId = await categoriesRepo.findOrCreateCategoryGroup(db, boardId, 'Loan Payments');
+    loanPaymentCategoryId = await categoriesRepo.findOrCreateCategory(db, boardId, groupId, input.name.trim());
+  }
   const result = await db.runAsync(
-    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind, loan_payment_category_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     boardId,
     input.name,
     input.type,
@@ -184,6 +192,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     input.originalHousePriceCents ?? null,
     input.note ?? null,
     input.trackingKind ?? null,
+    loanPaymentCategoryId,
   );
   const id = result.lastInsertRowId;
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
@@ -192,9 +201,14 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
 
 export async function updateAccount(db: SQLiteDatabase, boardId: number, id: number, input: AccountInput): Promise<void> {
   const onBudget = usesLoggedValue(input.type) ? 0 : 1;
+  let loanPaymentCategoryId = input.loanPaymentCategoryId ?? null;
+  if (isLoanLikeType(input.type) && loanPaymentCategoryId == null) {
+    const groupId = await categoriesRepo.findOrCreateCategoryGroup(db, boardId, 'Loan Payments');
+    loanPaymentCategoryId = await categoriesRepo.findOrCreateCategory(db, boardId, groupId, input.name.trim());
+  }
   await db.runAsync(
     `UPDATE accounts SET name = ?, type = ?, on_budget = ?, opening_balance_cents = ?,
-       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?, note = ?, tracking_kind = ?
+       term_months = ?, original_principal_cents = ?, origination_date = ?, original_house_price_cents = ?, note = ?, tracking_kind = ?, loan_payment_category_id = ?
      WHERE id = ?`,
     input.name,
     input.type,
@@ -206,6 +220,7 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
     input.originalHousePriceCents ?? null,
     input.note ?? null,
     input.trackingKind ?? null,
+    loanPaymentCategoryId,
     id,
   );
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);

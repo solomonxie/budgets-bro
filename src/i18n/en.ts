@@ -482,6 +482,7 @@ export const en = {
   'accountModal.toolsHeading': 'Tools',
 
   'accountModal.termMonthsPlaceholder': 'e.g. 360',
+  'accountModal.loanPaymentCategoryPlaceholder': 'Choose payment category',
   'accountModal.termMonthsHint':
     'How long the loan runs: 360 = 30 years, 240 = 20 years.',
   'accountModal.originalPrincipalLabel': 'Amount Borrowed',

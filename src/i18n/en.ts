@@ -379,6 +379,15 @@ export const en = {
   'settings.restoreFailed': 'Restore failed.',
   'settings.exportFailedTitle': 'Export failed',
   'settings.exportFailedFallback': 'Something went wrong.',
+  'settings.removeAllData': 'Remove all app data',
+  'settings.removeAllDataConfirmTitle': 'Remove all app data?',
+  'settings.removeAllDataConfirmMessage': 'This permanently removes every budget and setting stored on this device, along with saved AI and S3 credentials and local backups. Before deletion, a ZIP containing an export for each budget will open in the share sheet; choose Save to Files to keep a copy. If you cancel the export, nothing will be deleted. Backups already stored in iCloud Drive or S3 are not removed.',
+  'settings.removeAllDataExportDelete': 'Export, then remove',
+  'settings.removeAllDataCompleteTitle': 'App data removed',
+  'settings.removeAllDataCompleteMessage': 'The data on this device was removed. A fresh empty budget is ready.',
+  'settings.removeAllDataFailedTitle': 'Could not remove app data',
+  'settings.removeAllDataFailedMessage': 'Something went wrong.',
+  'settings.resetBoardName': 'My Budget',
 
   'settingsModal.title': 'Settings',
 

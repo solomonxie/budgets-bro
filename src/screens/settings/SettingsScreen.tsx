@@ -44,6 +44,12 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import { InfoButton } from '../../components/ui/InfoButton';
+import { exportAllBoardsZip } from '../../export/exportAllBoards';
+import * as boardsRepo from '../../db/repositories/boardsRepo';
+import { listS3Configs, listS3Drafts } from '../../sync/s3Provider';
+import { secureStore } from '../../secure/secureStore';
+import { deleteAllLocalBackups } from '../../backup/localBackup';
+import { deleteAllSnapshots } from '../../db/preMigrationSnapshot';
 
 const THEME_KEY = 'theme_preference';
 type ThemePreference = 'dark' | 'light';
@@ -69,6 +75,7 @@ export function SettingsScreen() {
   const [prompt, setPrompt] = useState<PromptState>(null);
   const [creatingDemoBoard, setCreatingDemoBoard] = useState(false);
   const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
+  const [removingAllData, setRemovingAllData] = useState(false);
 
   const [theme, setTheme] = useState<ThemePreference>('dark');
   const lockMode = useAppStore((s) => s.lockMode);
@@ -265,6 +272,81 @@ export function SettingsScreen() {
           text: t('common.delete'),
           style: 'destructive',
           onPress: () => runDeleteBoard(id),
+        },
+      ],
+    );
+  };
+
+  const removeAllAppData = async () => {
+    try {
+      const db = await getDb();
+      const [savedAiKeys, s3Configs, s3Drafts] = await Promise.all([
+        listAiKeys(db),
+        listS3Configs(db),
+        listS3Drafts(db),
+      ]);
+      await Promise.all([
+        ...savedAiKeys.map((key) => secureStore.clearAiKeySecret(key.id)),
+        ...s3Configs.map((config) => secureStore.clearS3Credentials(config.id)),
+        ...s3Drafts.map((draft) => secureStore.clearS3Credentials(draft.id)),
+        secureStore.clearAiApiKey(),
+        clearLockSecrets(),
+      ]);
+
+      await deleteAllLocalBackups();
+      await deleteAllSnapshots();
+      for (const board of boards) await boardsRepo.deleteBoard(db, board.id);
+      await db.runAsync('DELETE FROM houses');
+      await db.runAsync('DELETE FROM community_prices');
+      await db.runAsync('DELETE FROM ai_requests');
+      await db.runAsync('DELETE FROM change_log');
+      await db.runAsync('DELETE FROM app_settings');
+
+      const freshBoardId = await boardsRepo.createBoard(db, t('settings.resetBoardName'));
+      await settingsRepo.setSetting(db, 'demo_board_seeded', '1');
+      await switchBoard(freshBoardId);
+      await useAppStore.getState().setLockMode('none');
+      await useAppStore.getState().setLanguage('en');
+      useAppStore.getState().rememberTransactionAccounts(null);
+      setTheme('dark');
+      setAiKeys([]);
+      bumpDataVersion();
+      Alert.alert(t('settings.removeAllDataCompleteTitle'), t('settings.removeAllDataCompleteMessage'));
+    } catch (e) {
+      Alert.alert(
+        t('settings.removeAllDataFailedTitle'),
+        e instanceof Error ? e.message : t('settings.removeAllDataFailedMessage'),
+      );
+    } finally {
+      setRemovingAllData(false);
+    }
+  };
+
+  const confirmRemoveAllData = () => {
+    Alert.alert(
+      t('settings.removeAllDataConfirmTitle'),
+      t('settings.removeAllDataConfirmMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.removeAllDataExportDelete'),
+          style: 'destructive',
+          onPress: async () => {
+            if (removingAllData) return;
+            setRemovingAllData(true);
+            try {
+              const db = await getDb();
+              const exported = await exportAllBoardsZip(db, boards);
+              if (exported) await removeAllAppData();
+            } catch (e) {
+              Alert.alert(
+                t('settings.exportFailedTitle'),
+                e instanceof Error ? e.message : t('settings.exportFailedFallback'),
+              );
+            } finally {
+              setRemovingAllData(false);
+            }
+          },
         },
       ],
     );
@@ -644,6 +726,15 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        <Pressable
+          accessibilityRole="button"
+          disabled={removingAllData}
+          onPress={confirmRemoveAllData}
+          style={styles.removeAllDataLink}
+        >
+          <Text style={styles.removeAllDataText}>{t('settings.removeAllData')}</Text>
+        </Pressable>
+
         <ResultToast
           visible={restoreResult != null}
           title={t('settings.restoredHeading')}
@@ -733,6 +824,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   strategyLinkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
+  removeAllDataLink: { alignSelf: 'center', paddingVertical: spacing.sm, marginBottom: spacing.lg },
+  removeAllDataText: { color: colors.negative, fontSize: 12, fontWeight: '600' },
   sectionHint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
   group: {
     backgroundColor: colors.surface,

@@ -59,10 +59,10 @@ Fill the pages in [App Store Connect pages](#app-store-connect-pages) below. Scr
 ## 8–9. Archive and upload
 
 ```
-npm run release:ios
+make release
 ```
 
-Archives Release, signs for App Store, uploads (`scripts/release-ios.sh`).
+Runs the typecheck and tests, then archives Release, signs for App Store and uploads (`scripts/release-ios.sh`) — no Xcode clicks.
 Processing in App Store Connect: 15–60 min, then an email "build has completed processing".
 
 Fallback, Xcode GUI: open `ios/BudgetsBro.xcworkspace` → destination **Any iOS Device (arm64)** → Product → **Archive** → Organizer → **Distribute App** → App Store Connect → Upload.
@@ -84,6 +84,29 @@ Fallback, Xcode GUI: open `ios/BudgetsBro.xcworkspace` → destination **Any iOS
 - Typical: 24–48 h. Status: Waiting for Review → In Review → Pending Developer Release.
 - Rejection → **Resolution Center**: reply there, or fix, bump nothing but re-run `npm run release:ios` (new build number is automatic), attach the new build, resubmit.
 - Likely questions: AI feature (notes explain it's optional/BYO key), iCloud backup (optional).
+
+### Guideline 2.1 "Information Needed" (new developer accounts)
+
+Apple wants a screen recording plus answers 2–6. The answers are the App Review Notes further down — paste them into the reply **and** into App Review → Notes.
+
+Record the build Apple will review. If it's a new build, upload it first (`npm run release:ios`), pick it under **Build** on the `1.0` page, and install it from TestFlight.
+
+Recording (the build Apple reviews, on the iPhone, current iOS):
+1. iPhone Settings → Control Center → add **Screen Recording**. Turn on Do Not Disturb.
+2. In the app, Settings → Budget Boards → switch to **Demo** (keeps your real numbers out). Swipe the app away.
+3. Start recording, then launch the app from the Home Screen.
+4. ~2 minutes: Budget (scroll, assign an amount) → Spend (enter a spend with a payee, category, one item, Save) → Accounts (open an account, its trend) → Insights (breakdown, Baby Steps, one calculator) → Settings (language, app lock, export, AI Connections showing it needs the user's own key, Remove all app data shown but cancelled).
+5. Stop. Photos → trim → share the video.
+
+Reply: `App Review` in App Store Connect → the message → **Reply**, attach the video (or a link, e.g. an unlisted YouTube/iCloud link, if it's too large), paste:
+
+```
+Hello, thank you for the review. Answers below, and the same text is now in the App Review Information notes.
+
+1. Screen recording attached, captured on an iPhone 14 running the latest iOS, starting from launch. The app has no account registration or login (so no account deletion flow), no user-generated content, and no paid content.
+
+[paste the App Review Notes block from PURPOSE AND AUDIENCE to the end]
+```
 
 ## 13. Release
 
@@ -203,16 +226,38 @@ Keywords (98/100 — "budget" is omitted, the name already indexes it):
 networth,envelope,zero-based,expense,money,finance,tracker,offline,privacy,mortgage,savings,ledger
 ```
 
-App Review Notes:
+App Review Notes (also the Guideline 2.1 answers Apple asked to keep here):
 
 ```
-No account or login is needed — the app opens straight into a working budget.
+No account or login. The app opens straight into a working budget; a sample budget named "Demo" is created on first launch so every screen has data.
 
-Optional features a reviewer may want to skip:
-- AI analysis (Settings → AI): requires the user's own API key from a provider such as OpenAI or Anthropic. It is off by default and the rest of the app works without it.
-- iCloud / S3 backup (Settings → Backup): optional; the app is fully functional with local storage only.
+PURPOSE AND AUDIENCE
+Budgets Bro is a zero-based budgeting app for individuals and households who want to plan their money privately, on their own iPhone. You give every dollar of income a job (a category) before the month starts, record spending as it happens, and see what's left in each category. It solves overspending and "where did the money go" without handing bank logins or financial data to a company: there is no account, no server, and no bank connection.
 
-All budget data is stored in a local SQLite database on the device. We operate no server and receive no user data.
+HOW TO USE THE MAIN FEATURES (no setup needed)
+- Budget tab: the month's categories, what's assigned and what's left. Tap a category's amount to assign money.
+- Spend tab: enter an amount, pick a payee, category and account, Save.
+- Accounts tab: balances, net worth; tap an account for its transactions and balance trend.
+- Insights tab: spending breakdown, trends, Baby Steps plan, payee and price trends, mortgage/loan/investment calculators.
+- Settings (top-left icon): budgets, language (English/Chinese), app lock (Face ID/passcode), export/import, backups, AI connections, remove all app data.
+
+OPTIONAL FEATURES (off by default; the app is fully usable without them)
+- AI analysis (Settings → AI Connections): the user pastes their own API key from a provider they choose. We provide no key and receive nothing.
+- Backup to the user's own iCloud Drive or their own Amazon S3 bucket (Settings → Data).
+
+EXTERNAL SERVICES
+- Frankfurter (api.frankfurter.app): public European Central Bank exchange rates, used for multi-currency totals. No personal data is sent.
+- Only if the user adds their own key: OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek or xAI, called directly from the device.
+- Only if the user turns it on: Apple iCloud Drive, or Amazon S3 with the user's own credentials.
+No analytics, advertising, crash reporting, authentication or payment services. We run no server.
+
+REGIONAL DIFFERENCES
+The app works the same in every region. It is available in English and Simplified Chinese. A few calculators model specific rules — Canadian home purchase and mortgage rules, a Chinese mortgage prepayment calculator, and Canadian tax-year insights — and are simply options in the list elsewhere.
+
+REGULATION
+Budgets Bro is a personal record-keeping and planning tool. It does not move money, hold funds, lend, process payments, connect to banks or give investment advice; calculator results are estimates for planning. No third-party protected material is included.
+
+All data is stored in a local database on the device. We operate no server and receive no user data.
 ```
 
 What's New: not shown for a first version. From 1.1 on, write it here.

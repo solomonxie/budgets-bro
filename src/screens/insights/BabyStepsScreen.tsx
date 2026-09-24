@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Linking,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { ScrollView } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
@@ -20,12 +27,22 @@ import * as settingsRepo from '../../db/repositories/settingsRepo';
 import * as reportsRepo from '../../db/repositories/reportsRepo';
 import * as customGoalsRepo from '../../db/repositories/customGoalsRepo';
 import { accountKind } from '../../domain/accountKind';
-import { currentMonth, previousMonth } from '../../domain/month';
+import {
+  currentMonth,
+  formatMonthLabel,
+  previousMonth,
+} from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import {
+  paceToPayoff,
+  paceToTarget,
+  projectYearEnd,
+} from '../../domain/babyStepPace';
+import type { Pace } from '../../domain/babyStepPace';
 import { useAppStore } from '../../state/useAppStore';
 import type { CustomGoalWithProgress } from '../../domain/types';
 import type { AccountWithBalance } from '../../db/repositories/accountsRepo';
-import { useT } from '../../i18n';
+import { localeTag, useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
@@ -49,6 +66,11 @@ const step3bAccountsKey = (boardId: number) =>
   `babySteps.step3bAccountIds:${boardId}`;
 const step3bTargetKey = (boardId: number) =>
   `babySteps.step3bTargetCents:${boardId}`;
+const step3bHomePriceKey = (boardId: number) =>
+  `babySteps.step3bHomePriceCents:${boardId}`;
+// Where you live: 'rent', 'owned' (no mortgage), or 'mortgage:<accountId>'
+// for the one mortgage that is on your own home. Unset until answered.
+const homeKey = (boardId: number) => `babySteps.home:${boardId}`;
 const step4AccountsKey = (boardId: number) =>
   `babySteps.step4AccountIds:${boardId}`;
 const step5AccountsKey = (boardId: number) =>
@@ -62,7 +84,10 @@ const manualStepsKey = (boardId: number) => `babySteps.manual:${boardId}`;
 const STARTER_FUND_CENTS = 100_000; // $1,000
 const RETIREMENT_TARGET_PERCENT = 15;
 const DEFAULT_COLLEGE_FUND_TARGET_CENTS = 5_000_000; // $50,000 — just a starting point, editable
-const DEFAULT_DOWN_PAYMENT_TARGET_CENTS = 5_000_000; // $50,000 — likewise; a down payment is whatever the house is
+const DEFAULT_HOME_PRICE_CENTS = 25_000_000; // $250,000 — a starting point, editable
+const DOWN_PAYMENT_PERCENT = 20;
+// The window every pace on this page is read over.
+const PACE_MONTHS = 3;
 const RETIREMENT_NAME_PATTERN =
   /401\s*\(?k\)?|403\s*\(?b\)?|\bira\b|\brrsp\b|\btfsa\b|pension|retirement/i;
 
@@ -93,6 +118,13 @@ function currentYearWindow() {
   };
 }
 
+type Home = 'rent' | 'owned' | `mortgage:${number}` | null;
+
+// Three to six months of your own spending; four is the midpoint.
+function fullEmergencyFundTargetCentsFor(avgMonthlySpendingCents: number) {
+  return avgMonthlySpendingCents * 4;
+}
+
 function toggleId(ids: number[], id: number): number[] {
   return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
 }
@@ -118,9 +150,13 @@ export function BabyStepsScreen() {
   const [step1AccountIds, setStep1AccountIds] = useState<number[]>([]);
   const [step3AccountIds, setStep3AccountIds] = useState<number[]>([]);
   const [step3bAccountIds, setStep3bAccountIds] = useState<number[]>([]);
-  const [step3bTargetCents, setStep3bTargetCents] = useState(
-    DEFAULT_DOWN_PAYMENT_TARGET_CENTS,
+  const [homePriceCents, setHomePriceCents] = useState(
+    DEFAULT_HOME_PRICE_CENTS,
   );
+  const [home, setHome] = useState<Home>(null);
+  const [homePickerOpen, setHomePickerOpen] = useState(false);
+  // Net flow per account over the pace window.
+  const [flows, setFlows] = useState<Map<number, number>>(new Map());
   const [step4AccountIds, setStep4AccountIds] = useState<number[]>([]);
   const [step5AccountIds, setStep5AccountIds] = useState<number[]>([]);
   const [step5TargetCents, setStep5TargetCents] = useState(
@@ -186,12 +222,24 @@ export function BabyStepsScreen() {
           [],
         ),
       );
-      setStep3bTargetCents(
+      // The down payment used to be a typed target; it is 20% of a home
+      // price now, so an old target is read back as the price it implies.
+      const legacyTarget = await settingsRepo.getJsonSetting<number | null>(
+        db,
+        step3bTargetKey(boardId),
+        null,
+      );
+      setHomePriceCents(
         await settingsRepo.getJsonSetting<number>(
           db,
-          step3bTargetKey(boardId),
-          DEFAULT_DOWN_PAYMENT_TARGET_CENTS,
+          step3bHomePriceKey(boardId),
+          legacyTarget != null
+            ? Math.round((legacyTarget * 100) / DOWN_PAYMENT_PERCENT)
+            : DEFAULT_HOME_PRICE_CENTS,
         ),
+      );
+      setHome(
+        await settingsRepo.getJsonSetting<Home>(db, homeKey(boardId), null),
       );
       setStep5AccountIds(
         await settingsRepo.getJsonSetting<number[]>(
@@ -309,6 +357,53 @@ export function BabyStepsScreen() {
     })();
   }, [boardId, step7CategoryIds, givingAccountIds]);
 
+  const debtAccountIds = useMemo(
+    () =>
+      accounts
+        .filter(
+          (a) => a.account.type === 'credit_card' || a.account.type === 'loan',
+        )
+        .map((a) => a.account.id),
+    [accounts],
+  );
+  const mortgageAccounts = useMemo(
+    () => accounts.filter((a) => a.account.type === 'mortgage'),
+    [accounts],
+  );
+
+  // Every pace on the page from one grouped read of the linked accounts.
+  const paceAccountKey = [
+    ...step1AccountIds,
+    ...step3AccountIds,
+    ...step3bAccountIds,
+    ...step5AccountIds,
+    ...debtAccountIds,
+    ...mortgageAccounts.map((a) => a.account.id),
+  ].join(',');
+  useEffect(() => {
+    const ids = [
+      ...new Set(paceAccountKey.split(',').filter(Boolean).map(Number)),
+    ];
+    (async () => {
+      const db = await getDb();
+      const { startDate, endDateExclusive } = trailingThreeMonthWindow();
+      setFlows(
+        await reportsRepo.netFlowByAccountInRange(
+          db,
+          boardId,
+          ids,
+          startDate,
+          endDateExclusive,
+        ),
+      );
+    })();
+  }, [boardId, paceAccountKey]);
+
+  const monthlyFlow = (ids: number[]) =>
+    Math.round(
+      ids.reduce((sum, id) => sum + (flows.get(id) ?? 0), 0) / PACE_MONTHS,
+    );
+
   const cashLikeAccounts = accounts.filter((a) =>
     ['Cash', 'Savings'].includes(accountKind(a.account.type)),
   );
@@ -327,20 +422,84 @@ export function BabyStepsScreen() {
   const step3bCents = sumBalances(step3bAccountIds);
   const step5Cents = sumBalances(step5AccountIds);
 
-  // Step 3b is Dave Ramsey's step for renters: save the down payment before
-  // buying. A mortgage on the board says the house is already bought, so the
-  // step drops out of the list entirely rather than sitting there at 0%.
-  const isRenting = accounts.every((a) => a.account.type !== 'mortgage');
+  // Step 3.5 is for anyone who doesn't own the home they live in: save 20%
+  // down before buying, with Steps 4–6 paused until then. A mortgage on the
+  // board doesn't settle it — a rental or a second property isn't your home
+  // — so the page asks, and until it's answered a board with no mortgage at
+  // all is taken to be renting.
+  const homeMortgage =
+    home?.startsWith('mortgage:') === true
+      ? mortgageAccounts.find((a) => `mortgage:${a.account.id}` === home)
+      : undefined;
+  const ownsHome = home === 'owned' || homeMortgage != null;
+  const rentsHome =
+    home === 'rent' ||
+    (home?.startsWith('mortgage:') === true && homeMortgage == null) ||
+    (home == null && mortgageAccounts.length === 0);
+  const showStep3b = !ownsHome;
+  const downPaymentTargetCents = Math.round(
+    (homePriceCents * DOWN_PAYMENT_PERCENT) / 100,
+  );
+  const step3bDone =
+    step3bAccountIds.length > 0
+      ? step3bCents >= downPaymentTargetCents
+      : manual.step3b;
+  const pausedForHome = rentsHome && !step3bDone;
 
-  const nonMortgageDebtCents = accounts
-    .filter(
-      (a) => a.account.type === 'credit_card' || a.account.type === 'loan',
-    )
-    .reduce((sum, a) => sum + Math.max(0, -a.balanceCents), 0);
-  const mortgageDebtCents = accounts
-    .filter((a) => a.account.type === 'mortgage')
-    .reduce((sum, a) => sum + Math.max(0, -a.balanceCents), 0);
-  const fullEmergencyFundTargetCents = avgMonthlySpendingCents * 4; // midpoint of 3–6 months
+  const owed = (list: AccountWithBalance[]) =>
+    list.reduce((sum, a) => sum + Math.max(0, -a.balanceCents), 0);
+  const nonMortgageDebtCents = owed(
+    accounts.filter((a) => debtAccountIds.includes(a.account.id)),
+  );
+  const mortgageDebtCents = homeMortgage ? owed([homeMortgage]) : 0;
+  const otherMortgageDebtCents = owed(
+    mortgageAccounts.filter((a) => a !== homeMortgage),
+  );
+
+  const month = currentMonth();
+  const step1Pace = paceToTarget(
+    step1Cents,
+    STARTER_FUND_CENTS,
+    monthlyFlow(step1AccountIds),
+    month,
+  );
+  const step2Pace = paceToPayoff(
+    nonMortgageDebtCents,
+    monthlyFlow(debtAccountIds),
+    month,
+  );
+  const step3Pace = paceToTarget(
+    step3Cents,
+    fullEmergencyFundTargetCentsFor(avgMonthlySpendingCents),
+    monthlyFlow(step3AccountIds),
+    month,
+  );
+  const step3bPace = paceToTarget(
+    step3bCents,
+    downPaymentTargetCents,
+    monthlyFlow(step3bAccountIds),
+    month,
+  );
+  const step5Pace = paceToTarget(
+    step5Cents,
+    step5TargetCents,
+    monthlyFlow(step5AccountIds),
+    month,
+  );
+  const step6Pace = homeMortgage
+    ? paceToPayoff(
+        mortgageDebtCents,
+        monthlyFlow([homeMortgage.account.id]),
+        month,
+      )
+    : null;
+  const monthsIntoYear = new Date().getMonth() + 1;
+  const retirementTargetMonthlyCents = Math.round(
+    (avgMonthlyIncomeCents * RETIREMENT_TARGET_PERCENT) / 100,
+  );
+  const fullEmergencyFundTargetCents = fullEmergencyFundTargetCentsFor(
+    avgMonthlySpendingCents,
+  );
   const retirementPercent =
     avgMonthlyIncomeCents > 0
       ? (avgMonthlyRetirementCents / avgMonthlyIncomeCents) * 100
@@ -380,6 +539,13 @@ export function BabyStepsScreen() {
     })();
   };
 
+  const chooseHome = async (next: Home) => {
+    setHome(next);
+    setHomePickerOpen(false);
+    const db = await getDb();
+    await settingsRepo.setJsonSetting(db, homeKey(boardId), next);
+  };
+
   const toggleStep3bAccount = async (id: number) => {
     const next = toggleId(step3bAccountIds, id);
     setStep3bAccountIds(next);
@@ -387,15 +553,15 @@ export function BabyStepsScreen() {
     await settingsRepo.setJsonSetting(db, step3bAccountsKey(boardId), next);
   };
   const startEditingStep3bTarget = () => {
-    setStep3bTargetInput(String(step3bTargetCents / 100));
+    setStep3bTargetInput(String(homePriceCents / 100));
     setEditingStep3bTarget(true);
   };
   const saveStep3bTarget = async () => {
     const cents = Math.round((parseFloat(step3bTargetInput) || 0) * 100);
-    setStep3bTargetCents(cents);
+    setHomePriceCents(cents);
     setEditingStep3bTarget(false);
     const db = await getDb();
-    await settingsRepo.setJsonSetting(db, step3bTargetKey(boardId), cents);
+    await settingsRepo.setJsonSetting(db, step3bHomePriceKey(boardId), cents);
   };
 
   const startEditingStep5Target = () => {
@@ -676,6 +842,64 @@ export function BabyStepsScreen() {
   );
 
   const { year: currentYear } = currentYearWindow();
+  const language = useAppStore((s) => s.language);
+
+  const paceText = (pace: Pace | null): string | null => {
+    if (!pace || pace.kind === 'done') return null;
+    if (pace.kind === 'stalled') return t('babySteps.paceStalled');
+    if (pace.kind === 'far')
+      return t('babySteps.paceFar', { pace: formatMoney(pace.monthlyCents) });
+    return t('babySteps.paceEta', {
+      pace: formatMoney(pace.monthlyCents),
+      date: formatMonthLabel(pace.doneBy, localeTag(language)),
+    });
+  };
+
+  const homeLabel =
+    home === 'rent'
+      ? t('babySteps.homeRent')
+      : home === 'owned'
+        ? t('babySteps.homeOwned')
+        : homeMortgage
+          ? t('babySteps.homeWithMortgage', { name: homeMortgage.account.name })
+          : t('babySteps.homeLabel');
+  const homeTrigger = (
+    <Text style={styles.linkText} onPress={() => setHomePickerOpen(true)}>
+      {homeLabel} ▾
+    </Text>
+  );
+  const homePickerModal = (
+    <Modal
+      visible={homePickerOpen}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setHomePickerOpen(false)}
+    >
+      <BottomSheet
+        title={t('babySteps.homeLabel')}
+        onClose={() => setHomePickerOpen(false)}
+      >
+        <DropdownOption
+          label={t('babySteps.homeRent')}
+          selected={home === 'rent'}
+          onPress={() => chooseHome('rent')}
+        />
+        <DropdownOption
+          label={t('babySteps.homeOwned')}
+          selected={home === 'owned'}
+          onPress={() => chooseHome('owned')}
+        />
+        {mortgageAccounts.map((a) => (
+          <DropdownOption
+            key={a.account.id}
+            label={t('babySteps.homeWithMortgage', { name: a.account.name })}
+            selected={home === `mortgage:${a.account.id}`}
+            onPress={() => chooseHome(`mortgage:${a.account.id}`)}
+          />
+        ))}
+      </BottomSheet>
+    </Modal>
+  );
 
   return (
     <ScreenContainer scroll scrollRef={scrollRef}>
@@ -684,10 +908,7 @@ export function BabyStepsScreen() {
             the shape of the plan before the numbers can have it from the
             man who wrote it, and everyone else gets straight to their own
             progress. The prose waits at the bottom. */}
-        <Pressable
-          hitSlop={8}
-          onPress={() => Linking.openURL(BABY_STEPS_URL)}
-        >
+        <Pressable hitSlop={8} onPress={() => Linking.openURL(BABY_STEPS_URL)}>
           <Text style={styles.learnMore}>{t('babySteps.learnMore')}</Text>
         </Pressable>
         <Step
@@ -697,6 +918,7 @@ export function BabyStepsScreen() {
           current={step1Cents}
           target={STARTER_FUND_CENTS}
           pickerTrigger={step1Picker.trigger}
+          pace={step1AccountIds.length > 0 ? paceText(step1Pace) : null}
         />
         {step1Picker.modal}
         <Step
@@ -712,6 +934,7 @@ export function BabyStepsScreen() {
                   amount: formatMoney(nonMortgageDebtCents),
                 })
           }
+          pace={paceText(step2Pace)}
         />
         <Step
           number={3}
@@ -729,9 +952,14 @@ export function BabyStepsScreen() {
                 })
               : t('babySteps.notEnoughHistory')
           }
+          pace={
+            step3AccountIds.length > 0 && avgMonthlySpendingCents > 0
+              ? paceText(step3Pace)
+              : null
+          }
         />
         {step3Picker.modal}
-        {isRenting ? (
+        {showStep3b ? (
           <>
             {step3bAccountIds.length > 0 ? (
               <Step
@@ -739,21 +967,32 @@ export function BabyStepsScreen() {
                 title={t('babySteps.step3bTitle')}
                 blurb={t('babySteps.step3bBlurb')}
                 current={step3bCents}
-                target={step3bTargetCents}
-                pickerTrigger={step3bPicker.trigger}
+                target={downPaymentTargetCents}
+                captionOverride={t('babySteps.step3bCaption', {
+                  current: formatMoney(step3bCents),
+                  target: formatMoney(downPaymentTargetCents),
+                })}
+                pickerTrigger={
+                  <>
+                    {homeTrigger}
+                    {'   '}
+                    {step3bPicker.trigger}
+                  </>
+                }
                 captionSuffix={
                   editingStep3bTarget ? null : (
                     <Text
                       style={styles.linkText}
                       onPress={startEditingStep3bTarget}
                     >
-                      {t('babySteps.editTarget', {
-                        target: formatMoney(step3bTargetCents),
+                      {t('babySteps.editHomePrice', {
+                        price: formatMoney(homePriceCents),
                       })}
                     </Text>
                   )
                 }
                 footer={editingStep3bTarget ? step3bTargetEditRow() : null}
+                pace={paceText(step3bPace)}
               />
             ) : (
               <ManualStep
@@ -762,7 +1001,13 @@ export function BabyStepsScreen() {
                 blurb={t('babySteps.step3bBlurb')}
                 checked={manual.step3b}
                 onToggle={() => toggleManual('step3b')}
-                pickerTrigger={step3bPicker.trigger}
+                pickerTrigger={
+                  <>
+                    {homeTrigger}
+                    {'   '}
+                    {step3bPicker.trigger}
+                  </>
+                }
               />
             )}
             {step3bPicker.modal}
@@ -784,6 +1029,18 @@ export function BabyStepsScreen() {
                   })
                 : t('babySteps.notEnoughHistory')
           }
+          paused={pausedForHome}
+          pace={
+            step4AccountIds.length > 0 &&
+            avgMonthlyIncomeCents > 0 &&
+            avgMonthlyRetirementCents < retirementTargetMonthlyCents
+              ? t('babySteps.step4Gap', {
+                  gap: formatMoney(
+                    retirementTargetMonthlyCents - avgMonthlyRetirementCents,
+                  ),
+                })
+              : null
+          }
         />
         {step4Picker.modal}
         {step5AccountIds.length > 0 ? (
@@ -804,6 +1061,8 @@ export function BabyStepsScreen() {
               )
             }
             footer={editingStep5Target ? step5TargetEditRow() : null}
+            paused={pausedForHome}
+            pace={paceText(step5Pace)}
           />
         ) : (
           <ManualStep
@@ -813,6 +1072,7 @@ export function BabyStepsScreen() {
             checked={manual.step5}
             onToggle={() => toggleManual('step5')}
             pickerTrigger={step5Picker.trigger}
+            paused={pausedForHome}
           />
         )}
         {step5Picker.modal}
@@ -820,16 +1080,31 @@ export function BabyStepsScreen() {
           number={6}
           title={t('babySteps.step6Title')}
           blurb={t('babySteps.step6Blurb')}
-          current={mortgageDebtCents === 0 ? 1 : 0}
+          current={ownsHome && mortgageDebtCents === 0 ? 1 : 0}
           target={1}
           captionOverride={
-            mortgageDebtCents === 0
-              ? t('babySteps.step6Done')
-              : t('babySteps.remaining', {
-                  amount: formatMoney(mortgageDebtCents),
-                })
+            !ownsHome
+              ? t('babySteps.step6NoHome')
+              : mortgageDebtCents === 0
+                ? t('babySteps.step6Done')
+                : t('babySteps.remaining', {
+                    amount: formatMoney(mortgageDebtCents),
+                  })
+          }
+          paused={pausedForHome}
+          pace={paceText(step6Pace)}
+          pickerTrigger={ownsHome ? null : homeTrigger}
+          footer={
+            otherMortgageDebtCents > 0 ? (
+              <Text style={styles.hint}>
+                {t('babySteps.otherMortgages', {
+                  amount: formatMoney(otherMortgageDebtCents),
+                })}
+              </Text>
+            ) : null
           }
         />
+        {homePickerModal}
         {step7CategoryIds.length > 0 || givingAccountIds.length > 0 ? (
           <StatStep
             number={7}
@@ -839,6 +1114,15 @@ export function BabyStepsScreen() {
               amount: formatMoney(donationCentsThisYear),
               year: currentYear,
             })}
+            pace={
+              donationCentsThisYear > 0 && monthsIntoYear < 12
+                ? t('babySteps.step7Pace', {
+                    amount: formatMoney(
+                      projectYearEnd(donationCentsThisYear, monthsIntoYear),
+                    ),
+                  })
+                : null
+            }
             pickerTrigger={step7Picker.trigger}
           />
         ) : (
@@ -1022,6 +1306,8 @@ function Step({
   captionSuffix,
   pickerTrigger,
   footer,
+  pace,
+  paused,
 }: {
   number: number;
   title: string;
@@ -1029,6 +1315,10 @@ function Step({
   blurb?: string;
   current: number;
   target: number;
+  // When it gets done at the recent pace (see domain/babyStepPace).
+  pace?: string | null;
+  // Waiting on Step 3.5: shown, dimmed, with no pace.
+  paused?: boolean;
   captionOverride?: string;
   // Rendered on the same row as the caption, pinned to the right (e.g. an
   // "edit target" link) — unlike pickerTrigger, which always gets its own
@@ -1047,7 +1337,7 @@ function Step({
       target: formatMoney(target),
     });
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, paused && styles.cardPaused]}>
       <Text style={styles.stepTitle}>
         {t('babySteps.stepPrefix', { number, title })}
       </Text>
@@ -1064,11 +1354,25 @@ function Step({
       ) : (
         <Text style={styles.hint}>{captionText}</Text>
       )}
+      <PaceLine pace={pace} paused={paused} />
       {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
       {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
       {footer}
     </View>
   );
+}
+
+function PaceLine({
+  pace,
+  paused,
+}: {
+  pace?: string | null;
+  paused?: boolean;
+}) {
+  const t = useT();
+  if (paused)
+    return <Text style={styles.pausedText}>{t('babySteps.paused')}</Text>;
+  return pace ? <Text style={styles.paceText}>{pace}</Text> : null;
 }
 
 // Open-ended stat with no fixed target (e.g. lifetime/annual giving) — a
@@ -1079,12 +1383,14 @@ function StatStep({
   blurb,
   caption,
   pickerTrigger,
+  pace,
 }: {
   number: number;
   title: string;
   blurb?: string;
   caption: string;
   pickerTrigger?: ReactNode;
+  pace?: string | null;
 }) {
   const t = useT();
   return (
@@ -1093,6 +1399,7 @@ function StatStep({
         {t('babySteps.stepPrefix', { number, title })}
       </Text>
       <Text style={styles.hint}>{caption}</Text>
+      <PaceLine pace={pace} />
       {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
       {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
     </View>
@@ -1106,6 +1413,7 @@ function ManualStep({
   checked,
   onToggle,
   pickerTrigger,
+  paused,
 }: {
   number: number;
   title: string;
@@ -1113,10 +1421,11 @@ function ManualStep({
   checked: boolean;
   onToggle: () => void;
   pickerTrigger?: ReactNode;
+  paused?: boolean;
 }) {
   const t = useT();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, paused && styles.cardPaused]}>
       <Pressable style={styles.manualHeaderRow} onPress={onToggle}>
         <Text style={styles.stepTitle}>
           {t('babySteps.stepPrefix', { number, title })}
@@ -1132,6 +1441,7 @@ function ManualStep({
           </Text>
         </View>
       </Pressable>
+      <PaceLine paused={paused} />
       {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
       <Text style={styles.hint}>{pickerTrigger}</Text>
     </View>
@@ -1147,6 +1457,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
+  cardPaused: { opacity: 0.55 },
+  paceText: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  pausedText: { fontSize: 12, fontWeight: '600', color: colors.amber },
   title: { fontSize: 15, fontWeight: '700', color: colors.text },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
   blurb: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },

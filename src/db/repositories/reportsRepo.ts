@@ -116,6 +116,31 @@ export async function depositsIntoAccountsInRange(
   return row?.total ?? 0;
 }
 
+// Net movement per account over a range, both directions — what a balance
+// actually did, for a pace. One grouped read for every account a page asks
+// about, not one per account.
+export async function netFlowByAccountInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  accountIds: number[],
+  startDate: string,
+  endDateExclusive: string,
+): Promise<Map<number, number>> {
+  if (accountIds.length === 0) return new Map();
+  const placeholders = accountIds.map(() => '?').join(',');
+  const rows = await db.getAllAsync<{ account_id: number; total: number }>(
+    `SELECT account_id, COALESCE(SUM(amount_cents), 0) as total FROM transactions
+     WHERE board_id = ? AND account_id IN (${placeholders}) AND date >= ? AND date < ? AND date <= ?
+     GROUP BY account_id`,
+    boardId,
+    ...accountIds,
+    startDate,
+    endDateExclusive,
+    currentDateISO(),
+  );
+  return new Map(rows.map((r) => [r.account_id, r.total]));
+}
+
 export interface CategoryRangeTotals {
   incomeCents: number;
   expenseCents: number;

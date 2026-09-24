@@ -163,11 +163,16 @@ async function postLinkedAccountLeg(
   const payee = await getPayee(db, input.payeeId);
   if (!payee?.linkedAccountId || payee.linkedAccountId === input.accountId)
     return;
+  const sourceDebt = await db.getFirstAsync<{ loan_payment_category_id: number | null }>(
+    'SELECT loan_payment_category_id FROM accounts WHERE id = ? AND type IN (\'loan\', \'mortgage\')',
+    input.accountId,
+  );
+  const mirrorCategoryId = sourceDebt?.loan_payment_category_id ?? null;
   await db.runAsync(
     INSERT_TRANSACTION,
     boardId,
     payee.linkedAccountId,
-    null,
+    mirrorCategoryId,
     await getLinkedPayeeId(db, input.accountId),
     input.memo,
     -input.amountCents,
@@ -222,6 +227,26 @@ async function findPartnerId(
   return loose?.id ?? null;
 }
 
+// Paying a loan or mortgage from cash is still spending, so the cash leg
+// takes the loan's own payment category (accounts.loan_payment_category_id)
+// whatever was passed in — the category is the loan's setting, not a choice
+// made per payment, and every path in (the form, a schedule, an edit) lands
+// here.
+async function loanPaymentCategoryId(
+  db: SQLiteDatabase,
+  payeeId: number | null,
+  amountCents: number,
+): Promise<number | null | undefined> {
+  if (payeeId == null || amountCents >= 0) return undefined;
+  const row = await db.getFirstAsync<{ loan_payment_category_id: number | null }>(
+    `SELECT a.loan_payment_category_id FROM payees p
+     JOIN accounts a ON a.id = p.linked_account_id AND a.type IN ('loan', 'mortgage')
+     WHERE p.id = ?`,
+    payeeId,
+  );
+  return row ? row.loan_payment_category_id : undefined;
+}
+
 export async function createTransaction(
   db: SQLiteDatabase,
   boardId: number,
@@ -230,13 +255,15 @@ export async function createTransaction(
   const payeeId = input.payeeName
     ? await findOrCreatePayee(db, boardId, input.payeeName)
     : null;
+  const categoryId =
+    (await loanPaymentCategoryId(db, payeeId, input.amountCents)) ?? input.categoryId;
   let insertedId = 0;
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
       INSERT_TRANSACTION,
       boardId,
       input.accountId,
-      input.categoryId,
+      categoryId,
       payeeId,
       input.memo,
       input.amountCents,
@@ -268,10 +295,12 @@ export async function updateTransaction(
   const payeeId = input.payeeName
     ? await findOrCreatePayee(db, boardId, input.payeeName)
     : null;
+  const categoryId =
+    (await loanPaymentCategoryId(db, payeeId, input.amountCents)) ?? input.categoryId;
   await db.runAsync(
     UPDATE_TRANSACTION,
     input.accountId,
-    input.categoryId,
+    categoryId,
     payeeId,
     input.memo,
     input.amountCents,

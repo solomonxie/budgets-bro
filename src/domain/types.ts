@@ -42,6 +42,7 @@ export interface Account {
   // null / 'general' for one that is just an investment account. Only plans
   // the app can describe are offered — see TRACKING_KINDS.
   trackingKind: TrackingKind | null;
+  loanPaymentCategoryId?: number | null;
 }
 
 // Closed set: a plan is listed once its rules are worth naming on screen.

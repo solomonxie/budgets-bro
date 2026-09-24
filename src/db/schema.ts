@@ -24,6 +24,7 @@ export interface AccountRow {
   original_house_price_cents: number | null;
   note: string | null;
   tracking_kind: string | null;
+  loan_payment_category_id: number | null;
 }
 
 export interface AccountRateHistoryRow {

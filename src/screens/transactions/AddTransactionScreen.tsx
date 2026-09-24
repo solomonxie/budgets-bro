@@ -214,6 +214,14 @@ function AddTransactionForm() {
   const isTransfer = payees.some(
     (p) => p.name === payee && p.linkedAccountId != null,
   );
+  const linkedTarget = accounts.find(
+    (a) =>
+      a.account.id === payees.find((p) => p.name === payee)?.linkedAccountId,
+  )?.account;
+  const presetLoanCategoryId =
+    linkedTarget && isLoanLikeType(linkedTarget.type)
+      ? linkedTarget.loanPaymentCategoryId
+      : null;
   const takesCategory =
     selectedAccount != null &&
     isSpendingAccountType(selectedAccount.type) &&
@@ -365,7 +373,14 @@ function AddTransactionForm() {
     // nothing, but never let a stale categoryId slip through after the
     // account or the direction changed under it.
     const categoryIdToSave =
-      takesCategory && direction === 'out' ? categoryId : null;
+      takesCategory && direction === 'out'
+        ? categoryId
+        : isTransfer &&
+            direction === 'out' &&
+            linkedTarget &&
+            isLoanLikeType(linkedTarget.type)
+          ? (linkedTarget.loanPaymentCategoryId ?? null)
+          : null;
     // Whatever the row already names on the other side, unchanged — see
     // payeeReadOnly.
     const payeeToSave = payee;
@@ -559,7 +574,25 @@ function AddTransactionForm() {
               )}
               {/* An inflow's source is its payee, so it needs no category and
                   no second field naming where it came from. */}
-              {direction === 'in' || !takesCategory ? null : (
+              {direction === 'in' ? null : !takesCategory ? (
+                isTransfer &&
+                linkedTarget &&
+                isLoanLikeType(linkedTarget.type) ? (
+                  // The loan's own payment category, set on the loan account
+                  // — shown, not picked (see transactionsRepo).
+                  <FieldRow
+                    label={t('common.category')}
+                    value={(() => {
+                      const c = categories.find(
+                        (cat) => cat.id === presetLoanCategoryId,
+                      );
+                      return c
+                        ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                        : t('common.uncategorized');
+                    })()}
+                  />
+                ) : null
+              ) : (
                 <DropdownField
                   compact
                   row

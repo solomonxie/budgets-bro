@@ -470,6 +470,7 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.toolsHeading': '工具',
 
   'accountModal.termMonthsPlaceholder': '例如 360',
+  'accountModal.loanPaymentCategoryPlaceholder': '选择还款类别',
   'accountModal.termMonthsHint': '贷款年限：360 = 30 年，240 = 20 年。',
   'accountModal.originalPrincipalLabel': '借款金额',
   'accountModal.mortgageAmountLabel': '贷款金额',

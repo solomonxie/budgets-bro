@@ -14,6 +14,7 @@ import { MoneyField } from '../../components/ui/MoneyField';
 import { DateField } from '../../components/ui/DateField';
 import {
   DropdownField,
+  DropdownGroupLabel,
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { RateChangeModal } from '../../components/ui/RateChangeModal';
@@ -27,6 +28,7 @@ import * as accountValueHistoryRepo from '../../db/repositories/accountValueHist
 import { LoggedValueModal } from '../../components/ui/LoggedValueModal';
 import type { LoggedValueChange } from '../../components/ui/LoggedValueModal';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useCategories } from '../../hooks/useCategories';
 import { useAccountRateHistory } from '../../hooks/useAccountRateHistory';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { useAppStore } from '../../state/useAppStore';
@@ -111,6 +113,7 @@ export function AccountModal() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const { accounts } = useAccounts();
+  const { groups, categories } = useCategories();
   const { history: rateHistory, currentRateBps } =
     useAccountRateHistory(editingAccountId);
   // Only ever the readings the user typed — an estimate between them is
@@ -148,6 +151,7 @@ export function AccountModal() {
   // Only meaningful on a tracking account; left as typed for every other
   // type so switching type back and forth doesn't quietly lose it.
   const [trackingKind, setTrackingKind] = useState<TrackingKind>('general');
+  const [loanPaymentCategoryId, setLoanPaymentCategoryId] = useState<number | null>(null);
   const [rateModal, setRateModal] = useState<{
     editing: AccountRateChange | null;
   } | null>(null);
@@ -159,6 +163,7 @@ export function AccountModal() {
 
   const reset = () => {
     setName('');
+    setLoanPaymentCategoryId(null);
     setType('cash');
     setLatestBalance('0');
     setLoadedBalanceCents(0);
@@ -209,6 +214,7 @@ export function AccountModal() {
       setNote(account.note ?? '');
       setArchivedAt(account.archivedAt);
       setTrackingKind(account.trackingKind ?? 'general');
+      setLoanPaymentCategoryId(account.loanPaymentCategoryId ?? null);
       const houseValueCents = await accountValueHistoryRepo.currentValueCents(
         db,
         editingAccountId,
@@ -315,6 +321,7 @@ export function AccountModal() {
         : null,
       note: note.trim() || null,
       trackingKind: type === 'tracking' ? trackingKind : null,
+      loanPaymentCategoryId: isLoanLike ? loanPaymentCategoryId : null,
     };
     // Each figure typed here becomes a reading dated today, and only if it
     // actually changed — re-saving the form otherwise piles up identical rows
@@ -1053,6 +1060,29 @@ export function AccountModal() {
                   value={originationDate}
                   onChange={setOriginationDate}
                 />
+                <DropdownField
+                  compact
+                  label={t('common.category')}
+                  valueLabel={(() => {
+                    const category = categories.find((c) => c.id === loanPaymentCategoryId);
+                    return category ? `${category.icon ? category.icon + ' ' : ''}${category.name}` : '';
+                  })()}
+                  placeholder={t('accountModal.loanPaymentCategoryPlaceholder')}
+                >
+                  {(close) => groups.map((group) => {
+                    const options = categories.filter((c) => c.groupId === group.id && c.archivedAt == null);
+                    if (!options.length) return null;
+                    return <View key={group.id}>
+                      <DropdownGroupLabel label={group.name} />
+                      {options.map((category) => <DropdownOption
+                        key={category.id}
+                        label={`${category.icon ? category.icon + ' ' : ''}${category.name}`}
+                        selected={loanPaymentCategoryId === category.id}
+                        onPress={() => { setLoanPaymentCategoryId(category.id); close(); }}
+                      />)}
+                    </View>;
+                  })}
+                </DropdownField>
                 <TextField
                   label={t('accountModal.noteLabel')}
                   value={note}

@@ -70,7 +70,7 @@ function pressRow(root: ReturnType<typeof create>, label: string) {
 }
 
 describe('AddTransactionScreen', () => {
-  it.each(['Payee', 'Category', 'Account', 'Date', 'Advanced'])(
+  it.each(['Payee', 'Category', 'Account', 'Date', 'Items'])(
     '%s unfolds in place, presenting no Modal',
     (label) => {
       let root!: ReturnType<typeof create>;
@@ -98,34 +98,55 @@ describe('AddTransactionScreen', () => {
     expect(shown).toContain('Account');
   });
 
-  it('Advanced holds the items, folded until asked for; the memo does not', () => {
+  it('Items unfolds into a blank row to type into; the memo is always there', () => {
     let root!: ReturnType<typeof create>;
     act(() => {
       root = create(<AddTransactionScreen />);
     });
     // The memo is a row of the card, on screen with the rest of the form.
     expect(placeholders(root)).toContain('Memo');
-    expect(texts(root)).not.toContain('Purchase items');
+    expect(placeholders(root)).not.toContain('Item');
 
-    pressRow(root, 'Advanced');
-    const shown = texts(root);
-    expect(shown).toContain('Purchase items');
+    pressRow(root, 'Items');
+    expect(placeholders(root)).toEqual(
+      expect.arrayContaining(['Memo', 'Item', 'Price']),
+    );
     // The form above it is still there — the section unfolds in place.
-    expect(shown).toContain('Account');
+    expect(texts(root)).toContain('Account');
   });
 
-  it('an item name picker unfolds inside Advanced, keeping it open', () => {
+  it('the memo is one line, and Return closes it', () => {
     let root!: ReturnType<typeof create>;
     act(() => {
       root = create(<AddTransactionScreen />);
     });
-    pressRow(root, 'Advanced');
-    pressRow(root, '+ Add item');
-    pressRow(root, 'Item');
+    const memo = root.root
+      .findAllByType(TextInput)
+      .find((i) => i.props.placeholder === 'Memo')!;
+    expect(memo.props.multiline).toBeFalsy();
+    expect(memo.props.submitBehavior).toBe('blurAndSubmit');
+  });
 
-    const shown = texts(root);
-    expect(shown).toContain('Olive oil');
-    expect(shown).toContain('Purchase items');
+  it('typing an item offers past names and adds the next blank row', () => {
+    let root!: ReturnType<typeof create>;
+    act(() => {
+      root = create(<AddTransactionScreen />);
+    });
+    pressRow(root, 'Items');
+    const name = () =>
+      root.root
+        .findAllByType(TextInput)
+        .filter((i) => i.props.placeholder === 'Item')[0];
+    act(() => {
+      name().props.onFocus();
+    });
+    expect(texts(root)).toContain('Olive oil');
+
+    act(() => {
+      name().props.onChangeText('Ol');
+    });
+    expect(texts(root)).toContain('Olive oil');
+    expect(placeholders(root)).toContain('Next item');
     expect(root.root.findAllByType(Modal)).toHaveLength(0);
   });
 });

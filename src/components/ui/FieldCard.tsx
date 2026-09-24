@@ -1,4 +1,4 @@
-import { Children, type ReactNode } from 'react';
+import { Children, createContext, useContext, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -10,17 +10,38 @@ import { spacing } from '../../theme/spacing';
 // hands it to its last row — so the spend form's pad stays put at the bottom
 // whether or not the account above it offers a Category row, instead of
 // riding up and down with the row count.
-export function FieldCard({ children, grow }: { children: ReactNode; grow?: boolean }) {
+// `large` is for a form typed into many times a day (the spend page): taller
+// rows and bigger type, at the cost of pushing what's below further down.
+const LargeRows = createContext(false);
+
+export function useLargeFieldRows(): boolean {
+  return useContext(LargeRows);
+}
+
+export function FieldCard({
+  children,
+  grow,
+  large = false,
+}: {
+  children: ReactNode;
+  grow?: boolean;
+  large?: boolean;
+}) {
   const rows = Children.toArray(children);
   return (
-    <View style={[styles.card, grow && styles.cardGrow]}>
-      {rows.map((row, i) => (
-        <View key={i} style={grow && i === rows.length - 1 ? styles.growRow : undefined}>
-          {i > 0 ? <View style={styles.divider} /> : null}
-          {row}
-        </View>
-      ))}
-    </View>
+    <LargeRows.Provider value={large}>
+      <View style={[styles.card, grow && styles.cardGrow]}>
+        {rows.map((row, i) => (
+          <View
+            key={i}
+            style={grow && i === rows.length - 1 ? styles.growRow : undefined}
+          >
+            {i > 0 ? <View style={styles.divider} /> : null}
+            {row}
+          </View>
+        ))}
+      </View>
+    </LargeRows.Provider>
   );
 }
 
@@ -38,12 +59,16 @@ interface FieldRowProps {
 }
 
 export function FieldRow({ label, value, onPress, expanded }: FieldRowProps) {
+  const large = useLargeFieldRows();
+  const row = [styles.row, large && styles.rowLarge];
+  const rowLabel = [styles.rowLabel, large && styles.rowLabelLarge];
+  const rowValue = [styles.rowValue, large && styles.rowValueLarge];
   if (!onPress) {
     return (
-      <View style={styles.row}>
+      <View style={row}>
         <View style={styles.rowText}>
-          <Text style={styles.rowLabel}>{label}</Text>
-          <Text style={[styles.rowValue, styles.rowValueLocked]} numberOfLines={1}>
+          <Text style={rowLabel}>{label}</Text>
+          <Text style={[rowValue, styles.rowValueLocked]} numberOfLines={1}>
             {value}
           </Text>
         </View>
@@ -52,24 +77,29 @@ export function FieldRow({ label, value, onPress, expanded }: FieldRowProps) {
   }
   return (
     <Pressable
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      style={({ pressed }) => [row, pressed && styles.rowPressed]}
       onPress={onPress}
     >
       <View style={styles.rowText}>
         {value ? (
           <>
-            <Text style={styles.rowLabel}>{label}</Text>
-            <Text style={styles.rowValue} numberOfLines={1}>
+            <Text style={rowLabel}>{label}</Text>
+            <Text style={rowValue} numberOfLines={1}>
               {value}
             </Text>
           </>
         ) : (
-          <Text style={styles.rowPlaceholder} numberOfLines={1}>
+          <Text
+            style={[styles.rowPlaceholder, large && styles.rowValueLarge]}
+            numberOfLines={1}
+          >
             {label}
           </Text>
         )}
       </View>
-      <Text style={[styles.chevron, expanded && styles.chevronExpanded]}>›</Text>
+      <Text style={[styles.chevron, expanded && styles.chevronExpanded]}>
+        ›
+      </Text>
     </Pressable>
   );
 }
@@ -101,6 +131,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
+  rowLarge: { minHeight: 60, paddingVertical: 10 },
+  rowLabelLarge: { fontSize: 13, marginBottom: 3 },
+  rowValueLarge: { fontSize: 18 },
   rowPressed: { backgroundColor: colors.border },
   rowText: { flex: 1 },
   rowLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },

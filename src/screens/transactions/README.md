@@ -38,10 +38,11 @@ AddTransactionScreen.tsx  (root stack route)
 │ Account (DropdownField)         │──→ ../../components/ui/DropdownField.tsx
 │  ↳ all four unfold in place,     │──→ ../../components/ui/ExpandingField.tsx
 │    pushing the pad down          │    (ExpandingFieldGroup wraps the form)
-│ Memo (card row, grows to ~6     │──→ inline
-│  lines)                          │
-│ Advanced (purchase items,       │──→ ../../components/ui/ExpandingSection.tsx
-│  hidden for scheduled)           │    + ../../components/ui/PurchaseItemsField.tsx
+│ Memo (card row, one line,       │──→ inline
+│  Return closes it)               │
+│ Items (name + price rows, one   │──→ ../../components/ui/ExpandingSection.tsx
+│  blank row to type the next;     │    + ../../components/ui/PurchaseItemsField.tsx
+│  hidden for scheduled)           │
 │ Repeat fields (when scheduled)  │──→ ../../components/ui/RepeatField.tsx
 │ Number pad (0-9, C, ⌫)          │──→ ../../components/ui/NumberPad.tsx
 │ Save button                     │──→ inline

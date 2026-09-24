@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   Keyboard,
@@ -34,7 +40,7 @@ import { SearchableDropdownField } from '../../components/ui/SearchableDropdownF
 import { PromptModal } from '../../components/ui/PromptModal';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
-import { ExpandingSection, SubSection } from '../../components/ui/ExpandingSection';
+import { ExpandingSection } from '../../components/ui/ExpandingSection';
 import {
   isLoanLikeType,
   isSpendingAccountType,
@@ -64,12 +70,6 @@ const DEFAULT_RULE: RecurrenceRule = {
   intervalN: 1,
   daysOfWeekMask: null,
 };
-
-// One line, up to about six: a note long enough to need scrolling inside a
-// box is a note that should push the form instead. Measured on the text
-// alone now that the memo is a card row rather than an outlined box.
-const MEMO_MIN_HEIGHT = 21;
-const MEMO_MAX_HEIGHT = 120;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddTransaction'>;
 type Route = RouteProp<RootStackParamList, 'AddTransaction'>;
@@ -124,8 +124,6 @@ function AddTransactionForm() {
     name: string;
   } | null>(null);
   const [purchaseItems, setPurchaseItems] = useState<string | null>(null);
-  // Grows with what is typed into it, between one line and about six.
-  const [memoHeight, setMemoHeight] = useState(MEMO_MIN_HEIGHT);
   const memoRef = useRef<View>(null);
   const { names: itemNames } = useTrackedPrices();
 
@@ -166,7 +164,8 @@ function AddTransactionForm() {
       const node = rowToReveal.current;
       // After the avoiding-view has finished lifting, or the measurement is
       // of where the row used to be.
-      if (node) setTimeout(() => revealNode(node, e.endCoordinates.screenY), 60);
+      if (node)
+        setTimeout(() => revealNode(node, e.endCoordinates.screenY), 60);
     });
     return () => sub.remove();
   }, [revealNode]);
@@ -444,8 +443,8 @@ function AddTransactionForm() {
     ]);
   };
 
-  // What the collapsed Advanced row shows: whatever items were named.
-  const advancedSummary = parsePurchaseItems(purchaseItems)
+  // What the collapsed Items row shows: whatever items were named.
+  const itemsSummary = parsePurchaseItems(purchaseItems)
     .map((item) => item.key)
     .join(', ');
 
@@ -539,7 +538,7 @@ function AddTransactionForm() {
           <View style={styles.form}>
             {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
-            <FieldCard grow>
+            <FieldCard grow large>
               {payeeReadOnly ? (
                 <FieldRow label={t('common.payee')} value={payee} />
               ) : (
@@ -685,55 +684,40 @@ function AddTransactionForm() {
                 value={date}
                 onChange={setDate}
               />
-              {/* A row of the card like any other — a note is typed on most
-                  spends, which is one tap too many behind Advanced. Reads as
-                  a field row: placeholder alone until there is a note, then
-                  the label above it. */}
+              {/* A row of the card like any other: placeholder alone until
+                  there is a note, then the label above it. One line — Return
+                  finishes the note rather than starting a second line. */}
               <View ref={memoRef} style={styles.memoRow}>
                 {memo ? (
                   <Text style={styles.memoLabel}>{t('spend.memoSection')}</Text>
                 ) : null}
-                {/* Multiline, and the row follows the text rather than
-                    scrolling inside a fixed two lines. */}
                 <TextInput
-                  style={[styles.memoInput, { height: memoHeight }]}
+                  style={styles.memoInput}
                   placeholder={t('spend.memoPlaceholder')}
                   value={memo}
                   onChangeText={setMemo}
-                  onContentSizeChange={(e) =>
-                    setMemoHeight(
-                      Math.min(
-                        MEMO_MAX_HEIGHT,
-                        Math.max(
-                          MEMO_MIN_HEIGHT,
-                          e.nativeEvent.contentSize.height,
-                        ),
-                      ),
-                    )
-                  }
                   placeholderTextColor={colors.textMuted}
                   keyboardAppearance="dark"
-                  multiline
+                  returnKeyType="done"
+                  submitBehavior="blurAndSubmit"
                   onFocus={() => revealRow(memoRef.current)}
                   onBlur={() => revealRow(null)}
                 />
               </View>
               {/* Only on a real row: the scheduled-transaction table has no
-                  items column, so a template would drop them silently — and
-                  with items gone there is nothing left behind Advanced. */}
+                  items column, so a template would drop them silently. */}
               {isScheduled ? null : (
                 <ExpandingSection
-                  label={t('spend.advanced')}
-                  summary={advancedSummary}
+                  label={t('purchaseItems.label')}
+                  summary={itemsSummary}
                 >
-                  <SubSection label={t('spend.itemsSection')}>
-                    <PurchaseItemsField
-                      value={purchaseItems}
-                      onChange={setPurchaseItems}
-                      nameOptions={itemNames}
-                      onRevealRow={revealRow}
-                    />
-                  </SubSection>
+                  <PurchaseItemsField
+                    value={purchaseItems}
+                    onChange={setPurchaseItems}
+                    nameOptions={itemNames}
+                    totalCents={amountCents(amount) || undefined}
+                    onRevealRow={revealRow}
+                  />
                 </ExpandingSection>
               )}
             </FieldCard>
@@ -875,27 +859,25 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    paddingVertical: 9,
+    paddingVertical: 11,
     borderRadius: 11,
     alignItems: 'center',
   },
   segmentActive: { backgroundColor: colors.accent },
-  segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  segmentText: { fontSize: 15, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
-  // Sized like FieldRow, because it is one: same padding, same minimum, the
-  // note itself where a picked value would sit.
+  // Sized like the card's large FieldRow, because it is one.
   memoRow: {
     justifyContent: 'center',
-    minHeight: 48,
-    paddingVertical: 7,
+    minHeight: 60,
+    paddingVertical: 10,
     paddingHorizontal: spacing.md,
   },
-  memoLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },
+  memoLabel: { fontSize: 13, color: colors.textMuted, marginBottom: 3 },
   memoInput: {
     padding: 0,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
-    textAlignVertical: 'top',
   },
   deleteButton: {
     alignItems: 'center',

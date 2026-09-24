@@ -632,9 +632,8 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.step3Blurb':
     '不再有钱流向债主之后，把启动基金加到你自己 3–6 个月的支出水平。这一步的作用，是把一场危机变成一点麻烦。',
   'babySteps.step3Caption': '{current} / 约 {target}（月均支出 {avg} × 4）',
-  'babySteps.step3bTitle': '攒够首付',
-  'babySteps.step3bBlurb':
-    'Ramsey 在第 3 步和第 4 步之间为租房者加的半步：买房前先用现金攒够首付。他的经验法则是首付 10–20%、选 15 年固定利率房贷，且月供不超过每月到手收入的 25%。',
+  'babySteps.step3bTitle': '存够 20% 首付',
+  'babySteps.step3bBlurb': '适合还没有自住房的人。先暂停第 4–6 步，用现金为第一套自住房存够 20% 首付。其他房产上的房贷不是你的家，也还算不上投资——先拥有自己住的房子，再谈投资或还清那笔贷款。Ramsey 的经验法则：选 15 年固定利率房贷，月供不超过税后收入的 25%。',
   'babySteps.notEnoughHistory': '支出历史数据不足',
   'babySteps.step4Title': '将 15% 的收入投资于退休储蓄',
   'babySteps.step4Blurb':
@@ -648,11 +647,25 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.step6Title': '提前还清房贷',
   'babySteps.step6Blurb':
     '把每一分余钱砸向房贷，它是最后一笔债。一套没有月供的房子，正是前五步买来的东西。',
-  'babySteps.step6Done': '已完成（或无房贷）',
+  'babySteps.step6Done': '已完成——自住房已还清',
   'babySteps.step7Title': '积累财富并回馈社会',
   'babySteps.step7Blurb':
     '积累财富、慷慨地给予，并为子孙留下产业。“现在过别人不愿过的日子，以后才能过别人过不上的日子，并且给得起。”',
   'babySteps.step7Caption': '{year} 年已捐赠 {amount}',
+  'babySteps.step3bCaption': '{current} / {target}',
+  'babySteps.editHomePrice': '房价 {price}（修改）',
+  'babySteps.homeLabel': '你住在哪里？',
+  'babySteps.homeRent': '我租房',
+  'babySteps.homeOwned': '我有自住房，无房贷',
+  'babySteps.homeWithMortgage': '我的自住房：{name}',
+  'babySteps.step6NoHome': '还没有自住房——先完成第 3.5 步',
+  'babySteps.otherMortgages': '其他房产：还剩 {amount}——在自住房之后',
+  'babySteps.paused': '暂停，等第 3.5 步完成',
+  'babySteps.paceEta': '按每月 {pace} 的进度，{date} 完成',
+  'babySteps.paceFar': '按每月 {pace} 的进度，需要 50 年以上',
+  'babySteps.paceStalled': '最近 3 个月没有进展',
+  'babySteps.step4Gap': '每月再多 {gap} 就能达到 15%',
+  'babySteps.step7Pace': '按目前进度，今年将捐出 {amount}',
   'babySteps.stepPrefix': '第 {number} 步：{title}',
   'babySteps.progressCaption': '{current} / {target}',
   'babySteps.markDone': '标记完成',

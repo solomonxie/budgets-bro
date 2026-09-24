@@ -371,6 +371,15 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreFailed': '还原失败。',
   'settings.exportFailedTitle': '导出失败',
   'settings.exportFailedFallback': '出了点问题。',
+  'settings.removeAllData': '删除所有应用数据',
+  'settings.removeAllDataConfirmTitle': '删除所有应用数据？',
+  'settings.removeAllDataConfirmMessage': '此操作会永久删除本机保存的所有账本和设置、AI 与 S3 凭据以及本地备份。删除前会打开分享菜单，其中包含每个账本的导出文件；请选择「存储到文件」保存副本。取消导出不会删除任何数据。已存储在 iCloud Drive 或 S3 中的备份不会被删除。',
+  'settings.removeAllDataExportDelete': '导出后删除',
+  'settings.removeAllDataCompleteTitle': '应用数据已删除',
+  'settings.removeAllDataCompleteMessage': '本机数据已删除，并已准备好一个新的空账本。',
+  'settings.removeAllDataFailedTitle': '无法删除应用数据',
+  'settings.removeAllDataFailedMessage': '出了点问题。',
+  'settings.resetBoardName': '我的预算',
 
   'settingsModal.title': '设置',
 

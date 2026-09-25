@@ -7,10 +7,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Line, Rect } from 'react-native-svg';
-import { useChartScrub } from '../../components/ui/chartScrub';
+import { useChartScrub } from './chartScrub';
 import { formatMonthShort } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
-import type { PayeeMonth } from '../../domain/payeeTrend';
 import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -23,13 +22,25 @@ const BAR_GAP = 2;
 // average that's meant to say "what does this cost me lately".
 const AVERAGE_WINDOW_MONTHS = 12;
 
-// What one payee costs, month by month. Bars rather than a line: these are
-// separate monthly totals with a real zero, and a month you paid them
-// nothing is a fact about the payee, not a gap in the data.
+export interface MonthAmount {
+  month: string;
+  spentCents: number;
+}
+
+// Spending month by month — one payee's, or whatever a list is filtered to.
+// Bars rather than a line: these are separate monthly totals with a real
+// zero, and a month with nothing spent is a fact, not a gap in the data.
 //
-// Longer than fits (an opened payee's whole history) scrolls sideways and
-// opens at the newest month, the same as the category trend.
-export function PayeeMonthlyChart({ series }: { series: PayeeMonth[] }) {
+// Longer than fits scrolls sideways and opens at the newest month, the same
+// as the category trend. `selectedMonth` is what the headline reads when no
+// finger is on the chart — the month a list is filtered to.
+export function MonthlyBarChart({
+  series,
+  selectedMonth = null,
+}: {
+  series: MonthAmount[];
+  selectedMonth?: string | null;
+}) {
   const { t, language } = useI18n();
   const { width: windowWidth } = useWindowDimensions();
   const [index, setIndex] = useState<number | null>(null);
@@ -60,9 +71,12 @@ export function PayeeMonthlyChart({ series }: { series: PayeeMonth[] }) {
   const barHeight = (cents: number) =>
     maxCents > 0 ? (cents / maxCents) * (CHART_HEIGHT - 8) : 0;
 
-  const selected = index != null ? (series[index] ?? null) : null;
-  const latest = series[series.length - 1];
-  const shown = selected ?? latest;
+  const pinnedIndex =
+    selectedMonth != null
+      ? series.findIndex((m) => m.month === selectedMonth)
+      : -1;
+  const activeIndex = index ?? (pinnedIndex >= 0 ? pinnedIndex : null);
+  const shown = series[activeIndex ?? series.length - 1];
   const locale = localeTag(language);
 
   return (
@@ -110,7 +124,7 @@ export function PayeeMonthlyChart({ series }: { series: PayeeMonth[] }) {
                   width={barWidth}
                   height={Math.max(height, month.spentCents > 0 ? 2 : 0)}
                   rx={3}
-                  fill={i === index ? colors.text : colors.accent}
+                  fill={i === activeIndex ? colors.text : colors.accent}
                 />
               );
             })}

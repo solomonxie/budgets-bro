@@ -1,7 +1,7 @@
 import { nextMonth } from './month';
 
 // How far a step is from done at the rate it has actually been moving: the
-// last few months' net flow, projected forward in a straight line. No
+// last 12 months' average net flow, projected forward in a straight line. No
 // interest, no raises — a pace, not a forecast.
 
 // Past this, a date means nothing; "decades" says it better.

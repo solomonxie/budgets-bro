@@ -86,6 +86,9 @@ interface SearchableDropdownFieldProps {
   // The unfolded list still belongs to this component, so it spans the
   // caller's full width instead of the narrow column the field sits in.
   renderField?: (open: () => void, expanded: boolean) => ReactNode;
+  // Off where picking from the list is the common case — the keyboard
+  // would cover the rows the user came to tap.
+  autoFocusSearch?: boolean;
 }
 
 export function SearchableDropdownField({
@@ -101,6 +104,7 @@ export function SearchableDropdownField({
   hideLabel,
   row,
   renderField,
+  autoFocusSearch = true,
 }: SearchableDropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -146,7 +150,7 @@ export function SearchableDropdownField({
       keyboardAppearance="dark"
       value={query}
       onChangeText={setQuery}
-      autoFocus
+      autoFocus={autoFocusSearch}
       autoCorrect={false}
       autoComplete="off"
       spellCheck={false}

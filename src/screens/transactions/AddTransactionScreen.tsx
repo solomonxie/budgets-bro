@@ -37,16 +37,14 @@ import { SearchableDropdownField } from '../../components/ui/SearchableDropdownF
 import { PromptModal } from '../../components/ui/PromptModal';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
-import { ExpandingSection } from '../../components/ui/ExpandingSection';
 import {
   isLoanLikeType,
   isSpendingAccountType,
 } from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
-import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
+import { PurchaseItemsPage } from './PurchaseItemsPage';
 import { useTrackedPrices } from '../../hooks/useTrackedPrices';
-import { parsePurchaseItems } from '../../domain/purchaseItems';
 import { RepeatField } from '../../components/ui/RepeatField';
 import { useT } from '../../i18n';
 import {
@@ -56,6 +54,7 @@ import {
   amountFromCents,
   formatAmountExpression,
 } from '../../domain/amountExpression';
+import { parsePurchaseItems } from '../../domain/purchaseItems';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
@@ -123,36 +122,19 @@ function AddTransactionForm() {
   const memoRef = useRef<View>(null);
   const { names: itemNames } = useTrackedPrices();
 
-  // The item inputs sit near the bottom of a long form, so the keyboard
-  // opens straight over the row just tapped. Nothing scrolls a focused
-  // input into view on its own here — the row lives inside a picker panel
-  // unfolded mid-card — so the row says where it is and the page scrolls by
-  // exactly the overlap. The scroll view's keyboard inset is what gives it
+  const [itemsOpen, setItemsOpen] = useState(false);
+  const itemsSummary = parsePurchaseItems(purchaseItems)
+    .map((item) => item.key)
+    .join(', ');
+
+  // The memo sits near the bottom of a long form, so the keyboard opens
+  // straight over it. Nothing scrolls a focused input into view on its own
+  // here, so the row says where it is and the page scrolls by exactly the
+  // overlap. The scroll view's keyboard inset is what gives it
   // room to scroll that far.
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const rowToReveal = useRef<View | null>(null);
-  const padRef = useRef<View>(null);
-
-  // Opening Items pushes the pad below the fold; bring all of it back.
-  const revealPad = useCallback(() => {
-    Keyboard.dismiss();
-    // After the panel has rendered and pushed the pad down.
-    setTimeout(() => {
-      scrollRef.current
-        ?.getNativeScrollRef()
-        ?.measureInWindow((_sx, viewY, _sw, viewHeight) => {
-          padRef.current?.measureInWindow((_x, y, _w, height) => {
-            const overlap = y + height + spacing.md - (viewY + viewHeight);
-            if (overlap > 0)
-              scrollRef.current?.scrollTo({
-                y: scrollY.current + overlap,
-                animated: true,
-              });
-          });
-        });
-    }, 60);
-  }, []);
 
   const revealNode = useCallback((node: View | null, keyboardTop: number) => {
     node?.measureInWindow((_x, y, _w, height) => {
@@ -461,10 +443,12 @@ function AddTransactionForm() {
     ]);
   };
 
-  // What the collapsed Items row shows: whatever items were named.
-  const itemsSummary = parsePurchaseItems(purchaseItems)
-    .map((item) => item.key)
-    .join(', ');
+  const accountName = selectedAccount?.name ?? '';
+  const accountLinkLabel = accountName
+    ? t(direction === 'in' ? 'spend.toAccount' : 'spend.fromAccount', {
+        name: accountName,
+      })
+    : t('spend.pickAccount');
 
   const dateLabel = t(
     isScheduled ? 'addTransactionModal.startDateLabel' : 'common.date',
@@ -476,14 +460,55 @@ function AddTransactionForm() {
           down is always editing this number, so it must stay in sight
           however far the form is scrolled. */}
       <View style={styles.amountHeader}>
-        <Text
-          style={[styles.amount, !amountDisplay && styles.amountPlaceholder]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
+        <Pressable
+          style={styles.amountRow}
+          onPress={() => {
+            Keyboard.dismiss();
+          }}
         >
-          {amountDisplay || t('spend.amountPlaceholder')}
-        </Text>
+          <Text
+            style={[styles.amount, !amountDisplay && styles.amountPlaceholder]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
+            {amountDisplay || t('spend.amountPlaceholder')}
+          </Text>
+          <View style={styles.amountCaret} />
+        </Pressable>
+        {/* Right most of the time, so a line under the amount it moves
+            rather than a field competing with the ones that change. */}
+        <View style={styles.accountLink}>
+          {accountLocked ? (
+            <Text style={styles.accountLocked} numberOfLines={1}>
+              {accountLinkLabel}
+            </Text>
+          ) : (
+            <DropdownField
+              link
+              center
+              label={t('common.account')}
+              valueLabel={accountLinkLabel}
+            >
+              {(close) => (
+                <>
+                  {realAccounts.map(({ account }) => (
+                    <DropdownOption
+                      key={account.id}
+                      label={account.name}
+                      selected={accountId === account.id}
+                      onPress={() => {
+                        setAccountId(account.id);
+                        if (!account.onBudget) setCategoryId(null);
+                        close();
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </DropdownField>
+          )}
+        </View>
         <View style={styles.segmented}>
           <Pressable
             style={[
@@ -558,6 +583,7 @@ function AddTransactionForm() {
                 <SearchableDropdownField
                   compact
                   row
+                  autoFocusSearch={false}
                   label={t('common.payee')}
                   valueLabel={payee}
                   placeholder={t(
@@ -658,45 +684,24 @@ function AddTransactionForm() {
                   )}
                 </DropdownField>
               )}
-              {accountLocked ? (
-                <FieldRow
-                  label={t('common.account')}
-                  value={selectedAccount?.name ?? ''}
-                />
-              ) : (
-                <DropdownField
-                  compact
-                  row
-                  label={t('common.account')}
-                  valueLabel={
-                    realAccounts.find((a) => a.account.id === accountId)
-                      ?.account.name ?? ''
-                  }
-                >
-                  {(close) => (
-                    <>
-                      {realAccounts.map(({ account }) => (
-                        <DropdownOption
-                          key={account.id}
-                          label={account.name}
-                          selected={accountId === account.id}
-                          onPress={() => {
-                            setAccountId(account.id);
-                            if (!account.onBudget) setCategoryId(null);
-                            close();
-                          }}
-                        />
-                      ))}
-                    </>
-                  )}
-                </DropdownField>
-              )}
               <DateField
                 row
                 label={dateLabel}
                 value={date}
                 onChange={setDate}
               />
+              {/* Only on a real row: the scheduled-transaction table has no
+                  items column, so a template would drop them silently. */}
+              {isScheduled ? null : (
+                <FieldRow
+                  label={t('purchaseItems.label')}
+                  value={itemsSummary}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setItemsOpen(true);
+                  }}
+                />
+              )}
               {/* A row of the card like any other: placeholder alone until
                   there is a note, then the label above it. One line — Return
                   finishes the note rather than starting a second line. */}
@@ -713,27 +718,12 @@ function AddTransactionForm() {
                   keyboardAppearance="dark"
                   returnKeyType="done"
                   submitBehavior="blurAndSubmit"
-                  onFocus={() => revealRow(memoRef.current)}
+                  onFocus={() => {
+                    revealRow(memoRef.current);
+                  }}
                   onBlur={() => revealRow(null)}
                 />
               </View>
-              {/* Only on a real row: the scheduled-transaction table has no
-                  items column, so a template would drop them silently. */}
-              {isScheduled ? null : (
-                <ExpandingSection
-                  label={t('purchaseItems.label')}
-                  summary={itemsSummary}
-                  onExpand={revealPad}
-                >
-                  <PurchaseItemsField
-                    value={purchaseItems}
-                    onChange={setPurchaseItems}
-                    nameOptions={itemNames}
-                    totalCents={amountCents(amount) || undefined}
-                    onRevealRow={revealRow}
-                  />
-                </ExpandingSection>
-              )}
             </FieldCard>
             {isScheduled ? (
               <>
@@ -773,7 +763,7 @@ function AddTransactionForm() {
                 ) : null}
               </>
             ) : null}
-            <View ref={padRef}>
+            <View>
               <NumberPad
                 value={amount}
                 onChange={setAmount}
@@ -794,6 +784,15 @@ function AddTransactionForm() {
       {/* Mounted only while renaming: every picker on this page unfolds in
           place, and the form's test asserts no Modal exists until something
           actually asks for one. */}
+      {itemsOpen ? (
+        <PurchaseItemsPage
+          value={purchaseItems}
+          onChange={setPurchaseItems}
+          nameOptions={itemNames}
+          totalCents={amountCents(amount) || undefined}
+          onClose={() => setItemsOpen(false)}
+        />
+      ) : null}
       {renamingPayee ? (
         <PromptModal
           visible
@@ -821,13 +820,36 @@ const styles = StyleSheet.create({
   // once. Shrinks itself to fit a long figure (adjustsFontSizeToFit above),
   // so the size is a ceiling.
   amount: {
-    fontSize: 56,
+    flexShrink: 1,
+    fontSize: 68,
     fontWeight: '700',
     textAlign: 'center',
     color: colors.text,
     paddingVertical: 8,
   },
   amountPlaceholder: { color: colors.textMuted },
+  amountRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // A caret after the last digit: digits arrive at the right end, the way a
+  // price is typed without a decimal point.
+  amountCaret: {
+    width: 2,
+    height: 54,
+    borderRadius: 1,
+    marginLeft: 4,
+    backgroundColor: colors.accent,
+  },
+  // Pulled up against the amount it belongs to, apart from the toggle below.
+  accountLink: { alignSelf: 'stretch', marginTop: -(spacing.sm + spacing.xs) },
+  accountLocked: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
   scrollContent: { flexGrow: 1 },
   // Grows into leftover space but never shrinks below its content — same as
   // FieldCard's `grow`: an unfolded picker pushes the pad past the bottom of
@@ -889,10 +911,10 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: spacing.md,
   },
-  memoLabel: { fontSize: 13, color: colors.textMuted, marginBottom: 1 },
+  memoLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 1 },
   memoInput: {
     padding: 0,
-    fontSize: 18,
+    fontSize: 16,
     color: colors.text,
   },
   deleteButton: {

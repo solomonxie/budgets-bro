@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  InputAccessoryView,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   formatPurchaseItems,
   itemPriceCents,
@@ -12,6 +19,7 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 const SUGGESTION_COUNT = 6;
+const PRICE_ACCESSORY_ID = 'purchaseItemPrice';
 
 interface PurchaseItemsFieldProps {
   value: string | null;
@@ -28,10 +36,10 @@ interface PurchaseItemsFieldProps {
 }
 
 // What was in the bag, typed like a receipt reads: name, price, next line.
-// There is always one blank row at the end to type the next item into — no
-// "add" button, no picker to open first. The draft is the typed text and the
-// stored string is the sanitized one (see domain/purchaseItems), so a comma
-// typed into a name survives on screen until it is saved.
+// Always open — one row to start, + at the end of the last for another. The
+// draft is the typed text, blank rows included; the stored string is the
+// sanitized one (see domain/purchaseItems), so a comma typed into a name
+// survives on screen until it is saved.
 export function PurchaseItemsField({
   value,
   onChange,
@@ -41,12 +49,13 @@ export function PurchaseItemsField({
 }: PurchaseItemsFieldProps) {
   const t = useT();
   const [draft, setDraft] = useState<PurchaseItem[]>(() =>
-    parsePurchaseItems(value),
+    withRow(parsePurchaseItems(value)),
   );
   const [focusedName, setFocusedName] = useState<number | null>(null);
   const rowRefs = useRef<(View | null)[]>([]);
   const nameRefs = useRef<(TextInput | null)[]>([]);
   const priceRefs = useRef<(TextInput | null)[]>([]);
+  const focusedPrice = useRef(0);
   const pendingFocus = useRef<{
     index: number;
     field: 'name' | 'price';
@@ -57,7 +66,7 @@ export function PurchaseItemsField({
   // undone by the value it just produced.
   useEffect(() => {
     if (formatPurchaseItems(draft) !== value)
-      setDraft(parsePurchaseItems(value));
+      setDraft(withRow(parsePurchaseItems(value)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -71,40 +80,64 @@ export function PurchaseItemsField({
     ]?.focus();
   });
 
-  const rows = [...draft, { key: '', value: '' }];
+  const rows = draft;
 
   const commit = (next: PurchaseItem[]) => {
-    setDraft(next);
+    setDraft(withRow(next));
     onChange(formatPurchaseItems(next));
   };
 
-  const edit = (index: number, patch: Partial<PurchaseItem>) => {
-    const next = rows.map((item, i) =>
-      i === index ? { ...item, ...patch } : item,
-    );
-    // The trailing blank only becomes an item once something is typed in it.
-    commit(
-      next.filter((item, i) => i < next.length - 1 || item.key || item.value),
-    );
+  const edit = (index: number, patch: Partial<PurchaseItem>) =>
+    commit(rows.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+
+  const remove = (index: number) => commit(rows.filter((_, i) => i !== index));
+
+  // An empty last row is already the one to type into.
+  const addRow = () => {
+    const last = rows[rows.length - 1];
+    const index =
+      last && !last.key && !last.value ? rows.length - 1 : rows.length;
+    if (index === rows.length) setDraft([...rows, { key: '', value: '' }]);
+    pendingFocus.current = { index, field: 'name' };
+    nameRefs.current[index]?.focus();
   };
 
-  const remove = (index: number) => commit(draft.filter((_, i) => i !== index));
-
+  // Past names are on show from the start, under the row being typed or
+  // else the last one: a tap fills that row, or adds one if it already has
+  // a name.
+  const chipRow = focusedName ?? rows.length - 1;
   const typed =
     focusedName != null
       ? (rows[focusedName]?.key.trim().toLowerCase() ?? '')
       : '';
-  const suggestions =
-    focusedName == null
-      ? []
-      : nameOptions
-          .filter((name) => {
-            const lower = name.toLowerCase();
-            return lower !== typed && (typed === '' || lower.includes(typed));
-          })
-          .slice(0, SUGGESTION_COUNT);
+  const listed = new Set(
+    rows
+      .filter((_, i) => i !== focusedName)
+      .map((item) => item.key.trim().toLowerCase()),
+  );
+  const suggestions = nameOptions
+    .filter((name) => {
+      const lower = name.toLowerCase();
+      return (
+        lower !== typed &&
+        !listed.has(lower) &&
+        (typed === '' || lower.includes(typed))
+      );
+    })
+    .slice(0, SUGGESTION_COUNT);
 
-  const listedCents = draft.reduce(
+  const pickName = (name: string) => {
+    const target = rows[chipRow];
+    if (focusedName != null || !target?.key.trim()) {
+      edit(chipRow, { key: name });
+      pendingFocus.current = { index: chipRow, field: 'price' };
+    } else {
+      commit([...rows, { key: name, value: '' }]);
+      pendingFocus.current = { index: rows.length, field: 'price' };
+    }
+  };
+
+  const listedCents = rows.reduce(
     (sum, item) => sum + (itemPriceCents(item.value) ?? 0),
     0,
   );
@@ -112,100 +145,102 @@ export function PurchaseItemsField({
   return (
     <View style={styles.list}>
       {rows.map((item, index) => {
-        const isBlank = index === rows.length - 1;
+        const isLast = index === rows.length - 1;
+        // The chips sit under the row they fill, inside what gets scrolled
+        // clear of the keyboard — below the last row they were revealed
+        // with nothing and stayed under the keys.
         return (
           <View
             key={index}
-            style={styles.row}
+            style={styles.list}
             ref={(node) => {
               rowRefs.current[index] = node;
             }}
           >
-            <TextInput
-              ref={(node) => {
-                nameRefs.current[index] = node;
-              }}
-              style={styles.nameInput}
-              placeholder={t(
-                isBlank && draft.length > 0
-                  ? 'purchaseItems.nextPlaceholder'
-                  : 'purchaseItems.namePlaceholder',
+            <View style={styles.row}>
+              <TextInput
+                ref={(node) => {
+                  nameRefs.current[index] = node;
+                }}
+                style={styles.nameInput}
+                placeholder={t('purchaseItems.namePlaceholder')}
+                placeholderTextColor={colors.textMuted}
+                keyboardAppearance="dark"
+                autoCapitalize="sentences"
+                returnKeyType="next"
+                submitBehavior="submit"
+                value={item.key}
+                onChangeText={(key) => edit(index, { key })}
+                onSubmitEditing={() => priceRefs.current[index]?.focus()}
+                onFocus={() => {
+                  setFocusedName(index);
+                  onRevealRow?.(rowRefs.current[index] ?? null);
+                }}
+                onBlur={() => {
+                  setFocusedName((current) =>
+                    current === index ? null : current,
+                  );
+                  onRevealRow?.(null);
+                }}
+              />
+              <Text style={styles.divider}>|</Text>
+              {/* Dollars and a decimal point, copied off a receipt as
+                  printed. The decimal pad has no return key; the bar above
+                  it has Next instead. */}
+              <TextInput
+                ref={(node) => {
+                  priceRefs.current[index] = node;
+                }}
+                style={styles.priceInput}
+                placeholder={t('purchaseItems.valuePlaceholder')}
+                placeholderTextColor={colors.textMuted}
+                keyboardAppearance="dark"
+                keyboardType="decimal-pad"
+                inputAccessoryViewID={PRICE_ACCESSORY_ID}
+                value={item.value}
+                onChangeText={(next) => edit(index, { value: next })}
+                onFocus={() => {
+                  focusedPrice.current = index;
+                  onRevealRow?.(rowRefs.current[index] ?? null);
+                }}
+                onBlur={() => onRevealRow?.(null)}
+              />
+              {isLast ? (
+                <Pressable
+                  hitSlop={10}
+                  onPress={addRow}
+                  accessibilityLabel={t('purchaseItems.add')}
+                >
+                  <Text style={styles.add}>+</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  hitSlop={10}
+                  onPress={() => remove(index)}
+                  accessibilityLabel={t('purchaseItems.remove')}
+                >
+                  <Text style={styles.remove}>✕</Text>
+                </Pressable>
               )}
-              placeholderTextColor={colors.textMuted}
-              keyboardAppearance="dark"
-              autoCapitalize="sentences"
-              returnKeyType="next"
-              submitBehavior="submit"
-              value={item.key}
-              onChangeText={(key) => edit(index, { key })}
-              onSubmitEditing={() => priceRefs.current[index]?.focus()}
-              onFocus={() => {
-                setFocusedName(index);
-                onRevealRow?.(rowRefs.current[index] ?? null);
-              }}
-              onBlur={() => {
-                setFocusedName((current) =>
-                  current === index ? null : current,
-                );
-                onRevealRow?.(null);
-              }}
-            />
-            {/* Dollars and a decimal point, copied off a receipt as printed —
-                not the amount pad's digits-fill-from-the-right. This keyboard
-                has a return key, which takes you to the next line. */}
-            <TextInput
-              ref={(node) => {
-                priceRefs.current[index] = node;
-              }}
-              style={styles.priceInput}
-              placeholder={t('purchaseItems.valuePlaceholder')}
-              placeholderTextColor={colors.textMuted}
-              keyboardAppearance="dark"
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="next"
-              submitBehavior="submit"
-              value={item.value}
-              onChangeText={(next) => edit(index, { value: next })}
-              onSubmitEditing={() => {
-                pendingFocus.current = { index: index + 1, field: 'name' };
-                nameRefs.current[index + 1]?.focus();
-              }}
-              onFocus={() => onRevealRow?.(rowRefs.current[index] ?? null)}
-              onBlur={() => onRevealRow?.(null)}
-            />
-            {isBlank ? (
-              <View style={styles.removeSpacer} />
-            ) : (
-              <Pressable
-                hitSlop={10}
-                onPress={() => remove(index)}
-                accessibilityLabel={t('purchaseItems.remove')}
-              >
-                <Text style={styles.remove}>✕</Text>
-              </Pressable>
-            )}
+            </View>
+            {index === chipRow && suggestions.length > 0 ? (
+              <View style={styles.chips}>
+                {suggestions.map((name) => (
+                  <Pressable
+                    key={name}
+                    style={styles.chip}
+                    onPress={() => pickName(name)}
+                  >
+                    <Text style={styles.chipText} numberOfLines={1}>
+                      {name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </View>
         );
       })}
-      {suggestions.length > 0 ? (
-        <View style={styles.chips}>
-          {suggestions.map((name) => (
-            <Pressable
-              key={name}
-              style={styles.chip}
-              onPress={() => {
-                if (focusedName == null) return;
-                edit(focusedName, { key: name });
-                pendingFocus.current = { index: focusedName, field: 'price' };
-              }}
-            >
-              <Text style={styles.chipText} numberOfLines={1}>
-                {name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
       {listedCents > 0 ? (
         <Text style={styles.total}>
           {totalCents
@@ -218,19 +253,33 @@ export function PurchaseItemsField({
               })}
         </Text>
       ) : null}
+      <InputAccessoryView nativeID={PRICE_ACCESSORY_ID}>
+        <View style={styles.accessory}>
+          <Pressable
+            hitSlop={10}
+            onPress={() => {
+              const index = focusedPrice.current + 1;
+              if (index >= rows.length) return addRow();
+              nameRefs.current[index]?.focus();
+            }}
+          >
+            <Text style={styles.accessoryText}>
+              {t('purchaseItems.nextRow')}
+            </Text>
+          </Pressable>
+        </View>
+      </InputAccessoryView>
     </View>
   );
 }
 
+// Bare text on the card, like the rows around it — a | between name and
+// price, no boxes.
 const field = {
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: 12,
-  paddingVertical: 12,
-  paddingHorizontal: 12,
-  fontSize: 17,
+  paddingVertical: 10,
+  paddingHorizontal: 4,
+  fontSize: 16,
   color: colors.text,
-  backgroundColor: colors.background,
 } as const;
 
 const styles = StyleSheet.create({
@@ -238,13 +287,20 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   nameInput: { ...field, flex: 2 },
   priceInput: { ...field, flex: 1, textAlign: 'right' },
+  divider: { fontSize: 16, color: colors.border },
   remove: {
     fontSize: 16,
     color: colors.textMuted,
     width: 18,
     textAlign: 'center',
   },
-  removeSpacer: { width: 18 },
+  add: {
+    fontSize: 24,
+    lineHeight: 26,
+    color: colors.accent,
+    width: 18,
+    textAlign: 'center',
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: {
     borderRadius: 999,
@@ -256,4 +312,17 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 14, color: colors.text },
   total: { fontSize: 13, color: colors.textMuted, textAlign: 'right' },
+  accessory: {
+    alignItems: 'flex-end',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  accessoryText: { fontSize: 16, fontWeight: '600', color: colors.accent },
 });
+
+function withRow(items: PurchaseItem[]): PurchaseItem[] {
+  return items.length > 0 ? items : [{ key: '', value: '' }];
+}

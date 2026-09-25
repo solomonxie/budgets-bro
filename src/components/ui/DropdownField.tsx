@@ -44,12 +44,14 @@ interface DropdownFieldProps {
   // input makes it look like something to fill in. `placeholder` carries the
   // unfiltered state ("All categories"), so no separate label is drawn.
   link?: boolean;
+  // Centres the link, while the list it opens still spans the full width.
+  center?: boolean;
   // An ⓘ beside the label, for a picker whose options need a paragraph to
   // explain — same slot TextField carries.
   info?: ReactNode;
 }
 
-export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link, info }: DropdownFieldProps) {
+export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link, center, info }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const pendingRef = useRef<(() => void) | null>(null);
@@ -89,7 +91,7 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
   return (
     <View>
       {link ? (
-        <Pressable onPress={openPicker} hitSlop={8}>
+        <Pressable onPress={openPicker} hitSlop={8} style={center && styles.center}>
           <Text style={styles.linkText} numberOfLines={1}>
             {valueLabel || placeholder} ▾
           </Text>
@@ -189,6 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   valueText: { fontSize: 15, color: colors.text, flex: 1 },
+  center: { alignSelf: 'center' },
   linkText: { fontSize: 14, fontWeight: '600', color: colors.accent },
   placeholder: { color: colors.textMuted },
   chevron: { color: colors.textMuted, fontSize: 13, marginLeft: spacing.sm },

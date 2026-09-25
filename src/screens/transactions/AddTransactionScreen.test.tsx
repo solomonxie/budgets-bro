@@ -69,8 +69,19 @@ function pressRow(root: ReturnType<typeof create>, label: string) {
   });
 }
 
+function pressIn(node: ReturnType<typeof create>['root'], label: string) {
+  const text = node
+    .findAllByType(Text)
+    .find((t) => t.props.children === label)!;
+  let p: typeof text | null = text.parent;
+  while (p && typeof p.props?.onPress !== 'function') p = p.parent;
+  act(() => {
+    p!.props.onPress();
+  });
+}
+
 describe('AddTransactionScreen', () => {
-  it.each(['Payee', 'Category', 'Account', 'Date', 'Items'])(
+  it.each(['Payee', 'Category', 'Date'])(
     '%s unfolds in place, presenting no Modal',
     (label) => {
       let root!: ReturnType<typeof create>;
@@ -95,24 +106,65 @@ describe('AddTransactionScreen', () => {
     const shown = texts(root);
     expect(shown).toContain('Groceries');
     // The form is still there behind it — that's the whole point.
-    expect(shown).toContain('Account');
+    expect(shown).toContain('Date');
   });
 
-  it('Items unfolds into a blank row to type into; the memo is always there', () => {
+  it('the account is a link under the amount, and unfolds in place', () => {
     let root!: ReturnType<typeof create>;
     act(() => {
       root = create(<AddTransactionScreen />);
     });
-    // The memo is a row of the card, on screen with the rest of the form.
-    expect(placeholders(root)).toContain('Memo');
-    expect(placeholders(root)).not.toContain('Item');
+    expect(texts(root)).not.toContain('Account');
+    const link = root.root
+      .findAllByType(Text)
+      .find((t) => [t.props.children].flat().join('').startsWith('From Amex'))!;
+    let p: typeof link | null = link.parent;
+    while (p && typeof p.props?.onPress !== 'function') p = p.parent;
+    act(() => {
+      p!.props.onPress();
+    });
+    expect(root.root.findAllByType(Modal)).toHaveLength(0);
+    expect(texts(root)).toContain('Amex');
+  });
+
+  it('Items is one row that opens its own page', () => {
+    let root!: ReturnType<typeof create>;
+    act(() => {
+      root = create(<AddTransactionScreen />);
+    });
+    expect(placeholders(root)).not.toContain('What you bought');
+    expect(root.root.findAllByType(Modal)).toHaveLength(0);
 
     pressRow(root, 'Items');
-    expect(placeholders(root)).toEqual(
-      expect.arrayContaining(['Memo', 'Item', 'Price']),
-    );
-    // The form above it is still there — the section unfolds in place.
-    expect(texts(root)).toContain('Account');
+    const page = root.root.findByType(Modal);
+    const itemRows = () =>
+      page
+        .findAllByType(TextInput)
+        .filter((i) => i.props.placeholder === 'What you bought');
+    expect(itemRows()).toHaveLength(1);
+    act(() => {
+      itemRows()[0].props.onChangeText('Milk');
+    });
+    pressIn(page, '+');
+    expect(itemRows()).toHaveLength(2);
+  });
+
+  it('past names show without a tap, and one fills the row', () => {
+    let root!: ReturnType<typeof create>;
+    act(() => {
+      root = create(<AddTransactionScreen />);
+    });
+    pressRow(root, 'Items');
+    const page = root.root.findByType(Modal);
+    pressIn(page, 'Olive oil');
+    const inputs = page.findAllByType(TextInput);
+    expect(
+      inputs.find((i) => i.props.placeholder === 'What you bought')!.props
+        .value,
+    ).toBe('Olive oil');
+    expect(
+      inputs.find((i) => i.props.placeholder === 'Price')!.props.keyboardType,
+    ).toBe('decimal-pad');
   });
 
   it('the memo is one line, and Return closes it', () => {
@@ -127,7 +179,7 @@ describe('AddTransactionScreen', () => {
     expect(memo.props.submitBehavior).toBe('blurAndSubmit');
   });
 
-  it('typing an item offers past names and adds the next blank row', () => {
+  it('typing an item offers past names', () => {
     let root!: ReturnType<typeof create>;
     act(() => {
       root = create(<AddTransactionScreen />);
@@ -136,7 +188,7 @@ describe('AddTransactionScreen', () => {
     const name = () =>
       root.root
         .findAllByType(TextInput)
-        .filter((i) => i.props.placeholder === 'Item')[0];
+        .filter((i) => i.props.placeholder === 'What you bought')[0];
     act(() => {
       name().props.onFocus();
     });
@@ -146,7 +198,5 @@ describe('AddTransactionScreen', () => {
       name().props.onChangeText('Ol');
     });
     expect(texts(root)).toContain('Olive oil');
-    expect(placeholders(root)).toContain('Next item');
-    expect(root.root.findAllByType(Modal)).toHaveLength(0);
   });
 });

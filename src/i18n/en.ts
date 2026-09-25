@@ -238,6 +238,12 @@ export const en = {
   'settings.restoreResultTransactions': 'Transactions',
   'settings.exportBoard': 'Export this board',
   'settings.aboutHeading': 'About',
+  'firstRun.title': 'Welcome to Budgets Bro',
+  'firstRun.body': 'How would you like to start? You can change your mind later in Settings.',
+  'firstRun.startEmpty': 'Start empty',
+  'firstRun.tryDemo': 'Try the demo board',
+  'firstRun.restore': 'Restore from a backup',
+  'firstRun.failed': 'Something went wrong. Try again.',
   'settings.privacyHeading': 'Privacy',
   'settings.privacyTitle': 'Your money data stays yours.',
   'settings.privacyBody':
@@ -379,12 +385,14 @@ export const en = {
   'settings.removeAllData': 'Remove all app data',
   'settings.removeAllDataConfirmTitle': 'Remove all app data?',
   'settings.removeAllDataConfirmMessage':
-    'Deletes every board, setting, saved AI and S3 key and local backup on this iPhone. First, every board is backed up to Files (On My iPhone → Budgets Bro → Backups), and to iCloud Drive and S3 if they’re on. That backup isn’t deleted, and neither are backups already in iCloud Drive or S3.',
+    'Deletes every board, setting (except language and the iCloud Drive switch), saved AI and S3 key and local backup on this iPhone. First, every board is backed up to Files (On My iPhone → Budgets Bro → Backups), and to iCloud Drive and S3 if they’re on. That backup isn’t deleted, and neither are backups already in iCloud Drive or S3.',
   'settings.removeAllDataConfirm': 'Remove',
   'settings.removeAllDataCompleteTitle': 'App data removed',
   'settings.removeAllDataCompleteMessage':
     'Everything on this iPhone was removed. You’re starting with an empty board.',
   'settings.removeAllDataFailedTitle': 'Couldn’t remove app data',
+  'settings.removeAllDataUploadFailed':
+    'The backup didn’t reach {destinations} — it’s only in Files (On My iPhone → Budgets Bro → Backups).',
   'settings.removeAllDataFailedMessage': 'Something went wrong.',
   'settings.resetBoardName': 'My Budget',
 

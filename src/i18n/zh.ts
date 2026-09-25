@@ -235,6 +235,12 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreResultTransactions': '交易',
   'settings.exportBoard': '导出当前账本',
   'settings.aboutHeading': '关于',
+  'firstRun.title': '欢迎使用 Budgets Bro',
+  'firstRun.body': '想怎么开始？之后也可以在设置中更改。',
+  'firstRun.startEmpty': '从空账本开始',
+  'firstRun.tryDemo': '试用演示账本',
+  'firstRun.restore': '从备份恢复',
+  'firstRun.failed': '出了点问题，请重试。',
   'settings.privacyHeading': '隐私',
   'settings.privacyTitle': '你的财务数据始终属于你。',
   'settings.privacyBody':
@@ -376,11 +382,13 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.removeAllData': '删除所有应用数据',
   'settings.removeAllDataConfirmTitle': '删除所有应用数据？',
   'settings.removeAllDataConfirmMessage':
-    '将删除本机所有账本、设置、已保存的 AI 和 S3 密钥以及本地备份。删除前会先把所有账本备份到「文件」（我的 iPhone → Budgets Bro → Backups），如已开启 iCloud 云盘和 S3，也会一并备份。这份备份不会被删除，iCloud 云盘和 S3 中已有的备份也不受影响。',
+    '将删除本机所有账本、设置（语言和 iCloud 云盘开关除外）、已保存的 AI 和 S3 密钥以及本地备份。删除前会先把所有账本备份到「文件」（我的 iPhone → Budgets Bro → Backups），如已开启 iCloud 云盘和 S3，也会一并备份。这份备份不会被删除，iCloud 云盘和 S3 中已有的备份也不受影响。',
   'settings.removeAllDataConfirm': '删除',
   'settings.removeAllDataCompleteTitle': '应用数据已删除',
   'settings.removeAllDataCompleteMessage': '本机数据已清除，现在是一个空账本。',
   'settings.removeAllDataFailedTitle': '无法删除应用数据',
+  'settings.removeAllDataUploadFailed':
+    '备份未能上传到 {destinations}，只保存在“文件”中（我的 iPhone → Budgets Bro → Backups）。',
   'settings.removeAllDataFailedMessage': '出了点问题。',
   'settings.resetBoardName': '我的预算',
 

@@ -8,7 +8,7 @@ import { BackupSection } from './BackupSection';
 import { DataSection } from './DataSection';
 import { HistorySection } from './HistorySection';
 import { useBoards } from '../../hooks/useBoards';
-import { useLanguageSetting } from '../../hooks/useLanguage';
+import { LANGUAGE_KEY, useLanguageSetting } from '../../hooks/useLanguage';
 import { writeLockMode } from '../../hooks/useAppLock';
 import {
   biometryName,
@@ -45,6 +45,10 @@ import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import { InfoButton } from '../../components/ui/InfoButton';
 import * as boardsRepo from '../../db/repositories/boardsRepo';
+import { freshBoardName, wipeAppData } from '../../db/repositories/appDataRepo';
+import { currentDateISO } from '../../domain/month';
+import { syncSwitchKeys } from '../../sync/cloudSync';
+import { ICLOUD_PROVIDER_ID } from '../../sync/icloudProvider';
 import { listS3Configs, listS3Drafts } from '../../sync/s3Provider';
 import { secureStore } from '../../secure/secureStore';
 import { deleteAllLocalBackups } from '../../backup/localBackup';
@@ -219,7 +223,7 @@ export function SettingsScreen() {
   };
 
   // Always makes a fresh one — deleting the demo board doesn't bring it back
-  // on its own (see useEnsureDemoBoard), so this is the only way back.
+  // on its own (see FirstRunPrompt), so this is the only way back.
   // Seeding is a few hundred sequential writes (24 months of transactions
   // across a dozen accounts) — a few seconds, not instant — so this guards
   // against a second tap starting a duplicate board mid-seed and surfaces
@@ -282,40 +286,62 @@ export function SettingsScreen() {
     setRemovingAllData(true);
     try {
       const db = await getDb();
-      // Before any credential goes: the S3 upload needs its keys.
-      await backUpBeforeDeletion(db, boards);
+      // From the database, not the screen's list, which can lag an import.
+      const allBoards = await boardsRepo.listBoards(db);
+      // Read before the wipe: all three lists live in app_settings.
       const [savedAiKeys, s3Configs, s3Drafts] = await Promise.all([
         listAiKeys(db),
         listS3Configs(db),
         listS3Drafts(db),
       ]);
-      await Promise.all([
+      // Before any credential goes: the S3 upload needs its keys.
+      const uploads = await backUpBeforeDeletion(db, allBoards);
+      const failedUploads = uploads
+        .filter((o) => o.error)
+        .map((o) =>
+          o.providerId === ICLOUD_PROVIDER_ID
+            ? t('backup.icloud')
+            : (s3Configs.find((c) => `aws-s3:${c.id}` === o.providerId)?.bucket ?? o.providerId),
+        );
+
+      const freshBoardId = await wipeAppData(db, {
+        freshBoardName: freshBoardName(
+          t('settings.resetBoardName'),
+          currentDateISO(),
+          allBoards.map((b) => b.name),
+        ),
+        // A destination switched off stays off, and the language the fresh
+        // board was just named in stays the app's.
+        keepSettings: [...syncSwitchKeys([ICLOUD_PROVIDER_ID]), LANGUAGE_KEY],
+      });
+      await settingsRepo.setSetting(db, 'demo_board_seeded', '1');
+
+      // After the data is gone, each on its own: one keychain hiccup must not
+      // leave the rest behind.
+      await Promise.allSettled([
         ...savedAiKeys.map((key) => secureStore.clearAiKeySecret(key.id)),
         ...s3Configs.map((config) => secureStore.clearS3Credentials(config.id)),
         ...s3Drafts.map((draft) => secureStore.clearS3Credentials(draft.id)),
         secureStore.clearAiApiKey(),
         clearLockSecrets(),
+        deleteAllLocalBackups({ keepPreDeletion: true }),
+        deleteAllSnapshots(),
       ]);
 
-      await deleteAllLocalBackups({ keepPreDeletion: true });
-      await deleteAllSnapshots();
-      for (const board of boards) await boardsRepo.deleteBoard(db, board.id);
-      await db.runAsync('DELETE FROM houses');
-      await db.runAsync('DELETE FROM community_prices');
-      await db.runAsync('DELETE FROM ai_requests');
-      await db.runAsync('DELETE FROM change_log');
-      await db.runAsync('DELETE FROM app_settings');
-
-      const freshBoardId = await boardsRepo.createBoard(db, t('settings.resetBoardName'));
-      await settingsRepo.setSetting(db, 'demo_board_seeded', '1');
       await switchBoard(freshBoardId);
-      await useAppStore.getState().setLockMode('none');
-      await useAppStore.getState().setLanguage('en');
+      useAppStore.getState().setLockMode('none');
       useAppStore.getState().rememberTransactionAccounts(null);
       setTheme('dark');
       setAiKeys([]);
       bumpDataVersion();
-      Alert.alert(t('settings.removeAllDataCompleteTitle'), t('settings.removeAllDataCompleteMessage'));
+      Alert.alert(
+        t('settings.removeAllDataCompleteTitle'),
+        failedUploads.length
+          ? `${t('settings.removeAllDataCompleteMessage')}\n\n${t('settings.removeAllDataUploadFailed', {
+              destinations: failedUploads.join(', '),
+            })}`
+          : t('settings.removeAllDataCompleteMessage'),
+      );
     } catch (e) {
       Alert.alert(
         t('settings.removeAllDataFailedTitle'),

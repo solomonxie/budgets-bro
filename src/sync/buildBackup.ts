@@ -31,9 +31,25 @@ const TABLES = [
 // the amount borrowed.
 const ACCOUNT_OWNED_TABLES = ['account_value_history', 'account_rate_history'] as const;
 
-// Capped: the log is for reading back what happened, not for restoring, and
-// the newest entries are the ones anybody looks at.
-const CHANGE_LOG_LIMIT = 5000;
+// The log has no board column: a row's board is read out of its own
+// before/after JSON, and an account's history through the account — current
+// accounts, plus deleted ones the log still shows belonging here. Whole, not
+// capped: it is small text, and the oldest entry may be the one you need.
+const ownerId = (field: string) =>
+  `COALESCE(json_extract(after, '$.${field}'), json_extract(before, '$.${field}'))`;
+const ACCOUNT_OWNED_LIST = ACCOUNT_OWNED_TABLES.map((t) => `'${t}'`).join(', ');
+const BOARD_CHANGE_LOG = `
+  WITH board_accounts AS (
+    SELECT id FROM accounts WHERE board_id = ?
+    UNION
+    SELECT row_id FROM change_log WHERE tbl = 'accounts' AND ${ownerId('board_id')} = ?
+  )
+  SELECT * FROM change_log
+  WHERE CASE WHEN tbl IN (${ACCOUNT_OWNED_LIST})
+    THEN ${ownerId('account_id')} IN (SELECT id FROM board_accounts)
+    ELSE ${ownerId('board_id')} = ?
+  END
+  ORDER BY seq DESC`;
 
 async function dumpTable(db: SQLiteDatabase, table: (typeof TABLES)[number], boardId: number): Promise<unknown[]> {
   return db.getAllAsync(`SELECT * FROM ${table} WHERE board_id = ?`, boardId);
@@ -63,10 +79,7 @@ export async function buildBackupZip(db: SQLiteDatabase, boardId: number, boardN
   // Carried off-device so the record of what changed outlives the phone,
   // but never restored — replaying a log into a database whose ids were
   // remapped on import would describe rows that aren't these ones.
-  const changeLog = await db.getAllAsync(
-    'SELECT * FROM change_log ORDER BY seq DESC LIMIT ?',
-    CHANGE_LOG_LIMIT,
-  );
+  const changeLog = await db.getAllAsync(BOARD_CHANGE_LOG, boardId, boardId, boardId);
   zip.file('change_log.json', JSON.stringify(changeLog, null, 2));
   zip.file('manifest.json', JSON.stringify({ boardId, boardName, exportedAt: new Date().toISOString() }, null, 2));
 

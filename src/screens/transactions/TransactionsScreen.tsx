@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { FlaggedBanner } from '../../components/ui/FlaggedBanner';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
@@ -231,6 +232,7 @@ export function TransactionsScreen() {
 
   return (
     <ScreenContainer>
+      <FlaggedBanner />
       {spendingByMonth.length > 0 ? (
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>

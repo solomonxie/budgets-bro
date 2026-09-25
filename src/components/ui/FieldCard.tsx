@@ -131,8 +131,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
-  rowLarge: { minHeight: 60, paddingVertical: 10 },
-  rowLabelLarge: { fontSize: 13, marginBottom: 3 },
+  // Big type, tight padding: at 60pt a row, six of them pushed the spend
+  // page's pad below the bottom of a 14-sized screen.
+  rowLarge: { minHeight: 50, paddingVertical: 5 },
+  rowLabelLarge: { fontSize: 13, marginBottom: 1 },
   rowValueLarge: { fontSize: 18 },
   rowPressed: { backgroundColor: colors.border },
   rowText: { flex: 1 },

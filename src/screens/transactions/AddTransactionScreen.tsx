@@ -885,11 +885,11 @@ const styles = StyleSheet.create({
   // Sized like the card's large FieldRow, because it is one.
   memoRow: {
     justifyContent: 'center',
-    minHeight: 60,
-    paddingVertical: 10,
+    minHeight: 50,
+    paddingVertical: 5,
     paddingHorizontal: spacing.md,
   },
-  memoLabel: { fontSize: 13, color: colors.textMuted, marginBottom: 3 },
+  memoLabel: { fontSize: 13, color: colors.textMuted, marginBottom: 1 },
   memoInput: {
     padding: 0,
     fontSize: 18,

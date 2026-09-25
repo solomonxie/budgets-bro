@@ -43,7 +43,7 @@ PayeeTrendScreen.tsx
 ┌───────────────────────────────┐
 │ Top payee card                   │──→ usePayeeTrend (12-month window)
 │  name · total · share · bars     │    → domain/payeeTrend.summarizePayees
-│                                  │    chart: PayeeMonthlyChart.tsx
+│                                  │    chart: components/ui/MonthlyBarChart.tsx
 ├───────────────────────────────┤
 │ Everyone else, ranked by spend   │──→ row tap expands that payee's whole
 │                                  │    history in place, scrolled sideways

@@ -32,9 +32,13 @@ import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
 import { formatMoneyExact } from '../../domain/money';
 import {
   lastNMonths,
+  monthsBetween,
   formatMonthLabel,
   currentMonth,
 } from '../../domain/month';
+import { isSpendingAccountType } from '../../domain/accountKind';
+import { MonthlyBarChart } from '../../components/ui/MonthlyBarChart';
+import type { MonthAmount } from '../../components/ui/MonthlyBarChart';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -58,6 +62,28 @@ interface DateGroup {
 }
 
 const MONTH_FILTER_OPTIONS = lastNMonths(currentMonth(), 12).reverse();
+
+// Money that left a spending account for something other than another of
+// your own accounts, per month from the first such month to this one.
+function monthlySpending(rows: TransactionWithLabels[]): MonthAmount[] {
+  const byMonth = new Map<string, number>();
+  for (const row of rows) {
+    if (
+      row.amountCents >= 0 ||
+      row.transferAccountId != null ||
+      !isSpendingAccountType(row.accountType)
+    )
+      continue;
+    const month = row.date.slice(0, 7);
+    byMonth.set(month, (byMonth.get(month) ?? 0) - row.amountCents);
+  }
+  if (byMonth.size === 0) return [];
+  const first = [...byMonth.keys()].reduce((a, b) => (a < b ? a : b));
+  return monthsBetween(first, currentMonth()).map((month) => ({
+    month,
+    spentCents: byMonth.get(month) ?? 0,
+  }));
+}
 
 export function TransactionsScreen() {
   const { t, language } = useI18n();
@@ -104,7 +130,9 @@ export function TransactionsScreen() {
     [transactions],
   );
 
-  const filtered = useMemo(() => {
+  // Every filter but the month: the chart above the list needs the months on
+  // either side of the one picked.
+  const matching = useMemo(() => {
     const q = query.trim().toLowerCase();
     return transactions.filter((t) => {
       if (otherCategoryIds != null) {
@@ -113,7 +141,6 @@ export function TransactionsScreen() {
       } else if (categoryFilter != null && t.categoryId !== categoryFilter) {
         return false;
       }
-      if (monthFilter != null && !t.date.startsWith(monthFilter)) return false;
       if (
         reviewFilter != null &&
         !matchesReviewFilter(t, reviewFilter, duplicates)
@@ -132,10 +159,19 @@ export function TransactionsScreen() {
     query,
     categoryFilter,
     otherCategoryIds,
-    monthFilter,
     reviewFilter,
     duplicates,
   ]);
+
+  const filtered = useMemo(
+    () =>
+      monthFilter == null
+        ? matching
+        : matching.filter((t) => t.date.startsWith(monthFilter)),
+    [matching, monthFilter],
+  );
+
+  const spendingByMonth = useMemo(() => monthlySpending(matching), [matching]);
 
   const grouped = useMemo<DateGroup[]>(() => {
     const byDate: DateGroup[] = [];
@@ -195,6 +231,17 @@ export function TransactionsScreen() {
 
   return (
     <ScreenContainer>
+      {spendingByMonth.length > 0 ? (
+        <View style={styles.hero}>
+          <Text style={styles.heroLabel}>
+            {t('transactions.spendingByMonth')}
+          </Text>
+          <MonthlyBarChart
+            series={spendingByMonth}
+            selectedMonth={monthFilter}
+          />
+        </View>
+      ) : null}
       <View style={styles.toolbar}>
         <TextInput
           style={styles.search}
@@ -401,6 +448,19 @@ export function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  heroLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   search: {
     flex: 1,

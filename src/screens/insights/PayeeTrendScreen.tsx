@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
-import { PayeeMonthlyChart } from './PayeeMonthlyChart';
+import { MonthlyBarChart } from '../../components/ui/MonthlyBarChart';
 import { usePayeeTrend } from '../../hooks/usePayeeTrend';
 import { payeeMonthOverAverage } from '../../domain/payeeTrend';
 import type { PayeeSummary } from '../../domain/payeeTrend';
@@ -75,7 +75,7 @@ export function PayeeTrendScreen() {
             {' · '}
             {t('payeeTrend.paymentsCount', { count: top.count })}
           </Text>
-          <PayeeMonthlyChart series={top.series} />
+          <MonthlyBarChart series={top.series} />
           {topChange != null ? (
             <Text style={styles.hint}>
               {topChange >= 0
@@ -137,7 +137,7 @@ export function PayeeTrendScreen() {
                     </Pressable>
                     {open ? (
                       <View style={styles.panel}>
-                        <PayeeMonthlyChart
+                        <MonthlyBarChart
                           series={(history.get(payee.payeeId) ?? payee).series}
                         />
                         <Text style={styles.hint}>
@@ -145,8 +145,8 @@ export function PayeeTrendScreen() {
                             average: formatMoney(
                               (history.get(payee.payeeId) ?? payee).avgCents,
                             ),
-                            months: (history.get(payee.payeeId) ?? payee)
-                              .series.length,
+                            months: (history.get(payee.payeeId) ?? payee).series
+                              .length,
                           })}
                         </Text>
                       </View>
@@ -156,7 +156,9 @@ export function PayeeTrendScreen() {
               })}
               {smallRest.length > 0 ? (
                 <View>
-                  {visibleRest.length > 0 ? <View style={styles.divider} /> : null}
+                  {visibleRest.length > 0 ? (
+                    <View style={styles.divider} />
+                  ) : null}
                   <View style={styles.row}>
                     <View style={styles.rowText}>
                       <Text style={styles.name} numberOfLines={1}>

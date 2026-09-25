@@ -722,7 +722,7 @@ export function SettingsScreen() {
                   {t('settings.bankPrivacy')}
                 </Text>
                 <Text style={styles.statementParagraph}>
-                  {t('settings.bankImport')}
+                  {t('settings.bankFresh')}
                 </Text>
               </View>
             </View>

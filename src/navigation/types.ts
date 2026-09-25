@@ -19,6 +19,9 @@ export type AccountsStackParamList = {
   AccountsList: undefined;
   AccountDetail: { accountId: number };
   ClosedAccounts: undefined;
+  // The account's own calculators (AccountToolsSection), same route as
+  // Insights'.
+  FinanceTool: { tool: FinanceToolId };
 };
 
 export type InsightsStackParamList = {

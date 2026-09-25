@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   addMonths,
@@ -37,12 +37,21 @@ import type {
 // logged (finance-tools/remainingPrincipal). Logging a new reading re-anchors
 // everything after it and writes no transaction: it is a reading, not a
 // correction to the ledger.
+export interface LoanPayoff {
+  // Null when the scheduled payment doesn't cover the interest.
+  date: string | null;
+  months: number;
+}
+
 export function LoanDetailsCard({
   account,
   transactions,
+  onPayoff,
 }: {
   account: Account;
   transactions: TransactionWithLabels[];
+  // The projection, for the balance box above to show — null without terms.
+  onPayoff?: (payoff: LoanPayoff | null) => void;
 }) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
@@ -81,6 +90,39 @@ export function LoanDetailsCard({
       }),
     [readings, account, currentRateBps, payments],
   );
+
+  const hasTerms =
+    currentRateBps != null &&
+    account.termMonths != null &&
+    account.originalPrincipalCents != null;
+  const schedule = useMemo(() => {
+    if (!hasTerms) return null;
+    const scheduledPaymentCents = monthlyPaymentCents(
+      account.originalPrincipalCents!,
+      currentRateBps!,
+      account.termMonths!,
+    );
+    const remainingMonths = remainingMonthsToPayoff(
+      principal.owedCents,
+      currentRateBps!,
+      scheduledPaymentCents,
+    );
+    return {
+      scheduledPaymentCents,
+      remainingMonths,
+      payoffDate: Number.isFinite(remainingMonths)
+        ? addMonths(currentDateISO(), remainingMonths)
+        : null,
+    };
+  }, [hasTerms, account, currentRateBps, principal.owedCents]);
+
+  useEffect(() => {
+    onPayoff?.(
+      schedule
+        ? { date: schedule.payoffDate, months: schedule.remainingMonths }
+        : null,
+    );
+  }, [onPayoff, schedule]);
 
   const submitReading = async (value: LoggedValueChange) => {
     const valueCents = Math.round(parseFloat(value.value) * 100);
@@ -186,11 +228,7 @@ export function LoanDetailsCard({
   // Without a rate, a term and an amount borrowed there is no payment to
   // schedule and no payoff to project — but a principal reading still works,
   // so the section stays reachable.
-  const hasTerms =
-    currentRateBps != null &&
-    account.termMonths != null &&
-    account.originalPrincipalCents != null;
-  if (!hasTerms) {
+  if (!schedule) {
     return (
       <View style={styles.card}>
         <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
@@ -211,24 +249,12 @@ export function LoanDetailsCard({
     );
   }
 
-  const scheduledPaymentCents = monthlyPaymentCents(
-    account.originalPrincipalCents!,
-    currentRateBps!,
-    account.termMonths!,
-  );
-  const remainingMonths = remainingMonthsToPayoff(
-    principal.owedCents,
-    currentRateBps!,
-    scheduledPaymentCents,
-  );
+  const { scheduledPaymentCents, remainingMonths, payoffDate } = schedule;
   const remainingInterestCents = totalInterestRemainingCents(
     principal.owedCents,
     scheduledPaymentCents,
     remainingMonths,
   );
-  const payoffDate = Number.isFinite(remainingMonths)
-    ? addMonths(currentDateISO(), remainingMonths)
-    : null;
   const lastPayment =
     principal.rows.filter((r) => r.amountCents > 0).at(-1) ?? null;
 
@@ -239,14 +265,6 @@ export function LoanDetailsCard({
         onPress={() => setExpanded((v) => !v)}
       >
         <Text style={styles.label}>{t('loanDetailsCard.label')}</Text>
-        <InfoButton
-          title={t('accountInfo.loanCardTitle')}
-          paragraphs={[
-            t('accountInfo.loanCardBody'),
-            t('accountInfo.principalBody'),
-          ]}
-          closeLabel={t('common.done')}
-        />
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
             {t('loanDetailsCard.summary', {
@@ -308,11 +326,23 @@ export function LoanDetailsCard({
                 : '—'
             }
           />
+          <InfoButton
+            label={t('common.howThisWorks')}
+            title={t('accountInfo.loanCardTitle')}
+            paragraphs={[
+              t('accountInfo.loanCardBody'),
+              t('accountInfo.principalBody'),
+            ]}
+            closeLabel={t('common.done')}
+          />
           <Text style={styles.hint}>
             {t('loanDetailsCard.actualsOnlyHint')}
           </Text>
           {readingSection}
-          <Pressable onPress={() => openEditAccount(account.id)}>
+          <Pressable
+            style={styles.editTerms}
+            onPress={() => openEditAccount(account.id)}
+          >
             <Text style={styles.link}>{t('loanDetailsCard.editTerms')}</Text>
           </Pressable>
         </>
@@ -346,6 +376,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  // Apart from "Update principal" just above — two links on adjacent lines
+  // were one mis-tap apart.
+  editTerms: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
   warnHint: { fontSize: 12, color: colors.negative, lineHeight: 16 },
   link: { color: colors.accent, fontWeight: '600', fontSize: 13, marginTop: 4 },
   summaryRow: {

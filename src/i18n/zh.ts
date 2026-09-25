@@ -244,7 +244,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.privacyHeading': '隐私',
   'settings.privacyTitle': '你的财务数据始终属于你。',
   'settings.privacyBody':
-    '所有数据都在这台 iPhone 上的一个文件里，计算也在本机完成，断网也能用。Budgets Bro 没有服务器、无需注册，我们看不到你的任何数据。数据只去你指定的地方：备份到你的 iCloud 或 S3，AI 分析用你自己的密钥。密钥只存在钥匙串中，不进入备份。随时可以导出账本；删除应用，数据也随之删除。',
+    '这是一款离线应用：背后没有远程服务器，也无需注册账号。所有数据都保存在这台 iPhone 上。如有需要，你可以把数据备份或同步到你自己选择的云存储（你的 iCloud 或 S3），也可以用自己的密钥进行 AI 分析。密码和 API 密钥等机密信息安全保存在 iPhone 钥匙串中，不会进入备份。',
+  'common.howThisWorks': '说明',
   'common.more': '展开',
   'common.less': '收起',
   'accountModal.trackingKindLabel': '账户计划类型',
@@ -432,6 +433,8 @@ export const zh: Record<keyof typeof en, string> = {
   'accounts.kindGiving': '奉献',
   'accounts.notInNetWorth': '不计入净资产',
 
+  'accountDetail.calculators': '计算器',
+  'accountDetail.growthRate': '增长 {rate}/月 · 近 12 月平均',
   'accountDetail.balance': '余额',
   'accountDetail.remainingPrincipal': '剩余本金',
   'accountDetail.noTransactionsYet': '暂无交易记录。',
@@ -556,6 +559,7 @@ export const zh: Record<keyof typeof en, string> = {
   'loanDetailsCard.extraPaymentLabel': '每月额外还款',
   'loanDetailsCard.projectedPayoffLabel': '预计还清日期',
   'loanDetailsCard.payoffValue': '{date}（{months} 个月）',
+  'loanDetailsCard.neverPaidOff': '按当前还款额还不清',
   'loanDetailsCard.paymentTooLow': '还款额不够付利息',
   'loanDetailsCard.remainingInterestLabel': '预计剩余利息',
   'loanDetailsCard.lastPaymentLabel': '最近一次还款（{date}）',

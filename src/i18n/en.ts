@@ -379,8 +379,8 @@ export const en = {
   'settings.removeAllData': 'Remove all app data',
   'settings.removeAllDataConfirmTitle': 'Remove all app data?',
   'settings.removeAllDataConfirmMessage':
-    'Deletes every board, setting, saved AI and S3 key and local backup on this iPhone. First, a .zip with an export of every board opens in the share sheet — choose Save to Files to keep a copy. Cancel that and nothing is deleted. Backups already in iCloud Drive or S3 stay.',
-  'settings.removeAllDataExportDelete': 'Export, then remove',
+    'Deletes every board, setting, saved AI and S3 key and local backup on this iPhone. First, every board is backed up to Files (On My iPhone → Budgets Bro → Backups), and to iCloud Drive and S3 if they’re on. That backup isn’t deleted, and neither are backups already in iCloud Drive or S3.',
+  'settings.removeAllDataConfirm': 'Remove',
   'settings.removeAllDataCompleteTitle': 'App data removed',
   'settings.removeAllDataCompleteMessage':
     'Everything on this iPhone was removed. You’re starting with an empty board.',

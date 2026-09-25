@@ -44,11 +44,11 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import { InfoButton } from '../../components/ui/InfoButton';
-import { exportAllBoardsZip } from '../../export/exportAllBoards';
 import * as boardsRepo from '../../db/repositories/boardsRepo';
 import { listS3Configs, listS3Drafts } from '../../sync/s3Provider';
 import { secureStore } from '../../secure/secureStore';
 import { deleteAllLocalBackups } from '../../backup/localBackup';
+import { backUpBeforeDeletion } from '../../backup/preDeletionBackup';
 import { deleteAllSnapshots } from '../../db/preMigrationSnapshot';
 
 const THEME_KEY = 'theme_preference';
@@ -278,8 +278,12 @@ export function SettingsScreen() {
   };
 
   const removeAllAppData = async () => {
+    if (removingAllData) return;
+    setRemovingAllData(true);
     try {
       const db = await getDb();
+      // Before any credential goes: the S3 upload needs its keys.
+      await backUpBeforeDeletion(db, boards);
       const [savedAiKeys, s3Configs, s3Drafts] = await Promise.all([
         listAiKeys(db),
         listS3Configs(db),
@@ -293,7 +297,7 @@ export function SettingsScreen() {
         clearLockSecrets(),
       ]);
 
-      await deleteAllLocalBackups();
+      await deleteAllLocalBackups({ keepPreDeletion: true });
       await deleteAllSnapshots();
       for (const board of boards) await boardsRepo.deleteBoard(db, board.id);
       await db.runAsync('DELETE FROM houses');
@@ -329,24 +333,9 @@ export function SettingsScreen() {
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('settings.removeAllDataExportDelete'),
+          text: t('settings.removeAllDataConfirm'),
           style: 'destructive',
-          onPress: async () => {
-            if (removingAllData) return;
-            setRemovingAllData(true);
-            try {
-              const db = await getDb();
-              const exported = await exportAllBoardsZip(db, boards);
-              if (exported) await removeAllAppData();
-            } catch (e) {
-              Alert.alert(
-                t('settings.exportFailedTitle'),
-                e instanceof Error ? e.message : t('settings.exportFailedFallback'),
-              );
-            } finally {
-              setRemovingAllData(false);
-            }
-          },
+          onPress: removeAllAppData,
         },
       ],
     );

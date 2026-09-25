@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import type { ScrollView } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { CollapsibleText } from '../../components/ui/CollapsibleText';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { TextField } from '../../components/ui/TextField';
 import { MoneyField } from '../../components/ui/MoneyField';
@@ -68,6 +69,8 @@ const step3bTargetKey = (boardId: number) =>
   `babySteps.step3bTargetCents:${boardId}`;
 const step3bHomePriceKey = (boardId: number) =>
   `babySteps.step3bHomePriceCents:${boardId}`;
+const step3bDownPaymentKey = (boardId: number) =>
+  `babySteps.step3bDownPaymentCents:${boardId}`;
 // Where you live: 'rent', 'owned' (no mortgage), or 'mortgage:<accountId>'
 // for the one mortgage that is on your own home. Unset until answered.
 const homeKey = (boardId: number) => `babySteps.home:${boardId}`;
@@ -79,15 +82,17 @@ const step5TargetKey = (boardId: number) =>
   `babySteps.step5TargetCents:${boardId}`;
 const step7CategoriesKey = (boardId: number) =>
   `babySteps.step7CategoryIds:${boardId}`;
+const step7AccountsKey = (boardId: number) =>
+  `babySteps.step7AccountIds:${boardId}`;
 const manualStepsKey = (boardId: number) => `babySteps.manual:${boardId}`;
 
 const STARTER_FUND_CENTS = 100_000; // $1,000
 const RETIREMENT_TARGET_PERCENT = 15;
 const DEFAULT_COLLEGE_FUND_TARGET_CENTS = 5_000_000; // $50,000 — just a starting point, editable
-const DEFAULT_HOME_PRICE_CENTS = 25_000_000; // $250,000 — a starting point, editable
+const DEFAULT_DOWN_PAYMENT_CENTS = 5_000_000; // $50,000 — 20% of $250,000, editable
 const DOWN_PAYMENT_PERCENT = 20;
 // The window every pace on this page is read over.
-const PACE_MONTHS = 3;
+const PACE_MONTHS = 12;
 const RETIREMENT_NAME_PATTERN =
   /401\s*\(?k\)?|403\s*\(?b\)?|\bira\b|\brrsp\b|\btfsa\b|pension|retirement/i;
 
@@ -103,10 +108,15 @@ const NO_MANUAL_STEPS: ManualSteps = {
   step7: false,
 };
 
-function trailingThreeMonthWindow() {
+function trailingMonthsWindow(count: number) {
   const month = currentMonth();
-  const threeMonthsAgo = previousMonth(previousMonth(previousMonth(month)));
-  return { startDate: `${threeMonthsAgo}-01`, endDateExclusive: `${month}-01` };
+  let start = month;
+  for (let i = 0; i < count; i++) start = previousMonth(start);
+  return { startDate: `${start}-01`, endDateExclusive: `${month}-01` };
+}
+
+function trailingThreeMonthWindow() {
+  return trailingMonthsWindow(3);
 }
 
 function currentYearWindow() {
@@ -150,8 +160,8 @@ export function BabyStepsScreen() {
   const [step1AccountIds, setStep1AccountIds] = useState<number[]>([]);
   const [step3AccountIds, setStep3AccountIds] = useState<number[]>([]);
   const [step3bAccountIds, setStep3bAccountIds] = useState<number[]>([]);
-  const [homePriceCents, setHomePriceCents] = useState(
-    DEFAULT_HOME_PRICE_CENTS,
+  const [downPaymentTargetCents, setDownPaymentTargetCents] = useState(
+    DEFAULT_DOWN_PAYMENT_CENTS,
   );
   const [home, setHome] = useState<Home>(null);
   const [homePickerOpen, setHomePickerOpen] = useState(false);
@@ -163,6 +173,8 @@ export function BabyStepsScreen() {
     DEFAULT_COLLEGE_FUND_TARGET_CENTS,
   );
   const [step7CategoryIds, setStep7CategoryIds] = useState<number[]>([]);
+  // Null until picked: every giving-type account counts by default.
+  const [step7AccountIds, setStep7AccountIds] = useState<number[] | null>(null);
   const [avgMonthlySpendingCents, setAvgMonthlySpendingCents] = useState(0);
   const [avgMonthlyIncomeCents, setAvgMonthlyIncomeCents] = useState(0);
   const [avgMonthlyRetirementCents, setAvgMonthlyRetirementCents] = useState(0);
@@ -179,6 +191,7 @@ export function BabyStepsScreen() {
   const [step4PickerOpen, setStep4PickerOpen] = useState(false);
   const [step5PickerOpen, setStep5PickerOpen] = useState(false);
   const [step7PickerOpen, setStep7PickerOpen] = useState(false);
+  const [step7AccountPickerOpen, setStep7AccountPickerOpen] = useState(false);
 
   // Goal editing is inline, not a modal — 'new' while adding, a goal id
   // while editing that one, null otherwise. Only one goal (or the new-goal
@@ -222,20 +235,25 @@ export function BabyStepsScreen() {
           [],
         ),
       );
-      // The down payment used to be a typed target; it is 20% of a home
-      // price now, so an old target is read back as the price it implies.
+      // Older builds stored a home price (20% of it is the down payment),
+      // and before that a typed target; the newest one set wins.
+      const legacyHomePrice = await settingsRepo.getJsonSetting<number | null>(
+        db,
+        step3bHomePriceKey(boardId),
+        null,
+      );
       const legacyTarget = await settingsRepo.getJsonSetting<number | null>(
         db,
         step3bTargetKey(boardId),
         null,
       );
-      setHomePriceCents(
+      setDownPaymentTargetCents(
         await settingsRepo.getJsonSetting<number>(
           db,
-          step3bHomePriceKey(boardId),
-          legacyTarget != null
-            ? Math.round((legacyTarget * 100) / DOWN_PAYMENT_PERCENT)
-            : DEFAULT_HOME_PRICE_CENTS,
+          step3bDownPaymentKey(boardId),
+          legacyHomePrice != null
+            ? Math.round((legacyHomePrice * DOWN_PAYMENT_PERCENT) / 100)
+            : (legacyTarget ?? DEFAULT_DOWN_PAYMENT_CENTS),
         ),
       );
       setHome(
@@ -260,6 +278,13 @@ export function BabyStepsScreen() {
           db,
           step7CategoriesKey(boardId),
           [],
+        ),
+      );
+      setStep7AccountIds(
+        await settingsRepo.getJsonSetting<number[] | null>(
+          db,
+          step7AccountsKey(boardId),
+          null,
         ),
       );
       setManual(
@@ -321,17 +346,18 @@ export function BabyStepsScreen() {
   }, [boardId, step4AccountIds]);
 
   // Giving is counted from both ends: what was spent out of the categories
-  // picked for it, and what was moved into a giving account — money set
-  // aside to give is given as far as this step is concerned, whether or not
-  // it has left yet. Giving accounts need no picking; having one is the
-  // declaration (see domain/accountKind).
-  const givingAccountIds = useMemo(
+  // picked for it, and what was moved into the accounts picked for it —
+  // money set aside to give is given as far as this step is concerned,
+  // whether or not it has left yet. Until accounts are picked, every giving
+  // account counts (see domain/accountKind).
+  const defaultGivingAccountIds = useMemo(
     () =>
       accounts
         .filter((a) => a.account.type === 'giving')
         .map((a) => a.account.id),
     [accounts],
   );
+  const givingAccountIds = step7AccountIds ?? defaultGivingAccountIds;
 
   useEffect(() => {
     (async () => {
@@ -386,7 +412,7 @@ export function BabyStepsScreen() {
     ];
     (async () => {
       const db = await getDb();
-      const { startDate, endDateExclusive } = trailingThreeMonthWindow();
+      const { startDate, endDateExclusive } = trailingMonthsWindow(PACE_MONTHS);
       setFlows(
         await reportsRepo.netFlowByAccountInRange(
           db,
@@ -437,13 +463,9 @@ export function BabyStepsScreen() {
     (home?.startsWith('mortgage:') === true && homeMortgage == null) ||
     (home == null && mortgageAccounts.length === 0);
   const showStep3b = !ownsHome;
-  const downPaymentTargetCents = Math.round(
-    (homePriceCents * DOWN_PAYMENT_PERCENT) / 100,
-  );
-  const step3bDone =
-    step3bAccountIds.length > 0
-      ? step3bCents >= downPaymentTargetCents
-      : manual.step3b;
+  const step3bSaved =
+    step3bAccountIds.length > 0 && step3bCents >= downPaymentTargetCents;
+  const step3bDone = step3bSaved || manual.step3b;
   const pausedForHome = rentsHome && !step3bDone;
 
   const owed = (list: AccountWithBalance[]) =>
@@ -539,6 +561,12 @@ export function BabyStepsScreen() {
     })();
   };
 
+  const toggleStep7Account = (id: number) => {
+    const next = toggleId(givingAccountIds, id);
+    setStep7AccountIds(next);
+    persistAccountIds(step7AccountsKey(boardId), next);
+  };
+
   const chooseHome = async (next: Home) => {
     setHome(next);
     setHomePickerOpen(false);
@@ -553,15 +581,15 @@ export function BabyStepsScreen() {
     await settingsRepo.setJsonSetting(db, step3bAccountsKey(boardId), next);
   };
   const startEditingStep3bTarget = () => {
-    setStep3bTargetInput(String(homePriceCents / 100));
+    setStep3bTargetInput(String(downPaymentTargetCents / 100));
     setEditingStep3bTarget(true);
   };
   const saveStep3bTarget = async () => {
     const cents = Math.round((parseFloat(step3bTargetInput) || 0) * 100);
-    setHomePriceCents(cents);
+    setDownPaymentTargetCents(cents);
     setEditingStep3bTarget(false);
     const db = await getDb();
-    await settingsRepo.setJsonSetting(db, step3bHomePriceKey(boardId), cents);
+    await settingsRepo.setJsonSetting(db, step3bDownPaymentKey(boardId), cents);
   };
 
   const startEditingStep5Target = () => {
@@ -702,55 +730,6 @@ export function BabyStepsScreen() {
     return t('babySteps.categoriesCount', { count: ids.length });
   };
 
-  const categoryPicker = (
-    ids: number[],
-    onToggle: (id: number) => void,
-    open: boolean,
-    setOpen: (v: boolean) => void,
-    fieldLabel: string,
-  ) => ({
-    trigger: (
-      <Text style={styles.linkText} onPress={() => setOpen(true)}>
-        {categoryLinkLabel(ids, fieldLabel)} ▾
-      </Text>
-    ),
-    modal: (
-      <Modal
-        visible={open}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setOpen(false)}
-      >
-        <BottomSheet title={fieldLabel} onClose={() => setOpen(false)}>
-          {groups.map((group) => {
-            const groupCategories = categories.filter(
-              (c) => c.groupId === group.id,
-            );
-            if (groupCategories.length === 0) return null;
-            return (
-              <View key={group.id}>
-                <DropdownGroupLabel label={group.name} />
-                {groupCategories.map((c) => (
-                  <DropdownOption
-                    key={c.id}
-                    label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                    selected={ids.includes(c.id)}
-                    onPress={() => onToggle(c.id)}
-                  />
-                ))}
-              </View>
-            );
-          })}
-          {categories.length === 0 ? (
-            <Text style={styles.hint}>
-              {t('babySteps.noCategoriesAvailable')}
-            </Text>
-          ) : null}
-        </BottomSheet>
-      </Modal>
-    ),
-  });
-
   const step1Picker = accountPicker(
     cashLikeAccounts,
     step1AccountIds,
@@ -791,12 +770,71 @@ export function BabyStepsScreen() {
     setStep5PickerOpen,
     t('babySteps.educationAccountsLabel'),
   );
-  const step7Picker = categoryPicker(
-    step7CategoryIds,
-    toggleStep7Category,
-    step7PickerOpen,
-    setStep7PickerOpen,
-    t('babySteps.givingCategoriesLabel'),
+  // Giving is either spent out of a category or set aside in an account —
+  // one picker each, both multi-select, both counted.
+  const step7CategoryPicker = {
+    trigger: (
+      <Text style={styles.linkText} onPress={() => setStep7PickerOpen(true)}>
+        {categoryLinkLabel(
+          step7CategoryIds,
+          t('babySteps.givingCategoriesLabel'),
+        )}{' '}
+        ▾
+      </Text>
+    ),
+    modal: (
+      <Modal
+        visible={step7PickerOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setStep7PickerOpen(false)}
+      >
+        <BottomSheet
+          title={t('babySteps.givingCategoriesLabel')}
+          onClose={() => setStep7PickerOpen(false)}
+        >
+          {groups.map((group) => {
+            const groupCategories = categories.filter(
+              (c) => c.groupId === group.id,
+            );
+            if (groupCategories.length === 0) return null;
+            return (
+              <View key={group.id}>
+                <DropdownGroupLabel label={group.name} />
+                {groupCategories.map((c) => (
+                  <DropdownOption
+                    key={c.id}
+                    label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                    selected={step7CategoryIds.includes(c.id)}
+                    onPress={() => toggleStep7Category(c.id)}
+                  />
+                ))}
+              </View>
+            );
+          })}
+          {categories.length === 0 ? (
+            <Text style={styles.hint}>
+              {t('babySteps.noCategoriesAvailable')}
+            </Text>
+          ) : null}
+        </BottomSheet>
+      </Modal>
+    ),
+  };
+  const step7AccountPicker = accountPicker(
+    investableAccounts,
+    givingAccountIds,
+    toggleStep7Account,
+    step7AccountPickerOpen,
+    setStep7AccountPickerOpen,
+    t('babySteps.givingAccountsLabel'),
+  );
+  const step7Triggers = (
+    <>
+      {step7CategoryPicker.trigger}
+      {'   '}
+      {step7AccountPicker.trigger}
+    </>
   );
 
   // Single-select — a goal links to at most one account. The first sheet
@@ -972,24 +1010,29 @@ export function BabyStepsScreen() {
                   current: formatMoney(step3bCents),
                   target: formatMoney(downPaymentTargetCents),
                 })}
+                markDone={{
+                  checked: step3bDone,
+                  onToggle: step3bSaved
+                    ? undefined
+                    : () => toggleManual('step3b'),
+                }}
                 pickerTrigger={
                   <>
-                    {homeTrigger}
-                    {'   '}
                     {step3bPicker.trigger}
+                    {editingStep3bTarget ? null : (
+                      <>
+                        {'   '}
+                        <Text
+                          style={styles.linkText}
+                          onPress={startEditingStep3bTarget}
+                        >
+                          {t('babySteps.editDownPayment', {
+                            amount: formatMoney(downPaymentTargetCents),
+                          })}
+                        </Text>
+                      </>
+                    )}
                   </>
-                }
-                captionSuffix={
-                  editingStep3bTarget ? null : (
-                    <Text
-                      style={styles.linkText}
-                      onPress={startEditingStep3bTarget}
-                    >
-                      {t('babySteps.editHomePrice', {
-                        price: formatMoney(homePriceCents),
-                      })}
-                    </Text>
-                  )
                 }
                 footer={editingStep3bTarget ? step3bTargetEditRow() : null}
                 pace={paceText(step3bPace)}
@@ -1001,13 +1044,7 @@ export function BabyStepsScreen() {
                 blurb={t('babySteps.step3bBlurb')}
                 checked={manual.step3b}
                 onToggle={() => toggleManual('step3b')}
-                pickerTrigger={
-                  <>
-                    {homeTrigger}
-                    {'   '}
-                    {step3bPicker.trigger}
-                  </>
-                }
+                pickerTrigger={step3bPicker.trigger}
               />
             )}
             {step3bPicker.modal}
@@ -1123,7 +1160,7 @@ export function BabyStepsScreen() {
                   })
                 : null
             }
-            pickerTrigger={step7Picker.trigger}
+            pickerTrigger={step7Triggers}
           />
         ) : (
           <ManualStep
@@ -1132,10 +1169,11 @@ export function BabyStepsScreen() {
             blurb={t('babySteps.step7Blurb')}
             checked={manual.step7}
             onToggle={() => toggleManual('step7')}
-            pickerTrigger={step7Picker.trigger}
+            pickerTrigger={step7Triggers}
           />
         )}
-        {step7Picker.modal}
+        {step7CategoryPicker.modal}
+        {step7AccountPicker.modal}
 
         <View style={styles.goalsHeaderRow}>
           <Text style={styles.title}>{t('babySteps.goalsHeading')}</Text>
@@ -1308,6 +1346,7 @@ function Step({
   footer,
   pace,
   paused,
+  markDone,
 }: {
   number: number;
   title: string;
@@ -1315,6 +1354,9 @@ function Step({
   blurb?: string;
   current: number;
   target: number;
+  // Top-right pill, as on a ManualStep; no onToggle when the balance
+  // already settles it.
+  markDone?: { checked: boolean; onToggle?: () => void };
   // When it gets done at the recent pace (see domain/babyStepPace).
   pace?: string | null;
   // Waiting on Step 3.5: shown, dimmed, with no pace.
@@ -1338,9 +1380,22 @@ function Step({
     });
   return (
     <View style={[styles.card, paused && styles.cardPaused]}>
-      <Text style={styles.stepTitle}>
-        {t('babySteps.stepPrefix', { number, title })}
-      </Text>
+      {markDone ? (
+        <Pressable
+          style={styles.manualHeaderRow}
+          onPress={markDone.onToggle}
+          disabled={!markDone.onToggle}
+        >
+          <Text style={styles.stepTitle}>
+            {t('babySteps.stepPrefix', { number, title })}
+          </Text>
+          <StatusPill checked={markDone.checked} />
+        </Pressable>
+      ) : (
+        <Text style={styles.stepTitle}>
+          {t('babySteps.stepPrefix', { number, title })}
+        </Text>
+      )}
       <ProgressBar
         segments={[
           { percent, color: percent >= 100 ? colors.positive : colors.accent },
@@ -1355,7 +1410,14 @@ function Step({
         <Text style={styles.hint}>{captionText}</Text>
       )}
       <PaceLine pace={pace} paused={paused} />
-      {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
+      {blurb ? (
+        <CollapsibleText
+          text={blurb}
+          maxLines={2}
+          style={styles.blurb}
+          background={colors.surface}
+        />
+      ) : null}
       {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
       {footer}
     </View>
@@ -1400,7 +1462,14 @@ function StatStep({
       </Text>
       <Text style={styles.hint}>{caption}</Text>
       <PaceLine pace={pace} />
-      {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
+      {blurb ? (
+        <CollapsibleText
+          text={blurb}
+          maxLines={2}
+          style={styles.blurb}
+          background={colors.surface}
+        />
+      ) : null}
       {pickerTrigger ? <Text style={styles.hint}>{pickerTrigger}</Text> : null}
     </View>
   );
@@ -1430,20 +1499,31 @@ function ManualStep({
         <Text style={styles.stepTitle}>
           {t('babySteps.stepPrefix', { number, title })}
         </Text>
-        <View style={[styles.statusPill, checked && styles.statusPillDone]}>
-          <Text
-            style={[
-              styles.statusPillText,
-              checked && styles.statusPillTextDone,
-            ]}
-          >
-            {checked ? t('babySteps.markedDone') : t('babySteps.markDone')}
-          </Text>
-        </View>
+        <StatusPill checked={checked} />
       </Pressable>
       <PaceLine paused={paused} />
-      {blurb ? <Text style={styles.blurb}>{blurb}</Text> : null}
+      {blurb ? (
+        <CollapsibleText
+          text={blurb}
+          maxLines={2}
+          style={styles.blurb}
+          background={colors.surface}
+        />
+      ) : null}
       <Text style={styles.hint}>{pickerTrigger}</Text>
+    </View>
+  );
+}
+
+function StatusPill({ checked }: { checked: boolean }) {
+  const t = useT();
+  return (
+    <View style={[styles.statusPill, checked && styles.statusPillDone]}>
+      <Text
+        style={[styles.statusPillText, checked && styles.statusPillTextDone]}
+      >
+        {checked ? t('babySteps.markedDone') : t('babySteps.markDone')}
+      </Text>
     </View>
   );
 }

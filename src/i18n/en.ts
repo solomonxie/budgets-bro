@@ -366,8 +366,8 @@ export const en = {
     'Typing a purchase in takes five seconds, and in those five seconds you notice what you spent. That noticing is the whole point. A bank feed does the typing for you and takes the noticing with it — you end up with a tidy record nobody reads.',
   'settings.bankPrivacy':
     'It would cost privacy too. Bank feeds go through a middleman company that keeps your bank login on its servers — permanent access to every account you have, in someone else’s hands. This app has no servers, so there’s nowhere for that to live.',
-  'settings.bankImport':
-    'Bringing in history is different, and it works: import a YNAB export under Data above. That’s one file you chose to hand over, not a key to your bank.',
+  'settings.bankFresh':
+    'And you don’t need your history. Set each account’s starting balance and record from today on. Missed a few purchases? That’s fine — enter the balance your bank shows, and one adjustment transaction closes the gap.',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renameBoardTitle': 'Rename Board',

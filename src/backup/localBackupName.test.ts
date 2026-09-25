@@ -9,7 +9,7 @@ import {
 
 describe('dailyBackupName', () => {
   it('is one name per board, so it overwrites', () => {
-    expect(dailyBackupName('Household Budget')).toBe('household-budget-daily.zip');
+    expect(dailyBackupName('Household Budget')).toBe('daily_household-budget.zip');
     expect(dailyBackupName('Household Budget')).toBe(dailyBackupName('household budget'));
   });
 });
@@ -17,7 +17,7 @@ describe('dailyBackupName', () => {
 describe('operationBackupName', () => {
   it('names the operation it precedes, and sorts by when', () => {
     const name = operationBackupName('Household Budget', 'YNAB import', new Date('2026-09-18T07:38:09.123Z'));
-    expect(name).toBe('household-budget-before-ynab-import-20260918T073809Z.zip');
+    expect(name).toBe('20260918073809_before-ynab-import_household-budget.zip');
   });
 
   it('cannot collide with the daily file', () => {
@@ -36,7 +36,17 @@ describe('preDeletionBackupName', () => {
   const at = new Date('2026-09-24T20:30:05.500Z');
 
   it('is tagged pre-deletion and stamped', () => {
-    expect(preDeletionBackupName('Household Budget', at)).toBe('household-budget-pre-deletion-20260924T203005Z.zip');
+    expect(preDeletionBackupName('Household Budget', at)).toBe('20260924203005_pre-deletion_household-budget.zip');
+  });
+
+  it('never repeats across wipes a second apart', () => {
+    const next = new Date(at.getTime() + 1000);
+    expect(preDeletionBackupName('My Budget', next)).not.toBe(preDeletionBackupName('My Budget', at));
+  });
+
+  it('still recognises the older stamp', () => {
+    expect(isPreDeletionBackupName('budget-pre-deletion-20260924T203005Z.zip')).toBe(true);
+    expect(isPreDeletionBackupName('budget-pre-deletion-20260924203005.zip')).toBe(true);
   });
 
   it('is told apart from every other backup', () => {

@@ -3,13 +3,11 @@ import { getDb } from '../db/client';
 import * as boardsRepo from '../db/repositories/boardsRepo';
 import * as accountsRepo from '../db/repositories/accountsRepo';
 import * as settingsRepo from '../db/repositories/settingsRepo';
-import { seedDemoBoard } from '../db/seed/demoBoard';
-import { restoreFromICloudIfFirstRun } from '../sync/autoRestore';
 import type { Board } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
 
 const ACTIVE_BOARD_KEY = 'active_board_id';
-const DEMO_BOARD_SEEDED_KEY = 'demo_board_seeded';
+export const FIRST_RUN_DONE_KEY = 'demo_board_seeded';
 
 // Restores whichever board was active last session — mounted once near the
 // app root so every screen sees the right board from the start, not just
@@ -25,31 +23,24 @@ export function useBootstrapActiveBoard() {
   }, [setCurrentBoardId]);
 }
 
-// First-launch board setup: pulls this board back from iCloud if a previous
-// install left one there (sync/autoRestore.ts), then gives every install a
-// "Show Others" demo board (fake, higher-end finances)
-// to switch to before showing someone the app — once only, ever, tracked by
-// a settings flag rather than re-checked by name so deleting it doesn't
-// bring it back uninvited. Settings' "Create Demo Board" button reuses
-// seedDemoBoard directly for a deliberate, on-demand re-creation instead.
-export function useEnsureDemoBoard() {
-  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+// First launch only: the choice between an empty board, the demo board and a
+// backup (screens/onboarding/FirstRunPrompt). Once made — any of the three —
+// it is never asked again. The key predates the prompt: installs that got
+// the demo board automatically already have it set and skip the question.
+export function useFirstRunPending(): [boolean, () => Promise<void>] {
+  const [pending, setPending] = useState(false);
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      const seeded = await settingsRepo.getSetting(db, DEMO_BOARD_SEEDED_KEY);
-      if (seeded) return;
-      // Before seeding, not after, and in the same sequence rather than its
-      // own hook: a reinstall's board comes back from iCloud first so the
-      // demo board lands beside it instead of racing it.
-      const boards = await boardsRepo.listBoards(db);
-      const first = boards[0];
-      if (first) await restoreFromICloudIfFirstRun(db, first.id, first.name);
-      await seedDemoBoard(db);
-      await settingsRepo.setSetting(db, DEMO_BOARD_SEEDED_KEY, '1');
-      bumpDataVersion();
+      setPending(!(await settingsRepo.getSetting(db, FIRST_RUN_DONE_KEY)));
     })();
-  }, [bumpDataVersion]);
+  }, []);
+  const done = useCallback(async () => {
+    const db = await getDb();
+    await settingsRepo.setSetting(db, FIRST_RUN_DONE_KEY, '1');
+    setPending(false);
+  }, []);
+  return [pending, done];
 }
 
 export function useBoards() {

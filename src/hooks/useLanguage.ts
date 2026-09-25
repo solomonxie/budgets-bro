@@ -4,7 +4,7 @@ import * as settingsRepo from '../db/repositories/settingsRepo';
 import { useAppStore } from '../state/useAppStore';
 import type { Language } from '../i18n';
 
-const LANGUAGE_KEY = 'language_preference';
+export const LANGUAGE_KEY = 'language_preference';
 
 // Restores the saved language once near the app root — same pattern as
 // useBoards' useBootstrapActiveBoard.

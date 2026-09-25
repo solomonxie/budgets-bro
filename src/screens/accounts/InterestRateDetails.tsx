@@ -73,14 +73,6 @@ export function InterestRateDetails({ accountId }: { accountId: number }) {
         <Text style={styles.label}>
           {t('accountModal.interestRateHeading')}
         </Text>
-        <InfoButton
-          title={t('accountInfo.rateHistoryTitle')}
-          paragraphs={[
-            t('accountInfo.rateHistoryBody'),
-            t('accountInfo.rateHistoryUse'),
-          ]}
-          closeLabel={t('common.done')}
-        />
         <View style={styles.summaryRight}>
           <Text style={styles.summaryText}>
             {currentRateBps == null
@@ -116,6 +108,15 @@ export function InterestRateDetails({ accountId }: { accountId: number }) {
               </Text>
             </Pressable>
           ))}
+          <InfoButton
+            label={t('common.howThisWorks')}
+            title={t('accountInfo.rateHistoryTitle')}
+            paragraphs={[
+              t('accountInfo.rateHistoryBody'),
+              t('accountInfo.rateHistoryUse'),
+            ]}
+            closeLabel={t('common.done')}
+          />
           {modal == null ? (
             <Pressable
               style={styles.addBtn}

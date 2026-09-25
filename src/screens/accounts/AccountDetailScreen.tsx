@@ -27,27 +27,30 @@ import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { withRunningBalances } from '../../domain/register';
 import { monthlyBalanceTrend } from '../../domain/balanceTrend';
+import { monthlyGrowthRate } from '../../domain/monthlyGrowthRate';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
-import { currentDateISO } from '../../domain/month';
+import { currentDateISO, formatMonthLabel } from '../../domain/month';
 import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
 import { formatMoney, formatMoneyExact } from '../../domain/money';
 import { useAppStore } from '../../state/useAppStore';
 import {
   isLoanLikeType,
   toppedUpByContributions,
-  } from '../../domain/accountKind';
+} from '../../domain/accountKind';
 import {
   duplicateTransactionIds,
   matchesReviewFilter,
 } from '../../domain/transactionReview';
 import type { ReviewFilter } from '../../domain/transactionReview';
 import { LoanDetailsCard } from './LoanDetailsCard';
+import { AccountToolsSection } from './AccountToolsSection';
+import type { LoanPayoff } from './LoanDetailsCard';
 import { InterestRateDetails } from './InterestRateDetails';
 import { HouseValueDetails } from './HouseValueDetails';
 import { TrackingValueDetails } from './TrackingValueDetails';
 import { useAccountValueHistory } from '../../hooks/useAccountValueHistory';
 import { BalanceTrendChart } from './BalanceTrendChart';
-import { useT } from '../../i18n';
+import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type {
@@ -67,7 +70,9 @@ type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<AccountsStackParamList, 'AccountDetail'>;
 
 export function AccountDetailScreen() {
-  const t = useT();
+  const { t, language } = useI18n();
+  // Worked out by the loan card below, shown up here beside the balance.
+  const [loanPayoff, setLoanPayoff] = useState<LoanPayoff | null>(null);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { accountId } = route.params;
@@ -94,11 +99,9 @@ export function AccountDetailScreen() {
   } = useAccountScheduledTransactions(accountId);
   const today = currentDateISO();
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
-  // Open on arrival — the chart is why most people come to this page — but
-  // foldable for the visit, so a long register can be read without it.
-  // Deliberately not remembered: it is a temporary "get out of my way",
-  // not a preference.
-  const [trendExpanded, setTrendExpanded] = useState(true);
+  // Folded on arrival: the balance box is read at a glance, the sections
+  // under it are one tap away.
+  const [trendExpanded, setTrendExpanded] = useState(false);
   // Same filter the history page carries — what is missing a payee or a
   // category, narrowed to this account (see domain/transactionReview).
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter | null>(null);
@@ -132,18 +135,42 @@ export function AccountDetailScreen() {
   // visible at a glance — always, even before any transaction or logged
   // value exists, rather than hiding the row until there's something to
   // show ($0 deposited / +$0 gain is itself a meaningful, correct state).
+  const growthSeries = useMemo(
+    () => (isTracking ? buildGrowthSeries(valueHistory, transactions) : []),
+    [isTracking, valueHistory, transactions],
+  );
   const latestGrowth = useMemo(
     () =>
       isTracking
-        ? (buildGrowthSeries(valueHistory, transactions).at(-1) ?? {
+        ? (growthSeries.at(-1) ?? {
             date: currentDateISO(),
             totalCents: 0,
             depositedCents: 0,
             gainCents: 0,
           })
         : null,
-    [isTracking, valueHistory, transactions],
+    [isTracking, growthSeries],
   );
+
+  // Savings and investments are the accounts meant to grow; a month-by-month
+  // rate says how fast, where a balance alone can't.
+  const isSavings = accountWithBalance?.account.type === 'savings';
+  const growthRate = useMemo(() => {
+    if (isSavings)
+      return monthlyGrowthRate(
+        balanceTrend.map((p) => ({ month: p.month, cents: p.balanceCents })),
+        balanceCents,
+      );
+    if (isTracking)
+      return monthlyGrowthRate(
+        growthSeries.map((p) => ({
+          month: p.date.slice(0, 7),
+          cents: p.totalCents,
+        })),
+        balanceCents,
+      );
+    return null;
+  }, [isSavings, isTracking, balanceTrend, growthSeries, balanceCents]);
 
   // Closing the account (from Edit) removes it from `accounts` — bounce
   // back to the list instead of showing a blank detail page.
@@ -273,6 +300,18 @@ export function AccountDetailScreen() {
                       )}
                     </Text>
                   ) : null}
+                  {growthRate != null ? (
+                    <Text
+                      style={[
+                        styles.growthRateText,
+                        growthRate < 0 && styles.negative,
+                      ]}
+                    >
+                      {t('accountDetail.growthRate', {
+                        rate: `${growthRate >= 0 ? '+' : '−'}${Math.abs(growthRate).toFixed(2)}%`,
+                      })}
+                    </Text>
+                  ) : null}
                   {latestGrowth ? (
                     <View style={styles.depositGainRow}>
                       <Text style={styles.depositedText}>
@@ -291,36 +330,59 @@ export function AccountDetailScreen() {
                     </View>
                   ) : null}
                 </View>
-                {isMortgage ? (
+                {isMortgage || (isLoanLike && loanPayoff) ? (
                   <View style={styles.summaryRight}>
-                    <Text style={styles.summaryLabel}>
-                      {t('houseValueCard.label')}
-                    </Text>
-                    <Text style={styles.houseValueText}>
-                      {currentValueCents == null
-                        ? t('houseValueCard.notSet')
-                        : formatMoney(currentValueCents)}
-                    </Text>
+                    {isMortgage ? (
+                      <>
+                        <Text style={styles.summaryLabel}>
+                          {t('houseValueCard.label')}
+                        </Text>
+                        <Text style={styles.houseValueText}>
+                          {currentValueCents == null
+                            ? t('houseValueCard.notSet')
+                            : formatMoney(currentValueCents)}
+                        </Text>
+                      </>
+                    ) : null}
+                    {isLoanLike && loanPayoff ? (
+                      <>
+                        <Text style={styles.summaryLabel}>
+                          {t('loanDetailsCard.projectedPayoffLabel')}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.houseValueText,
+                            !loanPayoff.date && styles.negative,
+                          ]}
+                        >
+                          {loanPayoff.date
+                            ? formatMonthLabel(
+                                loanPayoff.date.slice(0, 7),
+                                localeTag(language),
+                              )
+                            : t('loanDetailsCard.neverPaidOff')}
+                        </Text>
+                      </>
+                    ) : null}
                   </View>
                 ) : null}
               </View>
               {isMortgage && accountWithBalance ? (
                 <Pressable
                   style={styles.trackingValueHeader}
-                  onPress={() => setTrendExpanded((v) => !v)}
+                  onPress={() => setTrendExpanded(!trendExpanded)}
                 >
                   <Text style={styles.trackingValueHeaderText}>
                     {t('houseValueCard.label')}
                   </Text>
-                  <InfoButton
-                    title={t('accountInfo.houseValueTitle')}
-                    paragraphs={[
-                      t('accountInfo.houseValueBody'),
-                      t('accountInfo.houseValueUse'),
-                    ]}
-                    closeLabel={t('common.done')}
-                  />
-                  <DisclosureChevron expanded={trendExpanded} />
+                  <View style={styles.sectionHeaderRight}>
+                    <Text style={styles.sectionHeaderValue}>
+                      {currentValueCents == null
+                        ? t('houseValueCard.notSet')
+                        : formatMoney(currentValueCents)}
+                    </Text>
+                    <DisclosureChevron expanded={trendExpanded} />
+                  </View>
                 </Pressable>
               ) : null}
               {isMortgage && accountWithBalance && trendExpanded ? (
@@ -331,24 +393,27 @@ export function AccountDetailScreen() {
                   transactions={transactions}
                   currentValueCents={currentValueCents}
                   refresh={refreshValueHistory}
+                  info={
+                    <InfoButton
+                      label={t('common.howThisWorks')}
+                      title={t('accountInfo.houseValueTitle')}
+                      paragraphs={[
+                        t('accountInfo.houseValueBody'),
+                        t('accountInfo.houseValueUse'),
+                      ]}
+                      closeLabel={t('common.done')}
+                    />
+                  }
                 />
               ) : null}
               {hasValueHistory && accountWithBalance ? (
                 <Pressable
                   style={styles.trackingValueHeader}
-                  onPress={() => setTrendExpanded((v) => !v)}
+                  onPress={() => setTrendExpanded(!trendExpanded)}
                 >
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
-                  <InfoButton
-                    title={t('accountInfo.valueHistoryTitle')}
-                    paragraphs={[
-                      t('accountInfo.valueHistoryBody'),
-                      t('accountInfo.valueHistoryUse'),
-                    ]}
-                    closeLabel={t('common.done')}
-                  />
                   <DisclosureChevron expanded={trendExpanded} />
                 </Pressable>
               ) : null}
@@ -360,24 +425,27 @@ export function AccountDetailScreen() {
                   transactions={transactions}
                   mode={isAsset ? 'single' : 'stacked'}
                   refresh={refreshValueHistory}
+                  info={
+                    <InfoButton
+                      label={t('common.howThisWorks')}
+                      title={t('accountInfo.valueHistoryTitle')}
+                      paragraphs={[
+                        t('accountInfo.valueHistoryBody'),
+                        t('accountInfo.valueHistoryUse'),
+                      ]}
+                      closeLabel={t('common.done')}
+                    />
+                  }
                 />
               ) : null}
               {showsBalanceTrend && accountWithBalance ? (
                 <Pressable
                   style={styles.trackingValueHeader}
-                  onPress={() => setTrendExpanded((v) => !v)}
+                  onPress={() => setTrendExpanded(!trendExpanded)}
                 >
                   <Text style={styles.trackingValueHeaderText}>
                     {t('trackingValueCard.label')}
                   </Text>
-                  <InfoButton
-                    title={t('accountInfo.valueHistoryTitle')}
-                    paragraphs={[
-                      t('accountInfo.valueHistoryBody'),
-                      t('accountInfo.valueHistoryUse'),
-                    ]}
-                    closeLabel={t('common.done')}
-                  />
                   <DisclosureChevron expanded={trendExpanded} />
                 </Pressable>
               ) : null}
@@ -387,6 +455,17 @@ export function AccountDetailScreen() {
                     points={balanceTrend}
                     showSpending={isCreditCard}
                   />
+                  <View style={styles.sectionInfo}>
+                    <InfoButton
+                      label={t('common.howThisWorks')}
+                      title={t('accountInfo.valueHistoryTitle')}
+                      paragraphs={[
+                        t('accountInfo.valueHistoryBody'),
+                        t('accountInfo.valueHistoryUse'),
+                      ]}
+                      closeLabel={t('common.done')}
+                    />
+                  </View>
                 </View>
               ) : null}
               {isCashOrSavings ? (
@@ -396,7 +475,11 @@ export function AccountDetailScreen() {
                 <LoanDetailsCard
                   account={accountWithBalance.account}
                   transactions={transactions}
+                  onPayoff={setLoanPayoff}
                 />
+              ) : null}
+              {accountWithBalance ? (
+                <AccountToolsSection type={accountWithBalance.account.type} />
               ) : null}
             </View>
             {futureTransactions.length > 0 ||
@@ -675,6 +758,7 @@ const styles = StyleSheet.create({
   summaryLeft: { gap: spacing.xs },
   summaryLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   planLabel: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  growthRateText: { fontSize: 12, fontWeight: '600', color: colors.positive },
   summaryRight: { alignItems: 'flex-end', gap: spacing.xs },
   summaryLabel: {
     fontSize: 12,
@@ -702,6 +786,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
   },
+  sectionInfo: { marginTop: spacing.sm },
+  sectionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  sectionHeaderValue: { fontSize: 13, fontWeight: '700', color: colors.text },
   trackingValueHeaderText: {
     fontSize: 13,
     fontWeight: '700',

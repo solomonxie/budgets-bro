@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getDb } from '../../db/client';
@@ -32,6 +33,7 @@ export function HouseValueDetails({
   transactions,
   currentValueCents,
   refresh,
+  info,
 }: {
   account: Account;
   balanceCents: number;
@@ -40,6 +42,8 @@ export function HouseValueDetails({
   transactions: { amountCents: number; date: string }[];
   currentValueCents: number | null;
   refresh: () => void;
+  // Under the chart, above the readings — the section's "How this works".
+  info?: ReactNode;
 }) {
   const t = useT();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -143,6 +147,7 @@ export function HouseValueDetails({
           top: t('houseValueCard.equityLabel'),
         }}
       />
+      {info}
       {history.map((h) => (
         <Pressable
           key={h.id}

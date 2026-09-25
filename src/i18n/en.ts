@@ -249,6 +249,7 @@ export const en = {
   'settings.privacyBody':
     'Everything stays in one file on this iPhone and is worked out here — the app runs fine with no network. There’s no Budgets Bro server and no account, so nothing ever reaches us. Your data goes only where you send it: your own iCloud or S3 for backups, your own key for AI analysis. Keys stay in the Keychain, never in a backup. Export the board any time; delete the app and the data goes with it.',
   'common.more': 'More',
+  'common.howThisWorks': 'How this works',
   'common.less': 'Less',
   'accountModal.trackingKindLabel': 'Plan type',
   'accountModal.trackingKindHint': 'Don’t see yours? Choose General.',
@@ -438,6 +439,8 @@ export const en = {
   'accounts.kindGiving': 'Giving',
   'accounts.notInNetWorth': 'not counted in net worth',
 
+  'accountDetail.calculators': 'Calculators',
+  'accountDetail.growthRate': 'Growth {rate}/mo · 12-mo avg',
   'accountDetail.balance': 'Balance',
   'accountDetail.remainingPrincipal': 'Remaining Principal',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
@@ -567,6 +570,7 @@ export const en = {
   'loanDetailsCard.extraPaymentLabel': 'Extra monthly payment',
   'loanDetailsCard.projectedPayoffLabel': 'Projected payoff',
   'loanDetailsCard.payoffValue': '{date} ({months} mo)',
+  'loanDetailsCard.neverPaidOff': 'Never at this payment',
   'loanDetailsCard.paymentTooLow': 'Payment doesn’t cover the interest',
   'loanDetailsCard.remainingInterestLabel': 'Interest left (est.)',
   'loanDetailsCard.lastPaymentLabel': 'Last payment ({date})',

@@ -4,6 +4,8 @@ import { AccountDetailScreen } from '../screens/accounts/AccountDetailScreen';
 import { ClosedAccountsScreen } from '../screens/accounts/ClosedAccountsScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
+import { FinanceToolScreen } from '../screens/finance-tools/FinanceToolScreen';
+import { financeTool } from '../screens/finance-tools/registry';
 import type { AccountsStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AccountsStackParamList>();
@@ -19,6 +21,11 @@ export function AccountsStackNavigator() {
       />
       <Stack.Screen name="AccountDetail" component={AccountDetailScreen} options={{ title: '' }} />
       <Stack.Screen name="ClosedAccounts" component={ClosedAccountsScreen} options={{ title: t('accounts.closedAccounts') }} />
+      <Stack.Screen
+        name="FinanceTool"
+        component={FinanceToolScreen}
+        options={({ route }) => ({ title: t(financeTool(route.params.tool).titleKey) })}
+      />
     </Stack.Navigator>
   );
 }

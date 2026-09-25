@@ -151,7 +151,9 @@ export function AccountModal() {
   // Only meaningful on a tracking account; left as typed for every other
   // type so switching type back and forth doesn't quietly lose it.
   const [trackingKind, setTrackingKind] = useState<TrackingKind>('general');
-  const [loanPaymentCategoryId, setLoanPaymentCategoryId] = useState<number | null>(null);
+  const [loanPaymentCategoryId, setLoanPaymentCategoryId] = useState<
+    number | null
+  >(null);
   const [rateModal, setRateModal] = useState<{
     editing: AccountRateChange | null;
   } | null>(null);
@@ -1064,24 +1066,39 @@ export function AccountModal() {
                   compact
                   label={t('common.category')}
                   valueLabel={(() => {
-                    const category = categories.find((c) => c.id === loanPaymentCategoryId);
-                    return category ? `${category.icon ? category.icon + ' ' : ''}${category.name}` : '';
+                    const category = categories.find(
+                      (c) => c.id === loanPaymentCategoryId,
+                    );
+                    return category
+                      ? `${category.icon ? category.icon + ' ' : ''}${category.name}`
+                      : '';
                   })()}
                   placeholder={t('accountModal.loanPaymentCategoryPlaceholder')}
                 >
-                  {(close) => groups.map((group) => {
-                    const options = categories.filter((c) => c.groupId === group.id && c.archivedAt == null);
-                    if (!options.length) return null;
-                    return <View key={group.id}>
-                      <DropdownGroupLabel label={group.name} />
-                      {options.map((category) => <DropdownOption
-                        key={category.id}
-                        label={`${category.icon ? category.icon + ' ' : ''}${category.name}`}
-                        selected={loanPaymentCategoryId === category.id}
-                        onPress={() => { setLoanPaymentCategoryId(category.id); close(); }}
-                      />)}
-                    </View>;
-                  })}
+                  {(close) =>
+                    groups.map((group) => {
+                      const options = categories.filter(
+                        (c) => c.groupId === group.id && c.archivedAt == null,
+                      );
+                      if (!options.length) return null;
+                      return (
+                        <View key={group.id}>
+                          <DropdownGroupLabel label={group.name} />
+                          {options.map((category) => (
+                            <DropdownOption
+                              key={category.id}
+                              label={`${category.icon ? category.icon + ' ' : ''}${category.name}`}
+                              selected={loanPaymentCategoryId === category.id}
+                              onPress={() => {
+                                setLoanPaymentCategoryId(category.id);
+                                close();
+                              }}
+                            />
+                          ))}
+                        </View>
+                      );
+                    })
+                  }
                 </DropdownField>
                 <TextField
                   label={t('accountModal.noteLabel')}

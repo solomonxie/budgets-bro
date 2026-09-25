@@ -291,8 +291,16 @@ export function ValueHistoryChart({
               ))}
               {mode === 'overlay' ? (
                 <>
-                  <Polygon points={baseArea} fill={baseColor} fillOpacity={0.25} />
-                  <Polygon points={topArea} fill={gainColor} fillOpacity={0.25} />
+                  <Polygon
+                    points={baseArea}
+                    fill={baseColor}
+                    fillOpacity={0.25}
+                  />
+                  <Polygon
+                    points={topArea}
+                    fill={gainColor}
+                    fillOpacity={0.25}
+                  />
                   <Polyline
                     points={baseLine}
                     fill="none"

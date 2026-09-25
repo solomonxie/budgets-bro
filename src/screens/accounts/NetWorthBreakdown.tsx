@@ -39,7 +39,10 @@ export function NetWorthBreakdown({
   // Biggest contribution first, debts last — the month is read top-down,
   // and what made it is whatever is at the ends of that list.
   const rows = point.contributions
-    .map((c) => ({ ...c, totalCents: c.balanceCents + (c.houseValueCents ?? 0) }))
+    .map((c) => ({
+      ...c,
+      totalCents: c.balanceCents + (c.houseValueCents ?? 0),
+    }))
     .sort((a, b) => b.totalCents - a.totalCents);
 
   return (
@@ -64,7 +67,9 @@ export function NetWorthBreakdown({
               <Text style={styles.name}>{nameOf(c.accountId)}</Text>
               <Text style={styles.sub}>
                 {[
-                  t(SOURCE_LABELS[c.source] ?? 'netWorthBreakdown.sourceLedger'),
+                  t(
+                    SOURCE_LABELS[c.source] ?? 'netWorthBreakdown.sourceLedger',
+                  ),
                 ]
                   .concat(
                     c.houseValueCents != null

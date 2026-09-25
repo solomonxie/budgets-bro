@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { FlaggedBanner } from '../../components/ui/FlaggedBanner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { categoryBarSegments } from '../../domain/budgetMath';
@@ -269,6 +270,7 @@ export function BudgetScreen() {
         viewportHeight.current = e.nativeEvent.layout.height;
       }}
     >
+      <FlaggedBanner />
       <MonthNav
         label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}

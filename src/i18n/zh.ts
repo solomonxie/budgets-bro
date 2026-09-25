@@ -788,6 +788,8 @@ export const zh: Record<keyof typeof en, string> = {
   'review.reasonDuplicate': '重复',
   'review.reasonZeroAmount': '零额',
   'review.reasonTransferMissingLeg': '缺配对',
+  'review.bannerOne': '⚠ 有 1 项需要查看',
+  'review.bannerMany': '⚠ 有 {count} 项需要查看',
   'review.reasonTransferAmountMismatch': '不一致',
   'review.reasonTransferSelfNamed': '自指',
   'review.reasonTransferUnlinked': '未关联',

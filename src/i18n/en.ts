@@ -809,6 +809,8 @@ export const en = {
   'review.reasonDuplicate': 'Duplicate',
   'review.reasonZeroAmount': 'Zero',
   'review.reasonTransferMissingLeg': 'Unpaired',
+  'review.bannerOne': '⚠ 1 item needs a look',
+  'review.bannerMany': '⚠ {count} items need a look',
   'review.reasonTransferAmountMismatch': 'Mismatch',
   'review.reasonTransferSelfNamed': 'Self-named',
   'review.reasonTransferUnlinked': 'Unlinked',

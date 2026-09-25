@@ -21,12 +21,14 @@ export function ExpandingSection({
   label,
   summary,
   children,
+  onExpand,
 }: {
   label: string;
   // What is in there, read from the collapsed row — a memo's first line, the
   // item names. Empty shows the label alone, as any unfilled row does.
   summary: string;
   children: ReactNode;
+  onExpand?: () => void;
 }) {
   const inline = useExpandingField();
   return (
@@ -34,7 +36,10 @@ export function ExpandingSection({
       <FieldRow
         label={label}
         value={summary}
-        onPress={() => inline?.toggle()}
+        onPress={() => {
+          if (!inline?.expanded) onExpand?.();
+          inline?.toggle();
+        }}
         expanded={inline?.expanded}
       />
       {inline?.expanded ? (

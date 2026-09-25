@@ -742,6 +742,7 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.aiSummaryTitle': 'AI 摘要',
   'taxInsights.aiSummaryMessage': 'AI 摘要将在后续版本推出。',
 
+  'transactions.spendingByMonth': '每月支出',
   'transactions.searchPlaceholder': '搜索收款方或备注',
   'transactions.selectedCount': '已选 {count} 条',
   'transactions.deleteSelectedConfirmTitle': '删除 {count} 条流水？',

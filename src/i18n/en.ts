@@ -763,6 +763,7 @@ export const en = {
   'taxInsights.aiSummaryTitle': 'AI summary',
   'taxInsights.aiSummaryMessage': 'AI summary is coming in a future update.',
 
+  'transactions.spendingByMonth': 'Spending by month',
   'transactions.searchPlaceholder': 'Search payee or memo',
   'transactions.selectedCount': '{count} selected',
   'transactions.deleteSelectedConfirmTitle': 'Delete {count} transactions?',

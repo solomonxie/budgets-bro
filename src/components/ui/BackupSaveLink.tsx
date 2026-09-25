@@ -34,7 +34,7 @@ export function BackupSaveLink({ boardId, boardName, onSave, onSaved }: BackupSa
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const defaultName = backupKey(boardName, currentDateISO());
+  const defaultName = backupKey(boardName, currentDateISO(), 'manual');
 
   const save = async (typed: string) => {
     setPrompting(false);

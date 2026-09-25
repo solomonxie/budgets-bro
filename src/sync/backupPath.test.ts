@@ -24,14 +24,25 @@ describe('slugifyBoardName', () => {
 });
 
 describe('backupKey', () => {
-  it('is <YYYYMMDD>-<slug>.zip', () => {
-    expect(backupKey('Household Budget', '2026-09-15')).toBe('20260915-household-budget.zip');
+  it('is <YYYYMMDD>_<purpose>_<slug>.zip', () => {
+    expect(backupKey('Household Budget', '2026-09-15')).toBe('20260915_daily_household-budget.zip');
+    expect(backupKey('Main', '2026-09-15', 'manual')).toBe('20260915_manual_main.zip');
+  });
+
+  it('is its board series, alongside the older date-first shape', () => {
+    const keys = ['20260914-main.zip', backupKey('Main', '2026-09-15'), backupKey('Main', '2026-09-16', 'manual')];
+    expect(latestBackupKey(keys, 'Main')).toBe('20260915_daily_main.zip');
+    expect(staleBackupKeys(keys, 'Main', 1)).toEqual(['20260914-main.zip']);
+  });
+
+  it('is not claimed by a board whose name starts with daily', () => {
+    expect(isBackupKeyForBoard(backupKey('Main', '2026-09-15'), 'Daily Main')).toBe(false);
   });
 
   it('is one file per day, so re-syncing the same day replaces it', () => {
     expect(backupKey('Main', '2026-09-30')).toBe(backupKey('Main', '2026-09-30'));
     expect(backupKey('Main', '2026-09-01')).not.toBe(backupKey('Main', '2026-09-30'));
-    expect(backupKey('Main', '2027-01-03')).toBe('20270103-main.zip');
+    expect(backupKey('Main', '2027-01-03')).toBe('20270103_daily_main.zip');
   });
 });
 

@@ -1,5 +1,6 @@
-// Backup object keys: `<YYYYMMDD>-<board-slug>.zip`, one object per board per
-// day, wherever the backup lands. Re-backing up the same day replaces that
+// Backup object keys: `<YYYYMMDD>_daily_<board-slug>.zip`, one object per
+// board per day, wherever the backup lands. When, why, whose — the same
+// order as the local files (backup/localBackupName.ts). Re-backing up the same day replaces that
 // day's object; a history of near-identical zips is not a history.
 //
 // Date first so a bucket listing or a Files folder sorts itself
@@ -9,7 +10,7 @@
 // What differs between destinations is retention, not the name: the OS cloud
 // drive keeps the latest few and prunes (it's storage the user pays for), a
 // bucket keeps everything (see CloudProvider.keepLatest). Earlier shapes —
-// a file per month, `<slug>-latest.zip`, `<slug>-<YYYYMMDD>.zip` inside month
+// `<YYYYMMDD>-<slug>.zip`, a file per month, `<slug>-latest.zip`, `<slug>-<YYYYMMDD>.zip` inside month
 // folders, and `<boardId>/latest.zip` — are all still recognised for restore,
 // since somebody's only copy may still be under one of them.
 
@@ -19,8 +20,10 @@ export function slugifyBoardName(boardName: string): string {
   return boardName.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'board';
 }
 
-export function backupKey(boardName: string, dateIso: string): string {
-  return `${dateIso.replace(/-/g, '').slice(0, 8)}-${slugifyBoardName(boardName)}.zip`;
+// Only 'daily' is recognised below as this board's series — anything else
+// (a manual copy) is never pruned or picked for restore.
+export function backupKey(boardName: string, dateIso: string, purpose = 'daily'): string {
+  return `${dateIso.replace(/-/g, '').slice(0, 8)}_${purpose}_${slugifyBoardName(boardName)}.zip`;
 }
 
 // How recent a key is, as a fixed-width string that sorts lexicographically
@@ -31,6 +34,8 @@ export function backupKey(boardName: string, dateIso: string): string {
 function recencyToken(key: string, boardName: string): string | null {
   // Escaping isn't needed — the slug is already [a-z0-9-] only.
   const slug = slugifyBoardName(boardName);
+  const current = key.match(new RegExp(`(^|/)(\\d{8})_daily_${slug}\\.zip$`));
+  if (current) return current[2];
   const dateFirst = key.match(new RegExp(`(^|/)(\\d{8})-${slug}\\.zip$`));
   if (dateFirst) return dateFirst[2];
   const monthly = key.match(new RegExp(`(^|/)(\\d{6})-${slug}\\.zip$`));

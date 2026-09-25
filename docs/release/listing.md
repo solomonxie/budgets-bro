@@ -117,13 +117,11 @@ Hello, thank you for the review. Answers below, and the same text is now in the 
 
 ## Screenshots
 
-App Store Connect slot **iPhone 6.5" Display** requires exactly `1284 × 2778` (or `1242 × 2688`).
-The 6.9" slot takes `1320 × 2868`. Upload one set; App Store Connect scales it for smaller phones.
+App Store Connect slot **iPhone 6.9" Display** takes `1320 × 2868`. Upload that one set; App Store Connect scales it for smaller phones.
 
 Ready now — nine Release-build shots (2026-09-24), upload in filename order:
 
-- `docs/release/screenshots/6.5/*.jpg` — 1284 × 2778
-- `docs/release/screenshots/6.9/*.jpg` — 1320 × 2868
+- `docs/release/screenshots/*.jpg` — 1320 × 2868
 
 To recapture:
 
@@ -145,7 +143,7 @@ To recapture:
 scripts/store-screenshots.sh ~/Desktop/shots
 ```
 
-Outputs overwrite `docs/release/screenshots/{6.5,6.9}/`. Drag the `6.5` folder's files into the 6.5" slot (or `6.9` into 6.9").
+Outputs overwrite `docs/release/screenshots/`. Drag its files into the 6.9" slot.
 
 App Preview video: skip for 1.0.
 

@@ -22,8 +22,21 @@ export function dailyBackupName(boardName: string): string {
 // `op` names what the file precedes, not what it contains: you read it when
 // looking for "the one from before I imported YNAB".
 export function operationBackupName(boardName: string, op: string, at: Date): string {
-  const stamp = at.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-  return `${slugifyBoardName(boardName)}-before-${slugifyBoardName(op)}-${stamp}${SUFFIX}`;
+  return `${slugifyBoardName(boardName)}-before-${slugifyBoardName(op)}-${stamp(at)}${SUFFIX}`;
+}
+
+// Written by Remove all app data, which then deletes every other backup —
+// so these are the one kind neither that wipe nor age pruning touches.
+export function preDeletionBackupName(boardName: string, at: Date): string {
+  return `${slugifyBoardName(boardName)}-pre-deletion-${stamp(at)}${SUFFIX}`;
+}
+
+export function isPreDeletionBackupName(name: string): boolean {
+  return /-pre-deletion-\d{8}T\d{6}Z\.zip$/.test(name);
+}
+
+function stamp(at: Date): string {
+  return at.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 }
 
 export function isBackupFileName(name: string): boolean {

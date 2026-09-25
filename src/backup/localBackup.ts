@@ -9,7 +9,13 @@ import {
 } from '../files/fileStore';
 import type { SQLiteDatabase } from '../db/driver';
 import { buildBackupZip } from '../sync/buildBackup';
-import { dailyBackupName, isBackupFileName, isStale, operationBackupName } from './localBackupName';
+import {
+  dailyBackupName,
+  isBackupFileName,
+  isPreDeletionBackupName,
+  isStale,
+  operationBackupName,
+} from './localBackupName';
 
 // Tier 1: the copy that lives on the phone, in the app's own Documents
 // folder, where the Files app can see it ("On My iPhone → Budgets Bro →
@@ -52,6 +58,7 @@ export async function pruneLocalBackups(now = new Date()): Promise<number> {
   let removed = 0;
   for (const entry of entries) {
     if (!isBackupFileName(entry.name)) continue;
+    if (isPreDeletionBackupName(entry.name)) continue;
     if (!isStale(entry.modifiedAt, now)) continue;
     await removePath(entry.path);
     removed += 1;
@@ -59,9 +66,12 @@ export async function pruneLocalBackups(now = new Date()): Promise<number> {
   return removed;
 }
 
-async function write(db: SQLiteDatabase, boardId: number, boardName: string, name: string): Promise<string> {
-  const bytes = await buildBackupZip(db, boardId, boardName);
+export async function writeLocalBackupBytes(name: string, bytes: Uint8Array): Promise<void> {
   await writeBytes(joinPath(await dir(), name), bytes);
+}
+
+async function write(db: SQLiteDatabase, boardId: number, boardName: string, name: string): Promise<string> {
+  await writeLocalBackupBytes(name, await buildBackupZip(db, boardId, boardName));
   return name;
 }
 
@@ -97,11 +107,14 @@ export async function readLocalBackup(name: string): Promise<Uint8Array | null> 
   return readBytes(joinPath(await dir(), name));
 }
 
-export async function deleteAllLocalBackups(): Promise<number> {
+export async function deleteAllLocalBackups(
+  { keepPreDeletion = false }: { keepPreDeletion?: boolean } = {},
+): Promise<number> {
   const entries = await listFiles(await dir());
   let removed = 0;
   for (const entry of entries) {
     if (!isBackupFileName(entry.name)) continue;
+    if (keepPreDeletion && isPreDeletionBackupName(entry.name)) continue;
     await removePath(entry.path);
     removed += 1;
   }

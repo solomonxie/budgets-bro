@@ -376,8 +376,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.removeAllData': '删除所有应用数据',
   'settings.removeAllDataConfirmTitle': '删除所有应用数据？',
   'settings.removeAllDataConfirmMessage':
-    '将删除本机所有账本、设置、已保存的 AI 和 S3 密钥以及本地备份。删除前会先弹出一个包含全部账本导出的 .zip，选「存储到文件」即可保留副本；取消保存则不会删除任何内容。iCloud 云盘和 S3 中的备份不受影响。',
-  'settings.removeAllDataExportDelete': '导出后删除',
+    '将删除本机所有账本、设置、已保存的 AI 和 S3 密钥以及本地备份。删除前会先把所有账本备份到「文件」（我的 iPhone → Budgets Bro → Backups），如已开启 iCloud 云盘和 S3，也会一并备份。这份备份不会被删除，iCloud 云盘和 S3 中已有的备份也不受影响。',
+  'settings.removeAllDataConfirm': '删除',
   'settings.removeAllDataCompleteTitle': '应用数据已删除',
   'settings.removeAllDataCompleteMessage': '本机数据已清除，现在是一个空账本。',
   'settings.removeAllDataFailedTitle': '无法删除应用数据',

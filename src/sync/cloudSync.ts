@@ -176,6 +176,30 @@ async function upload(
   );
 }
 
+// Files under their own names to every destination that's switched on — no
+// pruning, no sync bookkeeping. backupPath only recognises dated keys, so
+// these are never pruned or picked as a board's latest.
+export async function uploadNamedBackups(
+  db: SQLiteDatabase,
+  files: { name: string; bytes: Uint8Array }[],
+): Promise<SyncOutcome[]> {
+  const providers = await collectProviders(db);
+  const enabled = await Promise.all(providers.map((p) => isSyncEnabled(db, p.id)));
+  return Promise.all(
+    providers
+      .filter((_, i) => enabled[i])
+      .map(async (provider) => {
+        try {
+          for (const file of files) await provider.upload(file.bytes, file.name);
+          return { providerId: provider.id, syncedAt: new Date().toISOString(), error: null };
+        } catch (e) {
+          console.warn(`[cloudSync] ${provider.id} upload failed`, e);
+          return { providerId: provider.id, syncedAt: null, error: e instanceof Error ? e.message : String(e) };
+        }
+      }),
+  );
+}
+
 // After the upload, never before: a prune that runs first can delete the
 // last good copy and then fail to replace it. Failures here are swallowed on
 // purpose — the backup is already up, and a destination that won't let us

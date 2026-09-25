@@ -11,7 +11,8 @@ import { spacing } from '../../theme/spacing';
 // whether or not the account above it offers a Category row, instead of
 // riding up and down with the row count.
 // `large` is for a form typed into many times a day (the spend page): taller
-// rows and bigger type, at the cost of pushing what's below further down.
+// rows, at the cost of pushing what's below further down. Type stays at the
+// normal size: rows got narrower, and big type in them read as cramped.
 const LargeRows = createContext(false);
 
 export function useLargeFieldRows(): boolean {
@@ -131,11 +132,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
-  // Big type, tight padding: at 60pt a row, six of them pushed the spend
+  // Tight padding: at 60pt a row, six of them pushed the spend
   // page's pad below the bottom of a 14-sized screen.
   rowLarge: { minHeight: 50, paddingVertical: 5 },
-  rowLabelLarge: { fontSize: 13, marginBottom: 1 },
-  rowValueLarge: { fontSize: 18 },
+  rowLabelLarge: { fontSize: 12, marginBottom: 1 },
+  rowValueLarge: { fontSize: 16 },
   rowPressed: { backgroundColor: colors.border },
   rowText: { flex: 1 },
   rowLabel: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },

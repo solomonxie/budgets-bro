@@ -30,18 +30,18 @@ AddTransactionScreen.tsx  (root stack route)
 ├───────────────────────────────┤
 │ Amount (pinned) + Spend/Income  │──→ inline; never scrolls, the pad below
 │                                  │    is always editing it
+│ "From/To <account> ▾" link      │──→ ../../components/ui/DropdownField.tsx (link)
 ├─────────── scrolls ───────────┤
 │ Payee (SearchableDropdownField) │──→ ../../components/ui/SearchableDropdownField.tsx
 │ Category (DropdownField,        │──→ ../../components/ui/DropdownField.tsx
 │  hidden for tracking accounts)   │
 │ Date (DateField)                │──→ ../../components/ui/DateField.tsx
-│ Account (DropdownField)         │──→ ../../components/ui/DropdownField.tsx
-│  ↳ all four unfold in place,     │──→ ../../components/ui/ExpandingField.tsx
+│  ↳ all pickers unfold in place,  │──→ ../../components/ui/ExpandingField.tsx
 │    pushing the pad down          │    (ExpandingFieldGroup wraps the form)
 │ Memo (card row, one line,       │──→ inline
 │  Return closes it)               │
-│ Items (name + price rows, one   │──→ ../../components/ui/ExpandingSection.tsx
-│  blank row to type the next;     │    + ../../components/ui/PurchaseItemsField.tsx
+│ Items (one row → its own page,  │──→ PurchaseItemsPage.tsx
+│  prices on its number pad;       │    (list: ../../components/ui/PurchaseItemsField.tsx)
 │  hidden for scheduled)           │
 │ Repeat fields (when scheduled)  │──→ ../../components/ui/RepeatField.tsx
 │ Number pad (0-9, C, ⌫)          │──→ ../../components/ui/NumberPad.tsx

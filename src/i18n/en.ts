@@ -247,7 +247,7 @@ export const en = {
   'settings.privacyHeading': 'Privacy',
   'settings.privacyTitle': 'Your money data stays yours.',
   'settings.privacyBody':
-    'Everything stays in one file on this iPhone and is worked out here — the app runs fine with no network. There’s no Budgets Bro server and no account, so nothing ever reaches us. Your data goes only where you send it: your own iCloud or S3 for backups, your own key for AI analysis. Keys stay in the Keychain, never in a backup. Export the board any time; delete the app and the data goes with it.',
+    'This is an offline app: there’s no remote server behind it and no account. Everything stays on this iPhone. If you choose to, you can back up or sync to cloud storage of your own — your iCloud or S3 — and use your own key for AI analysis. Secret info — passcode and API keys — is kept safe in the iPhone Keychain and excluded from backups.',
   'common.more': 'More',
   'common.howThisWorks': 'How this works',
   'common.less': 'Less',
@@ -391,9 +391,9 @@ export const en = {
   'settings.removeAllDataCompleteTitle': 'App data removed',
   'settings.removeAllDataCompleteMessage':
     'Everything on this iPhone was removed. You’re starting with an empty board.',
-  'settings.removeAllDataFailedTitle': 'Couldn’t remove app data',
   'settings.removeAllDataUploadFailed':
     'The backup didn’t reach {destinations} — it’s only in Files (On My iPhone → Budgets Bro → Backups).',
+  'settings.removeAllDataFailedTitle': 'Couldn’t remove app data',
   'settings.removeAllDataFailedMessage': 'Something went wrong.',
   'settings.resetBoardName': 'My Budget',
 
@@ -425,9 +425,9 @@ export const en = {
   'accounts.customize': 'Customize',
   'accounts.assets': 'Assets {amount}',
   'accounts.debts': 'Debts {amount}',
-  'accounts.includeInNetWorth': 'Include in Net Worth',
   'accounts.growth12m': '12 mo {rate}',
   'accounts.growthSince': '{rate} since {month}',
+  'accounts.includeInNetWorth': 'Include in Net Worth',
   'accounts.addAccount': '+ Add Account',
   'accounts.closedAccounts': 'Closed Accounts',
   'accounts.kindCash': 'Cash',
@@ -706,13 +706,13 @@ export const en = {
   'babySteps.downPaymentAccountsLabel': 'Down payment accounts',
   'babySteps.educationAccountsLabel': 'Accounts for kids’ education',
   'babySteps.givingCategoriesLabel': 'Categories for giving',
+  'babySteps.givingAccountsLabel': 'Accounts for giving',
   'babySteps.goalAccountLabel': 'Account to track',
   'babySteps.accountsCount': '{count} accounts',
   'babySteps.categoriesCount': '{count} categories',
   'babySteps.noAccountsAvailable': 'No accounts available',
   'babySteps.noCategoriesAvailable': 'No categories available',
   'babySteps.goalsHeading': 'Your Goals',
-  'babySteps.givingAccountsLabel': 'Accounts for giving',
   'babySteps.goalsHint':
     'Your own savings goals — a car, a trip — separate from the Baby Steps above and not counted in their progress. Track each by hand or from a linked account’s balance.',
   'babySteps.addGoal': '+ Add Goal',
@@ -809,6 +809,8 @@ export const en = {
   'taxInsights.guideHeading': 'The year’s figures, ready for tax time',
   'taxInsights.guideBody':
     'Not a tax return and not advice — this gathers the figures a return usually asks for, from the transactions you already keep: what came in and from whom, interest earned and paid, gains on investment accounts, and what you gave away. You choose which categories mean interest and which mean giving, because only you know how you named them. Everything covers the calendar year shown, and none of it leaves this iPhone.',
+  'review.bannerOne': '⚠ 1 item needs a look',
+  'review.bannerMany': '⚠ {count} items need a look',
   'review.title': 'Flagged Transactions',
   'review.chipAll': 'All {count}',
   'review.reasonMissingPayee': 'Payee',
@@ -816,8 +818,6 @@ export const en = {
   'review.reasonDuplicate': 'Duplicate',
   'review.reasonZeroAmount': 'Zero',
   'review.reasonTransferMissingLeg': 'Unpaired',
-  'review.bannerOne': '⚠ 1 item needs a look',
-  'review.bannerMany': '⚠ {count} items need a look',
   'review.reasonTransferAmountMismatch': 'Mismatch',
   'review.reasonTransferSelfNamed': 'Self-named',
   'review.reasonTransferUnlinked': 'Unlinked',

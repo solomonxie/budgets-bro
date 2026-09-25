@@ -8,8 +8,6 @@ import {
 import {
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,7 +19,6 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../state/useAppStore';
 import { useAccounts } from '../../hooks/useAccounts';
@@ -96,7 +93,6 @@ function AddTransactionForm() {
   const editingTransactionId = params?.transactionId ?? null;
   const presetAccountId = params?.presetAccountId ?? null;
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const lastAccountId = useAppStore((s) => s.lastAccountId);
@@ -131,10 +127,32 @@ function AddTransactionForm() {
   // opens straight over the row just tapped. Nothing scrolls a focused
   // input into view on its own here — the row lives inside a picker panel
   // unfolded mid-card — so the row says where it is and the page scrolls by
-  // exactly the overlap.
+  // exactly the overlap. The scroll view's keyboard inset is what gives it
+  // room to scroll that far.
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const rowToReveal = useRef<View | null>(null);
+  const padRef = useRef<View>(null);
+
+  // Opening Items pushes the pad below the fold; bring all of it back.
+  const revealPad = useCallback(() => {
+    Keyboard.dismiss();
+    // After the panel has rendered and pushed the pad down.
+    setTimeout(() => {
+      scrollRef.current
+        ?.getNativeScrollRef()
+        ?.measureInWindow((_sx, viewY, _sw, viewHeight) => {
+          padRef.current?.measureInWindow((_x, y, _w, height) => {
+            const overlap = y + height + spacing.md - (viewY + viewHeight);
+            if (overlap > 0)
+              scrollRef.current?.scrollTo({
+                y: scrollY.current + overlap,
+                animated: true,
+              });
+          });
+        });
+    }, 60);
+  }, []);
 
   const revealNode = useCallback((node: View | null, keyboardTop: number) => {
     node?.measureInWindow((_x, y, _w, height) => {
@@ -453,13 +471,7 @@ function AddTransactionForm() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      // The page starts below a navigation header now; without its height
-      // the memo's keyboard lifts the form by that much too far.
-      keyboardVerticalOffset={headerHeight}
-    >
+    <View style={styles.flex}>
       {/* Amount and direction stay pinned above the scroll: the pad further
           down is always editing this number, so it must stay in sight
           however far the form is scrolled. */}
@@ -526,6 +538,7 @@ function AddTransactionForm() {
           { paddingBottom: insets.bottom + spacing.lg },
         ]}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         // The memo's keyboard is the only thing on this page that floats
         // over the form — so it goes away the moment you drag, rather than
         // hanging over the pad and Save button while you scroll past them.
@@ -710,6 +723,7 @@ function AddTransactionForm() {
                 <ExpandingSection
                   label={t('purchaseItems.label')}
                   summary={itemsSummary}
+                  onExpand={revealPad}
                 >
                   <PurchaseItemsField
                     value={purchaseItems}
@@ -759,12 +773,14 @@ function AddTransactionForm() {
                 ) : null}
               </>
             ) : null}
-            <NumberPad
-              value={amount}
-              onChange={setAmount}
-              submitLabel={t('common.save')}
-              onSubmit={save}
-            />
+            <View ref={padRef}>
+              <NumberPad
+                value={amount}
+                onChange={setAmount}
+                submitLabel={t('common.save')}
+                onSubmit={save}
+              />
+            </View>
             {isEditing ? (
               <Pressable style={styles.deleteButton} onPress={remove}>
                 <Text style={styles.deleteButtonText}>
@@ -789,7 +805,7 @@ function AddTransactionForm() {
           onSubmit={submitPayeeRename}
         />
       ) : null}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

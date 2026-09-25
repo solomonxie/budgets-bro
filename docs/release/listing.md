@@ -120,24 +120,25 @@ Hello, thank you for the review. Answers below, and the same text is now in the 
 App Store Connect slot **iPhone 6.5" Display** requires exactly `1284 × 2778` (or `1242 × 2688`).
 The 6.9" slot takes `1320 × 2868`. Upload one set; App Store Connect scales it for smaller phones.
 
-Ready now, converted from `docs/screenshots/`:
+Ready now — nine Release-build shots (2026-09-24), upload in filename order:
 
 - `docs/release/screenshots/6.5/*.jpg` — 1284 × 2778
 - `docs/release/screenshots/6.9/*.jpg` — 1320 × 2868
 
-Those four are from an older debug build (blue gear overlay, pre-rename screens).
-Recapture for the final listing:
+To recapture:
 
 1. `npm run ios` (Release — no dev overlay). Load a realistic board, no real personal figures.
 2. Status bar: full battery, Wi-Fi, no notifications. Side button + Volume Up per shot.
 3. Shots, in upload order:
-   1. **Budget** — month with a healthy "Unassigned" and several categories
-   2. **Spend** — add-transaction screen mid-entry
+   1. **Budgets** — month with a healthy "Unassigned" and several categories
+   2. **Spent** — add-transaction screen mid-entry
    3. **Accounts** — list with net worth
-   4. **Insights** — spending breakdown + top categories
-   5. **Payee trend** — who the money goes to
-   6. **Mortgage / calculators** — loan details with payoff date
-   7. **Settings → privacy / backup** — "no server, no account" copy
+   4. **Chequing** — one account's register
+   5. **Mortgage** — loan details with payoff date
+   6. **Insights** — spending breakdown + top categories
+   7. **Insights (cont.)** — second page of insights
+   8. **Payee trend** — who the money goes to
+   9. **Settings → privacy / backup** — "no server, no account" copy
 4. AirDrop to the Mac, e.g. `~/Desktop/shots/`, then:
 
 ```

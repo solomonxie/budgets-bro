@@ -12,6 +12,7 @@ import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { AddTransactionScreen } from '../screens/transactions/AddTransactionScreen';
 import { FlaggedTransactionsScreen } from '../screens/transactions/FlaggedTransactionsScreen';
+import { FirstRunPrompt } from '../screens/onboarding/FirstRunPrompt';
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
@@ -20,7 +21,6 @@ import type { TabNavState } from './focusedAccount';
 import type { TabIconName } from '../components/ui/TabBarIcon';
 import {
   useBootstrapActiveBoard,
-  useEnsureDemoBoard,
 } from '../hooks/useBoards';
 import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
@@ -126,7 +126,6 @@ function Tabs() {
 
 export function RootNavigator() {
   useBootstrapActiveBoard();
-  useEnsureDemoBoard();
   useBootstrapLanguage();
   useAutoCloudSync();
   useAutoSnapshot();
@@ -178,6 +177,7 @@ export function RootNavigator() {
         />
       </RootStack.Navigator>
       <AccountModal />
+      <FirstRunPrompt />
     </NavigationContainer>
   );
 }

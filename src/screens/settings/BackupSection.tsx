@@ -37,9 +37,9 @@ import { spacing } from '../../theme/spacing';
 // every change is backed up there, off means nothing is. It replaced a row
 // menu holding four items — a "keep a copy here" toggle, an "auto-sync"
 // toggle, "Sync Now" and "Restore Latest" — whose combinations nobody could
-// predict from the labels. Restore isn't here at all now: iCloud restores
-// itself after a reinstall (sync/autoRestore.ts) and "Import a backup" in
-// the Data section overrides everything by hand.
+// predict from the labels. Restore isn't here at all now: a fresh install
+// offers it on first launch (onboarding/FirstRunPrompt) and "Import a
+// backup" in the Data section does it by hand.
 //
 // Every destination here is off-device. An on-device copy used to sit at the
 // bottom of this list, and it was the one thing a backup must not be: it

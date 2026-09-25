@@ -41,7 +41,6 @@ src/sync/
   s3Provider.ts          SigV4-signed fetch, no AWS SDK
   localProvider.ts       writes to Paths.document — rollback snapshot, dies with the app
   icloudProvider.ts      the app's own iCloud Drive folder, via modules/icloud-drive
-  autoRestore.ts         pulls the board back from iCloud once, on a fresh install
   googleDriveProvider.ts expo-auth-session (PKCE) + Drive REST v3, appDataFolder scope
   cloudSync.ts            orchestrator: debounce + AppState trigger, calls each enabled provider
 ```
@@ -78,12 +77,13 @@ global endpoint, even an unauthenticated one that 403s, so
 (store via `settingsRepo`, alongside access key ID/secret which stay in
 `secureStore`). Optional **key prefix** nests backups under a folder, for a
 bucket shared with other stuff — object key:
-`<keyPrefix>/<YYYYMM>-<board-slug>.zip` — readable straight out of an S3
+`<keyPrefix>/<YYYYMMDD>_daily_<board-slug>.zip` — readable straight out of an S3
 console (which board, roughly when, without opening it). One object per board
 per month: every sync that month replaces that month's file, so a year of
 history is twelve files on one screen instead of hundreds of
 near-identical zips nobody restores a specific day from. Keys older versions
-wrote (`<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`, and `<boardId>/latest.zip`
+wrote (`<YYYYMMDD>-<board-slug>.zip`, `<YYYYMM>-<board-slug>.zip`,
+`<YYYYMM>/<board-slug>-<YYYYMMDD>.zip`, and `<boardId>/latest.zip`
 before that) are still recognised when looking for the newest backup.
 
 **Local** — no credentials, no network: writes the same zip to
@@ -208,7 +208,8 @@ choice flips on upgrade.
   there" is the same question wherever the files live.
 
 ## Manual backup, from the browser
-Automatic backups name themselves `<YYYYMMDD>-<board-slug>.zip`, which is
+Automatic backups name themselves `<YYYYMMDD>_daily_<board-slug>.zip`
+(when, why, whose — same order as the on-phone files), which is
 right for a history nobody reads until they need it and wrong for the copy
 taken deliberately before something risky. So each browser ends in "Back Up
 This Board Here": type a name, and the same zip lands under it — in the S3
@@ -225,12 +226,10 @@ Three paths, none of which overwrites a board:
   earlier answer, on the reasoning that restoring goes through "Import a
   backup" — but that means getting the object onto the phone first, which is
   no use when the phone is what you have.
-- **iCloud, automatic** (`autoRestore.ts`): deleting the app takes the
-  database with it — iCloud is the only destination that outlives a
-  reinstall. So a fresh install pulls its board back by itself, once, before
-  the demo board seeds. No prompt: on first launch the user has no context
-  for the question, and getting their data back is the entire point of
-  having backed it up.
+- **First launch** (`screens/onboarding/FirstRunPrompt.tsx`): a fresh
+  install asks Start empty / Try the demo board / Restore from a backup.
+  Restore opens the file picker, which reaches the app's iCloud Drive
+  folder. Replaced a silent iCloud pull that raced the user's own choice.
 - **From a file the user picked**: the "Import a backup" link under the
   backup destinations, same importer.
 - New Google Drive section: "Connect"/"Disconnect", shows connected

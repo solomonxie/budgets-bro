@@ -4,7 +4,7 @@ import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
 import { createICloudProviders } from './icloudProvider';
-import { LEGACY_BACKUP_KEY, backupKey, latestBackupKey, staleBackupKeys } from './backupPath';
+import { backupKey, staleBackupKeys } from './backupPath';
 import { currentDateISO } from '../domain/month';
 import { resolveSyncEnabled } from './autoSync';
 import type { CloudProvider, CloudProviderId } from './types';
@@ -13,6 +13,12 @@ const SYNC_PREFIX = 'sync_auto_';
 // The two settings this one switch replaced — see autoSync.ts.
 const LEGACY_GLOBAL_KEY = 'sync_auto_enabled';
 const LAST_SYNCED_PREFIX = 'sync_last_synced_';
+
+// Every switch's setting key, the legacy global one included — what a wipe
+// keeps so a destination switched off doesn't come back on.
+export function syncSwitchKeys(providerIds: CloudProviderId[]): string[] {
+  return [LEGACY_GLOBAL_KEY, ...providerIds.map((id) => `${SYNC_PREFIX}${id}`)];
+}
 
 // Every destination starts on. Adding an S3 connection is itself the opt-in;
 // iCloud has no such moment, and used to start off so an update wouldn't
@@ -213,31 +219,4 @@ async function prune(provider: CloudProvider, boardName: string): Promise<void> 
   } catch (e) {
     console.warn(`[cloudSync] ${provider.id} prune failed`, e);
   }
-}
-
-// Used by the automatic post-reinstall restore (sync/autoRestore.ts), which
-// is the only restore path that reads a destination — everything manual goes
-// through "Import a backup" and a file the user picked.
-export async function downloadLatestBackup(
-  db: SQLiteDatabase,
-  boardId: number,
-  boardName: string,
-  providerId: CloudProviderId,
-): Promise<Uint8Array | null> {
-  const provider = (await collectProviders(db)).find(
-    (p) => p.id === providerId,
-  );
-  if (!provider) return null;
-  try {
-    const key = latestBackupKey(await provider.listKeys(), boardName);
-    if (key) {
-      const bytes = await provider.download(key);
-      if (bytes) return bytes;
-    }
-  } catch (e) {
-    console.warn(`[cloudSync] ${provider.id} list failed`, e);
-  }
-  // Anyone who backed up before keys were dated still has exactly one file
-  // at the old path, and it may be their only copy.
-  return provider.download(LEGACY_BACKUP_KEY(boardId));
 }

@@ -17,9 +17,8 @@ export const en = {
   'common.month': 'Month',
   'common.uncategorized': 'Uncategorized',
   'common.noPayee': '(No payee)',
-  'common.cannotBeUndone': 'This cannot be undone.',
-  'common.experimental':
-    'Experimental · still being built. Read what this page says as a first draft — more of it is on the way.',
+  'common.cannotBeUndone': 'This can’t be undone.',
+  'common.experimental': 'Early version — this page may still change.',
   'common.effectivePrefix': 'effective {date}',
   'common.perMonth': '{amount}/mo',
   'common.amountPlaceholder': '0.00',
@@ -36,12 +35,11 @@ export const en = {
   'payeePicker.accountBadge': 'Account',
   'payeePicker.renameTitle': 'Rename payee',
   'payeePicker.renameHint':
-    'Give it a name already in the list and the two become one payee, on every transaction that used either.',
+    'Use a name that’s already in the list and the two payees merge into one.',
   'payeePicker.renamePlaceholder': 'Payee name',
-  'payeePicker.renameBlockedTitle': 'That name belongs to an account',
+  'payeePicker.renameBlockedTitle': 'An account already has that name',
   'payeePicker.renameBlockedMessage':
-    'Paying that payee posts a transfer to the account it is named after. Pick a different name.',
-
+    'Payees named after an account are used for transfers. Choose a different name.',
 
   'houseValueModal.title': 'Home Value',
   'houseValueModal.valueLabel': 'Value',
@@ -56,53 +54,52 @@ export const en = {
   'rateChangeModal.ratePlaceholder': 'e.g. 6.25',
   'rateChangeModal.notePlaceholder': 'e.g. intro rate ended',
 
-  'stubScreen.comingSoon': 'Coming soon — this screen is still being designed.',
+  'stubScreen.comingSoon': 'Coming soon.',
 
   'assignedAmountModal.assignedThisMonth': 'Assigned this month',
-  'assignedAmountModal.availableAfter': 'Available after: {amount}',
+  'assignedAmountModal.availableAfter': 'Left in category: {amount}',
   'assignedAmountModal.unassignedHint':
-    'Unassigned: {unassigned}   ·   Last month: {lastMonth}',
+    'Unassigned: {unassigned} · Assigned last month: {lastMonth}',
   'assignedAmountModal.rolloverHint': 'Carried over: {amount}',
-  'assignedAmountModal.exceedsError': 'Exceeds unassigned cash by {amount}',
+  'assignedAmountModal.exceedsError': '{amount} more than you have unassigned',
   'assignedAmountModal.history': 'History',
 
   'settings.boardsHeading': 'Budget Boards',
   'settings.boardsHint':
-    'A board is a self-contained budget you can switch between.',
+    'Each board is a separate budget — say, household and side business. Switch between them any time.',
   'settings.newBoardLink': '+ New Board',
   'settings.createDemoBoard': 'Create Demo Board',
-  'settings.creatingDemoBoard':
-    'Creating demo board — this takes a few seconds…',
-  'settings.createDemoBoardFailed': 'Could not create the demo board.',
+  'settings.creatingDemoBoard': 'Creating demo board…',
+  'settings.createDemoBoardFailed': 'Couldn’t create the demo board.',
   'settings.payeeSelectPlaceholder': 'Select or create…',
   'settings.payeeSearchPlaceholder': 'Search or type a new payee',
   'settings.appearanceHeading': 'Appearance',
   'settings.themeDark': 'Dark',
   'settings.themeLight': 'Light',
   'settings.themeLightHint':
-    'Light theme is coming soon — your preference is saved for when it ships.',
+    'Light theme is coming. Your choice is saved and will apply when it’s ready.',
   'settings.languageHeading': 'Language',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
   'settings.aiKeysHeading': 'AI Connections',
-  'aiInfo.title': 'Bringing your own AI',
+  'aiInfo.title': 'Using your own AI',
   'aiInfo.what':
-    'AI Analysis can read your budget and answer questions about it in plain language — where the money went, whether a month is unusual, what a plan looks like. It only runs when you ask it to, on the page you ask it from.',
+    'AI Analysis reads your budget and answers questions in plain words — where the money went, whether a month looks unusual, what a plan could look like. It only runs when you ask.',
   'aiInfo.ownAccount':
-    'There is no AI built into this app, and no subscription to it. You open an account with an AI provider, copy the access key they give you, and paste it here. The app then talks to that provider as you, straight from this iPhone.',
+    'There’s no AI built into this app and no subscription. Sign up with an AI provider, copy the key they give you, and paste it here. The app then talks to that provider directly from this iPhone.',
   'aiInfo.whereToRegister':
-    'Sign up free at any of them and create a key: OpenAI (platform.openai.com), Anthropic (console.anthropic.com), Google Gemini (aistudio.google.com), Groq (console.groq.com), Mistral (console.mistral.ai). Pick a provider in the form below and the link takes you to the right page.',
+    'Get a key from OpenAI, Anthropic, Google Gemini, Groq, Mistral, DeepSeek or xAI. Pick a provider below and the link takes you to the right page.',
   'aiInfo.cost':
-    'You pay that provider directly for what you use, usually a fraction of a cent per question, and you can see every charge in their dashboard. Nothing is billed through this app, because there is nothing here to bill through.',
+    'You pay the provider directly for what you use — usually a fraction of a cent per question, and every charge shows in their dashboard. Nothing is billed through this app.',
   'aiInfo.privacy':
-    'Your key is kept in this iPhone’s Keychain and is never included in a backup. A question sends only the figures needed to answer it, and Privacy Mode strips payee names and memos before it goes. Nothing is sent anywhere until you press the button.',
+    'Your key is kept in this iPhone’s Keychain and never included in a backup. A question sends only the figures needed to answer it; with Privacy Mode on, amounts are rounded and category names hidden first. Nothing is sent until you tap the button.',
   'settings.aiKeysHint':
-    'Connect your own AI account and AI Analysis can use it. Add more than one and it falls back to the next when one runs out. Tap a connection to see exactly what it sent.',
-  'settings.aiKeyRequestCount': '{count} questions sent',
+    'Connect your own AI account to use AI Analysis. With more than one, the next takes over when one runs out. Tap a connection to see exactly what it sent.',
+  'settings.aiKeyRequestCount': 'Questions sent: {count}',
   'settings.addAiKeyLink': '+ Connect an AI',
   'settings.deleteAiKeyConfirmTitle': 'Disconnect this AI?',
   'settings.deleteAiKeyConfirmMessage':
-    'AI Analysis stops using it immediately. Your account with that provider is untouched.',
+    'AI Analysis stops using it right away. Your account with the provider isn’t affected.',
   'settings.aiKeyStrategySequential': 'Sequential',
   'settings.aiKeyStrategyRoundRobin': 'Round robin',
   'settings.s3AccessKeyLabel': 'Access Key ID',
@@ -111,24 +108,23 @@ export const en = {
   'settings.addS3BackupLink': '+ Add S3 Backup',
   'settings.deleteS3ConfigConfirmTitle': 'Delete "{name}"?',
   'settings.deleteS3ConfigConfirmMessage':
-    'Backups already in this bucket are left alone — only the saved connection is removed.',
+    'Backups already in the bucket stay there. Only the saved connection is removed.',
   's3ConfigModal.title': 'Add S3 Backup',
   's3ConfigModal.connectionHeading': 'S3 bucket',
-  's3ConfigModal.pasteInfo': 'paste info to add',
-  's3ConfigModal.backToFields': 'back to fields',
+  's3ConfigModal.pasteInfo': 'paste to fill in',
+  's3ConfigModal.backToFields': 'type instead',
   's3ConfigModal.pastePlaceholder':
     'bucket: my-bucket\nprefix: budget/\naccess_key_id: AKIA…\nsecret_access_key: …',
   's3ConfigModal.pasteHint':
-    'Any spelling, split on `:` or `=`. One paste fills the fields and takes you back to them. Not masked — paste, don’t leave it sitting here.',
+    'Paste lines like “bucket: my-bucket” — the fields fill in and this box closes. Text here isn’t hidden, so don’t leave a key sitting in it.',
   's3ConfigModal.keyPrefixLabel': 'Folder (key prefix, optional)',
-  's3ConfigModal.keyPrefixPlaceholder':
-    'e.g. backups — for a bucket shared with other stuff',
+  's3ConfigModal.keyPrefixPlaceholder': 'e.g. backups',
   's3ConfigModal.missingFields': 'Fill in the bucket and both keys.',
-  's3ConfigModal.testing': 'Detecting region & testing connection…',
-  's3ConfigModal.testFailed': 'Could not connect: {error}',
+  's3ConfigModal.testing': 'Checking the bucket…',
+  's3ConfigModal.testFailed': 'Couldn’t connect: {error}',
   's3ConfigModal.draftsHeading': 'Drafts',
   's3ConfigModal.draftsHint':
-    'From past attempts — tap to refill, ✕ to remove.',
+    'Earlier attempts — tap one to fill the form, ✕ to remove it.',
 
   'aiKeyModal.title': 'Connect an AI',
   'aiKeyModal.vendorLabel': 'Provider',
@@ -137,17 +133,17 @@ export const en = {
   'aiKeyModal.getKeyLink': 'Get one →',
   'aiKeyModal.missingKey': 'Paste your access key.',
   'aiKeyModal.testing': 'Checking the connection…',
-  'aiKeyModal.testFailed': 'Could not connect: {error}',
+  'aiKeyModal.testFailed': 'Couldn’t connect: {error}',
   's3Browser.title': 'Browse Bucket',
   's3Browser.up': '..',
   's3Browser.empty': 'Nothing here yet.',
   'backup.restore': 'Restore',
   's3Browser.restoreConfirmTitle': 'Restore from {name}?',
   's3Browser.restoreConfirmMessage':
-    'It comes back as a new board and the app switches to it. The board you are on now is left untouched — switch back any time in Settings.',
+    'It opens as a new board and the app switches to it. The board you’re on now isn’t changed — switch back any time in Settings.',
   's3Browser.restoreNotFound': 'That file is no longer in the bucket.',
   'aiHistory.hint':
-    'Every request this key has sent, exactly as it went out. Kept on this device only — the last 50 per key, never included in a backup.',
+    'Everything this key has sent, exactly as it went out. Only the last 50 requests are kept, on this iPhone only — never in a backup.',
   'aiHistory.empty': 'This key hasn’t sent anything yet.',
   'aiHistory.ok': 'Answered',
   'aiHistory.failed': 'Failed',
@@ -158,61 +154,63 @@ export const en = {
   'aiHistory.clear': 'Clear History',
   'aiHistory.clearConfirmTitle': 'Clear this key’s history?',
   'aiHistory.clearConfirmMessage':
-    'The prompts and replies stored on this device are deleted. The request count stays.',
+    'The prompts and replies saved on this iPhone are deleted. The request count stays.',
   'backup.heading': 'Backup',
   'backup.hint':
-    'Each switch backs this board up automatically, every time it changes. iCloud also brings the board back by itself if you reinstall the app. API keys never leave this device, including in backups.',
+    'Turn on a place below and this board is backed up there every time it changes. With iCloud, the board comes back on its own if you reinstall the app. API keys never leave this iPhone, backups included.',
   'backup.icloudOff': 'iCloud Drive is off on this device',
   'backup.icloudOffAction': 'Settings → your name → iCloud → Drive → turn on',
-  'backup.icloudNotEntitled': 'This build of the app isn’t signed for iCloud',
+  'backup.icloudNotEntitled':
+    'iCloud isn’t available in this version of the app',
   'backup.icloudNotReady': 'iCloud isn’t ready yet — try again shortly',
   'backup.icloud': 'iCloud Drive',
   'backup.icloudLocation': 'In Files → iCloud Drive → Budgets Bro',
   'backup.deleteConnection': 'Delete Connection',
-  'backup.saveCopyHere': '+ Back Up This Board Here',
+  'backup.saveCopyHere': '+ Back up here now',
   'backup.saveCopyTitle': 'Name this backup',
-  'backup.saveCopyFailed': 'Could not write the backup.',
-  'backup.never': 'never synced',
+  'backup.saveCopyFailed': 'Couldn’t save the backup.',
+  'backup.never': 'not backed up yet',
   'backup.justNow': 'just now',
   'backup.minutesAgo': '{count} min ago',
   'backup.hoursAgo': '{count} h ago',
   'backup.daysAgo': '{count} d ago',
-  'backup.infoTitle': 'How a backup keeps this yours',
+  'backup.infoTitle': 'How backups work',
   'backup.infoNoServer':
-    'Your board lives in one SQLite file on this iPhone. There is no Budgets Bro server — no account, no login, nothing of yours sitting on a machine we run, because we run none.',
+    'Your board lives only on this iPhone. There’s no Budgets Bro server, no account and no login — nothing of yours sits on a machine we run.',
   'backup.infoDestination':
-    'A backup is a full copy of one board, zipped on this device and written straight to storage you already own: your iCloud Drive, or your S3 bucket under your own keys. Device to your storage, with nothing of ours in between.',
+    'A backup is a full copy of one board, zipped on this iPhone and sent straight to storage you own: your iCloud Drive, or your S3 bucket with your own keys. Nothing passes through us.',
   'backup.infoSecrets':
-    'Keys are never in a backup. Your AI and S3 credentials live in the iOS Keychain, marked this-device-only, so iOS excludes them from device backups and never moves them to a new phone. A backup reads only board tables — accounts, categories, budgets, payees, transactions.',
+    'Keys are never backed up. Your AI and S3 keys stay in this iPhone’s Keychain, marked as this-device-only, so iOS never copies them to a backup or a new phone. A backup holds only your board: accounts, categories, budgets, payees and transactions.',
   'backup.infoFullCopy':
-    'Every sync writes the whole board, not a change since last time, so the newest file is always complete on its own. Nothing depends on a chain of earlier ones being intact.',
+    'Every backup is the whole board, not just the changes since last time, so the newest file is complete on its own.',
   'backup.infoRestore':
-    'Restoring never overwrites. A restored zip arrives as a new board beside the ones you have, so opening the wrong file costs you nothing. Dated automatic backups are pruned as they age; a copy you name yourself is kept.',
+    'Restoring never overwrites anything. A restored backup opens as a new board next to your others, so picking the wrong file costs you nothing. Older automatic backups are cleared out over time; backups you name yourself are kept.',
   'settings.importYnab': 'Import from YNAB',
   'settings.restoreCategories': 'Restore Categories from YNAB',
   'settings.dataHeading': 'Data',
-  'settings.exportBoardHint': 'A zip of this board, through the share sheet.',
-  'settings.importAppBackupHint': 'Restores one of those zips as a new board.',
-  'settings.importYnabHint': 'Your YNAB export, merged into this board.',
+  'settings.exportBoardHint': 'Saves this board as a .zip file.',
+  'settings.importAppBackupHint': 'Opens a backup .zip as a new board.',
+  'settings.importYnabHint': 'Adds a YNAB export to this board.',
   'settings.restoreCategoriesHint':
-    'Fills in categories from a YNAB export without re-importing it.',
+    'Fills in missing categories from a YNAB export, without importing it again.',
   'settings.fixTransfersHint':
-    'Names both halves of every transfer and links them back together.',
+    'Makes sure every transfer has both sides, named and linked.',
   'settings.purgeBackupsHint':
-    'Every copy, everywhere. Your data itself is untouched.',
-  'history.openHint': 'Undo a single change, or roll the whole file back.',
+    'Deletes every backup, everywhere. Your data itself stays.',
+  'history.openHint':
+    'Undo a single change, or go back to an earlier copy of everything.',
   'settings.fixTransfers': 'Fix Transfers',
   'settings.fixTransfersHeading': 'Transfers Checked',
-  'settings.fixTransfersFailed': 'Could not check transfers.',
-  'settings.transferNamed': 'Legs named',
-  'settings.transferRenamed': 'Renamed off themselves',
+  'settings.fixTransfersFailed': 'Couldn’t check transfers.',
+  'settings.transferNamed': 'Sides named',
+  'settings.transferRenamed': 'Payee fixed',
   'settings.transferMarked': 'Pairs linked',
-  'settings.transferMissingLeg': 'No matching row',
-  'settings.transferMismatch': 'Amounts disagree',
+  'settings.transferMissingLeg': 'Other side missing',
+  'settings.transferMismatch': 'Amounts differ',
   'settings.purgeBackups': 'Delete All Backups',
   'settings.purgeBackupsTitle': 'Delete every backup?',
   'settings.purgeBackupsMessage':
-    'Removes the backup zips on this phone, the database snapshots, the files in iCloud Drive, and the objects in every bucket. Your data and change history stay exactly as they are — this deletes only the copies.',
+    'Deletes the backups on this iPhone, in iCloud Drive and in every S3 bucket, plus the snapshots. Your data and change history stay exactly as they are — only the copies go.',
   'settings.purgeBackupsConfirm': 'Delete Backups',
   'settings.purgeBackupsHeading': 'Backups deleted',
   'settings.purgeBackupsFailed': "Couldn't delete the backups.",
@@ -220,12 +218,12 @@ export const en = {
   'settings.purgeResultSnapshots': 'Database snapshots',
   'settings.purgeResultICloud': 'iCloud Drive',
   'settings.purgeResultBucket': 'Buckets',
-  'settings.purgeResultRefused': 'Bucket refused',
+  'settings.purgeResultRefused': 'Blocked by bucket',
   'settings.restoreCategoriesHeading': 'Categories restored',
   'settings.restoreResultRestored': 'Restored',
-  'settings.restoreResultAlreadySet': 'Already had one',
+  'settings.restoreResultAlreadySet': 'Already had a category',
   'settings.restoreResultNotFound': 'Not in this board',
-  'settings.restoreResultCategoryMissing': 'Category since deleted',
+  'settings.restoreResultCategoryMissing': 'Category was deleted',
   'settings.importedHeading': 'Imported',
   'settings.importResultTxnInserted': 'Transactions imported',
   'settings.importResultTxnUpdated': 'Transactions updated',
@@ -234,21 +232,20 @@ export const en = {
   'settings.importResultCategoriesCreated': 'Categories created',
   'settings.importAppBackup': 'Import a backup',
   'settings.restoredHeading': 'Restored',
-  'settings.restoreResultBoard': 'Restored into board',
+  'settings.restoreResultBoard': 'Restored as',
   'settings.restoreResultAccounts': 'Accounts',
   'settings.restoreResultCategories': 'Categories',
   'settings.restoreResultTransactions': 'Transactions',
   'settings.exportBoard': 'Export this board',
   'settings.aboutHeading': 'About',
-  'settings.privacyHeading': 'Privacy by Design',
+  'settings.privacyHeading': 'Privacy',
   'settings.privacyTitle': 'Your money data stays yours.',
   'settings.privacyBody':
-    'Everything lives in one file on this iPhone and is worked out here — the app runs fine with the network off. There is no Budgets Bro server and no account, so nothing ever reaches whoever made this app. Your data goes only where you send it: your own iCloud or S3 for backups, your own key for an AI analysis. Keys stay in the Keychain, never in a backup. Export the board any time; delete the app and the data goes with it.',
+    'Everything stays in one file on this iPhone and is worked out here — the app runs fine with no network. There’s no Budgets Bro server and no account, so nothing ever reaches us. Your data goes only where you send it: your own iCloud or S3 for backups, your own key for AI analysis. Keys stay in the Keychain, never in a backup. Export the board any time; delete the app and the data goes with it.',
   'common.more': 'More',
   'common.less': 'Less',
   'accountModal.trackingKindLabel': 'Plan type',
-  'accountModal.trackingKindHint':
-    'Only plans the app can describe are listed. Anything else stays General.',
+  'accountModal.trackingKindHint': 'Don’t see yours? Choose General.',
   'trackingKind.general': 'General tracking',
   'trackingKind.ca_rrsp': 'Canada — RRSP',
   'trackingKind.ca_tfsa': 'Canada — TFSA',
@@ -262,83 +259,83 @@ export const en = {
   'trackingKind.us_529': 'US — 529',
   'accountInfo.trackingKindTitle': 'Plan type',
   'accountInfo.trackingKindBody':
-    'What kind of registered account this is. It does not change any arithmetic — a balance is a balance — but it labels the account and lets reports tell a retirement plan apart from a first-home savings plan or a child’s education fund.',
+    'Which kind of registered plan this is — retirement, first home, education — so reports can tell them apart. It doesn’t change any numbers.',
   'accountInfo.trackingKindScope':
-    'Only plans whose rules the app could actually describe are offered, and nothing here claims a contribution limit or a tax treatment yet. Anything not listed stays General tracking rather than being filed under a plan it does not follow.',
+    'Only plans the app can describe correctly are listed. Contribution limits and tax treatment aren’t tracked yet. Anything not listed stays General.',
   'accountInfo.latestBalanceTitle': 'Current balance',
   'accountInfo.latestBalanceBody':
-    'Type what the bank actually says. Budgets Bro posts one uncategorized adjustment for the difference, payee "Balance Adjustment", and leaves everything else alone.',
+    'Enter what your bank shows. The app adds one uncategorized “Balance Adjustment” transaction for the difference and leaves everything else alone.',
   'accountInfo.latestBalanceFlow':
-    'That adjustment runs through Unassigned Cash like any other uncategorized transaction, up or down — money that turns out not to exist has to leave the budget, not just the account. There is no separate reconciliation mode: this is it.',
+    'That adjustment changes your Unassigned money, up or down, like any other uncategorized transaction — money that turns out not to exist has to leave the budget too, not just the account. There’s no separate reconcile step; this is it.',
   'accountInfo.rateHistoryTitle': 'Interest rate history',
   'accountInfo.rateHistoryBody':
-    'A rate is a fact with a date on it, not one number. A renewal or a central-bank move changes it from that day forward and leaves everything before it alone, so the history is a list rather than a field you overwrite.',
+    'Rates change — a renewal, a central-bank move. Each change starts on its own date and leaves earlier months alone, so the rate is a list of dated changes rather than one number you overwrite.',
   'accountInfo.rateHistoryUse':
-    'Every projection reads the rate that was in force at the time. Adding a change rewrites nothing that already happened — it just makes what comes next right. Backdate freely: the latest effective date on or before a day is the one that applies.',
+    'Every projection uses the rate in effect at the time. Adding a change doesn’t rewrite the past; it only affects what comes next. You can backdate a change too — the latest one on or before a date is the one that applies.',
   'accountInfo.houseValueTitle': 'Home value',
   'accountInfo.houseValueBody':
-    'Your own estimate of what the place is worth, logged whenever you feel like updating it. Nothing is fetched — no valuation service, no address lookup, no guess by us.',
+    'Your own estimate of what the home is worth, updated whenever you like. Nothing is looked up online — no valuation service, no address lookup, no guess by us.',
   'accountInfo.houseValueUse':
-    'The latest logged value is what net worth counts as the asset against this mortgage’s debt, which is what lets the account show equity instead of only what you owe.',
+    'Your latest value counts toward net worth as the asset behind this mortgage, so the account can show your equity instead of only what you owe.',
   'accountInfo.principalTitle': 'Remaining principal',
   'accountInfo.principalBody':
-    'A loan’s balance is not the opening figure plus your payments: early on, most of a payment is interest. So this number is the last statement figure you logged, carried forward by every payment since, each one covering that period’s interest first.',
+    'A loan balance isn’t the amount borrowed minus your payments: early on, most of a payment is interest. So this figure starts from the last statement balance you entered, and each payment since pays that period’s interest first — only the rest reduces what you owe.',
   'accountInfo.principalUse':
-    'Logging a reading writes no transaction — it is a reading, not a ledger correction. That is why a loan has no "current balance" adjustment: the statement is the truth, and the estimate between statements is derived.',
+    'Entering a statement balance doesn’t add a transaction — it’s a reading, not a correction. That’s why a loan has no “current balance” adjustment: the statement is the source of truth, and the figure between statements is an estimate.',
   'accountInfo.valueHistoryTitle': 'Value log',
   'accountInfo.valueHistoryBody':
-    'This account’s balance is the latest total you logged, not a sum of transactions. Copy the total off a statement; never type a gain — a gain is only true for the second you read it, while a total is a fact you can check.',
+    'This account’s balance is the latest total you entered, not a sum of transactions. Copy the total from a statement — don’t type a gain. A gain is only true for the moment you read it; a total is a fact you can check.',
   'accountInfo.valueHistoryUse':
     'Contributions stay ordinary transactions, so the chart can separate the money you put in from the money it earned.',
   'accountInfo.loanTermsTitle': 'Loan terms',
   'accountInfo.loanTermsBody':
-    'The contract rather than the ledger: how long it runs, what was borrowed, what the place cost, when it started. They drive the payment, the payoff date and the down-payment figure, and none of them posts a transaction.',
+    'What the loan contract says, as opposed to the transactions: how long it runs, what was borrowed, what the home cost, when it started. These set the payment, the payoff date and the down payment figure, and none of them adds a transaction.',
   'accountInfo.loanTermsBorrowed':
-    'Amount borrowed and the ledger’s starting balance are the same number for a loan taken out on day one, and different for one you started tracking part-paid — which is why they are two fields rather than one.',
+    'Amount borrowed and starting balance are the same number for a brand-new loan, but different for one you started tracking part-paid — which is why they’re two separate fields.',
   'accountInfo.toolsTitle': 'Amortization schedule',
   'accountInfo.toolsBody':
-    'Every payment from here to the end, split into interest and principal, built from the fields on this page exactly as you have typed them — including edits you have not saved yet. It shows the loan as it is; for "what if I paid more", use the calculators.',
-  'accountInfo.loanCardTitle': 'Where this loan stands',
+    'Every payment from now to the end, split into interest and principal, using the values on this page as typed — including edits you haven’t saved yet. It shows the loan as it stands; to try paying more, use the calculators.',
+  'accountInfo.loanCardTitle': 'Loan at a glance',
   'accountInfo.loanCardBody':
-    'The rate in force, the scheduled payment, the date it ends and what the remaining interest costs — all worked out from what you have logged, none of it stored. Change a rate or a payment and every figure here moves with it.',
+    'The current rate, the scheduled payment, the payoff date and the interest still to come — all calculated from what you’ve entered, none of it stored. Change a rate or a payment and every figure here updates.',
   'accountGuide.learnMore': 'Learn more about a {type} account',
   'accountGuide.howHeading': 'How this works',
   'accountGuide.helpsHeading': 'What it’s good for',
   'accountGuide.cash.how':
-    'A chequing account, or the notes in your wallet. Its balance is the opening figure plus every transaction you post to it, and anything you spend from it comes out of a category envelope.',
+    'A chequing account, or the cash in your wallet. Its balance is the starting balance plus every transaction, and anything you spend from it comes out of a category.',
   'accountGuide.cash.helps':
-    'This is where budgeting actually happens: only on-budget cash can be assigned to categories, which is what makes "$40 left in Groceries" mean something.',
+    'This is where budgeting happens: only money in these accounts can be assigned to categories, which is what makes “$40 left in Groceries” mean something.',
   'accountGuide.savings.how':
-    'The same ledger as a cash account — opening balance plus transactions — for money set aside rather than spent day to day. Interest lands as an ordinary inflow you can flag as interest, so it can be reported separately from earned income.',
+    'Works like a cash account — starting balance plus transactions — but for money set aside rather than spent day to day. Interest comes in as ordinary income you can mark as interest, so reports show it separately from earned income.',
   'accountGuide.savings.helps':
-    'Keeps an emergency fund or a sinking fund visible without pretending it is spendable. Baby Steps reads whichever account you name as your emergency fund.',
+    'Keeps an emergency fund or a savings goal in view without treating it as spendable. Baby Steps reads whichever account you pick as your emergency fund.',
   'accountGuide.credit_card.how':
-    'A card you pay later. Its balance is negative — what you owe — and spending on it still comes out of a category, because the money is committed the moment you tap, not when the statement arrives. Paying the bill is a transfer: choose the card as the payee on a transaction from your cash account and both sides are posted for you.',
+    'A card you pay off later. Its balance is negative — what you owe — and spending on it still comes out of a category, because the money is committed the moment you tap, not when the statement arrives. Paying the bill is a transfer: on a transaction from your cash account, choose the card as the payee, and both sides are recorded for you.',
   'accountGuide.credit_card.helps':
-    'Spending stays honest. A card charge reduces its category today, so the budget never looks healthier than it is just because the bill has not landed yet.',
+    'Spending stays honest. A card charge reduces its category today, so the budget never looks healthier than it is just because the bill hasn’t arrived yet.',
   'accountGuide.loan.how':
-    'Money borrowed and being paid back — a car loan, a student loan, a line of credit. Its balance is the remaining principal, worked out from the last figure you logged plus every payment since, with each period’s interest taken off first. A payment is one transaction for the amount the statement shows; you are never asked to split principal from interest by hand.',
+    'Money you’re paying back — a car loan, a student loan, a line of credit. Its balance is what you still owe, estimated from the last statement balance you entered plus every payment since, with each period’s interest taken off first. Enter a payment as one transaction for the amount on your statement; you never have to split principal from interest yourself.',
   'accountGuide.loan.helps':
-    'One place to see what is actually left owing, what the payments are costing in interest, and the date it disappears if nothing changes. Point a transaction at this account as its payee and the payment posts on both sides at once.',
+    'One place to see what’s actually left, what the payments are costing in interest, and when it’ll be paid off if nothing changes. Pick this account as the payee on a payment and both sides are recorded at once.',
   'accountGuide.mortgage.how':
-    'A loan, plus the home behind it. Log the property’s value now and then and the account carries both sides: what it is worth, and what is left owing. Interest rates are a dated list rather than one number, so a renewal adds to the history instead of erasing it.',
+    'A loan, plus the home behind it. Enter the home’s value now and then and the account shows both sides: what it’s worth and what’s left owing. Interest rates are a dated list rather than one number, so a renewal adds to the history instead of erasing it.',
   'accountGuide.mortgage.helps':
-    'Answers the two questions a mortgage actually raises — how much of this house is mine, and when does the debt end — without a spreadsheet, and folds equity rather than raw debt into your net worth.',
+    'Answers the two questions a mortgage raises — how much of this home is mine, and when does the debt end — without a spreadsheet, and counts your equity rather than the raw debt in your net worth.',
   'accountGuide.tracking.how':
-    'An investment account: RRSP, TFSA, a brokerage. Its balance is the latest total value you logged, not a sum of transactions — a total is a fact you copy off a statement, while a gain is only true for the second you read it. Contributions stay ordinary transactions, so the chart can separate money you put in from money it earned.',
+    'An investment account: RRSP, TFSA, a brokerage. Its balance is the latest total value you entered, not a sum of transactions — copy the total from a statement rather than typing a gain. Contributions stay ordinary transactions, so the chart can separate the money you put in from the money it earned.',
   'accountGuide.tracking.helps':
-    'Net worth stays real without pretending you can budget from it, and one look tells you how much of the balance you actually deposited.',
+    'Net worth stays real without pretending you can budget from it, and one look shows how much of the balance you actually deposited.',
   'accountGuide.asset.how':
-    'Something you own that loses value over time — a car, a watch, equipment. Its worth is a figure you log and revisit whenever you care to, not something the app guesses at.',
+    'Something you own — a car, a watch, equipment. Its value is a figure you enter and update whenever you like, not something the app guesses.',
   'accountGuide.asset.helps':
-    'Keeps net worth honest in both directions: what you own counts, and it counts for less each year, without ever touching a budget category.',
+    'Counts what you own in your net worth — and lets it lose value year by year — without ever touching a budget category.',
   'accountGuide.giving.how':
-    'Money set aside to give away — tithing, charity, a family fund. It is assigned like any other envelope, but held in an account of its own so it is not counted among the money you are free to spend.',
+    'Money set aside to give away — tithing, charity, a family fund. It’s assigned like any other category, but held in an account of its own so it isn’t counted among the money you’re free to spend.',
   'accountGuide.giving.helps':
-    'Once it is promised, it is not yours. This makes that visible on the page instead of leaving it to willpower.',
+    'Once it’s promised, it isn’t yours any more. This shows that on the page instead of leaving it to willpower.',
   'settings.lockHeading': 'App Lock',
   'settings.lockHint':
-    'Asked for when you open the app, and again after a minute away. Your budget is hidden in the app switcher whenever the lock is on.',
+    'Asked for when you open the app, and again after a minute away. While the lock is on, your budget is hidden in the app switcher.',
   'lock.modeNone': 'Off',
   'lock.modePasscode': 'Passcode',
   'lock.modeBiometricUnavailable': 'Face ID',
@@ -350,69 +347,71 @@ export const en = {
   'lock.setPasscodeTitle': 'Set a 4-digit passcode',
   'lock.confirmPasscodeTitle': 'Enter it again',
   'lock.setPasscodeHint':
-    'Kept in this iPhone’s Keychain, never in a backup. Forget it and the only way back in is reinstalling, which erases the data with it.',
+    'Kept in this iPhone’s Keychain, never in a backup. If you forget it, the only way back in is to reinstall the app, which erases your data.',
   'lock.biometricTitle': 'Budgets Bro is locked',
   'lock.biometricPrompt': 'Unlock Budgets Bro',
-  'lock.biometricFailed': 'Not recognised. Try again.',
-  'lock.noBiometryTitle': 'Nothing enrolled on this iPhone',
+  'lock.biometricFailed': 'Not recognized. Try again.',
+  'lock.noBiometryTitle': 'Face ID isn’t set up',
   'lock.noBiometryMessage':
     'Set up Face ID or Touch ID in iOS Settings first, or use a passcode here instead.',
-  'settings.bankHeading': 'Bank Sync',
+  'settings.bankHeading': 'Bank Connection',
   'settings.bankTitle': 'No bank connection. On purpose.',
   'settings.bankAwareness':
-    'Typing a purchase in takes five seconds, and in those five seconds you notice what you spent. That noticing is the whole point. A bank feed does the typing and takes the noticing with it — you end up with a tidy record nobody read.',
+    'Typing a purchase in takes five seconds, and in those five seconds you notice what you spent. That noticing is the whole point. A bank feed does the typing for you and takes the noticing with it — you end up with a tidy record nobody reads.',
   'settings.bankPrivacy':
-    'It would cost privacy too. Bank feeds run through a middleman company that keeps your bank login on its servers — permanent access to every account you have, in someone else’s hands. This app has no servers, so there is nowhere for that to sit.',
+    'It would cost privacy too. Bank feeds go through a middleman company that keeps your bank login on its servers — permanent access to every account you have, in someone else’s hands. This app has no servers, so there’s nowhere for that to live.',
   'settings.bankImport':
-    'Bringing in history is different, and it works: import a YNAB export under Data above. That is one file you chose to hand over, not a key to your bank.',
+    'Bringing in history is different, and it works: import a YNAB export under Data above. That’s one file you chose to hand over, not a key to your bank.',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renameBoardTitle': 'Rename Board',
   'settings.boardNamePlaceholder': 'e.g. Personal Budget',
   'settings.deleteBoardConfirmTitle': 'Delete "{name}"?',
   'settings.deleteBoardConfirmMessage':
-    'Every account, category, and transaction in it is deleted too. This cannot be undone.',
+    'Every account, category and transaction in it is deleted too. This can’t be undone.',
   'settings.cantDeleteOnlyBoardTitle': 'Can’t delete your only board',
   'settings.cantDeleteOnlyBoardMessage': 'Create another board first.',
-  'settings.deleteBoardFailed': 'Could not delete the board.',
+  'settings.deleteBoardFailed': 'Couldn’t delete the board.',
   'settings.importFailed': 'Import failed.',
   'settings.restoreFailed': 'Restore failed.',
   'settings.exportFailedTitle': 'Export failed',
   'settings.exportFailedFallback': 'Something went wrong.',
   'settings.removeAllData': 'Remove all app data',
   'settings.removeAllDataConfirmTitle': 'Remove all app data?',
-  'settings.removeAllDataConfirmMessage': 'This permanently removes every budget and setting stored on this device, along with saved AI and S3 credentials and local backups. Before deletion, a ZIP containing an export for each budget will open in the share sheet; choose Save to Files to keep a copy. If you cancel the export, nothing will be deleted. Backups already stored in iCloud Drive or S3 are not removed.',
+  'settings.removeAllDataConfirmMessage':
+    'Deletes every board, setting, saved AI and S3 key and local backup on this iPhone. First, a .zip with an export of every board opens in the share sheet — choose Save to Files to keep a copy. Cancel that and nothing is deleted. Backups already in iCloud Drive or S3 stay.',
   'settings.removeAllDataExportDelete': 'Export, then remove',
   'settings.removeAllDataCompleteTitle': 'App data removed',
-  'settings.removeAllDataCompleteMessage': 'The data on this device was removed. A fresh empty budget is ready.',
-  'settings.removeAllDataFailedTitle': 'Could not remove app data',
+  'settings.removeAllDataCompleteMessage':
+    'Everything on this iPhone was removed. You’re starting with an empty board.',
+  'settings.removeAllDataFailedTitle': 'Couldn’t remove app data',
   'settings.removeAllDataFailedMessage': 'Something went wrong.',
   'settings.resetBoardName': 'My Budget',
 
   'settingsModal.title': 'Settings',
 
-  'netWorthBreakdown.heading': 'Where {month} came from',
-  'netWorthBreakdown.noAccounts': 'No account had started by then.',
+  'netWorthBreakdown.heading': '{month} breakdown',
+  'netWorthBreakdown.noAccounts': 'No accounts existed yet that month.',
   'netWorthBreakdown.homeValue': 'home {amount}',
   'netWorthBreakdown.owed': 'owed {amount}',
-  'netWorthBreakdown.sourceReading': 'logged value',
+  'netWorthBreakdown.sourceReading': 'value you entered',
   'netWorthBreakdown.sourcePurchasePrice': 'purchase price',
-  'netWorthBreakdown.sourceOldestReading': 'oldest value, carried back',
+  'netWorthBreakdown.sourceOldestReading': 'earliest value used',
   'netWorthBreakdown.sourceLedger': 'from transactions',
-  'netWorthBreakdown.sourceDerived': 'derived',
+  'netWorthBreakdown.sourceDerived': 'estimated',
   'netWorthBreakdown.explain':
-    'Touch the line, or hold and slide along it, to read a month.',
-  'netWorthInfo.title': 'How net worth is worked out',
+    'Tap the line, or hold and slide along it, to see a month.',
+  'netWorthInfo.title': 'How net worth is calculated',
   'netWorthInfo.recomputed':
-    'Assets minus debts, worked out from scratch every time you look — no total is stored anywhere. Correct a transaction from March and March’s point on the line moves with it.',
+    'Assets minus debts, recalculated every time you look — no total is stored. Fix a transaction from March and March’s point on the line moves too.',
   'netWorthInfo.assets':
-    'Assets: cash, savings and chequing accounts count as their opening balance plus every transaction. Investment and asset accounts count as the latest value you logged — a figure you copied off a statement, never a live quote. A mortgaged home counts at its latest logged value.',
+    'Assets: cash, savings and chequing accounts count their starting balance plus every transaction. Investment and asset accounts count the latest value you entered — a figure from a statement, never a live quote. A mortgaged home counts at its latest entered value.',
   'netWorthInfo.debts':
-    'Debts: what each credit card owes, and for a loan or mortgage the remaining principal — your last logged reading carried forward by the payments since, each one covering that period’s interest first. The full payment never comes off the principal, because that is not what the bank does either.',
+    'Debts: what each credit card owes, plus each loan or mortgage’s remaining balance — your last statement balance carried forward by the payments since, each one paying that period’s interest first. A full payment never comes off the balance, because that isn’t what the bank does either.',
   'netWorthInfo.history':
-    'Each month on the line uses what was true at that month’s end. Where you had logged no value yet, the oldest reading you did log is carried back rather than invented — so early history is an honest estimate, not a fabrication. Touch the line to read one month, and the breakdown underneath names the accounts that made it.',
+    'Each month on the line uses what was true at that month’s end. Before your first entered value, the earliest one you did enter is carried back rather than invented — so early history is an honest estimate. Tap the line to see one month, and the breakdown underneath names the accounts behind it.',
   'netWorthInfo.excluded':
-    'Accounts you switched off under Customize are left out of all of it, the line included.',
+    'Accounts turned off under Customize are left out entirely, chart included.',
   'accounts.netWorth': 'Net Worth',
   'accounts.customize': 'Customize',
   'accounts.assets': 'Assets {amount}',
@@ -427,7 +426,7 @@ export const en = {
   'accounts.kindTracking': 'Tracking',
   'accounts.kindAsset': 'Asset',
   'accounts.kindGiving': 'Giving',
-  'accounts.notInNetWorth': 'never counted in net worth',
+  'accounts.notInNetWorth': 'not counted in net worth',
 
   'accountDetail.balance': 'Balance',
   'accountDetail.remainingPrincipal': 'Remaining Principal',
@@ -435,7 +434,7 @@ export const en = {
   'accountDetail.transactionsHeading': 'Transactions · {count}',
   'accountDetail.scheduledHeading': 'Scheduled ({count})',
   'accountDetail.scheduledHint':
-    "Dated in the future — doesn't affect balance or budget until its date arrives.",
+    'Dated in the future — it won’t affect your balance or budget until that day.',
   'accountDetail.nextDateLabel': 'Next: {date}',
   'accountDetail.cancelSchedule': 'Cancel Schedule',
 
@@ -454,22 +453,22 @@ export const en = {
   'accountModal.typeGiving': 'Giving',
   'accountModal.openingBalanceLabel': 'Starting Balance',
   'accountModal.openingBalanceHint':
-    'The balance on the day this account starts in the app. Loans and credit cards go in negative — what you owed back then.',
+    'The balance on the day this account starts in the app. For loans and credit cards, enter a negative number — what you owed then.',
   'accountModal.currentHouseValueLabel': 'Current House Value',
   'accountModal.currentReadingHint':
-    'Add an update below to change this — every reading keeps its own date, so the history stays true.',
+    'To change this, add an update below. Each update keeps its own date, so the history stays accurate.',
   'accountModal.currentHouseValueHint':
-    'What the home is worth now, your own estimate. Recorded as a dated entry you can add to over time from the account page.',
+    'Your own estimate of what the home is worth today. It’s saved with today’s date, and you can add updates later from the account page.',
   'accountModal.currentPrincipalLabel': 'Current Remaining Principal',
   'accountModal.currentPrincipalHint':
-    'What you still owe today, straight off a statement. Between figures like this one, each payment you log covers its interest first and only the rest comes off the principal — so this stays close on its own. Recording it never creates a transaction.',
+    'What you still owe today, from your latest statement. Between statements, each payment you enter pays its interest first and only the rest comes off this figure, so it stays close on its own. Entering it never adds a transaction.',
   'accountModal.purchaseDateLabel': 'Purchase Date',
   'accountModal.houseValueHistoryLabel': 'House Value History',
   'accountModal.principalHistoryLabel': 'Remaining Principal History',
   'accountModal.noReadings': 'Nothing recorded yet.',
   'accountModal.currentValueLabel': 'Current Value',
   'accountModal.currentValueHint':
-    'What it is worth now. This account’s balance is whatever was logged last, not a sum of its transactions.',
+    'What it’s worth today. This account’s balance is always the latest value you entered, not a sum of its transactions.',
   'accountModal.valueHistoryLabel': 'Value History',
   'accountModal.addValue': '+ Update Account Value',
   'interestRateCard.notSet': 'Not set',
@@ -479,15 +478,14 @@ export const en = {
   'accountModal.addPrincipal': '+ Update Remaining Principal',
   'accountModal.latestBalanceLabel': 'Current Balance',
   'accountModal.latestBalanceHint':
-    'What the account really says today. Saving a different number logs one adjustment transaction to close the gap.',
+    'What your bank shows today. If it differs from the app, one adjustment transaction is added to close the gap.',
   'accountModal.interestRateHeading': 'Interest Rate',
   'accountModal.interestRateHistoryLabel': 'Interest Rate History',
   'accountModal.noRateRecorded': 'No rate recorded yet.',
   'accountModal.addRateChange': '+ Add Rate Change',
   'accountModal.interestRateAnnualLabel': 'Interest Rate (annual %)',
   'accountModal.interestRatePlaceholder': 'e.g. 6.25 (optional)',
-  'accountModal.loanTermsHeading':
-    'Loan Terms (for the payoff projection on the account page)',
+  'accountModal.loanTermsHeading': 'Loan Terms',
   'accountModal.toolsHeading': 'Tools',
 
   'accountModal.termMonthsPlaceholder': 'e.g. 360',
@@ -497,7 +495,7 @@ export const en = {
   'accountModal.originalPrincipalLabel': 'Amount Borrowed',
   'accountModal.mortgageAmountLabel': 'Mortgage Amount',
   'accountModal.originalPrincipalHint':
-    'What you borrowed at signing — not what is left to pay today. Sets the monthly payment and payoff projection, and fills in the starting balance above.',
+    'What you borrowed at signing — not what’s left today. Sets the monthly payment and payoff projection, and fills in the starting balance above.',
   'accountModal.originalHousePriceLabel': 'Purchase Price',
   'accountModal.originalHousePricePlaceholder': '0.00 (optional)',
   'accountModal.originalHousePriceHint':
@@ -506,30 +504,30 @@ export const en = {
   'accountModal.downPaymentPending': 'Fill in both fields above',
   'accountModal.downPaymentValue': '{amount} ({percent}% down)',
   'accountModal.principalExceedsHint':
-    'Mortgage amount exceeds the purchase price',
+    'Mortgage is more than the purchase price',
   'accountModal.originationDateLabel': 'Origination Date',
   'accountModal.noteLabel': 'Note',
-  'accountModal.notePlaceholder': 'Anything the name does not say (optional)',
+  'accountModal.notePlaceholder': 'Note (optional)',
   'accountModal.reopenAccount': 'Reopen Account',
   'accountModal.closeAccount': 'Close Account',
   'accountModal.closeAccountConfirmTitle': 'Close "{name}"?',
   'accountModal.closeAccountConfirmMessage':
-    'Hides it from your accounts list. Its transactions are kept, not deleted.',
+    'It’s hidden from your accounts list. Its transactions are kept.',
 
   'closedAccounts.empty': 'No closed accounts.',
   'closedAccounts.tapToReopen': 'Tap to reopen',
   'closedAccounts.deleteForever': 'Delete permanently',
-  'closedAccounts.deleteConfirmTitle': "Delete '{name}' and its transactions?",
+  'closedAccounts.deleteConfirmTitle': 'Delete “{name}” and its transactions?',
   'closedAccounts.deleteConfirmMessage':
-    'Its transactions are deleted too, and stop counting toward category activity and Unassigned Cash. The other side of any transfer keeps its own entry. This cannot be undone.',
+    'Its transactions are deleted too and stop counting in your categories and Unassigned. The other side of any transfer keeps its own entry. This can’t be undone.',
   'closedAccounts.deleteImpactMessage':
-    'Its transactions go too — including {amount} of categorised spending, which is what offset the cash that paid this account off. Deleting it leaves those payments behind, taking Unassigned Cash to {deleted}. Usually you want to keep the account closed instead. This cannot be undone.',
+    'Its transactions go too, including {amount} of categorized spending — the spending your payments to this account were covering. Delete it and those payments are left with nothing to offset, taking Unassigned to {deleted}. Keeping the account closed is usually the better choice. This can’t be undone.',
   'closedAccounts.absorbAction': 'Move to {name}',
   'closedAccounts.deleteAnyway': 'Delete anyway',
   'closedAccounts.absorbMessage':
-    'This account holds {amount} of categorised spending. Moving it to {into} keeps that history and collapses the payments between the two, so Unassigned Cash stays at {unassigned}. Deleting instead takes it to {deleted}.',
+    'This account has {amount} of categorized spending. Moving it to {into} keeps that history and cancels out the payments between the two, so Unassigned stays at {unassigned}. Deleting it instead would take Unassigned to {deleted}.',
   'closedAccounts.absorbShiftMessage':
-    'This account holds {amount} of categorised spending. Moving it to {into} keeps that history, but takes Unassigned Cash from {unassigned} to {absorbed} — what this account still owed, or was opened owing, becomes cash treated as already spent. Deleting instead takes it to {deleted}.',
+    'This account has {amount} of categorized spending. Moving it to {into} keeps that history, but takes Unassigned from {unassigned} to {absorbed}, because what this account still owed — or was opened owing — becomes cash that counts as already spent. Deleting it instead would take Unassigned to {deleted}.',
 
   'houseValueCard.label': 'Home Value',
   'houseValueCard.notSet': 'Not set',
@@ -551,7 +549,7 @@ export const en = {
 
   'loanDetailsCard.label': 'Loan Details',
   'loanDetailsCard.addHint':
-    'Add the interest rate, term, and original principal to see a payoff projection.',
+    'Add the interest rate, term and amount borrowed to see when it’ll be paid off.',
   'loanDetailsCard.addTerms': 'Add Loan Terms',
   'loanDetailsCard.editTerms': 'Edit Loan Terms',
   'loanDetailsCard.rateLabel': 'Rate',
@@ -559,25 +557,25 @@ export const en = {
   'loanDetailsCard.extraPaymentLabel': 'Extra monthly payment',
   'loanDetailsCard.projectedPayoffLabel': 'Projected payoff',
   'loanDetailsCard.payoffValue': '{date} ({months} mo)',
-  'loanDetailsCard.paymentTooLow': 'Payment too low to pay off',
-  'loanDetailsCard.remainingInterestLabel': 'Est. remaining interest',
+  'loanDetailsCard.paymentTooLow': 'Payment doesn’t cover the interest',
+  'loanDetailsCard.remainingInterestLabel': 'Interest left (est.)',
   'loanDetailsCard.lastPaymentLabel': 'Last payment ({date})',
   'loanDetailsCard.splitValue': '{interest} interest · {principal} principal',
   'loanDetailsCard.paidSinceReadingLabel': 'Paid since then',
   'loanDetailsCard.updatePrincipal': '+ Update Remaining Principal',
   'loanDetailsCard.sinceReadingHint':
-    'Estimated from {count} payment(s) since you recorded {amount} owed on {date} — each covers its interest first, and only the rest comes off the principal. Record a new figure any time; it never touches your transactions.',
+    'Estimated from the {amount} you owed on {date} and every payment since, each paying its interest first. Enter a new statement balance any time; it never changes your transactions.',
   'loanDetailsCard.sinceOriginHint':
-    'Estimated from the amount borrowed and {count} payment(s) since — each covers its interest first, and only the rest comes off the principal. Record what your statement says to pin it down exactly.',
+    'Estimated from the amount borrowed and every payment since, each paying its interest first. Enter your latest statement balance to make it exact.',
   'loanDetailsCard.noRateHint':
-    'No interest rate on file, so every payment counts fully against the principal — which makes this read lower than the truth.',
+    'No interest rate yet, so every payment counts in full against what you owe — this figure is lower than the real one.',
   'loanDetailsCard.actualsOnlyHint':
-    'Projected from the scheduled payment and the principal still owed. To try extra payments, use the payoff and early-repayment calculators.',
+    'Based on the scheduled payment and what you owe now. To try extra payments, use the payoff calculators.',
   'loanDetailsCard.summary': '{rate}% · {payment}/mo',
 
   'aiAnalysis.title': 'AI Insights',
   'aiAnalysis.noKeyHint':
-    'Add an OpenAI API key in Settings to run an analysis of your budget data.',
+    'Connect an AI in Settings to run an analysis of your budget.',
   'aiAnalysis.openSettings': 'Open Settings',
   'aiAnalysis.kindSpending': 'Spending',
   'aiAnalysis.kindVariance': 'Variance',
@@ -586,20 +584,20 @@ export const en = {
   'aiAnalysis.kindComparison': 'Comparison',
   'aiAnalysis.profileHeading': 'About You (optional)',
   'aiAnalysis.profileHint':
-    'Feeds the Health and Comparison reports below — saved on this device, only sent to OpenAI as part of those two. Leave any field blank to skip it.',
+    'Used only by the Health and Comparison reports below. Saved on this iPhone and sent only with those two. Leave any field blank to skip it.',
   'aiAnalysis.cityLabel': 'City',
   'aiAnalysis.countryLabel': 'Country',
   'aiAnalysis.ageLabel': 'Age',
   'aiAnalysis.familySizeLabel': 'Family size',
   'aiAnalysis.privacyModeLabel': 'Privacy Mode',
   'aiAnalysis.privacyModeHint':
-    'Rounds every amount to the nearest $10 and replaces category names with generic labels ("Category 1") before anything is sent. Turn it off to have the AI talk about your real categories by name.',
+    'Rounds every amount to the nearest $10 and replaces category names with generic labels (“Category 1”) before anything is sent. Turn it off to let the AI use your real category names.',
   'aiAnalysis.runButton': 'Run Analysis',
   'aiAnalysis.errorInvalidKey':
-    'OpenAI rejected the API key — check it in Settings.',
-  'aiAnalysis.errorRateLimited':
-    'Rate-limited by OpenAI — try again in a moment.',
-  'aiAnalysis.errorNetwork': 'Couldn’t reach OpenAI — check your connection.',
+    'The AI provider rejected your key. Check it in Settings.',
+  'aiAnalysis.errorRateLimited': 'Too many requests. Try again in a moment.',
+  'aiAnalysis.errorNetwork':
+    'Couldn’t reach the AI provider. Check your connection.',
   'aiAnalysis.errorUnknown': 'Something went wrong running the analysis.',
 
   'calculators.title': 'Mortgage / Loan Calculator',
@@ -610,8 +608,8 @@ export const en = {
   'calculators.payoffDateLabel': 'Payoff date (from today)',
 
   'amortizationSchedule.title': 'Amortization Schedule',
-  'amortizationSchedule.inputsTitle': 'Loan inputs',
-  'amortizationSchedule.scheduleTitle': 'Payment-by-payment schedule',
+  'amortizationSchedule.inputsTitle': 'Loan details',
+  'amortizationSchedule.scheduleTitle': 'Every payment',
   'amortizationSchedule.colDate': 'Date',
   'amortizationSchedule.colPrincipal': 'Principal',
   'amortizationSchedule.colInterest': 'Interest',
@@ -623,35 +621,36 @@ export const en = {
   'investmentGrowth.gainLabel': 'Gain/Loss',
   'investmentGrowth.totalLabel': 'Total',
   'investmentGrowth.notEnoughHistory':
-    'Log at least two value updates to see a trend.',
+    'Add at least two values to see a trend.',
   'investmentGrowth.notEnoughYears':
-    'Log a value in two different years to see the trend.',
+    'Add values in two different years to see a trend.',
   'investmentGrowth.noDepositsHint':
-    'No transactions logged on this account yet, so the whole balance shows as gain. Record deposits/withdrawals as transactions to split the two.',
+    'No transactions on this account yet, so the whole balance shows as gain. Add deposits and withdrawals as transactions to separate the two.',
 
   'babySteps.introHeading': 'What the plan is',
   'babySteps.intro':
-    'A fixed order for money decisions: everything you can spare goes into the step you are on until it is done, and then into the next one. The order matters more than the speed. The seven steps are Dave Ramsey’s — the link at the top of the page is his own account of them; what this page adds is reading them off your accounts instead of your memory.',
+    'Dave Ramsey’s seven steps, in a fixed order: everything you can spare goes into the step you’re on until it’s done, then into the next. The order matters more than the speed. The link at the top is his own account of the steps; this page reads your progress off your accounts instead of your memory.',
   'babySteps.learnMore': 'Learn more about Dave Ramsey’s 7 Baby Steps →',
   'babySteps.whyHeading': 'Why this order',
   'babySteps.whyBody':
-    'Step 1 is a buffer, not a cushion: a small fund stops a flat tyre from becoming fresh debt while you are busy clearing the old kind. Step 2 clears everything but the mortgage, smallest balance first — the point is momentum, not the mathematically optimal interest rate. Step 3 turns the buffer into real cover, three to six months of your own average spending, which is why the target follows your history instead of a round number. Investing waits until Step 4, because a return earned while paying 20% card interest is not a return. Steps 5 to 7 are what the earlier ones buy: a fund for the kids, a house that is finally yours, and money you get to give away.',
-  'babySteps.measuredHeading': 'How this page knows',
+    'Step 1 is a small buffer, so a surprise bill doesn’t turn into new debt while you’re clearing the old kind. Step 2 clears everything but the mortgage, smallest balance first — the point is momentum, not the best interest rate. Step 3 grows the buffer to three to six months of your own spending, which is why the target follows your history rather than a round number. Investing waits until Step 4, because a return earned while paying 20% card interest isn’t a return. Steps 5 to 7 are what the earlier ones make possible: a fund for the kids, a home that’s finally yours, and money you get to give away.',
+  'babySteps.measuredHeading': 'Where the numbers come from',
   'babySteps.measuredBody':
-    'Each step reads the accounts you choose for it — emergency fund, retirement, down payment — so the bars move when your ledger does, not when you say so. The steps with nothing to measure are yours to mark done. Add your own goals at the bottom when the seven do not cover something you are saving for; they work the same way, and can be linked to an account to track themselves.',
+    'Each step reads the accounts you pick for it — emergency fund, retirement, down payment — so the bars move with your real balances. Steps with nothing to measure, you mark done yourself. Add your own goals at the bottom for anything the seven don’t cover; they work the same way and can be linked to an account.',
   'babySteps.step1Title': '$1,000 starter emergency fund',
   'babySteps.step1Blurb':
-    'Save it fast and in cash, before anything else. Ramsey’s reason: while you are still in debt, a flat tyre or a broken boiler you cannot cover simply becomes more debt.',
+    'Save it fast and in cash, before anything else. Ramsey’s reason: while you’re still in debt, a flat tire or a broken furnace you can’t cover simply becomes more debt.',
   'babySteps.step2Title': 'Pay off all debt (except the mortgage)',
   'babySteps.step2Blurb':
-    'The debt snowball — list every debt but the house smallest to largest, pay the minimum on all of them, and attack the smallest with everything you have. Roll each cleared payment into the next. Ignoring interest rates is the point: “personal finance is 80% behaviour and only 20% head knowledge.”',
+    'The debt snowball: list every debt except the house from smallest to largest, pay the minimum on all of them, and throw everything else at the smallest. When one is cleared, roll its payment into the next. Ignoring interest rates is the point: “personal finance is 80% behaviour and only 20% head knowledge.”',
   'babySteps.remaining': '{amount} remaining',
   'babySteps.step3Title': '3–6 months of expenses saved',
   'babySteps.step3Blurb':
     'With nothing going to lenders, take the starter fund up to three to six months of your own expenses. This is the step that turns a crisis into an inconvenience.',
   'babySteps.step3Caption': '{current} of ~{target} (avg {avg}/mo × 4)',
   'babySteps.step3bTitle': 'Save a 20% down payment',
-  'babySteps.step3bBlurb': 'For anyone who doesn’t own the home they live in yet. Pause Steps 4–6 and save 20% down in cash for your first home. A mortgage on some other property isn’t your home and isn’t an investment yet — owning where you live comes before investing or paying that one off. Ramsey’s rule of thumb: a 15-year fixed-rate mortgage, with a payment no more than 25% of take-home pay.',
+  'babySteps.step3bBlurb':
+    'For anyone who doesn’t own the home they live in yet. Pause Steps 4–6 and save 20% down in cash for your first home. A mortgage on some other property isn’t your home and isn’t an investment yet — owning where you live comes before investing or paying that one off. Ramsey’s rule of thumb: a 15-year fixed-rate mortgage, with a payment no more than 25% of take-home pay.',
   'babySteps.notEnoughHistory': 'Not enough spending history yet',
   'babySteps.step4Title': 'Invest 15% of income for retirement',
   'babySteps.step4Blurb':
@@ -660,7 +659,7 @@ export const en = {
   'babySteps.step4NoAccounts': 'Not tracked yet',
   'babySteps.step5Title': 'Save for kids’ college fund',
   'babySteps.step5Blurb':
-    'Your own retirement first, then the kids — an ESA or 529 rather than student loans. The order is deliberate: they can borrow for college, you cannot borrow for retirement.',
+    'Your own retirement first, then the kids — an RESP or 529 rather than student loans. The order is deliberate: they can borrow for college; you can’t borrow for retirement.',
   'babySteps.editTarget': 'Target: {target} (edit)',
   'babySteps.step6Title': 'Pay off the mortgage early',
   'babySteps.step6Blurb':
@@ -700,20 +699,19 @@ export const en = {
   'babySteps.noCategoriesAvailable': 'No categories available',
   'babySteps.goalsHeading': 'Your Goals',
   'babySteps.goalsHint':
-    "Your own targets — separate from the 7 Baby Steps above, and not counted in any of their progress. Track anything (a car, a trip) either manually or against a linked account's balance.",
+    'Your own savings goals — a car, a trip — separate from the Baby Steps above and not counted in their progress. Track each by hand or from a linked account’s balance.',
   'babySteps.addGoal': '+ Add Goal',
-  'babySteps.goalsEmpty':
-    'No custom goals yet — set your own target above and track it manually or from a linked account.',
+  'babySteps.goalsEmpty': 'No goals yet.',
 
   'customGoalModal.nameLabel': 'Name',
   'customGoalModal.namePlaceholder': 'e.g. New car down payment',
   'customGoalModal.targetLabel': 'Target amount',
-  'customGoalModal.modeManual': 'Manual (no linked account)',
+  'customGoalModal.modeManual': 'Track by hand',
   'customGoalModal.progressLabel': 'Progress so far',
 
   'taxInsights.title': 'Tax Insights — {year}',
   'taxInsights.disclaimer':
-    'Preliminary numbers from your ledger, for planning only. Not tax advice.',
+    'Estimates from your transactions, for planning only. Not tax advice.',
   'taxInsights.countryLabel': 'Country',
   'taxInsights.provinceLabel': 'Province',
   'taxInsights.selectProvince': 'Select province',
@@ -722,10 +720,10 @@ export const en = {
   'taxInsights.totalIncomeLabel': 'Total income ({year})',
   'taxInsights.totalSpendingLabel': 'Total spending ({year})',
   'taxInsights.incomeBySourceLabel': 'Income by source',
-  'taxInsights.noIncomeYet': 'No money in yet this year',
+  'taxInsights.noIncomeYet': 'No income yet this year',
   'taxInsights.interestLabel': 'Interest',
   'taxInsights.interestHint':
-    'Pick the category you tag interest transactions with, if any — deposits (e.g. savings interest) count as earned, charges (e.g. loan interest) count as paid.',
+    'Pick the categories you use for interest, if any. Money in (savings interest) counts as earned; money out (loan interest) counts as paid.',
   'taxInsights.interestEarned': 'Earned (taxable)',
   'taxInsights.interestPaid': 'Paid (usually not deductible)',
   'taxInsights.interestCategoriesLabel': 'Categories for interest',
@@ -733,7 +731,7 @@ export const en = {
   'taxInsights.noCategoriesAvailable': 'No categories available',
   'taxInsights.investmentGainsLabel': 'Investment account gains ({year})',
   'taxInsights.investmentGainsHint':
-    'Raw value change on tracking accounts — actual taxable capital gain depends on the inclusion rate and adjusted cost base, not calculated here.',
+    'The change in value of your tracking accounts. The taxable capital gain depends on the inclusion rate and adjusted cost base, which aren’t calculated here.',
   'taxInsights.noTrackingAccounts': 'No tracking accounts yet',
   'taxInsights.totalGains': 'Total',
   'taxInsights.gainSince': 'since {date}',
@@ -741,12 +739,12 @@ export const en = {
   'taxInsights.donationsHint':
     'Eligible for the charitable donation tax credit, not a straight income deduction.',
   'taxInsights.donationCategoriesLabel': 'Categories for giving',
-  'taxInsights.additionalInfoLabel': 'Anything else?',
+  'taxInsights.additionalInfoLabel': 'Other income and deductions',
   'taxInsights.additionalIncomeLabel': 'Additional taxable income',
   'taxInsights.deductionsLabel': 'Estimated deductions',
   'taxInsights.estimatedTaxableIncomeLabel': 'Estimated taxable income',
   'taxInsights.estimatedTaxableIncomeHint':
-    'Ledger income + additional income − deductions. Interest, gains and donations above are shown for context and not double-counted here.',
+    'Income from your transactions, plus additional income, minus deductions. The interest, gains and donations above are shown for context and aren’t added again here.',
   'taxInsights.timelineLabel': 'Filing timeline ({province})',
   'taxInsights.timelineNoProvince': 'Filing timeline',
   'taxInsights.slipsReadyBy':
@@ -763,8 +761,7 @@ export const en = {
   'taxInsights.formTP1': 'TP1 — Revenu Québec provincial return',
   'taxInsights.askAi': 'Ask AI to summarize →',
   'taxInsights.aiSummaryTitle': 'AI summary',
-  'taxInsights.aiSummaryMessage':
-    'AI analysis needs an API key and provider setup — coming in a future update.',
+  'taxInsights.aiSummaryMessage': 'AI summary is coming in a future update.',
 
   'transactions.searchPlaceholder': 'Search payee or memo',
   'transactions.selectedCount': '{count} selected',
@@ -784,18 +781,18 @@ export const en = {
   'transactions.needsCategory': 'Uncategorized',
   'transactions.needsReview': 'Flagged',
 
-  'review.guideBottomHeading': 'A flag is an observation, not a rule',
+  'review.guideBottomHeading': 'Nothing here is urgent',
   'review.guideBottomBody':
-    'Leave a row exactly as it is and it stays flagged, harmlessly, for as long as you like — nothing here expires, nags, or changes your data on its own. The quick fixes only do what their label says (create the missing half of a transfer, match two amounts, merge same-day twins into one row), and they write through the same paths as editing by hand, so anything they do can be undone from History in Settings.',
+    'Leave a transaction as it is and it simply stays flagged — nothing here expires, nags, or changes your data on its own. Each quick fix does only what its button says (add the missing side of a transfer, match two amounts, merge same-day duplicates into one), and every fix can be undone from History in Settings.',
   'trackedPrices.guideHeading': 'Where this comes from',
   'trackedPrices.guideBody':
-    'The Items row on the spend form: type what you actually bought and what each thing cost. Those names collect here, ranked by how often you bought them, with the total spent on each. Tap one for every purchase of it and its price over time.',
-  'trackedPrices.guideBottomHeading': 'Why bother naming things',
+    'The Items row on the Add Transaction form: type what you bought and what each thing cost. Those names collect here, ranked by how often you bought them, with the total spent on each. Tap one to see every purchase and its price over time.',
+  'trackedPrices.guideBottomHeading': 'Why name items',
   'trackedPrices.guideBottomBody':
-    'A category tells you groceries cost $600 this month. An item tells you the coffee went from $14 to $19 since spring and that you buy it nine times a quarter. That is the difference between knowing you overspent and knowing on what — and it is the one kind of price history nobody keeps for you, since no shop will show you what the same basket cost a year ago. Items are optional and free-form: name only what is worth watching and leave the rest of the receipt untyped.',
-  'taxInsights.guideHeading': 'A year, gathered for tax time',
+    'A category tells you groceries cost $600 this month. An item tells you the coffee went from $14 to $19 since spring and that you buy it nine times a quarter. That’s the difference between knowing you overspent and knowing on what — and no shop will show you what the same basket cost a year ago. Items are optional: name only what’s worth watching and skip the rest of the receipt.',
+  'taxInsights.guideHeading': 'The year’s figures, ready for tax time',
   'taxInsights.guideBody':
-    'Not a return and not advice — this gathers the figures a return tends to ask for, out of the ledger you already keep: what came in and from whom, interest earned and paid, gains on investment accounts, and what you gave away. You say which of your categories mean interest and which mean giving, because only you know how you named them. Everything covers the calendar year shown, and none of it leaves this phone.',
+    'Not a tax return and not advice — this gathers the figures a return usually asks for, from the transactions you already keep: what came in and from whom, interest earned and paid, gains on investment accounts, and what you gave away. You choose which categories mean interest and which mean giving, because only you know how you named them. Everything covers the calendar year shown, and none of it leaves this iPhone.',
   'review.title': 'Flagged Transactions',
   'review.chipAll': 'All {count}',
   'review.reasonMissingPayee': 'Payee',
@@ -810,40 +807,40 @@ export const en = {
   'review.fundCategory': 'Fund {amount} in {month}',
   'review.fundShortfall': 'Unassigned cash is {amount} short',
   'review.explainMissingPayee':
-    'These rows don’t say who was paid. Pick a payee — or, for half of a transfer, name it after the account across from it in one tap.',
+    'These transactions don’t say who was paid. Pick a payee — or, for one side of a transfer, one tap names it after the other account.',
   'review.explainMissingCategory':
-    'Money left a spending account without landing in a category, so it is missing from the budget entirely.',
+    'Money was spent without a category, so the budget doesn’t see it at all.',
   'review.explainDuplicate':
-    'Same account, day, amount, payee and note. Either one event recorded twice — delete one — or two halves of one purchase, which Merge turns into a single row for the total.',
+    'Same account, date, amount, payee and memo. Either one purchase was entered twice — delete one — or it’s two parts of one purchase, which Merge turns into a single transaction for the total.',
   'review.explainZeroAmount':
-    'A transaction for nothing at all. Almost always left behind by an import.',
+    'A $0 transaction, usually left over from an import.',
   'review.explainTransferMissingLeg':
-    'Half of a transfer whose other half was never written: money left one account and arrived nowhere. The fix posts the missing row into the account this one names.',
+    'A transfer with only one side: money left one account but never arrived anywhere. The fix adds the missing side to the account this one names.',
   'review.explainTransferAmountMismatch':
-    'Both halves exist but don’t cancel out. The fix makes the other side the exact opposite of the row you are looking at.',
+    'Both sides exist but the amounts don’t match. The fix sets the other side to the exact opposite of this one.',
   'review.explainTransferSelfNamed':
-    'The payee is the row’s own account, which says nothing about where the money went. The fix renames it after the account across from it.',
+    'The payee is this transaction’s own account, which says nothing about where the money went. The fix renames it after the other account.',
   'review.explainTransferUnlinked':
-    'The two halves are correct but nothing ties them together, so neither knows the other exists. The fix links the pair.',
+    'Both sides are right but nothing links them, so neither knows about the other. The fix links the pair.',
   'review.explainCategoryOverspent':
-    'This category spent more than it had in that month. Funding assigns the shortfall into that same month, which lifts every month after it. No account balance moves — the money comes out of Unassigned Cash, which drops by the same amount.',
-  'review.fixPostLeg': 'Create matching row',
+    'This category spent more than it had that month. Assigning the shortfall fixes that month and every month after it. No account balance changes — the money comes out of Unassigned, which drops by the same amount.',
+  'review.fixPostLeg': 'Add the other side',
   'review.fixMatchAmounts': 'Match amounts',
-  'review.fixNameFromOtherSide': 'Name from other side',
-  'review.fixLinkPair': 'Link to its match',
+  'review.fixNameFromOtherSide': 'Use the other account’s name',
+  'review.fixLinkPair': 'Link the two sides',
   'review.fixMerge': 'Merge into one',
   'review.fixMergeCount': 'Merge {count} into one',
   'review.mergeConfirmTitle': 'Merge {count} transactions?',
   'review.mergeConfirmMessage':
-    'They become a single transaction for their combined amount. This cannot be undone.',
+    'They become one transaction for the combined amount. This can’t be undone.',
   'review.setPayeeForSelected': 'Set payee',
   'review.setCategoryForSelected': 'Set category',
-  'review.fixDelete': 'Delete row',
+  'review.fixDelete': 'Delete',
   'review.fixSelected': 'Fix {count}',
   'review.fixApply': 'Fix',
   'review.fixSelectedConfirmTitle': 'Fix {count} transactions?',
   'review.fixSelectedConfirmMessage':
-    '{count} of them will be deleted. This cannot be undone.',
+    '{count} of them will be deleted. This can’t be undone.',
   'review.pickPayee': 'Set a payee',
   'review.pickCategory': 'Set a category',
   'review.deleteConfirmTitle': 'Delete this transaction?',
@@ -854,14 +851,14 @@ export const en = {
   'budget.unassigned': 'Unassigned: {amount}',
   'budget.breakdownCash': 'Cash & savings',
   'budget.breakdownEnvelopes': 'Assigned, not yet spent',
-  'budget.breakdownAhead': '…of which given to later months',
+  'budget.breakdownAhead': '…of which assigned to future months',
   'budget.breakdownUnassigned': 'Unassigned',
   'budget.breakdownNote':
-    'Cash you hold today, less what your categories still hold across every month — future ones included. The same figure whichever month you are looking at: money assigned to next month is already spoken for.',
+    'The cash you have now, minus what your categories still hold — future months included. It’s the same figure whichever month you’re viewing, because money assigned to next month is already spoken for.',
   'budget.breakdownCardWarning':
-    '{amount} of this is spending already charged to a credit card. Card spending empties a category without leaving your cash, so that much is spoken for even though it reads as free.',
+    '{amount} of this is credit card spending you haven’t paid off yet. It’s already spent from your categories, so that much isn’t really free even though it looks like cash.',
   'budget.avgLabel': '12 Months Avg',
-  'budget.reached': '{percent}% reached',
+  'budget.reached': '{percent}% of average',
   'budget.addCategory': 'Add Category',
   'budget.renameGroup': 'Rename Group',
   'budget.renameCategory': 'Rename Category',
@@ -876,12 +873,12 @@ export const en = {
   'budget.categoryNamePlaceholder': 'e.g. 🛒 Groceries',
   'budget.deleteGroupConfirmTitle': 'Delete "{name}"?',
   'budget.deleteGroupConfirmMessage':
-    'Its categories move to "Ungrouped" — they aren’t deleted.',
+    'Its categories move to “Ungrouped” — they aren’t deleted.',
   'budget.deleteCategoryConfirmTitle': 'Delete "{name}"?',
-  'budget.pendingApprovals': '{count} scheduled pending approval',
+  'budget.pendingApprovals': 'Scheduled transactions to approve: {count}',
 
-  'pendingScheduled.title': 'Pending Scheduled Transactions',
-  'pendingScheduled.empty': 'Nothing waiting on approval.',
+  'pendingScheduled.title': 'Scheduled Transactions to Approve',
+  'pendingScheduled.empty': 'Nothing to approve.',
   'pendingScheduled.approve': 'Approve',
 
   'insights.spendingBreakdown': 'Spending Breakdown',
@@ -889,28 +886,28 @@ export const en = {
   'insights.noSpending': 'No spending recorded this month.',
   'insights.categoryTrends': 'Category Trends',
   'insights.trendHint':
-    'All time — drag to scroll, tap an icon to hide/show that category. Dashed line is your 12-month average.',
+    'All time — drag to scroll, tap an icon to hide or show that category. The dashed line is your 12-month average.',
   'insights.notEnoughHistory': 'Not enough history yet.',
   'insights.avgAxisLabel': 'avg',
   'insights.babySteps': 'Baby Steps',
-  'insights.housing': 'Realtor Insights',
+  'insights.housing': 'House Hunting',
   'houseStatus.watching': 'Watching',
   'houseStatus.viewed': 'Viewed',
   'houseStatus.shortlisted': 'Shortlisted',
   'houseStatus.offered': 'Offered',
   'houseStatus.rejected': 'Ruled out',
   'housing.shortlistHeading': 'Houses',
-  'housing.empty': 'No houses yet. Add one the moment you see a listing worth a second look — a name and a price is enough to start.',
+  'housing.empty': 'No houses yet. A name and a price is enough to start.',
   'housing.addHouse': '+ Add a house',
   'housing.compareSelected': 'Compare {count} →',
   'housing.compareHint': 'Hold a row to pick it for comparison.',
   'housing.compareEmpty': 'Nothing picked to compare.',
   'housing.bedsShort': '{beds} bd',
   'housing.sqftShort': '{sqft} sqft',
-  'housing.carryingShort': '{amount}/mo to carry',
+  'housing.carryingShort': '{amount}/mo to own',
   'housing.untitled': 'Untitled listing',
   'housing.identityHeading': 'The listing',
-  'housing.name': 'Name it',
+  'housing.name': 'Name',
   'housing.namePlaceholder': 'e.g. 148 St · corner lot',
   'housing.address': 'Address',
   'housing.city': 'City',
@@ -918,7 +915,7 @@ export const en = {
   'housing.communityPlaceholder': 'e.g. Fraser Heights',
   'housing.listingUrl': 'Listing link',
   'housing.openListing': 'Open the listing →',
-  'housing.status': 'Where it stands',
+  'housing.status': 'Status',
   'housing.rating': 'Your rating',
   'housing.viewedOn': 'Viewed on',
   'housing.priceHeading': 'Price and fixed costs',
@@ -927,16 +924,16 @@ export const en = {
   'housing.strataFee': 'Strata fee (monthly)',
   'housing.propertyTaxAnnual': 'Property tax (yearly)',
   'housing.derivedHeading': 'What it would cost you',
-  'housing.carryingMonthly': 'Monthly to carry',
+  'housing.carryingMonthly': 'Monthly cost to own',
   'housing.mortgagePayment': 'Mortgage payment',
   'housing.downPayment': 'Down payment',
   'housing.pricePerSqft': 'Price per sq ft',
   'housing.askingOverAssessed': 'Asking vs assessed',
   'housing.age': 'Age',
   'housing.ageYears': '{years} years',
-  'housing.openCalculator': 'Run it through the purchase calculator →',
+  'housing.openCalculator': 'Open in the purchase calculator →',
   'housing.derivedNote':
-    'Figured at 4.5%, 25 years, 20% down, plus $250/mo of utilities — the same assumptions for every house, so the comparison is fair. Change them in the purchase calculator for a real quote.',
+    'Calculated at 4.5%, 25 years, 20% down, plus $250/mo for utilities — the same assumptions for every house, so the comparison is fair. Change them in the purchase calculator for a real quote.',
   'housing.buildingHeading': 'The building',
   'housing.propertyType': 'Type',
   'housing.propertyTypePlaceholder': 'Detached · Townhouse · Condo',
@@ -963,33 +960,33 @@ export const en = {
   'housing.transit': 'Transit',
   'housing.noise': 'Noise',
   'housing.noisePlaceholder': 'Highway, rail, flight path…',
-  'housing.neighbourhood': 'The street and the neighbours',
+  'housing.neighbourhood': 'Neighbourhood',
   'housing.verdictHeading': 'Your verdict',
-  'housing.pros': 'For',
-  'housing.cons': 'Against',
+  'housing.pros': 'Pros',
+  'housing.cons': 'Cons',
   'housing.notes': 'Notes',
   'housing.deleteHouse': 'Delete this house',
   'housing.deleteTitle': 'Delete this house?',
-  'housing.detailGuideHeading': 'Write it down at the door',
+  'housing.detailGuideHeading': 'Write it down at the viewing',
   'housing.detailGuideBody':
-    'Four viewings in and every house is "the one with the nice kitchen". This is the record that survives that: nothing is required but a name, every field is optional, and the figures underneath recompute as you type. The condition fields are the ones people forget to ask about and pay for later — a roof at twenty years and a furnace at twenty-five are both a number you should be subtracting from the asking price.',
-  'housing.addBenchmark': '+ Log a community benchmark price',
+    'Four viewings in, every house becomes “the one with the nice kitchen”. This is the record that survives that. Only the name is required; everything else is optional, and the figures below update as you type. The condition fields are the ones people forget to ask about and pay for later — a twenty-year-old roof or a twenty-five-year-old furnace is money to take off the asking price.',
+  'housing.addBenchmark': '+ Add a community benchmark price',
   'housing.addBenchmarkTitle': 'Benchmark price',
   'housing.addBenchmarkHint':
-    'One figure, one month, one community. Log it whenever you read a new one and the line builds itself.',
+    'One price per community per month. Add each new one as it’s published and the line builds up.',
   'housing.month': 'Month',
   'housing.benchmarkPrice': 'Benchmark price',
   'housing.latestBenchmark': 'Latest benchmark',
   'housing.changeSince': 'Change since {month}',
-  'housing.guideHeading': 'Two halves of a house hunt',
+  'housing.guideHeading': 'Two parts of a house hunt',
   'housing.guideBody':
-    'Above, the places you are actually considering — each one a record you fill in as you learn it, with what it would cost you a month worked out from the asking price. Below, what a community has been doing, month by month, from figures you log yourself. Hold a house to pick it, pick two or three, and compare them side by side.',
-  'housing.sourceHeading': 'Why you type the benchmark in',
+    'Above: the houses you’re actually considering, each a record you fill in as you learn more, with the monthly cost worked out from the asking price. Below: what a community’s prices have done month by month, from figures you enter yourself. Hold a house to select it, pick two or three, and compare them side by side.',
+  'housing.sourceHeading': 'Why you enter the benchmark yourself',
   'housing.sourceBody':
-    'Real-estate boards publish benchmark prices by community every month — but as PDFs and spreadsheets, not as an API, and their terms do not allow an app to republish them. So this works the way a tracking account does: you read the figure from the source you trust, type it in once a month, and the app keeps the series, draws the line and does the arithmetic. It is a minute a month, and the numbers are then unarguably the ones you chose.',
+    'Real-estate boards publish benchmark prices by community every month — but as PDFs and spreadsheets, not as a feed, and their terms don’t allow an app to republish them. So this works like a tracking account: you read the figure from the source you trust, type it in once a month, and the app keeps the series, draws the line and does the arithmetic. It’s a minute a month, and the numbers are the ones you chose.',
   'housing.compareGuideHeading': 'How to read this',
   'housing.compareGuideBody':
-    'Green is the better cell on rows where better is defined — cheaper to carry, more space, a newer roof, a shorter commute. Rows where better is a matter of taste mark nothing. A tie marks nobody: two identical figures are not a finding. Scroll sideways for more houses, down for more rows.',
+    'Green marks the better value on rows where better is clear — cheaper to own, more space, a newer roof, a shorter commute. Rows that come down to taste aren’t marked, and neither are ties. Scroll sideways for more houses, down for more rows.',
   'insights.costOfLiving': 'Cost of Living',
   'city.vancouver': 'Vancouver',
   'city.surrey': 'Surrey',
@@ -1018,63 +1015,66 @@ export const en = {
   'bucket.leisure': 'Leisure',
   'costOfLiving.cityHeading': 'City',
   'costOfLiving.city': 'City',
-  'costOfLiving.fromTable': 'Compiled estimates, as of {date}.',
+  'costOfLiving.fromTable': 'Estimates as of {date}.',
   'costOfLiving.fromAi': 'Asked {model} on {date}.',
-  'costOfLiving.askAi': 'Ask AI for a newer read →',
+  'costOfLiving.askAi': 'Ask AI for newer figures →',
   'costOfLiving.asking': 'Asking…',
-  'costOfLiving.useTable': 'Back to the shipped figures',
-  'costOfLiving.askFailed': 'The AI did not return usable figures. The shipped ones are still shown.',
-  'costOfLiving.needsAiKey': 'Connect an AI in Settings to ask for newer figures.',
-  'costOfLiving.needsRate': 'Open Exchange Rates once to cache the {currency} rate, and these convert automatically.',
-  'costOfLiving.compareHeading': 'You (last {months} months) against this city',
+  'costOfLiving.useTable': 'Use the built-in figures',
+  'costOfLiving.askFailed':
+    'The AI didn’t return usable figures. Showing the built-in ones.',
+  'costOfLiving.needsAiKey':
+    'Connect an AI in Settings to ask for newer figures.',
+  'costOfLiving.needsRate':
+    'Open Exchange Rates once and these will convert to {currency} automatically.',
+  'costOfLiving.compareHeading': 'You vs this city (last {months} months)',
   'costOfLiving.mapCategories': 'Pick your categories',
-  'costOfLiving.mapSomething': 'Pick which of your categories count as each line, and your own figures appear beside the city’s.',
+  'costOfLiving.mapSomething':
+    'Match your categories to each line to see your own figures next to the city’s.',
   'costOfLiving.difference': '{amount} {direction} than typical here',
   'costOfLiving.more': 'more',
   'costOfLiving.less': 'less',
   'costOfLiving.totalCompared': 'Total across {count} compared lines',
-  'costOfLiving.quadrantHeading': 'Where you sit',
+  'costOfLiving.quadrantHeading': 'You vs the city',
   'costOfLiving.quadrantHint':
-    'City cost across, your spending up, and a dashed line where they are equal. Red sits above it — you spend more than this city typically costs. The distance from the line is what is worth acting on.',
+    'Across: what the city costs. Up: what you spend. The dashed line is where they’re equal — red points above it mean you spend more than this city typically costs. The further from the line, the more worth acting on.',
   'costOfLiving.guideHeading': 'What this page is for',
   'costOfLiving.guideBody':
-    'Two questions, one page: what would life cost somewhere else, and how does what I actually spend compare to what a place costs. The second is the one worth asking — moving cities is rare, but discovering you spend twice the local normal on eating out is useful this month.',
+    'Two questions on one page: what would life cost somewhere else, and how does what I spend compare to what a place costs? The second is the useful one — moving cities is rare, but finding out you spend twice the local normal on eating out is useful this month.',
   'costOfLiving.sourceHeading': 'How accurate is this',
   'costOfLiving.sourceBody':
-    'The city figures are estimates, not measurements. The shipped table is compiled from published rent and price surveys and carries the date it was compiled; the AI button asks the model you connected for a newer read, which is only as current as that model’s training — nobody can pin that to a date, and you cannot ask it for one. Both are labelled with where they came from. Your own figures are the exact ones: they are your transactions, averaged over six months, in the categories you mapped. Nothing about your spending is sent when you ask the AI — the question contains a city name and a currency, nothing else.',
+    'The city figures are estimates, not measurements. The built-in table is compiled from published rent and price surveys and carries the date it was compiled; the AI button asks the model you connected for newer figures, which are only as current as that model’s training — no one can put a date on that. Both are labelled with where they came from. Your own figures are exact: your transactions, averaged over six months, in the categories you mapped. Nothing about your spending is sent when you ask the AI — the question contains a city name and a currency, nothing else.',
   'insights.exchangeInsights': 'Exchange Rates',
-  'fx.guideHeading': 'Rates, and where they have been',
+  'fx.guideHeading': 'Today’s rate, and the last five years',
   'fx.guideBody':
-    'Convert at today’s published rate, then look at the same pair over five years. A converter alone tells you what a transfer costs; the line underneath tells you whether this is a normal week to make it.',
+    'Convert at today’s published rate, then see the same pair over five years. A converter tells you what a transfer costs; the line underneath tells you whether this is a normal week to make it.',
   'fx.converterHeading': 'Convert',
   'fx.addCurrency': '＋ Currency',
   'fx.addCurrencyTitle': 'Add a currency',
-  'fx.allAdded': 'Every currency the ECB publishes is already on the list.',
-  'fx.converterHint':
-    'Tap a currency to type into it. The rest follow.',
-  'fx.against': 'Against',
-  'fx.addSecondHint':
-    'Add a second currency to see the pair over five years.',
+  'fx.allAdded': 'Every currency available is already on the list.',
+  'fx.converterHint': 'Tap a currency to type into it. The rest follow.',
+  'fx.against': 'Compare with',
+  'fx.addSecondHint': 'Add a second currency to see the pair over five years.',
   'fx.rateLine': '1 {from} = {rate} {to}',
-  'fx.noRateYet': 'No rate yet — pull once with a connection and it is cached.',
+  'fx.noRateYet':
+    'No rates yet — connect to the internet once and they’re saved.',
   'fx.updating': 'Updating…',
   'fx.updatedOn': 'Rates from {date} · tap to refresh',
-  'fx.neverUpdated': 'Not fetched yet · tap to fetch',
-  'fx.offline': 'Could not reach the rate service. Showing the last rates fetched.',
+  'fx.neverUpdated': 'No rates yet · tap to update',
+  'fx.offline': 'Couldn’t update the rates. Showing the last ones saved.',
   'fx.trendHeading': '{from} → {to}',
   'fx.window1m': '1M',
   'fx.window1y': '1Y',
   'fx.window5y': '5Y',
-  'fx.change': 'Change over the window',
+  'fx.change': 'Change over this period',
   'fx.high': 'High',
   'fx.low': 'Low',
   'fx.average': 'Average',
-  'fx.versusAverage': 'Today against that average',
+  'fx.versusAverage': 'Today vs that average',
   'fx.versusAverageHint':
     'Above average means your currency buys more than it usually does.',
   'fx.sourceHeading': 'Where the numbers come from',
   'fx.sourceBody':
-    'The European Central Bank’s daily reference rates, via frankfurter.app — free, no account, no key. One request a day for the whole table of rates, one more per pair you chart, both made after the page is already on screen, and the answer is kept on this phone so the page works with no signal. The requests carry nothing but currency codes and a date range: nothing about you, nothing about your money. Reference rates are mid-market — a bank or a transfer service will give you a worse one, which is the spread you are paying them.',
+    'The European Central Bank’s daily reference rates, via frankfurter.app — free, no account, no key. One request a day for the whole table, one more per pair you chart, both made after the page is on screen, and the answer is saved on this iPhone so the page works with no signal. The requests carry only currency codes and a date range — nothing about you or your money. Reference rates are mid-market; a bank or transfer service will give you a worse one, and that gap is their fee.',
   'currency.CAD': 'Canadian Dollar',
   'currency.USD': 'US Dollar',
   'currency.CNY': 'Chinese Yuan',
@@ -1110,7 +1110,7 @@ export const en = {
   'trackedPrices.hint':
     'Every item named on a transaction, ranked by how often you bought it. Tap one for its price over time.',
   'trackedPrices.empty':
-    'Nothing named yet. Add items to a transaction (the Items row on the spend form) and they collect here.',
+    'No items yet. Add items when you enter a transaction (the Items row) and they’ll show up here.',
   'trackedPrices.average': 'avg',
   'trackedPrices.latestPrice': 'Latest',
   'trackedPrices.timesBought': '{count}×',
@@ -1123,10 +1123,10 @@ export const en = {
   'insights.payeeTrend': 'Payee Trend',
   'payeeTrend.guideHeading': 'Who the money goes to',
   'payeeTrend.guideBody':
-    'The other half of a category: not what kind of spending it was, but whose hand it ended up in. Every payee you have named on a spend, ranked by what they cost you over the last year, each with its own month-by-month bars. Transfers, income and tracking accounts stay out of it — this is money leaving an on-budget account.',
+    'The other side of a category: not what kind of spending it was, but who got the money. Every payee you’ve named on a transaction, ranked by what they cost you over the last year, each with month-by-month bars. Transfers, income and tracking accounts are left out — this is money leaving a budget account.',
   'payeeTrend.guideBottomHeading': 'What to do with it',
   'payeeTrend.guideBottomBody':
-    'A category tells you groceries cost $600 a month and leaves you nowhere to go. A payee tells you two thirds of it goes to one shop, that the bill has climbed every month since spring, and that the quiet subscription you forgot about has taken $240 while you were not looking. Spending you can name is spending you can decide about: the bars say which months were unusual, the share says whether one payee is worth a second look at all, and a flat line at a number you do not recognise is usually something to cancel.',
+    'A category tells you groceries cost $600 a month and leaves it there. A payee tells you two thirds of it goes to one shop, that a bill has climbed every month since spring, and that a subscription you forgot about has taken $240 while you weren’t looking. Spending you can name is spending you can decide about: the bars show which months were unusual, the share shows whether a payee is worth a second look, and a flat line at a number you don’t recognize is usually something to cancel.',
   'payeeTrend.window': 'Last {months} months',
   'payeeTrend.topPayee': 'Top payee',
   'payeeTrend.totalOverWindow': '{amount} · {percent}% of spending',
@@ -1134,17 +1134,17 @@ export const en = {
   'payeeTrend.perMonth': '{amount}/mo',
   'payeeTrend.avgPerMonth': 'avg {amount}/mo',
   'payeeTrend.shareOfSpending': '{percent}% of spend',
-  'payeeTrend.lastMonthUp': 'Last month ran {percent}% above their own average.',
-  'payeeTrend.lastMonthDown': 'Last month ran {percent}% below their own average.',
+  'payeeTrend.lastMonthUp': 'Last month was {percent}% above their average.',
+  'payeeTrend.lastMonthDown': 'Last month was {percent}% below their average.',
   'payeeTrend.othersHeading': 'Everyone else',
-  'payeeTrend.smallerPayments': 'All the rest (smaller payments)',
+  'payeeTrend.smallerPayments': 'All other payees',
   'payeeTrend.payeeCount': '{count} payees',
   'payeeTrend.rowDetail':
-    'All time avg {average} per payment, across {months} months, including months with no payment.',
+    'Average {average} per payment over {months} months, including months with none.',
   'payeeTrend.unnamed':
-    '{amount} of spending named no payee, so it is not on this page. Add one on the spend form and it joins the ranking.',
+    '{amount} of spending has no payee, so it isn’t shown here. Add a payee to a transaction and it joins the ranking.',
   'payeeTrend.empty':
-    'No payees yet. Name who you paid on a transaction and they collect here, with what they cost you month by month.',
+    'No payees yet. Add who you paid on your transactions and they’ll show up here, with what they cost you month by month.',
   'insights.taxInsights': 'Tax Insights',
   'insights.utilities': 'Utilities',
   'insights.utilitiesHint': 'Plans and calculators built on your own accounts.',
@@ -1184,7 +1184,7 @@ export const en = {
   'spend.spending': 'Spending',
   'spend.income': 'Income',
   'spend.payeePlaceholder': 'Payee',
-  'spend.paidFromPlaceholder': 'Paid from account',
+  'spend.paidFromPlaceholder': 'Account',
   'spend.payeeSearchPlaceholder': 'Search or type a new payee',
   'spend.memoPlaceholder': 'Memo',
   'purchaseItems.label': 'Items',
@@ -1250,10 +1250,11 @@ export const en = {
   'canadaPurchase.otherClosingCosts': 'Legal, inspection, title',
   'canadaPurchase.totalMonthlyCost': 'Total monthly cost',
   'canadaPurchase.paymentEach': 'Payment ({frequency})',
-  'canadaPurchase.paymentPerMonthEquivalent': 'Same, spread per month',
+  'canadaPurchase.paymentPerMonthEquivalent': 'Per month',
   'canadaPurchase.mortgageAmount': 'Mortgage',
   'canadaPurchase.insurancePremium': 'CMHC premium ({rate}%)',
-  'canadaPurchase.premiumFinancedHint': 'Added to the mortgage, not paid at closing.',
+  'canadaPurchase.premiumFinancedHint':
+    'Added to the mortgage, not paid at closing.',
   'canadaPurchase.loanToValue': 'Loan to value',
   'canadaPurchase.payoffIn': 'Paid off in',
   'canadaPurchase.yearsMonths': '{years} yr {months} mo',
@@ -1261,7 +1262,7 @@ export const en = {
   'canadaPurchase.noteOverCeiling':
     'Above $1.5M a mortgage cannot be insured, so 20% down is the legal minimum.',
   'canadaPurchase.noteBelowMinimum':
-    'That is below the minimum down payment, so no lender can insure it — raise the down payment.',
+    'That’s below the minimum down payment, so no lender can insure it — raise the down payment.',
   'canadaPurchase.termHeading': 'At the end of the {years}-year term',
   'canadaPurchase.termInterest': 'Interest paid during the term',
   'canadaPurchase.termPrincipal': 'Principal paid during the term',
@@ -1304,8 +1305,7 @@ export const en = {
   'calcRefinance.title': 'Refinance',
   'calcRefinance.subtitle': 'Break-even on a new rate and term',
   'calcRentVsBuy.title': 'Rent vs Buy',
-  'calcRentVsBuy.subtitle':
-    'Net position year by year, including what the down payment could earn',
+  'calcRentVsBuy.subtitle': 'Which comes out ahead, year by year',
   'calcAmortization.title': 'Amortization',
   'calcAmortization.subtitle': 'Payment, interest and balance for any loan',
   'calcLoanPayoff.title': 'Loan Payoff',
@@ -1327,12 +1327,12 @@ export const en = {
   'financeTools.linkAccount': 'Link account',
   'financeTools.enterManually': 'Enter manually',
   'financeTools.accountMissingValue':
-    "This account doesn't have that set yet — add it on the account to pull it in.",
+    'This account doesn’t have that yet. Add it on the account page first.',
 
   // --- calculator screens (shared labels across every tool) ---
   'financeTools.inputs': 'Inputs',
   'financeTools.results': 'Results',
-  'financeTools.enterInputs': 'Fill the inputs above to see the numbers.',
+  'financeTools.enterInputs': 'Fill in the fields above to see the results.',
   'financeTools.assumptions': 'Assumptions',
   'financeTools.showAll': 'Show all {count} rows',
   'financeTools.showLess': 'Show less',
@@ -1587,19 +1587,19 @@ export const en = {
   'history.title': 'History',
   'history.snapshotsHeading': 'Snapshots',
   'history.snapshotsHint':
-    'A copy of the whole database, taken before anything that rewrites existing rows. Use one when you do not know what went wrong, or when the shape of the data changed rather than its contents.',
+    'Full copies of your data, saved automatically before big changes like an import or an app update. Restore one when something went wrong and you’re not sure what.',
   'history.noSnapshots': 'None taken yet.',
   'history.snapshotNow': '+ Snapshot Now',
-  'history.snapshotManual': 'Taken by hand · {size}',
-  'history.snapshotBeforeMigration': 'Before update v{from} → v{to} · {size}',
+  'history.snapshotManual': 'Manual · {size}',
+  'history.snapshotBeforeMigration': 'Before app update · {size}',
   'history.restoreSnapshotTitle': 'Restore this snapshot?',
   'history.restoreSnapshotMessage':
-    'The whole database goes back to how it was then. Everything since is lost. Close and reopen the app straight after.',
+    'All your data goes back to that moment; everything since is lost. Close and reopen the app right after.',
   'history.restoredTitle': 'Restored',
   'history.restoredMessage': 'Close and reopen the app to load it.',
   'history.changesHeading': 'Changes',
   'history.changesHint':
-    'Every row written, recorded by the database itself — including by updates to the app, which is the kind of change most worth being able to take back. Undoing one is itself recorded, so it can be undone too.',
+    'Every change to your data, including changes made by app updates — the kind most worth being able to undo. Undoing is recorded too, so an undo can itself be undone.',
   'history.noChanges': 'Nothing recorded yet.',
   'history.changeInsert': 'Added to {what}',
   'history.changeUpdate': 'Edited {what}',
@@ -1615,17 +1615,17 @@ export const en = {
   'history.tableScheduled': 'recurring transactions',
   'history.tableGoals': 'goals',
   'history.tableUnknown': 'data',
-  'history.rowCount': '{count} rows',
+  'history.rowCount': '{count} changes',
   'history.opInsert': 'Added',
   'history.opUpdate': 'Changed',
   'history.opDelete': 'Deleted',
-  'history.rewind': 'Rewind to here',
+  'history.rewind': 'Undo back to here',
   'history.rewindConfirmTitle': 'Undo {count} changes?',
   'history.rewindConfirmMessage':
-    'Everything written from this point on is put back, newest first — use this for an import or a repair, which land as many entries rather than one. It is recorded too, so it can be undone.',
+    'Undoes every change from this point on, newest first — handy for an import or a repair, which land as many entries rather than one. This is recorded too, so it can be undone.',
   'history.undo': 'Undo',
-  'history.undoConfirmTitle': 'Undo {count} rows in {table}?',
+  'history.undoConfirmTitle': 'Undo {count} changes to {table}?',
   'history.undoConfirmMessage':
-    'Those rows go back to what they were. This is recorded too, so it can be undone again.',
+    'They go back to how they were. This is recorded too, so it can be undone again.',
   'nav.history': 'History',
 } as const;

@@ -419,6 +419,8 @@ export const zh: Record<keyof typeof en, string> = {
   'accounts.assets': '资产 {amount}',
   'accounts.debts': '负债 {amount}',
   'accounts.includeInNetWorth': '计入净资产',
+  'accounts.growth12m': '近 12 月 {rate}',
+  'accounts.growthSince': '自 {month} {rate}',
   'accounts.addAccount': '+ 添加账户',
   'accounts.closedAccounts': '已关闭的账户',
   'accounts.kindCash': '现金',
@@ -876,7 +878,7 @@ export const zh: Record<keyof typeof en, string> = {
   'insights.trendHint':
     '全部时间——拖动滚动，点按图标可隐藏或显示该分类。虚线是你的 12 个月平均。',
   'insights.notEnoughHistory': '历史数据不足。',
-  'insights.avgAxisLabel': '平均',
+  'chart.avgLine': '平均 {amount}',
   'insights.babySteps': '理财七步',
   'insights.housing': '看房',
   'houseStatus.watching': '关注中',

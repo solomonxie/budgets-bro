@@ -425,6 +425,8 @@ export const en = {
   'accounts.assets': 'Assets {amount}',
   'accounts.debts': 'Debts {amount}',
   'accounts.includeInNetWorth': 'Include in Net Worth',
+  'accounts.growth12m': '12 mo {rate}',
+  'accounts.growthSince': '{rate} since {month}',
   'accounts.addAccount': '+ Add Account',
   'accounts.closedAccounts': 'Closed Accounts',
   'accounts.kindCash': 'Cash',
@@ -900,7 +902,7 @@ export const en = {
   'insights.trendHint':
     'All time — drag to scroll, tap an icon to hide or show that category. The dashed line is your 12-month average.',
   'insights.notEnoughHistory': 'Not enough history yet.',
-  'insights.avgAxisLabel': 'avg',
+  'chart.avgLine': 'avg {amount}',
   'insights.babySteps': 'Baby Steps',
   'insights.housing': 'House Hunting',
   'houseStatus.watching': 'Watching',

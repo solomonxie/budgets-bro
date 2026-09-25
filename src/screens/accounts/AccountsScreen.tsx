@@ -24,8 +24,9 @@ import {
   netWorth as computeNetWorth,
 } from '../../domain/accountKind';
 import type { AccountKind } from '../../domain/types';
-import { formatMoney } from '../../domain/money';
-import { useT } from '../../i18n';
+import { formatMoney, formatMoneyCompact } from '../../domain/money';
+import { formatMonthLabel } from '../../domain/month';
+import { localeTag, useI18n } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -44,7 +45,7 @@ const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
 };
 
 export function AccountsScreen() {
-  const t = useT();
+  const { t, language } = useI18n();
   const navigation = useNavigation<Nav>();
   const openAddAccount = useAppStore((s) => s.openAddAccount);
   const { accounts } = useAccounts();
@@ -93,7 +94,24 @@ export function AccountsScreen() {
     [accounts, excludedAccountIds, houseValues],
   );
 
-  const selectedPoint = selectedIndex != null ? (trend[selectedIndex] ?? null) : null;
+  // Against the month a year back, or the oldest month there is when the
+  // board is younger than that.
+  const growth = useMemo(() => {
+    if (trend.length < 2) return null;
+    const base = trend[Math.max(0, trend.length - 13)];
+    if (base.netWorthCents === 0) return null;
+    return {
+      fullYear: trend.length >= 13,
+      month: base.month,
+      percent:
+        ((netWorth.netWorthCents - base.netWorthCents) /
+          Math.abs(base.netWorthCents)) *
+        100,
+    };
+  }, [trend, netWorth.netWorthCents]);
+
+  const selectedPoint =
+    selectedIndex != null ? (trend[selectedIndex] ?? null) : null;
 
   const groups = useMemo(() => {
     return ACCOUNT_KIND_ORDER.map((kind) => {
@@ -146,12 +164,29 @@ export function AccountsScreen() {
         <View style={styles.netWorthBreakdown}>
           <Text style={styles.netWorthPart}>
             {t('accounts.assets', {
-              amount: formatMoney(netWorth.assetsCents),
+              amount: formatMoneyCompact(netWorth.assetsCents),
             })}
           </Text>
           <Text style={styles.netWorthPart}>
-            {t('accounts.debts', { amount: formatMoney(netWorth.debtsCents) })}
+            {t('accounts.debts', {
+              amount: formatMoneyCompact(netWorth.debtsCents),
+            })}
           </Text>
+          {growth ? (
+            <Text
+              style={[
+                styles.netWorthPart,
+                growth.percent < 0 ? styles.negative : styles.positive,
+              ]}
+            >
+              {growth.fullYear
+                ? t('accounts.growth12m', { rate: formatRate(growth.percent) })
+                : t('accounts.growthSince', {
+                    rate: formatRate(growth.percent),
+                    month: formatMonthLabel(growth.month, localeTag(language)),
+                  })}
+            </Text>
+          ) : null}
         </View>
         {/* Needs two points to be a line — a board opened today is just the
             number above. */}
@@ -159,6 +194,7 @@ export function AccountsScreen() {
           <BalanceTrendChart
             points={trendPoints}
             valueLabel={t('accounts.netWorth')}
+            showAverage
             selectedIndex={selectedIndex}
             onSelectIndex={setSelectedIndex}
           />
@@ -206,7 +242,8 @@ export function AccountsScreen() {
                   account here would read as the app having lost it. */}
               {accounts.map(({ account }) => {
                 const eligible = countsTowardNetWorth(account.type);
-                const included = eligible && !excludedAccountIds.has(account.id);
+                const included =
+                  eligible && !excludedAccountIds.has(account.id);
                 return (
                   <Pressable
                     key={account.id}
@@ -420,6 +457,7 @@ const styles = StyleSheet.create({
   },
   rowValue: { fontSize: 15, fontWeight: '700', color: colors.text },
   negative: { color: colors.negative },
+  positive: { color: colors.positive },
   addButton: { alignItems: 'center', paddingVertical: spacing.sm },
   addButtonText: { color: colors.accent, fontWeight: '700' },
   closedLink: {
@@ -429,3 +467,7 @@ const styles = StyleSheet.create({
   },
   closedLinkText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
 });
+
+function formatRate(percent: number): string {
+  return `${percent >= 0 ? '+' : '−'}${Math.abs(percent).toFixed(1)}%`;
+}

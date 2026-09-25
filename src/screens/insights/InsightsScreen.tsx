@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
+import { AverageLine } from '../../components/ui/AverageLine';
 import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,11 +26,7 @@ import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import { useFlaggedCount } from '../../hooks/useFlaggedCount';
-import type {
-  InsightsStackParamList,
-  RootStackParamList,
-} from '../../navigation/types';
+import type { InsightsStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
 // Flat, domain-shaped: each row is a hub that opens with your real
@@ -46,11 +43,7 @@ type UtilityScreen =
   | 'CostOfLiving'
   | 'Housing'
   | 'AiAnalysis';
-// The flagged worklist sits in this list too, but lives on the root stack
-// rather than this tab's — reached the same way from the history page.
-type UtilityRow =
-  | { label: string; screen: UtilityScreen; root?: false }
-  | { label: string; screen: 'FlaggedTransactions'; root: true };
+type UtilityRow = { label: string; screen: UtilityScreen };
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
 // order, never cycled.
@@ -63,10 +56,9 @@ const Y_AXIS_WIDTH = 44;
 export function InsightsScreen() {
   const { t, language } = useI18n();
   const UTILITY_ROWS: UtilityRow[] = [
+    { label: t('insights.babySteps'), screen: 'BabySteps' },
     { label: t('insights.payeeTrend'), screen: 'PayeeTrend' },
     { label: t('insights.trackedPrices'), screen: 'TrackedPrices' },
-    { label: t('review.title'), screen: 'FlaggedTransactions', root: true },
-    { label: t('insights.babySteps'), screen: 'BabySteps' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
     { label: t('insights.loanInsights'), screen: 'LoanInsights' },
     { label: t('insights.investmentInsights'), screen: 'InvestmentInsights' },
@@ -77,10 +69,6 @@ export function InsightsScreen() {
     { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
   ];
   const navigation = useNavigation<Nav>();
-  // The review page is a root-stack route, not one of this tab's — it is
-  // reached the same way from the history page.
-  const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const flaggedCount = useFlaggedCount();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
   const { width: windowWidth } = useWindowDimensions();
@@ -297,7 +285,7 @@ export function InsightsScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>{t('insights.categoryTrends')}</Text>
         {scrubbedMonth != null && scrubIndex != null ? (
-          <Text style={styles.value}>
+          <Text style={styles.scrubValue} numberOfLines={1}>
             {formatMonthLabel(scrubbedMonth, localeTag(language))} ·{' '}
             {formatMoney(monthTotals[scrubIndex] ?? 0)}
           </Text>
@@ -323,17 +311,6 @@ export function InsightsScreen() {
                     {formatMoneyCompact(v)}
                   </Text>
                 ))}
-                {benchmarkCents != null ? (
-                  <Text
-                    style={[
-                      styles.yAxisLabel,
-                      styles.yAxisBenchmarkLabel,
-                      { top: pointY(benchmarkCents) - 7 },
-                    ]}
-                  >
-                    {t('insights.avgAxisLabel')}
-                  </Text>
-                ) : null}
               </View>
               <ScrollView
                 ref={trendScrollRef}
@@ -387,14 +364,12 @@ export function InsightsScreen() {
                       />
                     ))}
                     {benchmarkCents != null ? (
-                      <Line
-                        x1={0}
-                        y1={pointY(benchmarkCents)}
-                        x2={chartWidth}
-                        y2={pointY(benchmarkCents)}
-                        stroke={colors.accent}
-                        strokeWidth={1.5}
-                        strokeDasharray="6,4"
+                      <AverageLine
+                        y={pointY(benchmarkCents)}
+                        width={chartWidth}
+                        label={t('chart.avgLine', {
+                          amount: formatMoneyCompact(benchmarkCents),
+                        })}
                       />
                     ) : null}
                     {scrubIndex != null ? (
@@ -473,21 +448,10 @@ export function InsightsScreen() {
               styles.toolRow,
               i < UTILITY_ROWS.length - 1 && styles.toolRowDivider,
             ]}
-            onPress={() =>
-              row.root
-                ? rootNavigation.navigate(row.screen)
-                : navigation.navigate(row.screen)
-            }
+            onPress={() => navigation.navigate(row.screen)}
           >
             <Text style={styles.toolRowText}>{row.label}</Text>
-            <View style={styles.toolRowRight}>
-              {/* A count is only worth as much as the rows behind it, so it
-                  rides on the row itself rather than a separate header. */}
-              {row.root && flaggedCount > 0 ? (
-                <Text style={styles.toolRowBadge}>{flaggedCount}</Text>
-              ) : null}
-              <Text style={styles.toolRowArrow}>›</Text>
-            </View>
+            <Text style={styles.toolRowArrow}>›</Text>
           </Pressable>
         ))}
       </View>
@@ -518,6 +482,8 @@ const styles = StyleSheet.create({
   utilities: { marginTop: spacing.lg, gap: 2 },
   sectionTitle: { fontSize: 20, fontWeight: '700', color: colors.text },
   value: { fontSize: 30, fontWeight: '700', color: colors.text },
+  // The month under a finger: a readout, one line, not the card's headline.
+  scrubValue: { fontSize: 16, fontWeight: '700', color: colors.text },
   negative: { color: colors.negative },
   stackBar: {
     flexDirection: 'row',
@@ -546,7 +512,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textMuted,
   },
-  yAxisBenchmarkLabel: { color: colors.accent, fontWeight: '700' },
   trendXLabels: { flexDirection: 'row', justifyContent: 'space-between' },
   trendLabel: { fontSize: 10, color: colors.textMuted },
   trendLabelYear: { fontWeight: '700', color: colors.text },
@@ -569,15 +534,4 @@ const styles = StyleSheet.create({
   toolRowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
   toolRowText: { fontSize: 15, fontWeight: '600', color: colors.text },
   toolRowArrow: { fontSize: 18, color: colors.textMuted },
-  toolRowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  toolRowBadge: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.accent,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: 999,
-    paddingVertical: 1,
-    paddingHorizontal: 8,
-  },
 });

@@ -71,6 +71,10 @@ npx eas-cli submit --platform ios --latest
 ```
 
 ## Screenshots
-| Budget | Insights | Account Trend | Mortgage |
-|---|---|---|---|
-| <img src="docs/screenshots/budget.png" alt="Budget screen" width="320"> | <img src="docs/screenshots/insights.png" alt="Insights screen" width="320"> | <img src="docs/screenshots/account-trend.png" alt="Account trend screen" width="320"> | <img src="docs/screenshots/mortgage.png" alt="Mortgage calculator screen" width="320"> |
+| Budgets | Spent | Accounts |
+|---|---|---|
+| <img src="docs/release/screenshots/6.9/screenshot-1-budgets.jpg" alt="Budgets screen" width="260"> | <img src="docs/release/screenshots/6.9/screenshot-2-spent.jpg" alt="Spent screen" width="260"> | <img src="docs/release/screenshots/6.9/screenshot-3-accounts.jpg" alt="Accounts screen" width="260"> |
+| **Chequing** | **Mortgage** | **Insights** |
+| <img src="docs/release/screenshots/6.9/screenshot-4-chequing.jpg" alt="Chequing account screen" width="260"> | <img src="docs/release/screenshots/6.9/screenshot-5-mortgage.jpg" alt="Mortgage screen" width="260"> | <img src="docs/release/screenshots/6.9/screenshot-6-insights.jpg" alt="Insights screen" width="260"> |
+| **Insights (cont.)** | **Payee Trend** | **Settings** |
+| <img src="docs/release/screenshots/6.9/screenshot-7-insights2.jpg" alt="Insights screen, continued" width="260"> | <img src="docs/release/screenshots/6.9/screenshot-8-payee-trend.jpg" alt="Payee trend screen" width="260"> | <img src="docs/release/screenshots/6.9/screenshot-9-settings.jpg" alt="Settings screen" width="260"> |

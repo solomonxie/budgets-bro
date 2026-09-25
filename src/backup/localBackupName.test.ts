@@ -1,4 +1,11 @@
-import { dailyBackupName, isBackupFileName, isStale, operationBackupName } from './localBackupName';
+import {
+  dailyBackupName,
+  isBackupFileName,
+  isPreDeletionBackupName,
+  isStale,
+  operationBackupName,
+  preDeletionBackupName,
+} from './localBackupName';
 
 describe('dailyBackupName', () => {
   it('is one name per board, so it overwrites', () => {
@@ -22,6 +29,21 @@ describe('operationBackupName', () => {
     const a = operationBackupName('B', 'import', new Date('2026-09-18T07:38:09Z'));
     const b = operationBackupName('B', 'import', new Date('2026-09-18T09:12:00Z'));
     expect(a).not.toBe(b);
+  });
+});
+
+describe('preDeletionBackupName', () => {
+  const at = new Date('2026-09-24T20:30:05.500Z');
+
+  it('is tagged pre-deletion and stamped', () => {
+    expect(preDeletionBackupName('Household Budget', at)).toBe('household-budget-pre-deletion-20260924T203005Z.zip');
+  });
+
+  it('is told apart from every other backup', () => {
+    expect(isPreDeletionBackupName(preDeletionBackupName('Budget', at))).toBe(true);
+    expect(isPreDeletionBackupName(operationBackupName('Budget', 'import', at))).toBe(false);
+    expect(isPreDeletionBackupName(dailyBackupName('Budget'))).toBe(false);
+    expect(isPreDeletionBackupName(dailyBackupName('pre-deletion'))).toBe(false);
   });
 });
 

@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
+import { AverageLine } from '../../components/ui/AverageLine';
 import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
 import type { BalanceTrendPoint } from '../../domain/balanceTrend';
 import { formatMonthLabel, formatMonthShort } from '../../domain/month';
@@ -19,6 +20,7 @@ const VISIBLE_MONTHS = 12;
 const CHART_HEIGHT = 120;
 const Y_AXIS_WIDTH = 44;
 const MIN_MONTH_WIDTH = 28;
+const AVERAGE_WINDOW_MONTHS = 12;
 
 // A ledger-derived balance-over-time line (see domain/balanceTrend.ts) — no
 // manual logging involved, unlike ValueHistoryChart's tracking/asset
@@ -29,12 +31,15 @@ const MIN_MONTH_WIDTH = 28;
 export function BalanceTrendChart({
   points,
   showSpending = false,
+  showAverage = false,
   valueLabel,
   selectedIndex = null,
   onSelectIndex,
 }: {
   points: BalanceTrendPoint[];
   showSpending?: boolean;
+  // A dashed line at the mean of the last 12 months' levels.
+  showAverage?: boolean;
   // What the line is of — "Balance" on an account, "Net Worth" on the
   // accounts list. Same shape either way: one level over months.
   valueLabel?: string;
@@ -81,6 +86,13 @@ export function BalanceTrendChart({
   const pointY = (v: number) =>
     CHART_HEIGHT - ((v - minValue) / span) * (CHART_HEIGHT - 8) - 4;
   const zeroY = pointY(0);
+  const averageCents = useMemo(() => {
+    if (!showAverage || points.length === 0) return null;
+    const recent = points.slice(-AVERAGE_WINDOW_MONTHS);
+    return Math.round(
+      recent.reduce((sum, p) => sum + p.balanceCents, 0) / recent.length,
+    );
+  }, [points, showAverage]);
   // Zero is always drawn — it is the line that says which side of nothing a
   // month fell on — with the extremes above and below it.
   const yTicks = Array.from(
@@ -206,6 +218,15 @@ export function BalanceTrendChart({
                   strokeWidth={1.5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                />
+              ) : null}
+              {averageCents != null ? (
+                <AverageLine
+                  y={pointY(averageCents)}
+                  width={chartWidth}
+                  label={t('chart.avgLine', {
+                    amount: formatMoneyCompact(averageCents),
+                  })}
                 />
               ) : null}
               {selected && index != null ? (

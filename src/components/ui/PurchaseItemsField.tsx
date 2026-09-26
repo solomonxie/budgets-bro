@@ -33,6 +33,8 @@ interface PurchaseItemsFieldProps {
   // Called with the row being typed into, so the page can scroll it clear of
   // the keyboard. Null on blur.
   onRevealRow?: (node: View | null) => void;
+  // Once true, puts the cursor in the last row's name — the one to type.
+  autoFocus?: boolean;
 }
 
 // What was in the bag, typed like a receipt reads: name, price, next line.
@@ -46,6 +48,7 @@ export function PurchaseItemsField({
   nameOptions,
   totalCents,
   onRevealRow,
+  autoFocus = false,
 }: PurchaseItemsFieldProps) {
   const t = useT();
   const [draft, setDraft] = useState<PurchaseItem[]>(() =>
@@ -79,6 +82,11 @@ export function PurchaseItemsField({
       target.index
     ]?.focus();
   });
+
+  useEffect(() => {
+    if (autoFocus) nameRefs.current[draft.length - 1]?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus]);
 
   const rows = draft;
 

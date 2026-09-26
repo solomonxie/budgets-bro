@@ -20,10 +20,10 @@ import {
   removeS3Config,
   uploadS3Object,
 } from '../../sync/s3Provider';
-import { parseBackupZip } from '../../sync/parseBackupZip';
+import { confirmBackupRestore } from './confirmBackupRestore';
 import { importAppExport } from '../../import/appExportImporter';
 import type { S3ConfigMeta, S3ListEntry } from '../../sync/s3Provider';
-import { useT } from '../../i18n';
+import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -77,7 +77,7 @@ export function S3BrowserModal({
   onDeleted,
   onRestored,
 }: S3BrowserModalProps) {
-  const t = useT();
+  const { t, language } = useI18n();
   const [path, setPath] = useState<string[]>([]);
   const [prefixes, setPrefixes] = useState<string[]>([]);
   const [objects, setObjects] = useState<S3ListEntry[]>([]);
@@ -138,31 +138,30 @@ export function S3BrowserModal({
   // A restore never touches the board in use: the zip comes back as a board
   // of its own (see appExportImporter) and the app switches to it, so a file
   // opened out of curiosity costs nothing but a switch back. It still asks
-  // first, and names the file it is about to open.
+  // first, and says what is in the file it is about to open.
   const confirmRestore = (key: string) => {
     if (!config) return;
-    Alert.alert(t('s3Browser.restoreConfirmTitle', { name: basename(key) }), t('s3Browser.restoreConfirmMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('backup.restore'),
-        onPress: async () => {
-          setRestoringKey(key);
-          setError(null);
-          try {
-            const db = await getDb();
-            const bytes = await downloadS3Object(db, config.id, key);
-            if (!bytes) throw new Error(t('s3Browser.restoreNotFound'));
-            const imported = await importAppExport(db, await parseBackupZip(bytes));
-            onRestored?.(imported.boardId);
-            onClose();
-          } catch (e) {
-            setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
-          } finally {
-            setRestoringKey(null);
-          }
-        },
+    setError(null);
+    confirmBackupRestore({
+      t,
+      locale: localeTag(language),
+      name: basename(key),
+      load: async () => downloadS3Object(await getDb(), config.id, key),
+      setBusy: (busy) => setRestoringKey(busy ? key : null),
+      onError: setError,
+      onConfirmed: async (backup) => {
+        setRestoringKey(key);
+        try {
+          const imported = await importAppExport(await getDb(), backup);
+          onRestored?.(imported.boardId);
+          onClose();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
+        } finally {
+          setRestoringKey(null);
+        }
       },
-    ]);
+    });
   };
 
   const crumbs = [

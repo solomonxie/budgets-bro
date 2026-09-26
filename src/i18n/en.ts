@@ -1197,8 +1197,8 @@ export const en = {
   'repeatField.every': 'Every {n} {unit}',
   'repeatField.everyWithDays': 'Every {n} {unit} on {days}',
 
-  'addTransactionModal.scheduledToggleLabel': 'Mark to repeat',
-  'addTransactionModal.scheduledToggleLabelActive': '✓ Repeating',
+  'addTransactionModal.scheduledToggleLabel': 'Repeat',
+  'addTransactionModal.scheduledToggleLabelActive': '✓ Repeat',
   'addTransactionModal.startDateLabel': 'Starts',
   'addTransactionModal.repeatLabel': 'Repeat',
   'addTransactionModal.hasEndDateLabel': 'Ends on a date',

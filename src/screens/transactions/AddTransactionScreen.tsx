@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -289,41 +283,10 @@ function AddTransactionForm() {
     setDirection('in');
   }, [isEditing, isLoanAccount]);
 
-  // The "repeating" toggle lives in the header rather than costing the form
-  // a whole row of its own. Hidden on an inflow: money coming in is logged
-  // after the fact, not set up in advance like a recurring bill.
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight:
-        isEditing || direction === 'in'
-          ? undefined
-          : () => (
-              <Pressable
-                style={[
-                  styles.scheduledPill,
-                  isScheduled && styles.scheduledPillActive,
-                ]}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setIsScheduled((v) => !v);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.scheduledPillText,
-                    isScheduled && styles.scheduledPillTextActive,
-                  ]}
-                >
-                  {t(
-                    isScheduled
-                      ? 'addTransactionModal.scheduledToggleLabelActive'
-                      : 'addTransactionModal.scheduledToggleLabel',
-                  )}
-                </Text>
-              </Pressable>
-            ),
-    });
-  }, [navigation, isEditing, direction, isScheduled, t]);
+  // A schedule belongs to an account, so it's only offered on a new entry
+  // opened from that account's page — any type, either direction (a loan's
+  // payment is an inflow).
+  const canRepeat = !isEditing && presetAccountId != null;
 
   const selectPayee = async (name: string, id: number) => {
     setPayee(name);
@@ -449,6 +412,37 @@ function AddTransactionForm() {
       })
     : t('spend.pickAccount');
 
+  // A ghost copy on the left balances the real one, so the account name
+  // stays centred under the amount.
+  const repeatPill = (ghost: boolean) => (
+    <Pressable
+      style={[
+        styles.scheduledPill,
+        isScheduled && styles.scheduledPillActive,
+        ghost && styles.ghost,
+      ]}
+      disabled={ghost}
+      hitSlop={8}
+      onPress={() => {
+        Keyboard.dismiss();
+        setIsScheduled((v) => !v);
+      }}
+    >
+      <Text
+        style={[
+          styles.scheduledPillText,
+          isScheduled && styles.scheduledPillTextActive,
+        ]}
+      >
+        {t(
+          isScheduled
+            ? 'addTransactionModal.scheduledToggleLabelActive'
+            : 'addTransactionModal.scheduledToggleLabel',
+        )}
+      </Text>
+    </Pressable>
+  );
+
   const dateLabel = t(
     isScheduled ? 'addTransactionModal.startDateLabel' : 'common.date',
   );
@@ -477,9 +471,13 @@ function AddTransactionForm() {
         </Pressable>
         {/* Right most of the time, so a line under the amount it moves
             rather than a field competing with the ones that change. */}
-        <View style={styles.accountLink}>
+        <View style={[styles.accountLink, canRepeat && styles.accountRow]}>
+          {canRepeat ? repeatPill(true) : null}
           {accountLocked ? (
-            <Text style={styles.accountLocked} numberOfLines={1}>
+            <Text
+              style={[styles.accountLocked, canRepeat && styles.flex1]}
+              numberOfLines={1}
+            >
               {accountLinkLabel}
             </Text>
           ) : (
@@ -507,6 +505,7 @@ function AddTransactionForm() {
               )}
             </DropdownField>
           )}
+          {canRepeat ? repeatPill(false) : null}
         </View>
         <View style={styles.segmented}>
           <Pressable
@@ -533,7 +532,6 @@ function AddTransactionForm() {
             onPress={() => {
               Keyboard.dismiss();
               setDirection('in');
-              setIsScheduled(false);
             }}
           >
             <Text
@@ -854,12 +852,19 @@ const styles = StyleSheet.create({
   // FieldCard's `grow`: an unfolded picker pushes the pad past the bottom of
   // the screen and the page scrolls to it.
   form: { flexGrow: 1, flexShrink: 0, padding: spacing.md, gap: spacing.sm },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  flex1: { flex: 1 },
+  ghost: { opacity: 0 },
   scheduledPill: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
   },
   scheduledPillActive: {
     backgroundColor: colors.accent,

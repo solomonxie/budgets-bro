@@ -4,11 +4,12 @@
 tabs by the `✛ Spend` tab, which intercepts its own press.
 
 ```
- ‹ Back        Add Transaction              Mark to repeat
-                                            ↑ header pill; becomes
- ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔    "✓ Repeating" when on
+ ‹ Back        Add Transaction
+ ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
        $55.00 + $36.00                      ← pinned; no text field at all,
  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁      shows the whole expression
+          From Chequing            Repeat   ← pill only when opened from an
+                                              account; "✓ Repeat" when on
  [ SPENDING | Income ]                      ← sets the sign
  ┌──────────────────────────────────────┐
  │ Payee                              › │   one card, hairline rows — no
@@ -68,8 +69,8 @@ the account's own payee, and that name is what links the mirrored pair.
 ## Repeating
 
 ```
- tap "Mark to repeat" ↓
- ✓ Repeating                                 ← the pill, now on
+ tap "Repeat" ↓
+ ✓ Repeat                                    ← the pill, now on
  Starts                                      ← "Date" is renamed
  Sep 17, 2026                            ▾
  Repeat

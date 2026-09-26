@@ -22,10 +22,15 @@ import {
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
+import { FormSheet } from '../../components/ui/FormSheet';
+import { MoneyField } from '../../components/ui/MoneyField';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { getDb } from '../../db/client';
 import * as transactionsRepo from '../../db/repositories/transactionsRepo';
-import { withRunningBalances } from '../../domain/register';
+import {
+  computeBalanceCorrectionCents,
+  withRunningBalances,
+} from '../../domain/register';
 import { monthlyBalanceTrend } from '../../domain/balanceTrend';
 import { monthlyGrowthRate } from '../../domain/monthlyGrowthRate';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
@@ -102,6 +107,8 @@ export function AccountDetailScreen() {
   // Folded on arrival: the balance box is read at a glance, the sections
   // under it are one tap away.
   const [trendExpanded, setTrendExpanded] = useState(false);
+  // Typed as what the bank shows: a card's balance as the amount owed.
+  const [adjustText, setAdjustText] = useState<string | null>(null);
   // Same filter the history page carries — what is missing a payee or a
   // category, narrowed to this account (see domain/transactionReview).
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter | null>(null);
@@ -224,6 +231,23 @@ export function AccountDetailScreen() {
     const db = await getDb();
     await transactionsRepo.deleteTransactions(db, boardId, selectedIds);
     exit();
+    bumpDataVersion();
+  };
+
+  const saveAdjustedBalance = async () => {
+    const magnitudeCents = Math.round(parseFloat(adjustText ?? '') * 100);
+    if (!Number.isFinite(magnitudeCents)) return;
+    const deltaCents = computeBalanceCorrectionCents(
+      balanceCents,
+      isCreditCard ? -magnitudeCents : magnitudeCents,
+    );
+    await transactionsRepo.correctBalance(
+      await getDb(),
+      boardId,
+      accountId,
+      deltaCents,
+    );
+    setAdjustText(null);
     bumpDataVersion();
   };
 
@@ -394,15 +418,17 @@ export function AccountDetailScreen() {
                   currentValueCents={currentValueCents}
                   refresh={refreshValueHistory}
                   info={
-                    <InfoButton
-                      label={t('common.howThisWorks')}
-                      title={t('accountInfo.houseValueTitle')}
-                      paragraphs={[
-                        t('accountInfo.houseValueBody'),
-                        t('accountInfo.houseValueUse'),
-                      ]}
-                      closeLabel={t('common.done')}
-                    />
+                    <View style={styles.infoGap}>
+                      <InfoButton
+                        label={t('common.howThisWorks')}
+                        title={t('accountInfo.houseValueTitle')}
+                        paragraphs={[
+                          t('accountInfo.houseValueBody'),
+                          t('accountInfo.houseValueUse'),
+                        ]}
+                        closeLabel={t('common.done')}
+                      />
+                    </View>
                   }
                 />
               ) : null}
@@ -426,15 +452,17 @@ export function AccountDetailScreen() {
                   mode={isAsset ? 'single' : 'stacked'}
                   refresh={refreshValueHistory}
                   info={
-                    <InfoButton
-                      label={t('common.howThisWorks')}
-                      title={t('accountInfo.valueHistoryTitle')}
-                      paragraphs={[
-                        t('accountInfo.valueHistoryBody'),
-                        t('accountInfo.valueHistoryUse'),
-                      ]}
-                      closeLabel={t('common.done')}
-                    />
+                    <View style={styles.infoGap}>
+                      <InfoButton
+                        label={t('common.howThisWorks')}
+                        title={t('accountInfo.valueHistoryTitle')}
+                        paragraphs={[
+                          t('accountInfo.valueHistoryBody'),
+                          t('accountInfo.valueHistoryUse'),
+                        ]}
+                        closeLabel={t('common.done')}
+                      />
+                    </View>
                   }
                 />
               ) : null}
@@ -466,6 +494,42 @@ export function AccountDetailScreen() {
                       closeLabel={t('common.done')}
                     />
                   </View>
+                  {adjustText == null ? (
+                    <Pressable
+                      style={styles.addBtn}
+                      onPress={() =>
+                        setAdjustText((Math.abs(balanceCents) / 100).toFixed(2))
+                      }
+                    >
+                      <Text style={styles.addBtnText}>
+                        {t('accountDetail.adjustLatestBalance')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  <FormSheet
+                    visible={adjustText != null}
+                    title={t('accountDetail.adjustLatestBalance')}
+                    onCancel={() => setAdjustText(null)}
+                    onSave={saveAdjustedBalance}
+                    inline
+                  >
+                    <MoneyField
+                      label={t(
+                        isCreditCard
+                          ? 'accountDetail.amountOwedLabel'
+                          : 'accountModal.latestBalanceLabel',
+                      )}
+                      value={adjustText ?? ''}
+                      onChangeText={setAdjustText}
+                      placeholder={t('common.amountPlaceholder')}
+                      hint={t(
+                        isCreditCard
+                          ? 'accountDetail.amountOwedHint'
+                          : 'accountModal.latestBalanceHint',
+                      )}
+                      autoFocus
+                    />
+                  </FormSheet>
                 </View>
               ) : null}
               {isCashOrSavings ? (
@@ -786,7 +850,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
   },
-  sectionInfo: { marginTop: spacing.sm },
+  sectionInfo: { marginTop: spacing.sm, marginBottom: spacing.sm },
+  infoGap: { marginBottom: spacing.sm },
+  addBtn: { alignItems: 'center', paddingVertical: 8 },
+  addBtnText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
   sectionHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -446,6 +446,10 @@ export const en = {
   'accountDetail.calculators': 'Calculators',
   'accountDetail.growthRate': 'Growth {rate}/mo · 12-mo avg',
   'accountDetail.balance': 'Balance',
+  'accountDetail.adjustLatestBalance': 'Adjust Latest Balance',
+  'accountDetail.amountOwedLabel': 'Amount Owed',
+  'accountDetail.amountOwedHint':
+    'What your card statement says you owe today. If it differs from the app, one adjustment transaction is added to close the gap.',
   'accountDetail.remainingPrincipal': 'Remaining Principal',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
   'accountDetail.transactionsHeading': 'Transactions · {count}',

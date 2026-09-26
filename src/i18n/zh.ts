@@ -439,6 +439,10 @@ export const zh: Record<keyof typeof en, string> = {
   'accountDetail.calculators': '计算器',
   'accountDetail.growthRate': '增长 {rate}/月 · 近 12 月平均',
   'accountDetail.balance': '余额',
+  'accountDetail.adjustLatestBalance': '调整最新余额',
+  'accountDetail.amountOwedLabel': '欠款金额',
+  'accountDetail.amountOwedHint':
+    '按信用卡账单填写今天的欠款。与应用中的不同时，会添加一笔调整交易补齐差额。',
   'accountDetail.remainingPrincipal': '剩余本金',
   'accountDetail.noTransactionsYet': '暂无交易记录。',
   'accountDetail.transactionsHeading': '交易 · {count}',

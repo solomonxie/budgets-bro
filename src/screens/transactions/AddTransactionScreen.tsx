@@ -228,9 +228,8 @@ function AddTransactionForm() {
   const [date, setDate] = useState(currentDateISO());
   // Recurring-schedule fields — only offered for a brand-new transaction
   // (see the toggle below); editing an already-posted one has no
-  // "make this recurring" path. Every schedule auto-posts on its due date
-  // (see useAutoPostScheduledTransactions) — there's no manual-approve
-  // queue to review first.
+  // "make this recurring" path. Nothing posts itself: a due occurrence waits
+  // for Approve (see scheduledTransactionsRepo.approveOccurrence).
   const [isScheduled, setIsScheduled] = useState(false);
   const [rule, setRule] = useState<RecurrenceRule>(DEFAULT_RULE);
   const [hasEndDate, setHasEndDate] = useState(false);

@@ -554,10 +554,10 @@ function AddTransactionForm() {
         scrollEventThrottle={16}
         contentContainerStyle={[
           styles.scrollContent,
-          // The home indicator sits over the last few points of the screen,
-          // and Delete is the last thing on the page — the inset alone left
-          // its text running under the bar.
-          { paddingBottom: insets.bottom + spacing.lg },
+          // The home indicator sits over the last few points of the screen.
+          // With Delete last on the page, the inset alone left its text
+          // running under the bar; without it, the pad sits right on it.
+          { paddingBottom: insets.bottom + (isEditing ? spacing.lg : 0) },
         ]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
@@ -573,7 +573,7 @@ function AddTransactionForm() {
           <View style={styles.form}>
             {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
-            <FieldCard grow large>
+            <FieldCard large>
               {payeeReadOnly ? (
                 <FieldRow label={t('common.payee')} value={payee} />
               ) : (
@@ -760,7 +760,9 @@ function AddTransactionForm() {
                 ) : null}
               </>
             ) : null}
-            <View>
+            {/* Pinned to the bottom of the page; spare height opens up above
+                it, between the fields and the pad. */}
+            <View style={styles.padWrap}>
               <NumberPad
                 value={amount}
                 onChange={setAmount}
@@ -852,6 +854,7 @@ const styles = StyleSheet.create({
   // FieldCard's `grow`: an unfolded picker pushes the pad past the bottom of
   // the screen and the page scrolls to it.
   form: { flexGrow: 1, flexShrink: 0, padding: spacing.md, gap: spacing.sm },
+  padWrap: { marginTop: 'auto', paddingTop: spacing.sm },
   accountRow: {
     flexDirection: 'row',
     alignItems: 'center',

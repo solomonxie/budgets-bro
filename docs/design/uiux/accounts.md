@@ -30,6 +30,10 @@ Groups in a fixed order — Cash · Savings · Tracking · Loan · Asset ·
 Credit — with a subtotal each and extra space between groups. A
 loan/mortgage row is negative: what's still owed.
 
+Rows within a group: user's order (tie → name). Hold a row ~⅓ s to lift
+it, drag, drop; only within its own group, page scroll locked meanwhile.
+New account → last in its group. Tap still opens the account.
+
 ```
  ( Customize ) ⇒ bottom sheet
  Include in Net Worth

@@ -19,6 +19,8 @@ interface ScreenContainerProps extends PropsWithChildren {
   // The scroll viewport's own size — what a screen needs to park something
   // at the bottom of the screen rather than the top.
   onScrollViewLayout?: (event: LayoutChangeEvent) => void;
+  // Off while a finger is dragging something that lives in the scroll.
+  scrollEnabled?: boolean;
 }
 
 export function ScreenContainer({
@@ -27,6 +29,7 @@ export function ScreenContainer({
   modal,
   scrollRef,
   onScrollViewLayout,
+  scrollEnabled = true,
 }: ScreenContainerProps) {
   return (
     <SafeAreaView
@@ -37,6 +40,7 @@ export function ScreenContainer({
         <ScrollView
           ref={scrollRef}
           onLayout={onScrollViewLayout}
+          scrollEnabled={scrollEnabled}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           // Any field near the bottom of a scrolling screen would otherwise

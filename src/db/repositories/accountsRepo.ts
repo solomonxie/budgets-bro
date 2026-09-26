@@ -42,7 +42,7 @@ function mapRow(row: AccountRow): Account {
 
 export async function listAccounts(db: SQLiteDatabase, boardId: number): Promise<Account[]> {
   const rows = await db.getAllAsync<AccountRow>(
-    'SELECT * FROM accounts WHERE archived_at IS NULL AND board_id = ? ORDER BY type, name',
+    'SELECT * FROM accounts WHERE archived_at IS NULL AND board_id = ? ORDER BY type, sort_order, name',
     boardId,
   );
   return rows.map(mapRow);
@@ -178,8 +178,9 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     loanPaymentCategoryId = await categoriesRepo.findOrCreateCategory(db, boardId, groupId, input.name.trim());
   }
   const result = await db.runAsync(
-    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind, loan_payment_category_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    // Last in its group until moved.
+    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind, loan_payment_category_id, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts WHERE board_id = ?))`,
     boardId,
     input.name,
     input.type,
@@ -193,6 +194,7 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
     input.note ?? null,
     input.trackingKind ?? null,
     loanPaymentCategoryId,
+    boardId,
   );
   const id = result.lastInsertRowId;
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
@@ -224,6 +226,16 @@ export async function updateAccount(db: SQLiteDatabase, boardId: number, id: num
     id,
   );
   await payeesRepo.ensureAccountPayee(db, boardId, id, input.name);
+}
+
+// Ids in their new order; only the moved group is passed, and the other
+// groups keep their own positions.
+export async function reorderAccounts(db: SQLiteDatabase, orderedIds: number[]): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync('UPDATE accounts SET sort_order = ? WHERE id = ? AND sort_order != ?', i, orderedIds[i], i);
+    }
+  });
 }
 
 export async function archiveAccount(db: SQLiteDatabase, id: number): Promise<void> {

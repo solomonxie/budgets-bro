@@ -25,6 +25,7 @@ export interface AccountRow {
   note: string | null;
   tracking_kind: string | null;
   loan_payment_category_id: number | null;
+  sort_order: number;
 }
 
 export interface AccountRateHistoryRow {

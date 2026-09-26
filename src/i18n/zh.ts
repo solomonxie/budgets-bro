@@ -142,6 +142,9 @@ export const zh: Record<keyof typeof en, string> = {
   's3Browser.restoreConfirmTitle': '从 {name} 恢复？',
   's3Browser.restoreConfirmMessage':
     '它会作为新账本打开并自动切换过去。当前账本保持不变，可随时在设置中切回。',
+  'backupSummary.board': '「{name}」，备份于 {date}',
+  'backupSummary.counts': '账户：{accounts} · 分类：{categories} · 交易：{transactions}',
+  'backupSummary.span': '交易从 {from} 到 {to}',
   's3Browser.restoreNotFound': '该文件已不在存储桶中。',
   'aiHistory.hint':
     '这个密钥发出的全部内容，原样保存。只保留最近 50 条，只存在本机，不进入备份。',

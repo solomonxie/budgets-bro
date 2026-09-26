@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
 import { BackupFileList } from './BackupFileList';
 import { BackupSaveLink } from './BackupSaveLink';
 import ICloudDrive from '../../../modules/icloud-drive';
-import { parseBackupZip } from '../../sync/parseBackupZip';
+import { confirmBackupRestore } from './confirmBackupRestore';
 import { importAppExport } from '../../import/appExportImporter';
 import { getDb } from '../../db/client';
-import { useT } from '../../i18n';
+import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 // What the bucket browser is for S3, for the iCloud folder — the same
@@ -36,7 +36,7 @@ export function ICloudBrowserModal({
   // Fired after a restore, with the new board it landed in.
   onRestored?: (boardId: number) => void;
 }) {
-  const t = useT();
+  const { t, language } = useI18n();
   const [keys, setKeys] = useState<string[]>([]);
   const [containerPath, setContainerPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,27 +62,27 @@ export function ICloudBrowserModal({
   }, [visible, refresh]);
 
   const confirmRestore = (key: string) => {
-    Alert.alert(t('s3Browser.restoreConfirmTitle', { name: key }), t('s3Browser.restoreConfirmMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('backup.restore'),
-        onPress: async () => {
-          setRestoringKey(key);
-          setError(null);
-          try {
-            const bytes = await ICloudDrive?.read(key);
-            if (!bytes) throw new Error(t('s3Browser.restoreNotFound'));
-            const imported = await importAppExport(await getDb(), await parseBackupZip(bytes));
-            onRestored?.(imported.boardId);
-            onClose();
-          } catch (e) {
-            setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
-          } finally {
-            setRestoringKey(null);
-          }
-        },
+    setError(null);
+    confirmBackupRestore({
+      t,
+      locale: localeTag(language),
+      name: key,
+      load: async () => ICloudDrive?.read(key),
+      setBusy: (busy) => setRestoringKey(busy ? key : null),
+      onError: setError,
+      onConfirmed: async (backup) => {
+        setRestoringKey(key);
+        try {
+          const imported = await importAppExport(await getDb(), backup);
+          onRestored?.(imported.boardId);
+          onClose();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : t('settings.restoreFailed'));
+        } finally {
+          setRestoringKey(null);
+        }
       },
-    ]);
+    });
   };
 
   return (

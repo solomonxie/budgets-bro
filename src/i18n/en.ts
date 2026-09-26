@@ -141,6 +141,10 @@ export const en = {
   's3Browser.restoreConfirmTitle': 'Restore from {name}?',
   's3Browser.restoreConfirmMessage':
     'It opens as a new board and the app switches to it. The board you’re on now isn’t changed — switch back any time in Settings.',
+  'backupSummary.board': '“{name}”, backed up {date}',
+  'backupSummary.counts':
+    'Accounts: {accounts} · Categories: {categories} · Transactions: {transactions}',
+  'backupSummary.span': 'Transactions from {from} to {to}',
   's3Browser.restoreNotFound': 'That file is no longer in the bucket.',
   'aiHistory.hint':
     'Everything this key has sent, exactly as it went out. Only the last 50 requests are kept, on this iPhone only — never in a backup.',

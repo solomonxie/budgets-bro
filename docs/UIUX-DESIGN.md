@@ -132,8 +132,9 @@ Sometimes text link style look better than big button, depends on the usage.
 ### Forms
 
 ```
-┌──── Add Transaction ──────────── ✓ Repeating ─┐   ← mode as a header pill,
-│               − $42.10   [Outflow│Inflow]     │     not a full-width row
+┌──── Add Transaction ──────────────────────────┐
+│                                    ✓ Repeat   │   ← mode as a small pill by
+│               − $42.10   [Outflow│Inflow]     │     the amount, not a row
 │  Payee            │  Category                 │   ← pairs side by side,
 │  Sep 12           │  Chequing                 │     no label rows
 │  Memo                                         │
@@ -367,7 +368,7 @@ Reference: real YNAB's screenshots — reuse the interaction patterns that carry
 - Tapping a category opens the assign popup with the amount already focused — no second tap into the field.
 - Month via prev/next **and** a tappable label.
 
-**Transaction entry/edit page** — see Forms above for the layout. Pinned amount up top; the number pad (0-9, C, ⌫) is ordinary page content below the other fields, with Save under it. Not the system keypad, which covered half the form and moved its keys around, and not a pinned bar either — anything held over the fields reads as floating on top of them. 44pt keys, the minimum a thumb needs and no more. The amount needs no text field at all this way. Outflow/Inflow toggle sets the sign; payee/category/account/date/memo; category hidden for income and for tracking accounts; income requires an income stream; "Mark to repeat" as a header pill that swaps Date → Starts and reveals the repeat builder.
+**Transaction entry/edit page** — see Forms above for the layout. Pinned amount up top; the number pad (0-9, C, ⌫) is ordinary page content below the other fields, with Save under it. Not the system keypad, which covered half the form and moved its keys around, and not a pinned bar either — anything held over the fields reads as floating on top of them. 44pt keys, the minimum a thumb needs and no more. The amount needs no text field at all this way. Outflow/Inflow toggle sets the sign; payee/category/account/date/memo; category hidden for income and for tracking accounts; income requires an income stream; "Repeat" as a small pill at the amount's top-right, only when opened from an account, that swaps Date → Starts and reveals the repeat builder.
 
 **Transactions list** — grouped by date, most recent first. Row: payee, category tag, coloured amount, account, truncated one-line memo. Search + multi-select for bulk edit/delete. Future-dated rows never appear here; they live in the account's Scheduled box.
 

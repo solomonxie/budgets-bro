@@ -872,6 +872,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 14,
     padding: spacing.md,
+    marginTop: spacing.md,
   },
   scheduledHeader: {
     flexDirection: 'row',

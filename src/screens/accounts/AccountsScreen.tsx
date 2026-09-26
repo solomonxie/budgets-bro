@@ -16,6 +16,9 @@ import { useNetWorthTrend } from '../../hooks/useNetWorthTrend';
 import { BalanceTrendChart } from './BalanceTrendChart';
 import { NetWorthBreakdown } from './NetWorthBreakdown';
 import { InfoButton } from '../../components/ui/InfoButton';
+import { DraggableList } from '../../components/ui/DraggableList';
+import { getDb } from '../../db/client';
+import * as accountsRepo from '../../db/repositories/accountsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import {
   ACCOUNT_KIND_ORDER,
@@ -54,6 +57,8 @@ export function AccountsScreen() {
     new Set(),
   );
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   // The month a finger is on, or was left on. Nothing is explained until
   // one is picked — the chart is read by dragging along it.
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -110,6 +115,11 @@ export function AccountsScreen() {
     };
   }, [trend, netWorth.netWorthCents]);
 
+  const reorder = async (orderedIds: number[]) => {
+    await accountsRepo.reorderAccounts(await getDb(), orderedIds);
+    bumpDataVersion();
+  };
+
   const selectedPoint =
     selectedIndex != null ? (trend[selectedIndex] ?? null) : null;
 
@@ -130,7 +140,7 @@ export function AccountsScreen() {
   }, [accounts]);
 
   return (
-    <ScreenContainer scroll>
+    <ScreenContainer scroll scrollEnabled={scrollEnabled}>
       <View style={styles.netWorthCard}>
         <View style={styles.netWorthHeader}>
           <View style={styles.netWorthTitleRow}>
@@ -301,28 +311,32 @@ export function AccountsScreen() {
               {formatMoney(group.subtotalCents)}
             </Text>
           </View>
-          {group.accounts.map(({ account, displayCents }) => (
-            <Pressable
-              key={account.id}
-              style={styles.row}
-              onPress={() =>
-                navigation.navigate('AccountDetail', { accountId: account.id })
-              }
-            >
-              <Text
-                style={styles.rowTitle}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {account.name}
-              </Text>
-              <Text
-                style={[styles.rowValue, displayCents < 0 && styles.negative]}
-              >
-                {formatMoney(displayCents)}
-              </Text>
-            </Pressable>
-          ))}
+          <DraggableList
+            items={group.accounts}
+            keyOf={(a) => a.account.id}
+            gap={spacing.xs}
+            onDragChange={(dragging) => setScrollEnabled(!dragging)}
+            onPress={({ account }) =>
+              navigation.navigate('AccountDetail', { accountId: account.id })
+            }
+            onReorder={(list) => reorder(list.map((a) => a.account.id))}
+            renderItem={({ account, displayCents }, pressed) => (
+              <View style={[styles.row, pressed && styles.rowPressed]}>
+                <Text
+                  style={styles.rowTitle}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {account.name}
+                </Text>
+                <Text
+                  style={[styles.rowValue, displayCents < 0 && styles.negative]}
+                >
+                  {formatMoney(displayCents)}
+                </Text>
+              </View>
+            )}
+          />
         </View>
       ))}
       <Pressable style={styles.addButton} onPress={openAddAccount}>
@@ -448,6 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: spacing.md,
   },
+  rowPressed: { opacity: 0.6 },
   rowTitle: {
     flex: 1,
     marginRight: spacing.sm,

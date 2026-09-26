@@ -8,7 +8,7 @@ export const LIST_ACCOUNTS_WITH_BALANCES = `
   FROM accounts a LEFT JOIN transactions t ON t.account_id = a.id AND t.date <= ?
   WHERE a.archived_at IS NULL AND a.board_id = ?
   GROUP BY a.id
-  ORDER BY a.type, a.name
+  ORDER BY a.sort_order, a.name
 `;
 
 export const LIST_CLOSED_ACCOUNTS_WITH_BALANCES = `

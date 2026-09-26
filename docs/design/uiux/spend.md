@@ -27,13 +27,15 @@ tabs by the `✛ Spend` tab, which intercepts its own press.
  ├──────────────────────────────────────┤
  │ Memo                                 │   typed in place, last row
  └──────────────────────────────────────┘
-   1      2      3      ÷     ×            no boxes either: the glyph is
-                                           the key, a rounded patch lights
-   4      5      6      −     +            under a press
-   7      8      9      =     ⌫            hold ⌫ to clear the amount
+                                           spare height opens up here,
+                                           above the pad, not below it
+   1      2      3      ÷     ×            no boxes: the glyph is the key,
+                                           a rounded patch lights under a
+   4      5      6      −     +            press
+   7      8      9     ──── = ────         shorter than a digit key
                           ┌───────────┐
-   0                      │   Save    │    the one filled button
-                          └───────────┘
+          0      ⌫        │   Save    │    a touch taller than a digit key;
+                          └───────────┘    0 under 8; hold ⌫ to clear
  [ Delete Transaction ]!     ← edit mode only
 ```
 

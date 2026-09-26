@@ -1167,8 +1167,8 @@ export const zh: Record<keyof typeof en, string> = {
   'repeatField.every': '每 {n} {unit}',
   'repeatField.everyWithDays': '每 {n} {unit}，{days}',
 
-  'addTransactionModal.scheduledToggleLabel': '设为重复',
-  'addTransactionModal.scheduledToggleLabelActive': '✓ 重复中',
+  'addTransactionModal.scheduledToggleLabel': '重复',
+  'addTransactionModal.scheduledToggleLabelActive': '✓ 重复',
   'addTransactionModal.startDateLabel': '开始日期',
   'addTransactionModal.repeatLabel': '重复',
   'addTransactionModal.hasEndDateLabel': '设置结束日期',

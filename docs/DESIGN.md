@@ -174,15 +174,19 @@ The AI API key and S3 credentials are provider credentials, not money data, and 
 ## Size and speed budget
 Lightweight and instant is a requirement, not a nice-to-have — see
 [`AGENTS.md`](../AGENTS.md) for the rules that hold it. Measured on a Release
-device build, 2026-09-19:
+device build, 2026-09-26:
 
 | | measured | budget |
 |---|---|---|
-| installed on device | **17 MB** | < 25 MB |
-| zipped (download proxy) | **7.2 MB** | < 12 MB |
-| `main.jsbundle` | 3.38 MB Hermes bytecode | < 4 MB |
-| JS source in the bundle | 4.80 MB | — |
-| app binary / `React.framework` / `hermesvm` | 3.3 / 5.6 / 2.3 MB stripped | fixed floor |
+| installed on device | **16 MB** | < 25 MB |
+| zipped (download proxy) | **7.0 MB** | < 12 MB |
+| `main.jsbundle` | 3.84 MB Hermes bytecode | < 4 MB |
+| JS source in the bundle | 5.26 MB (own code 1.77 MB) | — |
+| app binary / `React.framework` / `hermesvm` | 3.4 / 5.8 / 2.4 MB stripped | fixed floor |
+
+The bytecode is at 96% of its budget — it was 3.95 MB before the two swaps
+below, grown from 3.38 MB on 2026-09-19 by features alone. The next feature
+has to pay for itself.
 
 Two thirds of an unstripped build is debug symbols (29 MB → 17 MB), and
 Xcode's own `STRIP_INSTALLED_PRODUCT` only reaches the app binary, not the
@@ -191,12 +195,14 @@ all four after the build, re-signs each with the identity the build used, and
 installs the result **only if `codesign --verify --deep --strict` passes** —
 otherwise it installs the untouched build and says so.
 
-Bundle by package: `react-native` 2.0 MB, own `src/` ~1.4 MB,
-`react-native-svg` 257 KB, `@react-navigation/*` ~400 KB, `jszip` 95 KB,
-`http-status-codes` 58 KB + `buffer` 57 KB (both dragged in by
-`@dr.pogodin/react-native-fs` — the next 115 KB to reclaim, and only
-reachable by replacing that library, since `src/files/bytes.ts` already
-means none of our own code imports them).
+Bundle by package (source): `react-native` 2.0 MB, own `src/` 1.77 MB,
+`@react-navigation/*` ~400 KB, `react-native-svg` 257 KB, `jszip` 95 KB.
+Reclaimed on 2026-09-26: `@dr.pogodin/react-native-fs` (with the `buffer`
+and `http-status-codes` it dragged in) replaced by the app's own
+`modules/file-store` Swift module, and `@noble/hashes` by the ~70-line
+`src/sync/sha256.ts` — 110 KB of bytecode between them. What is left above
+~20 KB is React Native, React Navigation (`color`, 21 KB, is its), SVG and
+jszip.
 
 Reproduce:
 ```
@@ -221,7 +227,7 @@ Runtime shape:
 ## Storage/backup architecture
 - **SQLite** = source of truth. Library: `expo-sqlite` (works under Expo managed workflow + EAS builds, no custom native linking). `op-sqlite`/SQLCipher deferred until at-rest encryption is required.
 - **iCloud backup**: export of the SQLite file into the app's iCloud container (Expo config plugin + entitlement, buildable via EAS).
-- **S3 backup**: user provisions their own bucket + scoped IAM credentials. No backend to presign requests, so the app signs S3 REST calls client-side in `sync/sigv4.ts` — ~60 lines of HMAC chain over `@noble/hashes`, keeping the app backend-less.
+- **S3 backup**: user provisions their own bucket + scoped IAM credentials. No backend to presign requests, so the app signs S3 REST calls client-side in `sync/sigv4.ts` — ~60 lines of HMAC chain over the hand-rolled `sync/sha256.ts`, keeping the app backend-less.
 - **Backup format**: primary = raw SQLite file copy; secondary/optional = JSON export for portability.
 - **Restore**: pick a backup source → download → validate schema-version tag → full replace of local DB (destructive-and-confirmed, no merge/dedupe for MVP).
 - **S3 credential validation, on save, before the key is accepted** (fail closed — reject and explain, don't silently store an unusable/unsafe credential):
@@ -242,7 +248,7 @@ Runtime shape:
 | Styling | RN `StyleSheet` + design-tokens file | Avoids Tailwind/NativeWind weight for MVP |
 | Secure storage | expo-secure-store | Keychain-backed, for AI API key + S3 credentials |
 | AI calls | Direct `fetch` to provider REST endpoints | Avoids heavy SDKs, keeps payload (aggregate/detailed) under app's control |
-| S3 signing | own `sync/sigv4.ts` over `@noble/hashes` | AWS's own signer cost 341 KB of bundle for four calls; the replacement is checked against its output in `sigv4.test.ts` |
+| S3 signing | own `sync/sigv4.ts` over own `sync/sha256.ts` | AWS's own signer cost 341 KB of bundle for four calls; the replacement is checked against its output in `sigv4.test.ts` |
 | Testing | Jest (`jest-expo`) | Unit tests for calculators & budget math only |
 | Build/submit | Local `xcodebuild` + `devicectl`; EAS only for over-the-air/TestFlight | Everyday path is a Release build straight onto the phone (`npm run ios`) |
 | Lint/format | ESLint + Prettier | Baseline consistency for solo maintainer |
@@ -282,6 +288,6 @@ or supports.
 ## Risks / open questions
 - expo-sqlite has no built-in migration framework — needs a small homegrown versioned migration runner.
 - iCloud container entitlement under Expo config plugins + EAS build needs a spike to confirm it doesn't force a bare-workflow eject.
-- ~~aws4fetch relies on WebCrypto~~ — settled: signing is pure JS over `@noble/hashes`, so nothing depends on WebCrypto under Hermes.
+- ~~aws4fetch relies on WebCrypto~~ — settled: signing is pure JS over `sync/sha256.ts`, so nothing depends on WebCrypto under Hermes.
 - Cutting bank-linking, CSV import, and multi-currency may feel too lean for some users — explicitly deferred to post-MVP roadmap.
 - App Store privacy label must disclose that transaction data can be sent to a user-chosen AI provider and to user-chosen iCloud/S3 backup targets.

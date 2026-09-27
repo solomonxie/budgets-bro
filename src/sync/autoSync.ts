@@ -1,6 +1,5 @@
-// Its own module, not a helper inside cloudSync.ts, only so it can be tested:
-// importing cloudSync pulls in the S3 provider and with it @noble/hashes,
-// which this project's jest setup can't transform.
+// Its own module, not a helper inside cloudSync.ts, so it can be tested
+// without cloudSync's native-module imports.
 
 // One switch per destination now. It used to be two settings — "is this
 // destination on" and "auto-sync to it" — plus a global auto-sync switch

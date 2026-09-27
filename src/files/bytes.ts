@@ -53,3 +53,27 @@ export function bytesToUtf8(bytes: Uint8Array): string {
   }
   return out;
 }
+
+export function utf8ToBytes(text: string): Uint8Array {
+  const out: number[] = [];
+  for (const char of text) {
+    const code = char.codePointAt(0)!;
+    if (code < 0x80) out.push(code);
+    else if (code < 0x800) out.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    else if (code < 0x10000) out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+    else
+      out.push(
+        0xf0 | (code >> 18),
+        0x80 | ((code >> 12) & 0x3f),
+        0x80 | ((code >> 6) & 0x3f),
+        0x80 | (code & 0x3f),
+      );
+  }
+  return Uint8Array.from(out);
+}
+
+export function bytesToHex(bytes: Uint8Array): string {
+  let out = '';
+  for (const byte of bytes) out += byte.toString(16).padStart(2, '0');
+  return out;
+}

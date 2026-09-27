@@ -70,3 +70,26 @@ export const SPENDING_BY_PAYEE_OVER_MONTHS = `
   WHERE t.amount_cents < 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ?
   GROUP BY t.payee_id, month
 `;
+
+// Runway (domain/runway): the money you could live on — cash, savings, less
+// what's owed on cards — and what it costs to live. A cost is anything
+// leaving that pool for good: spending, card purchases, loan payments. Moving
+// money within the pool, or into an investment, is not a cost. Closed
+// accounts count: they held money in the months they were open.
+export const RUNWAY_OPENING = `
+  SELECT COALESCE(SUM(opening_balance_cents), 0) as total FROM accounts
+  WHERE board_id = ? AND type IN ('cash', 'savings', 'credit_card')
+`;
+
+export const RUNWAY_MONTHLY = `
+  SELECT substr(t.date, 1, 7) as month,
+    SUM(t.amount_cents) as net,
+    SUM(CASE WHEN t.amount_cents < 0 AND (o.id IS NULL OR o.type IN ('loan', 'mortgage'))
+      THEN -t.amount_cents ELSE 0 END) as cost
+  FROM transactions t
+  JOIN accounts a ON a.id = t.account_id
+  LEFT JOIN accounts o ON o.id = t.transfer_account_id
+  WHERE a.board_id = ? AND a.type IN ('cash', 'savings', 'credit_card') AND t.date <= ?
+  GROUP BY month
+  ORDER BY month
+`;

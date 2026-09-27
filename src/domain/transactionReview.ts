@@ -68,9 +68,6 @@ export function primaryQuickFix(reasons: ReviewReason[]): ReviewReason | null {
   return QUICK_FIXABLE.find((candidate) => reasons.includes(candidate)) ?? null;
 }
 
-// What a transaction list's Review filter can be set to. 'any' is every
-// reason below, including the ones the row itself doesn't show.
-export type ReviewFilter = 'missingPayee' | 'missingCategory' | 'any';
 
 export function missingPayee(txn: TransactionWithLabels): boolean {
   return txn.payeeId == null;
@@ -159,17 +156,4 @@ export function transactionsNeedingReview(
   return transactions
     .map((txn) => ({ txn, reasons: reviewReasons(txn, duplicates) }))
     .filter((item) => item.reasons.length > 0);
-}
-
-// The list screens' filter. `duplicates` comes from the same list being
-// filtered, so "needs review" on an account page means duplicated within
-// that account's rows — which is the only place a duplicate can be anyway.
-export function matchesReviewFilter(
-  txn: TransactionWithLabels,
-  filter: ReviewFilter,
-  duplicates: Set<number>,
-): boolean {
-  if (filter === 'missingPayee') return missingPayee(txn);
-  if (filter === 'missingCategory') return missingCategory(txn);
-  return reviewReasons(txn, duplicates).length > 0;
 }

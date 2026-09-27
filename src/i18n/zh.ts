@@ -479,6 +479,15 @@ export const zh: Record<keyof typeof en, string> = {
   'accountDetail.amountOwedHint':
     '按信用卡账单填写今天的欠款。与应用中的不同时，会添加一笔调整交易补齐差额。',
   'accountDetail.remainingPrincipal': '剩余本金',
+  'accountDetail.debtQuote': '欠债的是债主的仆人。',
+  'accountDetail.debtWhyTitle': '为什么债务对你不利',
+  'accountDetail.debtWhy1':
+    '贷款和信用卡是把下个月的收入提前花掉。每一笔还款都是钱还没到手就已许诺出去的，能自由安排的钱就更少了。',
+  'accountDetail.debtWhy2':
+    '利息让每样东西都比标价更贵；刷卡太容易，花钱不觉得心疼——这正是容易超支的原因。',
+  'accountDetail.debtWhy3':
+    '理财七步给出了脱离债务的计划：先存一笔小额应急金，再按余额从小到大还清房贷以外的所有债务。',
+  'accountDetail.debtOpenBabySteps': '打开理财七步',
   'accountDetail.noTransactionsYet': '暂无交易记录。',
   'accountDetail.transactionsHeading': '交易 · {count}',
   'accountDetail.scheduledHeading': '计划中（{count}）',

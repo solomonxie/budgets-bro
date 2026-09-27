@@ -44,6 +44,7 @@ import {
 } from '../../domain/accountKind';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { AccountToolsSection } from './AccountToolsSection';
+import { DebtHealthSection } from './DebtHealthSection';
 import type { LoanPayoff } from './LoanDetailsCard';
 import { InterestRateDetails } from './InterestRateDetails';
 import { HouseValueDetails } from './HouseValueDetails';
@@ -539,6 +540,14 @@ export function AccountDetailScreen() {
                   account={accountWithBalance.account}
                   transactions={transactions}
                   onPayoff={setLoanPayoff}
+                />
+              ) : null}
+              {accountWithBalance && isLoanLike ? (
+                <DebtHealthSection
+                  isMortgage={isMortgage}
+                  payoff={loanPayoff}
+                  termMonths={accountWithBalance.account.termMonths}
+                  houseValueCents={currentValueCents}
                 />
               ) : null}
               {accountWithBalance ? (

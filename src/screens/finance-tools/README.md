@@ -27,6 +27,7 @@ affordability  AffordabilityScreen     mortgage
 prepay (CN)    ChinaPrepaymentScreen   mortgage
 refinance      RefinanceScreen         mortgage
 rent vs buy    RentVsBuyScreen         mortgage
+stress test    StressTestScreen        mortgage
 amortization   AmortizationScreen      loan
 auto loan      AutoLoanScreen          loan
 debt-to-income DebtToIncomeScreen      loan

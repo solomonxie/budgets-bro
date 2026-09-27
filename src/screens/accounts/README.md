@@ -23,6 +23,7 @@ AccountDetailScreen.tsx
 │ Balance summary card           │──→ inline (same file)
 ├───────────────────────────────┤
 │ LoanDetailsCard (loan types)    │──→ ./LoanDetailsCard.tsx
+│ DebtHealthSection (loan types)  │──→ ./DebtHealthSection.tsx
 │ HouseValueCard (mortgage only)  │──→ ./HouseValueCard.tsx
 ├───────────────────────────────┤
 │ Debt quote banner (loan only)  │──→ inline

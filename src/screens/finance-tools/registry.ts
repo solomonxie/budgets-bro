@@ -14,6 +14,7 @@ import { DebtToIncomeScreen } from './DebtToIncomeScreen';
 import { InvestmentScreen } from './InvestmentScreen';
 import { CompoundInterestScreen } from './CompoundInterestScreen';
 import { TaxSavingsScreen } from './TaxSavingsScreen';
+import { StressTestScreen } from './StressTestScreen';
 
 export type FinanceToolId =
   | 'canadaPurchase'
@@ -24,6 +25,7 @@ export type FinanceToolId =
   | 'chinaPrepayment'
   | 'refinance'
   | 'rentVsBuy'
+  | 'stressTest'
   | 'amortization'
   | 'autoLoan'
   | 'debtToIncome'
@@ -54,6 +56,7 @@ export const FINANCE_TOOLS: FinanceToolEntry[] = [
   { id: 'houseAffordability', hub: 'mortgage', titleKey: 'calcAffordability.title', subtitleKey: 'calcAffordability.subtitle', Screen: AffordabilityScreen },
   { id: 'chinaPrepayment', hub: 'mortgage', titleKey: 'calcPrepay.title', subtitleKey: 'calcPrepay.subtitle', Screen: ChinaPrepaymentScreen },
   { id: 'refinance', hub: 'mortgage', titleKey: 'calcRefinance.title', subtitleKey: 'calcRefinance.subtitle', Screen: RefinanceScreen },
+  { id: 'stressTest', hub: 'mortgage', titleKey: 'calcStressTest.title', subtitleKey: 'calcStressTest.subtitle', Screen: StressTestScreen },
   { id: 'rentVsBuy', hub: 'mortgage', titleKey: 'calcRentVsBuy.title', subtitleKey: 'calcRentVsBuy.subtitle', Screen: RentVsBuyScreen },
 
   { id: 'amortization', hub: 'loan', titleKey: 'calcAmortization.title', subtitleKey: 'calcAmortization.subtitle', Screen: AmortizationScreen },

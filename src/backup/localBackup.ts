@@ -77,8 +77,13 @@ async function write(db: SQLiteDatabase, boardId: number, boardName: string, nam
 
 // The rolling copy — same gate as the .db snapshot (see useAutoSnapshot): on
 // app-background, at most daily, and only if something changed.
-export async function writeDailyBackup(db: SQLiteDatabase, boardId: number, boardName: string): Promise<string> {
-  const name = await write(db, boardId, boardName, dailyBackupName(boardName));
+export async function writeDailyBackup(
+  db: SQLiteDatabase,
+  boardId: number,
+  boardName: string,
+  fileName = boardName,
+): Promise<string> {
+  const name = await write(db, boardId, boardName, dailyBackupName(fileName));
   await pruneLocalBackups();
   return name;
 }

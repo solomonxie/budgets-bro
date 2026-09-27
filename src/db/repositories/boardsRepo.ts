@@ -21,6 +21,11 @@ export async function renameBoard(db: SQLiteDatabase, id: number, name: string):
   await db.runAsync('UPDATE boards SET name = ? WHERE id = ?', name, id);
 }
 
+export async function isBoardUnused(db: SQLiteDatabase, id: number): Promise<boolean> {
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM transactions WHERE board_id = ?', id);
+  return (row?.n ?? 0) === 0;
+}
+
 // Wipes the board and everything in it — there's no "hide" concept for a
 // board the way accounts/categories have archived_at, since deleting one is
 // meant to actually reclaim the space, not just declutter a list.

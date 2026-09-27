@@ -7,8 +7,8 @@ way to keep a board automatically backed up, or pull it onto a new device,
 without remembering to export by hand.
 
 ## Goals
-- Auto-backup the current board to cloud storage: on every data change
-  (debounced) and whenever the app returns to the foreground.
+- Auto-backup every board to cloud storage, at most daily, while anything
+  changed — checked on data change (debounced) and on foreground.
 - Support AWS S3 first (finishes the existing stub), then Google Drive.
 - No manual sync actions at all: one switch per destination means "every
   change", and off means nothing. See Settings UI below for why the menu
@@ -107,10 +107,11 @@ setup, no third party: the user is already signed in, and the folder shows up
 in Files under iCloud Drive → Budgets Bro, where they can drag a backup out or
 one back in.
 
-One file per board, overwritten every sync — no dates, no history. iCloud's
-whole job here is surviving a reinstall, and only the current copy does that
-job; a dated history would spend the user's own iCloud quota on zips nobody
-opens. A bucket, which is cheap and browsable, keeps the history instead.
+One dated file per board per day (`<YYYYMMDD>_daily_<slug>.zip`). iCloud
+keeps the newest 10 plus the newest of each of the last 12 months, so a
+mistake noticed weeks late still has a copy from before it; a bucket keeps
+everything. On a fresh install the first-run prompt reads the newest file per
+board and offers them back in one tap (`sync/findICloudBackups.ts`).
 Restore still lists the folder rather than naming the file, so an install
 that backed up under the old dated layout still finds its newest zip
 (`latest` sorts past every date — `backupPath.ts`). This is the destination that closes
@@ -193,7 +194,8 @@ a custom URL scheme for the redirect. Hand the Client ID back for
 replaced held four items — a "keep a copy here" toggle, an "auto-sync"
 toggle, "Sync Now" and "Restore Latest" — and no user could predict what any
 combination of the first two did. The switch now *is* the feature: on means
-every change is backed up there, off means nothing is. Flipping one on syncs
+every board is backed up there daily while anything changes, off means
+nothing is. Flipping one on syncs
 immediately rather than waiting for the next edit, so "did that work" has an
 answer.
 

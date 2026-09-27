@@ -8,17 +8,20 @@ import { spacing } from '../../theme/spacing';
 // shouldn't spend permanent screen space on, one tap away and never in the
 // way of the switches it explains. With `label` it is a text link instead,
 // for inside a section already opened — where an icon on the folded row
-// was one more thing crowding it.
+// was one more thing crowding it. `action` adds a link that closes the card
+// and goes somewhere to act on what it said.
 export function InfoButton({
   title,
   paragraphs,
   closeLabel,
   label,
+  action,
 }: {
   title: string;
   paragraphs: string[];
   closeLabel: string;
   label?: string;
+  action?: { label: string; onPress: () => void };
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -33,7 +36,18 @@ export function InfoButton({
             {p}
           </Text>
         ))}
-        <View style={styles.closeRow}>
+        <View style={[styles.closeRow, action && styles.closeRowWithAction]}>
+          {action ? (
+            <Pressable
+              hitSlop={8}
+              onPress={() => {
+                setOpen(false);
+                action.onPress();
+              }}
+            >
+              <Text style={styles.actionText}>{action.label}</Text>
+            </Pressable>
+          ) : null}
           <Pressable hitSlop={8} onPress={() => setOpen(false)}>
             <Text style={styles.closeText}>{closeLabel}</Text>
           </Pressable>
@@ -49,5 +63,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   body: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
   closeRow: { alignItems: 'flex-end', paddingTop: spacing.xs },
+  closeRowWithAction: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  actionText: { fontSize: 15, fontWeight: '600', color: colors.accent },
   closeText: { fontSize: 15, fontWeight: '700', color: colors.accent },
 });

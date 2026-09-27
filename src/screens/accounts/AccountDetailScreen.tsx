@@ -545,6 +545,31 @@ export function AccountDetailScreen() {
                 <AccountToolsSection type={accountWithBalance.account.type} />
               ) : null}
             </View>
+            {/* Not on a mortgage: that debt buys the house it's owed on. */}
+            {accountWithBalance?.account.type === 'loan' ? (
+              <View style={styles.debtQuote}>
+                <Text style={styles.debtQuoteText}>
+                  “{t('accountDetail.debtQuote')}”
+                </Text>
+                <InfoButton
+                  title={t('accountDetail.debtWhyTitle')}
+                  paragraphs={[
+                    t('accountDetail.debtWhy1'),
+                    t('accountDetail.debtWhy2'),
+                    t('accountDetail.debtWhy3'),
+                  ]}
+                  closeLabel={t('common.done')}
+                  action={{
+                    label: t('accountDetail.debtOpenBabySteps'),
+                    onPress: () =>
+                      rootNavigation.navigate('Tabs', {
+                        screen: 'Insights',
+                        params: { screen: 'BabySteps', initial: false },
+                      }),
+                  }}
+                />
+              </View>
+            ) : null}
             {futureTransactions.length > 0 ||
             scheduledTransactions.length > 0 ? (
               <View style={styles.scheduledCard}>
@@ -805,6 +830,27 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: colors.accent,
     borderColor: colors.accent,
+  },
+  debtQuote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.textMuted,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.sm,
+  },
+  debtQuoteText: {
+    flex: 1,
+    fontFamily: 'Georgia',
+    fontStyle: 'italic',
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.textMuted,
   },
   summaryCard: {
     backgroundColor: colors.surface,

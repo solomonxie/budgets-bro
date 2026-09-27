@@ -25,6 +25,8 @@ AccountDetailScreen.tsx
 │ LoanDetailsCard (loan types)    │──→ ./LoanDetailsCard.tsx
 │ HouseValueCard (mortgage only)  │──→ ./HouseValueCard.tsx
 ├───────────────────────────────┤
+│ Debt quote banner (loan only)  │──→ inline
+├───────────────────────────────┤
 │ Scheduled (expandable)         │──→ inline
 ├───────────────────────────────┤
 │ Transaction list (FlatList)    │──→ inline

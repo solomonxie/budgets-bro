@@ -486,6 +486,15 @@ export const en = {
   'accountDetail.amountOwedHint':
     'What your card statement says you owe today. If it differs from the app, one adjustment transaction is added to close the gap.',
   'accountDetail.remainingPrincipal': 'Remaining Principal',
+  'accountDetail.debtQuote': 'The borrower is slave to the lender.',
+  'accountDetail.debtWhyTitle': 'Why debt works against you',
+  'accountDetail.debtWhy1':
+    'A loan or a credit card spends next month’s income today. Every payment is money already promised away before it arrives, so there is less left to tell where to go.',
+  'accountDetail.debtWhy2':
+    'Interest makes everything cost more than its price, and easy credit makes spending feel painless — which is exactly why it is easy to overspend.',
+  'accountDetail.debtWhy3':
+    'The Baby Steps give a plan to get out: a small emergency fund first, then pay off every debt except the house, smallest balance first.',
+  'accountDetail.debtOpenBabySteps': 'Open Baby Steps',
   'accountDetail.noTransactionsYet': 'No transactions yet.',
   'accountDetail.transactionsHeading': 'Transactions · {count}',
   'accountDetail.scheduledHeading': 'Scheduled ({count})',

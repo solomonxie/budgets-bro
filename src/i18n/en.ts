@@ -415,6 +415,9 @@ export const en = {
   'settings.restoreFailed': 'Restore failed.',
   'settings.exportFailedTitle': 'Export failed',
   'settings.exportFailedFallback': 'Something went wrong.',
+  'settings.trustProcessHeading': 'Trust the process',
+  'settings.trustProcessBody':
+    'Track and manage your money the way this app is designed, and within a year you’ll have built better money habits, with a clearer sense of what’s happening and what to do next.\n\nThanks to YNAB (You Need A Budget) for this way of budgeting. This app is heavily inspired by it and builds more features on top.',
   'settings.removeAllData': 'Remove all app data',
   'settings.removeAllDataConfirmTitle': 'Remove all app data?',
   'settings.removeAllDataConfirmMessage':

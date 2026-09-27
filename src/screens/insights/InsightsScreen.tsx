@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Line, Polygon, Polyline } from 'react-native-svg';
-import { AverageLine } from '../../components/ui/AverageLine';
+import { MovingAverageLine } from '../../components/ui/AverageLine';
 import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -184,21 +184,16 @@ export function InsightsScreen() {
   }, []);
 
   // Same "trailing 12 months, excluding the month being looked at" rule as
-  // Budget's top-card compare — averaged over this chart's own monthTotals
-  // (the visible top-N stack), not a separate full-ledger total, so the
-  // benchmark line is on the same scale as what's actually plotted.
-  const priorMonthCount = Math.max(0, monthTotals.length - 1);
-  const benchmarkWindow = monthTotals.slice(
-    Math.max(0, priorMonthCount - 12),
-    priorMonthCount,
-  );
-  const benchmarkCents =
-    benchmarkWindow.length > 0
-      ? Math.round(
-          benchmarkWindow.reduce((sum, v) => sum + v, 0) /
-            benchmarkWindow.length,
-        )
+  // Budget's top-card compare, applied at every month so the benchmark moves
+  // with the history — averaged over this chart's own monthTotals (the
+  // visible top-N stack), so it is on the same scale as what's plotted.
+  const benchmarks = monthTotals.map((_, i) => {
+    const window = monthTotals.slice(Math.max(0, i - 12), i);
+    return window.length > 0
+      ? Math.round(window.reduce((sum, v) => sum + v, 0) / window.length)
       : null;
+  });
+  const latestBenchmark = benchmarks.at(-1) ?? null;
 
   const fittedWidth = Math.max(
     200,
@@ -364,12 +359,14 @@ export function InsightsScreen() {
                         strokeLinejoin="round"
                       />
                     ))}
-                    {benchmarkCents != null ? (
-                      <AverageLine
-                        y={pointY(benchmarkCents)}
+                    {latestBenchmark != null ? (
+                      <MovingAverageLine
+                        points={benchmarks.flatMap((b, i) =>
+                          b == null ? [] : [{ x: pointX(i), y: pointY(b) }],
+                        )}
                         width={chartWidth}
                         label={t('chart.avgLine', {
-                          amount: formatMoneyCompact(benchmarkCents),
+                          amount: formatMoneyCompact(latestBenchmark),
                         })}
                       />
                     ) : null}

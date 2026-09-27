@@ -457,6 +457,9 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.namePlaceholder': '例如 钱包',
   'accountModal.typeLabel': '类型',
   'accountModal.typeSavings': '储蓄账户',
+  'accounts.setupGuideHeading': '如何设置账户',
+  'accounts.setupGuideBody':
+    '这里的账户不必和银行账户一一对应，它们只是帮你理清钱怎么流动的简单分组。\n\n现金账户放日常要花的钱。一个现金账户可以代表好几个银行账户，也可以单独建一个，记钱包里的纸币和硬币。\n\n储蓄账户放存起来、不花的钱。一个应急金账户可以涵盖好几个真实账户。要用这笔钱时，先转到现金账户。\n\n本应用鼓励尽量少用信用卡。偶尔刷卡的话，直接把消费记在现金账户里，自己去还卡就行，不必在这里记信用卡的明细。如果日常开销主要靠刷卡，就为它建一个信用卡账户。\n\n月光族？预算页的「未分配」可能是负数，意思是你计划要花的钱比手头现有的现金多。',
   'accountModal.typeCash': '现金',
   'accountModal.typeCreditCard': '信用卡',
   'accountModal.typeLoan': '贷款',

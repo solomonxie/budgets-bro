@@ -464,6 +464,9 @@ export const en = {
   'accountModal.nameLabel': 'Name',
   'accountModal.namePlaceholder': 'e.g. Wallet',
   'accountModal.typeLabel': 'Type',
+  'accounts.setupGuideHeading': 'Setting up your accounts',
+  'accounts.setupGuideBody':
+    'Accounts here don’t have to match your bank accounts one to one. Think of them as a simple way to sort where your money goes.\n\nCash is the money you spend day to day. One Cash account can stand for several bank accounts, and you can add one just for the notes and coins in your wallet.\n\nSavings is money set aside, not spent. One Emergency Fund account can cover several real accounts. To spend from it, transfer the money to a cash account first.\n\nThis app encourages using credit cards as little as you can. If you only use one now and then, add those purchases straight to your cash account and pay the card off yourself; its history doesn’t need to live here. If a card carries your everyday spending, add a Credit Card account for it.\n\nLiving paycheck to paycheck? Unassigned on the Budget page can go negative. That means you’ve planned more than the cash you have today.',
   'accountModal.typeSavings': 'Savings',
   'accountModal.typeCash': 'Cash',
   'accountModal.typeCreditCard': 'Credit Card',

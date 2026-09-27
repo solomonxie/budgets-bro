@@ -313,7 +313,7 @@ export const zh: Record<keyof typeof en, string> = {
   'accountGuide.cash.helps':
     '预算就在这里发生：只有这类账户里的钱能分配到分类，「食杂还剩 $40」才有意义。',
   'accountGuide.savings.how':
-    '和现金账户一样——起始余额加交易——只是用来存钱，而不是日常开销。利息作为普通收入入账，可标记为「利息」，报表会与工作收入分开显示。',
+    '和现金账户一样——起始余额加交易——只是用来存钱，而不是日常开销，因此不分配到类别，也不计入「未分配」。不要直接用它消费：需要用钱时，先转到现金账户，再从现金账户花。利息作为普通收入入账，可标记为「利息」，报表会与工作收入分开显示。',
   'accountGuide.savings.helps':
     '让应急金或储蓄目标一目了然，又不当作可花的钱。理财七步会读取你指定为应急金的账户。',
   'accountGuide.credit_card.how':
@@ -850,7 +850,7 @@ export const zh: Record<keyof typeof en, string> = {
 
   'budget.spentThisMonth': '本月支出',
   'budget.unassigned': '未分配：{amount}',
-  'budget.breakdownCash': '现金与储蓄',
+  'budget.breakdownCash': '现金',
   'budget.breakdownEnvelopes': '已分配未支出',
   'budget.breakdownAhead': '……其中分配给未来月份',
   'budget.breakdownUnassigned': '未分配',

@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from '../db/driver';
 import { signS3Request } from './sigv4';
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
+import { bytesToHex, utf8ToBytes } from '../files/bytes';
 import { secureStore } from '../secure/secureStore';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import type { CloudProvider } from './types';

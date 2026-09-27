@@ -1,13 +1,12 @@
-import { hmac } from '@noble/hashes/hmac.js';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
+import { hmacSha256, sha256 } from './sha256';
+import { bytesToHex, utf8ToBytes } from '../files/bytes';
 
 // AWS Signature Version 4, the ~60 lines of it this app actually needs.
 //
 // This used to be @smithy/signature-v4 + @smithy/protocol-http +
 // @aws-crypto/sha256-js — AWS's own signer, and 341 KB of bundle for four
 // S3 calls, on an app whose first rule is that it stays small. The HMAC
-// chain below is the whole algorithm; @noble/hashes was already here.
+// chain below is the whole algorithm, over the hashes in ./sha256.
 // Every expectation in sigv4.test.ts was produced by the AWS signer this
 // replaced, so the output is checked against AWS's, not against itself.
 //
@@ -47,7 +46,7 @@ function hashHex(data: Uint8Array): string {
 }
 
 function sign(key: Uint8Array, data: string): Uint8Array {
-  return hmac(sha256, key, utf8ToBytes(data));
+  return hmacSha256(key, utf8ToBytes(data));
 }
 
 // encodeURIComponent leaves these alone; AWS expects them escaped.

@@ -19,11 +19,12 @@ prepare_react_native_project!
 
 target 'BudgetsBro' do
   # Community autolinking, not Expo's. Every dependency here is a plain
-  # React Native library now, and the one local module is linked by path
+  # React Native library now, and the local modules are linked by path
   # below rather than discovered by an expo-module.config.json.
   config = use_native_modules!
 
   pod 'ICloudDrive', :path => '../modules/icloud-drive/ios'
+  pod 'FileStore', :path => '../modules/file-store/ios'
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']

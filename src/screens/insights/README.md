@@ -12,6 +12,8 @@ InsightsScreen.tsx
 │ Category trends card            │──→ inline; hand-drawn Svg chart
 │ (stacked area chart + legend)    │    (react-native-svg, not a local component)
 ├───────────────────────────────┤
+│ Runway card (months cash lasts)  │──→ ./RunwayCard.tsx → useRunway → domain/runway
+├───────────────────────────────┤
 │ UTILITIES list (Baby Steps,     │──→ inline; row tap navigates to:
 │  Mortgage / Loan / Investment /  │    BabyStepsScreen.tsx (below)
 │  Tax Insights, AI Insights)      │    ../finance-tools/MortgageInsightsScreen.tsx

@@ -985,6 +985,26 @@ export const en = {
     'All time — drag to scroll, tap an icon to hide or show that category. The dashed line is your 12-month average.',
   'insights.notEnoughHistory': 'Not enough history yet.',
   'chart.avgLine': 'avg {amount}',
+  'runway.title': 'Runway',
+  'runway.months': '{count} months',
+  'runway.avgLine': 'avg {count} mo',
+  'runway.markLabel': '{count} mo',
+  'runway.paycheck': 'Paycheck to paycheck',
+  'runway.thin': 'Thin',
+  'runway.covered': 'Covered',
+  'runway.strong': 'Strong',
+  'runway.formula': '{cash} on hand ÷ {cost} a month',
+  'runway.paycheckCount': 'Paycheck to paycheck in {count} of the last {total} months',
+  'runway.noPaycheckMonths': 'Not paycheck to paycheck in any of the last 12 months',
+  'runway.infoTitle': 'What Runway measures',
+  'runway.infoWhat':
+    'How many months you could keep living as you do now if every paycheck stopped today. Each bar is that answer at the end of a month.',
+  'runway.infoCash':
+    'On hand: everything in your cash and savings accounts, less what you owe on credit cards. Investments, houses and cars are left out — they can’t pay rent this month.',
+  'runway.infoCost':
+    'A month’s cost: the average of the last 12 months of spending, card purchases and loan payments. Money moved between your own accounts or into an investment isn’t a cost. The current month isn’t finished, so it is left out of its own average.',
+  'runway.infoLevels':
+    'Under 1 month is paycheck to paycheck. 1–3 is thin. 3–6 months is a full emergency fund (Baby Step 3). 6 or more is strong.',
   'insights.babySteps': 'Baby Steps',
   'insights.housing': 'House Hunting',
   'houseStatus.watching': 'Watching',

@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { MonthNav } from '../../components/ui/MonthNav';
 import { useInsights } from '../../hooks/useInsights';
+import { RunwayCard } from './RunwayCard';
 import {
   currentMonth,
   nextMonth,
@@ -435,6 +436,8 @@ export function InsightsScreen() {
           </>
         )}
       </View>
+
+      <RunwayCard selectedMonth={month} />
 
       <View style={styles.utilities}>
         <Text style={styles.sectionTitle}>{t('insights.utilities')}</Text>

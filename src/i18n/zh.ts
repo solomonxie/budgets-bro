@@ -960,6 +960,26 @@ export const zh: Record<keyof typeof en, string> = {
     '全部时间——拖动滚动，点按图标可隐藏或显示该分类。虚线是你的 12 个月平均。',
   'insights.notEnoughHistory': '历史数据不足。',
   'chart.avgLine': '平均 {amount}',
+  'runway.title': '资金续航',
+  'runway.months': '{count} 个月',
+  'runway.avgLine': '平均 {count} 月',
+  'runway.markLabel': '{count}月',
+  'runway.paycheck': '月光',
+  'runway.thin': '偏薄',
+  'runway.covered': '有保障',
+  'runway.strong': '充足',
+  'runway.formula': '现有 {cash} ÷ 每月 {cost}',
+  'runway.paycheckCount': '最近 {total} 个月中有 {count} 个月是月光',
+  'runway.noPaycheckMonths': '最近 12 个月没有一个月是月光',
+  'runway.infoTitle': '资金续航衡量什么',
+  'runway.infoWhat':
+    '如果今天起没有任何收入，按现在的生活方式还能撑几个月。每根柱子是某个月底的答案。',
+  'runway.infoCash':
+    '现有资金：所有现金和储蓄账户的余额，减去信用卡欠款。投资、房子和车不计入——它们付不了这个月的房租。',
+  'runway.infoCost':
+    '每月开销：最近 12 个月的消费、信用卡消费和贷款还款的平均值。自己账户之间的转账或投入投资不算开销。本月尚未结束，所以不计入它自己的平均值。',
+  'runway.infoLevels':
+    '不足 1 个月即月光。1–3 个月偏薄。3–6 个月是完整的应急基金（理财第三步）。6 个月以上为充足。',
   'insights.babySteps': '理财七步',
   'insights.housing': '看房',
   'houseStatus.watching': '关注中',

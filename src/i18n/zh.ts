@@ -1169,8 +1169,7 @@ export const zh: Record<keyof typeof en, string> = {
   'payeeTrend.lastMonthUp': '上个月比平均高 {percent}%。',
   'payeeTrend.lastMonthDown': '上个月比平均低 {percent}%。',
   'payeeTrend.othersHeading': '其他收款方',
-  'payeeTrend.smallerPayments': '其他收款方',
-  'payeeTrend.payeeCount': '{count} 个收款方',
+  'payeeTrend.smallerHeading': '其余 {count} 个收款方 · 占支出 {percent}%',
   'payeeTrend.rowDetail':
     '{months} 个月内平均每笔 {average}，含没有付款的月份。',
   'payeeTrend.unnamed':

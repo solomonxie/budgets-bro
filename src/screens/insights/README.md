@@ -48,6 +48,9 @@ PayeeTrendScreen.tsx
 │ Everyone else, ranked by spend   │──→ row tap expands that payee's whole
 │                                  │    history in place, scrolled sideways
 ├───────────────────────────────┤
+│ "All the other N payees · X%"    │──→ the under-1% payees, same rows,
+│                                  │    under their own heading
+├───────────────────────────────┤
 │ Unnamed-spending footnote        │──→ spending with no payee, never ranked
 └───────────────────────────────┘
 ```

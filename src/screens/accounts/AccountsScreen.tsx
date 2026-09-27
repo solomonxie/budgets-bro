@@ -16,6 +16,7 @@ import { useNetWorthTrend } from '../../hooks/useNetWorthTrend';
 import { BalanceTrendChart } from './BalanceTrendChart';
 import { NetWorthBreakdown } from './NetWorthBreakdown';
 import { InfoButton } from '../../components/ui/InfoButton';
+import { GuideSection } from '../../components/ui/GuideSection';
 import { DraggableList } from '../../components/ui/DraggableList';
 import { getDb } from '../../db/client';
 import * as accountsRepo from '../../db/repositories/accountsRepo';
@@ -350,6 +351,12 @@ export function AccountsScreen() {
           {t('accounts.closedAccounts')}
         </Text>
       </Pressable>
+      <View style={styles.guide}>
+        <GuideSection
+          heading={t('accounts.setupGuideHeading')}
+          body={t('accounts.setupGuideBody')}
+        />
+      </View>
     </ScreenContainer>
   );
 }
@@ -478,9 +485,9 @@ const styles = StyleSheet.create({
   closedLink: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
-    marginBottom: 80,
   },
   closedLinkText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
+  guide: { marginTop: spacing.md, marginBottom: 80 },
 });
 
 function formatRate(percent: number): string {

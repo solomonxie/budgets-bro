@@ -41,16 +41,58 @@ export function PayeeTrendScreen() {
   const share = (payee: PayeeSummary) => Math.round(shareRatio(payee) * 100);
   const topChange = payeeMonthOverAverage(top);
 
-  // Below 1% each, a dozen of these say nothing on their own — they're worth
-  // seeing as one line, not a scroll of names nobody would recognise a
-  // pattern in.
+  // Below 1% each they rank on their own, under a line that says how many
+  // there are and how much they add up to.
   const visibleRest = rest.filter((payee) => shareRatio(payee) >= 0.01);
   const smallRest = rest.filter((payee) => shareRatio(payee) < 0.01);
   const smallTotalCents = smallRest.reduce((sum, p) => sum + p.totalCents, 0);
-  const smallCount = smallRest.reduce((sum, p) => sum + p.count, 0);
   const smallSharePercent =
     totalCents > 0 ? Math.round((smallTotalCents / totalCents) * 100) : 0;
 
+  const renderRow = (payee: PayeeSummary, i: number) => {
+    const open = openId === payee.payeeId;
+    const full = history.get(payee.payeeId) ?? payee;
+    return (
+      <View key={payee.payeeId}>
+        {i > 0 ? <View style={styles.divider} /> : null}
+        <Pressable
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          onPress={() => setOpenId(open ? null : payee.payeeId)}
+        >
+          <View style={styles.rowText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {payee.name}
+            </Text>
+            <Text style={styles.sub} numberOfLines={1}>
+              {t('payeeTrend.paymentsCount', { count: payee.count })}
+              {' · '}
+              {t('payeeTrend.perMonth', {
+                amount: formatMoney(payee.perMonthCents),
+              })}
+            </Text>
+          </View>
+          <View style={styles.rowRight}>
+            <Text style={styles.amount}>{formatMoney(payee.totalCents)}</Text>
+            <Text style={styles.amountLabel}>
+              {t('payeeTrend.shareOfSpending', { percent: share(payee) })}
+            </Text>
+          </View>
+          <Text style={[styles.chevron, open && styles.chevronOpen]}>›</Text>
+        </Pressable>
+        {open ? (
+          <View style={styles.panel}>
+            <MonthlyBarChart series={full.series} />
+            <Text style={styles.hint}>
+              {t('payeeTrend.rowDetail', {
+                average: formatMoney(full.avgCents),
+                months: full.series.length,
+              })}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content}>
@@ -87,107 +129,24 @@ export function PayeeTrendScreen() {
           ) : null}
         </View>
 
-        {rest.length > 0 ? (
+        {visibleRest.length > 0 ? (
           <>
             <Text style={styles.sectionLabel}>
               {t('payeeTrend.othersHeading')}
             </Text>
-            <View style={styles.card}>
-              {visibleRest.map((payee, i) => {
-                const open = openId === payee.payeeId;
-                return (
-                  <View key={payee.payeeId}>
-                    {i > 0 ? <View style={styles.divider} /> : null}
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.row,
-                        pressed && styles.rowPressed,
-                      ]}
-                      onPress={() => setOpenId(open ? null : payee.payeeId)}
-                    >
-                      <View style={styles.rowText}>
-                        <Text style={styles.name} numberOfLines={1}>
-                          {payee.name}
-                        </Text>
-                        <Text style={styles.sub} numberOfLines={1}>
-                          {t('payeeTrend.paymentsCount', {
-                            count: payee.count,
-                          })}
-                          {' · '}
-                          {t('payeeTrend.perMonth', {
-                            amount: formatMoney(payee.perMonthCents),
-                          })}
-                        </Text>
-                      </View>
-                      <View style={styles.rowRight}>
-                        <Text style={styles.amount}>
-                          {formatMoney(payee.totalCents)}
-                        </Text>
-                        <Text style={styles.amountLabel}>
-                          {t('payeeTrend.shareOfSpending', {
-                            percent: share(payee),
-                          })}
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.chevron, open && styles.chevronOpen]}
-                      >
-                        ›
-                      </Text>
-                    </Pressable>
-                    {open ? (
-                      <View style={styles.panel}>
-                        <MonthlyBarChart
-                          series={(history.get(payee.payeeId) ?? payee).series}
-                        />
-                        <Text style={styles.hint}>
-                          {t('payeeTrend.rowDetail', {
-                            average: formatMoney(
-                              (history.get(payee.payeeId) ?? payee).avgCents,
-                            ),
-                            months: (history.get(payee.payeeId) ?? payee).series
-                              .length,
-                          })}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                );
+            <View style={styles.card}>{visibleRest.map(renderRow)}</View>
+          </>
+        ) : null}
+
+        {smallRest.length > 0 ? (
+          <>
+            <Text style={styles.sectionLabel}>
+              {t('payeeTrend.smallerHeading', {
+                count: smallRest.length,
+                percent: smallSharePercent,
               })}
-              {smallRest.length > 0 ? (
-                <View>
-                  {visibleRest.length > 0 ? (
-                    <View style={styles.divider} />
-                  ) : null}
-                  <View style={styles.row}>
-                    <View style={styles.rowText}>
-                      <Text style={styles.name} numberOfLines={1}>
-                        {t('payeeTrend.smallerPayments')}
-                      </Text>
-                      <Text style={styles.sub} numberOfLines={1}>
-                        {t('payeeTrend.payeeCount', {
-                          count: smallRest.length,
-                        })}
-                        {' · '}
-                        {t('payeeTrend.paymentsCount', {
-                          count: smallCount,
-                        })}
-                      </Text>
-                    </View>
-                    <View style={styles.rowRight}>
-                      <Text style={styles.amount}>
-                        {formatMoney(smallTotalCents)}
-                      </Text>
-                      <Text style={styles.amountLabel}>
-                        {t('payeeTrend.shareOfSpending', {
-                          percent: smallSharePercent,
-                        })}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-            </View>
+            </Text>
+            <View style={styles.card}>{smallRest.map(renderRow)}</View>
           </>
         ) : null}
 

@@ -33,6 +33,16 @@ export const SELECT_PURCHASE_ITEMS = `
   ORDER BY date DESC, id DESC
 `;
 
+// Hand-entered only: an import would otherwise decide the default.
+export const LAST_CASH_ACCOUNT_USED = `
+  SELECT t.account_id FROM transactions t
+  JOIN accounts a ON a.id = t.account_id
+  WHERE a.board_id = ? AND a.type = 'cash' AND a.archived_at IS NULL
+    AND t.import_id IS NULL
+  ORDER BY t.id DESC
+  LIMIT 1
+`;
+
 export const LAST_CATEGORY_FOR_PAYEE = `
   SELECT category_id FROM transactions
   WHERE payee_id = ? AND category_id IS NOT NULL

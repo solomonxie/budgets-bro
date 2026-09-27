@@ -1198,8 +1198,7 @@ export const en = {
   'payeeTrend.lastMonthUp': 'Last month was {percent}% above their average.',
   'payeeTrend.lastMonthDown': 'Last month was {percent}% below their average.',
   'payeeTrend.othersHeading': 'Everyone else',
-  'payeeTrend.smallerPayments': 'All other payees',
-  'payeeTrend.payeeCount': '{count} payees',
+  'payeeTrend.smallerHeading': 'All the other {count} payees · {percent}% of spend',
   'payeeTrend.rowDetail':
     'Average {average} per payment over {months} months, including months with none.',
   'payeeTrend.unnamed':

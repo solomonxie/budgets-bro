@@ -472,6 +472,7 @@ export const zh: Record<keyof typeof en, string> = {
     '如需修改，请在下方添加一次更新。每次更新都有自己的日期，历史才准确。',
   'accountModal.currentHouseValueHint':
     '你自己估计的房屋现值。会按今天的日期保存，之后可在账户页面继续添加更新。',
+  'accountDetail.allPayees': '全部收款方',
   'accountModal.currentPrincipalLabel': '当前剩余本金',
   'accountModal.currentPrincipalHint':
     '你现在还欠多少，按最近一次对账单填写。两次对账单之间，你记的每笔还款先付利息，余下的才从这个数字里减，所以它自己就能保持接近实际。填写不会产生交易。',
@@ -765,7 +766,7 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.aiSummaryMessage': 'AI 摘要将在后续版本推出。',
 
   'transactions.spendingByMonth': '每月支出',
-  'transactions.searchPlaceholder': '搜索收款方或备注',
+  'transactions.searchPlaceholder': '搜索交易',
   'transactions.selectedCount': '已选 {count} 条',
   'transactions.deleteSelectedConfirmTitle': '删除 {count} 条流水？',
   'transactions.selectAll': '全选',

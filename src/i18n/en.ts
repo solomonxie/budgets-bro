@@ -479,6 +479,7 @@ export const en = {
   'accountModal.currentReadingHint':
     'To change this, add an update below. Each update keeps its own date, so the history stays accurate.',
   'accountModal.currentHouseValueHint':
+  'accountDetail.allPayees': 'All Payees',
     'Your own estimate of what the home is worth today. It’s saved with today’s date, and you can add updates later from the account page.',
   'accountModal.currentPrincipalLabel': 'Current Remaining Principal',
   'accountModal.currentPrincipalHint':
@@ -787,7 +788,7 @@ export const en = {
   'taxInsights.aiSummaryMessage': 'AI summary is coming in a future update.',
 
   'transactions.spendingByMonth': 'Spending by month',
-  'transactions.searchPlaceholder': 'Search payee or memo',
+  'transactions.searchPlaceholder': 'Search transactions',
   'transactions.selectedCount': '{count} selected',
   'transactions.deleteSelectedConfirmTitle': 'Delete {count} transactions?',
   'transactions.selectAll': 'Select all',

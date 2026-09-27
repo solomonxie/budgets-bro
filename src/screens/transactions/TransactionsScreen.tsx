@@ -18,11 +18,6 @@ import {
   DropdownOption,
 } from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
-import {
-  duplicateTransactionIds,
-  matchesReviewFilter,
-} from '../../domain/transactionReview';
-import type { ReviewFilter } from '../../domain/transactionReview';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { useCategories } from '../../hooks/useCategories';
@@ -103,10 +98,8 @@ export function TransactionsScreen() {
     null,
   );
   const [monthFilter, setMonthFilter] = useState<string | null>(null);
-  // Null is "everything"; the rest narrow to rows that are missing
-  // something (see domain/transactionReview) — the Review page is where
-  // they get fixed, this is just to see them in context here.
-  const [reviewFilter, setReviewFilter] = useState<ReviewFilter | null>(null);
+  // undefined = all rows; null = rows with no payee.
+  const [payeeFilter, setPayeeFilter] = useState<number | null | undefined>();
   const {
     selectMode,
     selectedIds,
@@ -126,10 +119,18 @@ export function TransactionsScreen() {
     if (route.params?.month != null) setMonthFilter(route.params.month);
   }, [route.params]);
 
-  const duplicates = useMemo(
-    () => duplicateTransactionIds(transactions),
-    [transactions],
-  );
+  // Payees in this board's history, most used first.
+  const payeeOptions = useMemo(() => {
+    const byId = new Map<number | null, { name: string; count: number }>();
+    for (const txn of transactions) {
+      const entry = byId.get(txn.payeeId);
+      if (entry) entry.count++;
+      else byId.set(txn.payeeId, { name: txn.payeeName ?? '', count: 1 });
+    }
+    return [...byId]
+      .map(([id, { name, count }]) => ({ id, name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [transactions]);
 
   // Every filter but the month: the chart above the list needs the months on
   // either side of the one picked.
@@ -142,11 +143,7 @@ export function TransactionsScreen() {
       } else if (categoryFilter != null && t.categoryId !== categoryFilter) {
         return false;
       }
-      if (
-        reviewFilter != null &&
-        !matchesReviewFilter(t, reviewFilter, duplicates)
-      )
-        return false;
+      if (payeeFilter !== undefined && t.payeeId !== payeeFilter) return false;
       if (
         q &&
         !(t.payeeName ?? '').toLowerCase().includes(q) &&
@@ -155,14 +152,7 @@ export function TransactionsScreen() {
         return false;
       return true;
     });
-  }, [
-    transactions,
-    query,
-    categoryFilter,
-    otherCategoryIds,
-    reviewFilter,
-    duplicates,
-  ]);
+  }, [transactions, query, categoryFilter, otherCategoryIds, payeeFilter]);
 
   const filtered = useMemo(
     () =>
@@ -222,13 +212,12 @@ export function TransactionsScreen() {
     monthFilter == null
       ? ''
       : formatMonthLabel(monthFilter, localeTag(language));
-  const REVIEW_FILTER_OPTIONS: { value: ReviewFilter; label: string }[] = [
-    { value: 'missingPayee', label: t('transactions.needsPayee') },
-    { value: 'missingCategory', label: t('transactions.needsCategory') },
-    { value: 'any', label: t('transactions.needsReview') },
-  ];
-  const reviewFilterLabel =
-    REVIEW_FILTER_OPTIONS.find((o) => o.value === reviewFilter)?.label ?? '';
+  const payeeLabel = (id: number | null) =>
+    id == null
+      ? t('common.noPayee')
+      : (payeeOptions.find((p) => p.id === id)?.name ?? '');
+  const payeeFilterLabel =
+    payeeFilter === undefined ? '' : payeeLabel(payeeFilter);
 
   return (
     <ScreenContainer>
@@ -345,27 +334,27 @@ export function TransactionsScreen() {
           <DropdownField
             compact
             link
-            label={t('review.title')}
-            valueLabel={reviewFilterLabel}
-            placeholder={t('transactions.allRows')}
+            label={t('common.payee')}
+            valueLabel={payeeFilterLabel}
+            placeholder={t('accountDetail.allPayees')}
           >
             {(close) => (
               <>
                 <DropdownOption
-                  label={t('transactions.allRows')}
-                  selected={reviewFilter == null}
+                  label={t('accountDetail.allPayees')}
+                  selected={payeeFilter === undefined}
                   onPress={() => {
-                    setReviewFilter(null);
+                    setPayeeFilter(undefined);
                     close();
                   }}
                 />
-                {REVIEW_FILTER_OPTIONS.map((o) => (
+                {payeeOptions.map((p) => (
                   <DropdownOption
-                    key={o.value}
-                    label={o.label}
-                    selected={reviewFilter === o.value}
+                    key={p.id ?? 'none'}
+                    label={payeeLabel(p.id)}
+                    selected={payeeFilter === p.id}
                     onPress={() => {
-                      setReviewFilter(o.value);
+                      setPayeeFilter(p.id);
                       close();
                     }}
                   />

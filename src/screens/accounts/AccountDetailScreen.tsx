@@ -42,11 +42,6 @@ import {
   isLoanLikeType,
   toppedUpByContributions,
 } from '../../domain/accountKind';
-import {
-  duplicateTransactionIds,
-  matchesReviewFilter,
-} from '../../domain/transactionReview';
-import type { ReviewFilter } from '../../domain/transactionReview';
 import { LoanDetailsCard } from './LoanDetailsCard';
 import { AccountToolsSection } from './AccountToolsSection';
 import type { LoanPayoff } from './LoanDetailsCard';
@@ -109,9 +104,8 @@ export function AccountDetailScreen() {
   const [trendExpanded, setTrendExpanded] = useState(false);
   // Typed as what the bank shows: a card's balance as the amount owed.
   const [adjustText, setAdjustText] = useState<string | null>(null);
-  // Same filter the history page carries — what is missing a payee or a
-  // category, narrowed to this account (see domain/transactionReview).
-  const [reviewFilter, setReviewFilter] = useState<ReviewFilter | null>(null);
+  // undefined = all rows; null = rows with no payee.
+  const [payeeFilter, setPayeeFilter] = useState<number | null | undefined>();
   const rootNavigation = useNavigation<RootNav>();
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -206,26 +200,31 @@ export function AccountDetailScreen() {
   // Filtered after the running balances are computed — those walk the whole
   // register backwards from the account's balance, so they have to see every
   // row whether or not it is shown.
-  const duplicates = useMemo(
-    () => duplicateTransactionIds(transactions),
-    [transactions],
-  );
   const visibleRows = useMemo(
     () =>
-      reviewFilter == null
+      payeeFilter === undefined
         ? rows
-        : rows.filter((row) =>
-            matchesReviewFilter(row, reviewFilter, duplicates),
-          ),
-    [rows, reviewFilter, duplicates],
+        : rows.filter((row) => row.payeeId === payeeFilter),
+    [rows, payeeFilter],
   );
-  const REVIEW_FILTER_OPTIONS: { value: ReviewFilter; label: string }[] = [
-    { value: 'missingPayee', label: t('transactions.needsPayee') },
-    { value: 'missingCategory', label: t('transactions.needsCategory') },
-    { value: 'any', label: t('transactions.needsReview') },
-  ];
-  const reviewFilterLabel =
-    REVIEW_FILTER_OPTIONS.find((o) => o.value === reviewFilter)?.label ?? '';
+  // This account's payees, most used first.
+  const payeeOptions = useMemo(() => {
+    const byId = new Map<number | null, { name: string; count: number }>();
+    for (const txn of transactions) {
+      const entry = byId.get(txn.payeeId);
+      if (entry) entry.count++;
+      else byId.set(txn.payeeId, { name: txn.payeeName ?? '', count: 1 });
+    }
+    return [...byId]
+      .map(([id, { name, count }]) => ({ id, name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [transactions]);
+  const payeeLabel = (id: number | null) =>
+    id == null
+      ? t('common.noPayee')
+      : (payeeOptions.find((p) => p.id === id)?.name ?? '');
+  const payeeFilterLabel =
+    payeeFilter === undefined ? '' : payeeLabel(payeeFilter);
 
   const deleteSelected = async () => {
     const db = await getDb();
@@ -670,27 +669,27 @@ export function AccountDetailScreen() {
                 <DropdownField
                   compact
                   link
-                  label={t('review.title')}
-                  valueLabel={reviewFilterLabel}
-                  placeholder={t('transactions.allRows')}
+                  label={t('common.payee')}
+                  valueLabel={payeeFilterLabel}
+                  placeholder={t('accountDetail.allPayees')}
                 >
                   {(close) => (
                     <>
                       <DropdownOption
-                        label={t('transactions.allRows')}
-                        selected={reviewFilter == null}
+                        label={t('accountDetail.allPayees')}
+                        selected={payeeFilter === undefined}
                         onPress={() => {
-                          setReviewFilter(null);
+                          setPayeeFilter(undefined);
                           close();
                         }}
                       />
-                      {REVIEW_FILTER_OPTIONS.map((o) => (
+                      {payeeOptions.map((p) => (
                         <DropdownOption
-                          key={o.value}
-                          label={o.label}
-                          selected={reviewFilter === o.value}
+                          key={p.id ?? 'none'}
+                          label={payeeLabel(p.id)}
+                          selected={payeeFilter === p.id}
                           onPress={() => {
-                            setReviewFilter(o.value);
+                            setPayeeFilter(p.id);
                             close();
                           }}
                         />

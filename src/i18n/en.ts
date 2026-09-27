@@ -445,6 +445,7 @@ export const en = {
 
   'accountDetail.calculators': 'Calculators',
   'accountDetail.growthRate': 'Growth {rate}/mo · 12-mo avg',
+  'accountDetail.allPayees': 'All Payees',
   'accountDetail.balance': 'Balance',
   'accountDetail.adjustLatestBalance': 'Adjust Latest Balance',
   'accountDetail.amountOwedLabel': 'Amount Owed',
@@ -482,7 +483,6 @@ export const en = {
   'accountModal.currentReadingHint':
     'To change this, add an update below. Each update keeps its own date, so the history stays accurate.',
   'accountModal.currentHouseValueHint':
-  'accountDetail.allPayees': 'All Payees',
     'Your own estimate of what the home is worth today. It’s saved with today’s date, and you can add updates later from the account page.',
   'accountModal.currentPrincipalLabel': 'Current Remaining Principal',
   'accountModal.currentPrincipalHint':

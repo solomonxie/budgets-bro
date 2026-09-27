@@ -26,10 +26,13 @@ export function transactionSubLabel(
 ): TransactionSubLabel | null {
   if (row.categoryName)
     return { kind: 'category', icon: row.categoryIcon, name: row.categoryName };
+  const isTransfer = row.transferAccountId != null;
+  // Savings takes no category, but money arriving from outside is still income.
+  if (row.accountType === 'savings' && !isTransfer && row.amountCents > 0)
+    return { kind: 'income' };
   // A transfer leg and a savings withdrawal take no category and are not
   // income either — they are money moving, not arriving (see accountKind).
-  if (!transactionTakesCategory(row.accountType, row.transferAccountId != null))
-    return null;
+  if (!transactionTakesCategory(row.accountType, isTransfer)) return null;
   if (row.amountCents > 0) return { kind: 'income' };
   return row.amountCents < 0 ? { kind: 'uncategorized' } : null;
 }

@@ -317,7 +317,7 @@ export const en = {
   'accountGuide.cash.helps':
     'This is where budgeting happens: only money in these accounts can be assigned to categories, which is what makes “$40 left in Groceries” mean something.',
   'accountGuide.savings.how':
-    'Works like a cash account — starting balance plus transactions — but for money set aside rather than spent day to day. Interest comes in as ordinary income you can mark as interest, so reports show it separately from earned income.',
+    'Works like a cash account — starting balance plus transactions — but for money set aside rather than spent day to day, so it is not assigned to categories and stays out of Unassigned. Don’t spend from it directly: to use the money, transfer it to a cash account first, then spend from there. Interest comes in as ordinary income you can mark as interest, so reports show it separately from earned income.',
   'accountGuide.savings.helps':
     'Keeps an emergency fund or a savings goal in view without treating it as spendable. Baby Steps reads whichever account you pick as your emergency fund.',
   'accountGuide.credit_card.how':
@@ -875,7 +875,7 @@ export const en = {
 
   'budget.spentThisMonth': 'Spent This Month',
   'budget.unassigned': 'Unassigned: {amount}',
-  'budget.breakdownCash': 'Cash & savings',
+  'budget.breakdownCash': 'Cash',
   'budget.breakdownEnvelopes': 'Assigned, not yet spent',
   'budget.breakdownAhead': '…of which assigned to future months',
   'budget.breakdownUnassigned': 'Unassigned',

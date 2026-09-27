@@ -19,6 +19,8 @@ export interface CloudProvider {
   // that is cheap and append-only (a bucket: keep the lot). Pruning needs
   // `remove`; without it `keepLatest` is ignored.
   keepLatest: number | null;
+  // Also kept: the newest backup of each of this many recent months.
+  keepMonths?: number;
   remove?(key: string): Promise<void>;
   upload(bytes: Uint8Array, key: string): Promise<void>;
   // Every backup key this provider holds, relative to its own root (an S3

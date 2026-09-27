@@ -4,9 +4,11 @@ import type { CloudProvider } from './types';
 
 export const ICLOUD_PROVIDER_ID = 'icloud';
 
-// Ten days of history, give or take — enough to notice a bad import a week
-// late, not enough to be felt in a 5 GB iCloud plan.
+// Ten days of history, plus one copy per month for a year — enough to go
+// back past a mistake noticed weeks late, not enough to be felt in a 5 GB
+// iCloud plan.
 const ICLOUD_KEEP_LATEST = 10;
+const ICLOUD_KEEP_MONTHS = 12;
 
 // The destination that survives deleting the app: the board's zip written
 // into the app's own iCloud Drive folder (visible in Files, syncs to their
@@ -40,6 +42,7 @@ function toProvider(drive: NonNullable<typeof ICloudDrive>): CloudProvider {
   return {
     id: ICLOUD_PROVIDER_ID,
     keepLatest: ICLOUD_KEEP_LATEST,
+    keepMonths: ICLOUD_KEEP_MONTHS,
     upload: (bytes, key) => drive.write(key, bytes),
     remove: (key) => drive.remove(key),
     listKeys: () => drive.list(),

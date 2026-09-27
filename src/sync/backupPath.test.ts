@@ -6,6 +6,8 @@ import {
   slugifyBoardName,
   sortBackupKeys,
   staleBackupKeys,
+  backupNamesForBoards,
+  latestKeyPerBoard,
 } from './backupPath';
 
 describe('slugifyBoardName', () => {
@@ -157,5 +159,49 @@ describe('sanitizeBackupFileName', () => {
   it('falls back when nothing usable was typed', () => {
     expect(sanitizeBackupFileName('   ', 'fallback.zip')).toBe('fallback.zip');
     expect(sanitizeBackupFileName('...', 'fallback.zip')).toBe('fallback.zip');
+  });
+});
+
+describe('staleBackupKeys with monthly copies', () => {
+  const keys = [
+    backupKey('Main', '2026-06-03'),
+    backupKey('Main', '2026-06-20'),
+    backupKey('Main', '2026-07-09'),
+    backupKey('Main', '2026-08-15'),
+    backupKey('Main', '2026-09-01'),
+    backupKey('Main', '2026-09-02'),
+  ];
+
+  it('keeps the newest of each recent month beyond the daily tail', () => {
+    expect(staleBackupKeys(keys, 'Main', 2, 3)).toEqual([
+      '20260603_daily_main.zip',
+      '20260620_daily_main.zip',
+    ]);
+    expect(staleBackupKeys(keys, 'Main', 2, 4)).toEqual(['20260603_daily_main.zip']);
+  });
+});
+
+describe('backupNamesForBoards', () => {
+  it('keeps names unique by slug', () => {
+    const names = backupNamesForBoards([
+      { id: 1, name: 'Home' },
+      { id: 2, name: 'home' },
+      { id: 3, name: 'Trip' },
+    ]);
+    expect([...names.values()]).toEqual(['Home', 'home-2', 'Trip']);
+  });
+});
+
+describe('latestKeyPerBoard', () => {
+  it('picks the newest automatic backup of each board', () => {
+    const keys = [
+      backupKey('Main', '2026-09-01'),
+      backupKey('Main', '2026-09-20'),
+      '20260101-main.zip',
+      backupKey('Trip', '2026-05-05'),
+      backupKey('Main', '2026-09-25', 'manual'),
+      '20260925120000_pre-deletion_main.zip',
+    ];
+    expect(latestKeyPerBoard(keys).sort()).toEqual(['20260505_daily_trip.zip', '20260920_daily_main.zip']);
   });
 });

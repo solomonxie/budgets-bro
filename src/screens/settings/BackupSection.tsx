@@ -34,7 +34,8 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 // One switch per destination, and that switch is the whole feature: on means
-// every change is backed up there, off means nothing is. It replaced a row
+// every board is backed up there daily while anything changes, off means
+// nothing is. It replaced a row
 // menu holding four items — a "keep a copy here" toggle, an "auto-sync"
 // toggle, "Sync Now" and "Restore Latest" — whose combinations nobody could
 // predict from the labels. Restore isn't here at all now: a fresh install
@@ -74,7 +75,7 @@ interface BackupSectionProps {
   boardName: string;
 }
 
-function relativeTime(iso: string | null, t: ReturnType<typeof useT>): string {
+export function relativeTime(iso: string | null, t: ReturnType<typeof useT>): string {
   if (!iso) return t('backup.never');
   const minutes = Math.max(
     0,
@@ -180,7 +181,7 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
     await setSyncEnabled(db, providerId, next);
     setOnById((current) => ({ ...current, [providerId]: next }));
     if (!next) return;
-    const outcomes = await syncNow(db, boardId, boardName);
+    const outcomes = await syncNow(db);
     const mine = outcomes.find((o) => o.providerId === providerId);
     if (mine?.syncedAt) {
       setLastSyncedById((current) => ({

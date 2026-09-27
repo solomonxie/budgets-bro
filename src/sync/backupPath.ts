@@ -65,11 +65,54 @@ export function latestBackupKey(keys: string[], boardName: string): string | nul
 }
 
 // Everything this destination should let go of to be left with `keepLatest`
-// of this board's backups. Only ever this board's — another board's files,
-// and anything that isn't a backup at all, are not ours to delete.
-export function staleBackupKeys(keys: string[], boardName: string, keepLatest: number): string[] {
-  const mine = sortBackupKeys(keys, boardName);
-  return keepLatest <= 0 ? mine : mine.slice(0, Math.max(0, mine.length - keepLatest));
+// of this board's backups, plus the newest one of each of the last
+// `keepMonths` months — so a mistake noticed weeks late still has a copy from
+// before it. Only ever this board's — another board's files, and anything
+// that isn't a backup at all, are not ours to delete.
+export function staleBackupKeys(keys: string[], boardName: string, keepLatest: number, keepMonths = 0): string[] {
+  const mine = keys
+    .map((key) => ({ key, token: recencyToken(key, boardName) }))
+    .filter((k): k is { key: string; token: string } => k.token !== null)
+    .sort((a, b) => (a.token < b.token ? -1 : 1));
+  const keep = new Set(keepLatest <= 0 ? [] : mine.slice(-keepLatest).map((k) => k.key));
+  const monthsSeen = new Set<string>();
+  for (let i = mine.length - 1; i >= 0 && monthsSeen.size < keepMonths; i--) {
+    const month = mine[i].token.slice(0, 6);
+    if (!/^\d{6}$/.test(month) || monthsSeen.has(month)) continue;
+    monthsSeen.add(month);
+    keep.add(mine[i].key);
+  }
+  return mine.filter((k) => !keep.has(k.key)).map((k) => k.key);
+}
+
+// The name each board's backups go under. Two boards whose names slug the
+// same would overwrite each other's file, so every one after the first gets
+// its id appended.
+export function backupNamesForBoards(boards: { id: number; name: string }[]): Map<number, string> {
+  const names = new Map<number, string>();
+  const taken = new Set<string>();
+  for (const board of [...boards].sort((a, b) => a.id - b.id)) {
+    const slug = slugifyBoardName(board.name);
+    const name = taken.has(slug) ? `${board.name}-${board.id}` : board.name;
+    taken.add(slugifyBoardName(name));
+    names.set(board.id, name);
+  }
+  return names;
+}
+
+// The newest automatic backup per board slug, for finding everything worth
+// restoring after a reinstall. Manual and pre-deletion copies are left out:
+// they are named by hand or taken at a moment, not the board's latest state.
+export function latestKeyPerBoard(keys: string[]): string[] {
+  const newest = new Map<string, { key: string; date: string }>();
+  for (const key of keys) {
+    const m = key.match(/(?:^|\/)(\d{8})(?:_daily_|-)([a-z0-9-]+)\.zip$/);
+    if (!m) continue;
+    const [, date, slug] = m;
+    const current = newest.get(slug);
+    if (!current || date > current.date) newest.set(slug, { key, date });
+  }
+  return [...newest.values()].map((v) => v.key);
 }
 
 // A name typed by hand in a browser's "back up here", made safe to use as a

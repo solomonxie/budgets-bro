@@ -44,6 +44,7 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import { InfoButton } from '../../components/ui/InfoButton';
+import { CollapsibleText } from '../../components/ui/CollapsibleText';
 import { DataSafetyRow } from './DataSafetyRow';
 import * as boardsRepo from '../../db/repositories/boardsRepo';
 import { freshBoardName, wipeAppData } from '../../db/repositories/appDataRepo';
@@ -393,6 +394,15 @@ export function SettingsScreen() {
                   {t('settings.privacyBody')}
                 </Text>
               </View>
+            </View>
+            <View style={[styles.trustProcess, styles.rowDivider]}>
+              <Text style={styles.rowTitle}>
+                {t('settings.trustProcessHeading')}
+              </Text>
+              <CollapsibleText
+                text={t('settings.trustProcessBody')}
+                background={colors.surface}
+              />
             </View>
           </View>
         </View>
@@ -850,6 +860,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   rowDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  trustProcess: { padding: spacing.md, gap: spacing.xs },
   boardOptionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

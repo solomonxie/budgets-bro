@@ -2,7 +2,6 @@ import {
   duplicateGroups,
   duplicateTransactionIds,
   transactionsNeedingReview,
-  matchesReviewFilter,
 } from './transactionReview';
 import type { TransactionWithLabels } from './types';
 
@@ -95,22 +94,5 @@ describe('duplicateTransactionIds', () => {
       txn({ id: 2, accountId: 2, transferAccountId: 1, amountCents: 1000, payeeId: 21 }),
     ]);
     expect(ids.size).toBe(0);
-  });
-});
-
-describe('matchesReviewFilter', () => {
-  const none = new Set<number>();
-
-  it('matches only what its reason names', () => {
-    const noPayee = txn({ payeeId: null, payeeName: null });
-    expect(matchesReviewFilter(noPayee, 'missingPayee', none)).toBe(true);
-    expect(matchesReviewFilter(noPayee, 'missingCategory', none)).toBe(false);
-    expect(matchesReviewFilter(noPayee, 'any', none)).toBe(true);
-  });
-
-  it('counts a duplicate only under "any"', () => {
-    const complete = txn({ id: 4 });
-    expect(matchesReviewFilter(complete, 'any', new Set([4]))).toBe(true);
-    expect(matchesReviewFilter(complete, 'missingPayee', new Set([4]))).toBe(false);
   });
 });

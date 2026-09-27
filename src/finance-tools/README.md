@@ -12,6 +12,7 @@ chinaPrepayment.ts  提前还贷 — depends on both schedules above
 affordability.ts    max house price + DTI            ┐ circular in price/rate,
 investment.ts       future value + 4 solvers         ┘ both use solve.ts
 taxSavings.ts       progressive brackets, deduction savings
+debtHealth.ts       payment vs take-home, stress test, rate shocks, LTV
 solve.ts            bisection root-finder
 units.ts            万元 ↔ cents
 accountLink.ts      which figure a real account can supply a calculator field

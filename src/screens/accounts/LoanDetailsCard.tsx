@@ -41,6 +41,9 @@ export interface LoanPayoff {
   // Null when the scheduled payment doesn't cover the interest.
   date: string | null;
   months: number;
+  paymentCents: number;
+  owedCents: number;
+  rateBps: number;
 }
 
 export function LoanDetailsCard({
@@ -119,10 +122,16 @@ export function LoanDetailsCard({
   useEffect(() => {
     onPayoff?.(
       schedule
-        ? { date: schedule.payoffDate, months: schedule.remainingMonths }
+        ? {
+            date: schedule.payoffDate,
+            months: schedule.remainingMonths,
+            paymentCents: schedule.scheduledPaymentCents,
+            owedCents: principal.owedCents,
+            rateBps: currentRateBps!,
+          }
         : null,
     );
-  }, [onPayoff, schedule]);
+  }, [onPayoff, schedule, principal.owedCents, currentRateBps]);
 
   const submitReading = async (value: LoggedValueChange) => {
     const valueCents = Math.round(parseFloat(value.value) * 100);

@@ -16,6 +16,9 @@ type Nav = NativeStackNavigationProp<AccountsStackParamList>;
 // from the account itself.
 const TOOLS_BY_TYPE: Partial<Record<AccountType, FinanceToolId[]>> = {
   mortgage: [
+    'stressTest',
+    'debtToIncome',
+    'requiredIncome',
     'mortgagePayoff',
     'refinance',
     'chinaPrepayment',

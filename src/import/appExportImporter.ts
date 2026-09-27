@@ -15,8 +15,15 @@ export interface AppExportImportResult {
 // through per-table maps so nothing collides with IDs already used
 // elsewhere in this install. `categories.linked_account_id` is dropped
 // (legacy/unused column, see migration 008's comment).
-export async function importAppExport(db: SQLiteDatabase, files: PickedAppExport): Promise<AppExportImportResult> {
-  const boardName = files.manifest?.boardName ? `${files.manifest.boardName} (Imported)` : 'Imported Board';
+// `keepName` is for bringing boards back after a reinstall, where there is
+// nothing for "(Imported)" to tell them apart from.
+export async function importAppExport(
+  db: SQLiteDatabase,
+  files: PickedAppExport,
+  { keepName = false }: { keepName?: boolean } = {},
+): Promise<AppExportImportResult> {
+  const original = files.manifest?.boardName;
+  const boardName = original ? (keepName ? original : `${original} (Imported)`) : 'Imported Board';
   let result: AppExportImportResult | null = null;
 
   await db.withTransactionAsync(async () => {

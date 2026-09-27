@@ -44,6 +44,7 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
 import { InfoButton } from '../../components/ui/InfoButton';
+import { DataSafetyRow } from './DataSafetyRow';
 import * as boardsRepo from '../../db/repositories/boardsRepo';
 import { freshBoardName, wipeAppData } from '../../db/repositories/appDataRepo';
 import { currentDateISO } from '../../domain/month';
@@ -375,10 +376,15 @@ export function SettingsScreen() {
             ⓘ and the Bank Sync card below are the same promise in detail. */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>
-            {t('settings.privacyHeading')}
+            {t('settings.aboutHeading')}
           </Text>
           <View style={styles.group}>
             <View style={styles.row}>
+              <Text style={styles.rowTitle}>{t('settings.version')}</Text>
+              <Text style={styles.rowValue}>1.0.0 (MVP)</Text>
+            </View>
+            <DataSafetyRow />
+            <View style={[styles.row, styles.rowDivider]}>
               <View style={styles.rowMain}>
                 <Text style={styles.rowTitle}>
                   {t('settings.privacyTitle')}
@@ -725,18 +731,6 @@ export function SettingsScreen() {
                   {t('settings.bankFresh')}
                 </Text>
               </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>
-            {t('settings.aboutHeading')}
-          </Text>
-          <View style={styles.group}>
-            <View style={styles.row}>
-              <Text style={styles.rowTitle}>{t('settings.version')}</Text>
-              <Text style={styles.rowValue}>1.0.0 (MVP)</Text>
             </View>
           </View>
         </View>

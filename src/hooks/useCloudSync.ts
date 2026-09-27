@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { getDb } from '../db/client';
-import * as boardsRepo from '../db/repositories/boardsRepo';
 import { syncIfDue } from '../sync/cloudSync';
+import { notifyBackupFinished } from './useBackupHealth';
 import { useAppStore } from '../state/useAppStore';
 
 const DEBOUNCE_MS = 5000;
@@ -15,20 +15,16 @@ const DEBOUNCE_MS = 5000;
 // useBootstrapActiveBoard/useBootstrapLanguage.
 export function useAutoCloudSync() {
   const dataVersion = useAppStore((s) => s.dataVersion);
-  const boardId = useAppStore((s) => s.currentBoardId);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const runSync = useCallback(async () => {
     const db = await getDb();
-    const boards = await boardsRepo.listBoards(db);
-    const board = boards.find((b) => b.id === boardId);
-    if (!board) return;
     // No-ops when every destination's switch is off, and now also when a
     // destination was backed up within the day and nothing has changed since
     // (see cloudSync.syncIfDue). Tapping Back Up Now still goes straight
     // through syncNow — asking for it means now.
-    await syncIfDue(db, boardId, board.name);
-  }, [boardId]);
+    if ((await syncIfDue(db)).length > 0) notifyBackupFinished();
+  }, []);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

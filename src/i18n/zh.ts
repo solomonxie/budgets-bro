@@ -161,7 +161,7 @@ export const zh: Record<keyof typeof en, string> = {
     '存在本机的提示词和回复会被删除，请求次数不受影响。',
   'backup.heading': '备份',
   'backup.hint':
-    '打开下面任意一个，账本每次变动都会自动备份到那里。使用 iCloud 时，重装应用后账本会自动恢复。API 密钥不会离开本机，也不会进入备份。',
+    '打开下面任意一个，只要有变动，每个账本每天都会复制一份到那里（在应用打开时进行）。重装应用后，首屏会在 iCloud 云盘里找到你的账本并一键恢复。API 密钥不会离开本机，也不会进入备份。',
   'backup.icloudOff': '本机的 iCloud 云盘已关闭',
   'backup.icloudOffAction': '设置 → 你的名字 → iCloud → 云盘 → 打开',
   'backup.icloudNotEntitled': '此版本应用暂不支持 iCloud',
@@ -181,13 +181,13 @@ export const zh: Record<keyof typeof en, string> = {
   'backup.infoNoServer':
     '你的账本只存在这台 iPhone 上。Budgets Bro 没有服务器、没有账号、无需登录，你的数据不会放在我们的任何机器上。',
   'backup.infoDestination':
-    '备份是一个账本的完整副本，在本机打包后直接存到你自己的地方：你的 iCloud 云盘，或用你自己密钥的 S3 存储桶。不经过我们。',
+    '每个账本都会完整备份，在本机打包后直接存到你自己的地方：你的 iCloud 云盘，或用你自己密钥的 S3 存储桶。不经过我们。',
   'backup.infoSecrets':
     '密钥从不进入备份。AI 和 S3 密钥只存在本机钥匙串中，标记为仅限本机，iOS 不会把它们放进备份或迁移到新手机。备份只包含账本内容：账户、分类、预算、收款方和交易。',
   'backup.infoFullCopy':
     '每次备份都是完整的账本，而不是上次之后的改动，所以最新的那个文件本身就是完整的。',
   'backup.infoRestore':
-    '恢复不会覆盖任何数据。恢复的备份会作为新账本出现在其他账本旁边，选错文件也没关系。较旧的自动备份会逐步清理；你自己命名的备份会一直保留。',
+    '恢复不会覆盖任何数据。恢复的备份会作为新账本出现在其他账本旁边，选错文件也没关系。iCloud 云盘保留最近 10 天，外加一年内每月一份；S3 存储桶全部保留；你自己命名的备份始终保留。',
   'settings.importYnab': '从 YNAB 导入',
   'settings.restoreCategories': '从 YNAB 恢复分类',
   'settings.dataHeading': '数据',
@@ -238,16 +238,44 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreResultTransactions': '交易',
   'settings.exportBoard': '导出当前账本',
   'settings.aboutHeading': '关于',
+  'backupBanner.none': '你的数据只存在这台 iPhone 上',
+  'backupBanner.never': '还没有备份到本机以外',
+  'backupBanner.stale': '已经 {count} 天没有备份',
+  'backupBanner.fix': '去处理 ›',
+  'dataSafety.title': '数据安全',
+  'dataSafety.ok': '所有账本已备份到 {where} · {when}',
+  'dataSafety.stale': '上次备份到 {where}：{when}。点「立即备份」，或查看下方的备份设置。',
+  'dataSafety.none':
+    '只存在这台 iPhone 上。在下方「备份」中打开 iCloud 云盘，手机丢失或重装应用都不会丢数据。',
+  'dataSafety.failed': '备份没有成功，请查看下方的备份设置。',
+  'dataSafety.backUpNow': '立即备份',
+  'dataSafety.infoTitle': '你的数据如何保证安全',
+  'dataSafety.infoWhere':
+    '你的数据保存在这台 iPhone 上。没有 Budgets Bro 服务器，也没有账号，所以我们这边没有任何东西会弄丢、泄露你的数据，或把你锁在外面。',
+  'dataSafety.infoLayers':
+    '数据有多层保护。每次改动都有记录，可以撤销（历史记录）。每天，每个账本都会复制一份到本机「文件」（我的 iPhone → Budgets Bro → Backups，保留 30 天），并复制到你的 iCloud 云盘（保留最近 10 天，外加一年内每月一份）或 S3 存储桶（永久保留）。在做大操作之前——导入、恢复、删除所有数据、应用更新——都会先备份一份。',
+  'dataSafety.infoReinstall':
+    '换了新手机，或删掉了应用？登录同一个 Apple ID 重新安装，首屏会在 iCloud 云盘里找到你的账本，一键恢复。',
+  'dataSafety.infoMistake':
+    '哪里出错了？在历史记录里撤销，或在「备份」里恢复之前某一天的副本。恢复从不覆盖：它会作为新账本出现在其他账本旁边。',
+  'dataSafety.infoOpen':
+    '备份是普通的 .zip 文件，里面是纯文本 JSON。你可以在「文件」App 里看到它们，不用 Budgets Bro 也能读取。',
+  'dataSafety.infoPhoneBackup':
+    '如果这台 iPhone 开启了 iCloud 云备份（iOS 设置 → 你的名字 → iCloud → iCloud 云备份），手机自身的备份也会包含本应用的数据。',
+  'firstRun.searchingICloud': '正在 iCloud 云盘中查找你的备份…',
+  'firstRun.foundInICloud': '在 iCloud 云盘中找到',
+  'firstRun.foundMeta': '{date} · {count} 笔交易',
+  'firstRun.restoreSelected': '恢复所选（{count}）',
   'firstRun.title': '欢迎使用 Budgets Bro',
   'firstRun.body': '想怎么开始？之后也可以在设置中更改。',
   'firstRun.startEmpty': '从空账本开始',
   'firstRun.tryDemo': '试用演示账本',
-  'firstRun.restore': '从备份恢复',
+  'firstRun.restore':
+    '从备份文件恢复',
   'firstRun.failed': '出了点问题，请重试。',
-  'settings.privacyHeading': '隐私',
   'settings.privacyTitle': '你的财务数据始终属于你。',
   'settings.privacyBody':
-    '这是一款离线应用：背后没有远程服务器，也无需注册账号。所有数据都保存在这台 iPhone 上。如有需要，你可以把数据备份或同步到你自己选择的云存储（你的 iCloud 或 S3），也可以用自己的密钥进行 AI 分析。密码和 API 密钥等机密信息安全保存在 iPhone 钥匙串中，不会进入备份。',
+    '这是一款离线应用：背后没有服务器，也无需注册账号。所有数据都保存在这台 iPhone 上，备份只会存到你自己的地方：你的 iCloud 云盘或 S3。密码和 API 密钥保存在 iPhone 钥匙串中，从不进入备份。',
   'common.howThisWorks': '说明',
   'common.more': '展开',
   'common.less': '收起',
@@ -354,7 +382,7 @@ export const zh: Record<keyof typeof en, string> = {
   'lock.setPasscodeTitle': '设置 4 位数字密码',
   'lock.confirmPasscodeTitle': '请再输入一次',
   'lock.setPasscodeHint':
-    '保存在这台 iPhone 的钥匙串中，不进入备份。忘记密码的话，只能重装应用，数据也会随之清除。',
+    '保存在这台 iPhone 的钥匙串中，不进入备份。忘记密码的话，删除并重装应用，然后在首屏从 iCloud 云盘恢复你的账本。',
   'lock.biometricTitle': 'Budgets Bro 已锁定',
   'lock.biometricPrompt': '解锁 Budgets Bro',
   'lock.biometricFailed': '未能识别，请重试。',
@@ -426,6 +454,9 @@ export const zh: Record<keyof typeof en, string> = {
   'accounts.growthSince': '自 {month} {rate}',
   'accounts.includeInNetWorth': '计入净资产',
   'accounts.addAccount': '+ 添加账户',
+  'accounts.setupGuideHeading': '如何设置账户',
+  'accounts.setupGuideBody':
+    '这里的账户不必和银行账户一一对应，它们只是帮你理清钱怎么流动的简单分组。\n\n现金账户放日常要花的钱。一个现金账户可以代表好几个银行账户，也可以单独建一个，记钱包里的纸币和硬币。\n\n储蓄账户放存起来、不花的钱。一个应急金账户可以涵盖好几个真实账户。要用这笔钱时，先转到现金账户。\n\n本应用鼓励尽量少用信用卡。偶尔刷卡的话，直接把消费记在现金账户里，自己去还卡就行，不必在这里记信用卡的明细。如果日常开销主要靠刷卡，就为它建一个信用卡账户。\n\n月光族？预算页的「未分配」可能是负数，意思是你计划要花的钱比手头现有的现金多。',
   'accounts.closedAccounts': '已关闭的账户',
   'accounts.kindCash': '现金',
   'accounts.kindSavings': '储蓄',
@@ -438,6 +469,7 @@ export const zh: Record<keyof typeof en, string> = {
 
   'accountDetail.calculators': '计算器',
   'accountDetail.growthRate': '增长 {rate}/月 · 近 12 月平均',
+  'accountDetail.allPayees': '全部收款方',
   'accountDetail.balance': '余额',
   'accountDetail.adjustLatestBalance': '调整最新余额',
   'accountDetail.amountOwedLabel': '欠款金额',
@@ -457,9 +489,6 @@ export const zh: Record<keyof typeof en, string> = {
   'accountModal.namePlaceholder': '例如 钱包',
   'accountModal.typeLabel': '类型',
   'accountModal.typeSavings': '储蓄账户',
-  'accounts.setupGuideHeading': '如何设置账户',
-  'accounts.setupGuideBody':
-    '这里的账户不必和银行账户一一对应，它们只是帮你理清钱怎么流动的简单分组。\n\n现金账户放日常要花的钱。一个现金账户可以代表好几个银行账户，也可以单独建一个，记钱包里的纸币和硬币。\n\n储蓄账户放存起来、不花的钱。一个应急金账户可以涵盖好几个真实账户。要用这笔钱时，先转到现金账户。\n\n本应用鼓励尽量少用信用卡。偶尔刷卡的话，直接把消费记在现金账户里，自己去还卡就行，不必在这里记信用卡的明细。如果日常开销主要靠刷卡，就为它建一个信用卡账户。\n\n月光族？预算页的「未分配」可能是负数，意思是你计划要花的钱比手头现有的现金多。',
   'accountModal.typeCash': '现金',
   'accountModal.typeCreditCard': '信用卡',
   'accountModal.typeLoan': '贷款',
@@ -475,7 +504,6 @@ export const zh: Record<keyof typeof en, string> = {
     '如需修改，请在下方添加一次更新。每次更新都有自己的日期，历史才准确。',
   'accountModal.currentHouseValueHint':
     '你自己估计的房屋现值。会按今天的日期保存，之后可在账户页面继续添加更新。',
-  'accountDetail.allPayees': '全部收款方',
   'accountModal.currentPrincipalLabel': '当前剩余本金',
   'accountModal.currentPrincipalHint':
     '你现在还欠多少，按最近一次对账单填写。两次对账单之间，你记的每笔还款先付利息，余下的才从这个数字里减，所以它自己就能保持接近实际。填写不会产生交易。',

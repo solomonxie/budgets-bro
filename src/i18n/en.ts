@@ -161,7 +161,7 @@ export const en = {
     'The prompts and replies saved on this iPhone are deleted. The request count stays.',
   'backup.heading': 'Backup',
   'backup.hint':
-    'Turn on a place below and this board is backed up there every time it changes. With iCloud, the board comes back on its own if you reinstall the app. API keys never leave this iPhone, backups included.',
+    'Turn on a place below and every board is copied there once a day whenever something changed, while the app is open. After a reinstall, the first screen finds your boards in iCloud Drive and brings them back. API keys never leave this iPhone, backups included.',
   'backup.icloudOff': 'iCloud Drive is off on this device',
   'backup.icloudOffAction': 'Settings → your name → iCloud → Drive → turn on',
   'backup.icloudNotEntitled':
@@ -182,13 +182,13 @@ export const en = {
   'backup.infoNoServer':
     'Your board lives only on this iPhone. There’s no Budgets Bro server, no account and no login — nothing of yours sits on a machine we run.',
   'backup.infoDestination':
-    'A backup is a full copy of one board, zipped on this iPhone and sent straight to storage you own: your iCloud Drive, or your S3 bucket with your own keys. Nothing passes through us.',
+    'Each board is backed up as a full copy, zipped on this iPhone and sent straight to storage you own: your iCloud Drive, or your S3 bucket with your own keys. Nothing passes through us.',
   'backup.infoSecrets':
     'Keys are never backed up. Your AI and S3 keys stay in this iPhone’s Keychain, marked as this-device-only, so iOS never copies them to a backup or a new phone. A backup holds only your board: accounts, categories, budgets, payees and transactions.',
   'backup.infoFullCopy':
     'Every backup is the whole board, not just the changes since last time, so the newest file is complete on its own.',
   'backup.infoRestore':
-    'Restoring never overwrites anything. A restored backup opens as a new board next to your others, so picking the wrong file costs you nothing. Older automatic backups are cleared out over time; backups you name yourself are kept.',
+    'Restoring never overwrites anything. A restored backup opens as a new board next to your others, so picking the wrong file costs you nothing. iCloud Drive keeps the last 10 days plus one copy per month for a year; an S3 bucket keeps everything; backups you name yourself are always kept.',
   'settings.importYnab': 'Import from YNAB',
   'settings.restoreCategories': 'Restore Categories from YNAB',
   'settings.dataHeading': 'Data',
@@ -242,16 +242,44 @@ export const en = {
   'settings.restoreResultTransactions': 'Transactions',
   'settings.exportBoard': 'Export this board',
   'settings.aboutHeading': 'About',
+  'backupBanner.none': 'Your data is only on this iPhone',
+  'backupBanner.never': 'Not backed up off this iPhone yet',
+  'backupBanner.stale': 'Not backed up for {count} days',
+  'backupBanner.fix': 'Fix ›',
+  'dataSafety.title': 'Data safety',
+  'dataSafety.ok': 'Every board backed up to {where} · {when}',
+  'dataSafety.stale': 'Last backup to {where}: {when}. Tap Back up now, or check Backup below.',
+  'dataSafety.none':
+    'Only on this iPhone. Turn on iCloud Drive under Backup below, so a lost phone or a reinstall can’t take it.',
+  'dataSafety.failed': 'The backup didn’t go through. Check Backup below.',
+  'dataSafety.backUpNow': 'Back up now',
+  'dataSafety.infoTitle': 'How your data is kept safe',
+  'dataSafety.infoWhere':
+    'Your data lives on this iPhone. There’s no Budgets Bro server and no account, so there’s nothing on our side that can lose it, leak it or lock you out of it.',
+  'dataSafety.infoLayers':
+    'It’s protected in layers. Every change is recorded and can be undone (History). Once a day, every board is copied into Files on this iPhone (On My iPhone → Budgets Bro → Backups, kept 30 days) and to your iCloud Drive (last 10 days, plus one per month for a year) or S3 bucket (kept forever). Before anything big — an import, a restore, removing all data, an app update — a copy is taken first.',
+  'dataSafety.infoReinstall':
+    'New phone, or deleted the app? Install it again, signed in to the same Apple ID, and the first screen finds your boards in iCloud Drive and brings them back in one tap.',
+  'dataSafety.infoMistake':
+    'Something went wrong? Undo it in History, or restore an earlier day from Backup. A restore never overwrites: it opens as a new board beside your others.',
+  'dataSafety.infoOpen':
+    'Backups are ordinary .zip files of plain JSON. You can see them in the Files app and read them without Budgets Bro.',
+  'dataSafety.infoPhoneBackup':
+    'If iCloud Backup is on for this iPhone (iOS Settings → your name → iCloud → iCloud Backup), the phone’s own backup includes this app’s data too.',
+  'firstRun.searchingICloud': 'Looking for your backups in iCloud Drive…',
+  'firstRun.foundInICloud': 'Found in iCloud Drive',
+  'firstRun.foundMeta': '{date} · {count} transactions',
+  'firstRun.restoreSelected': 'Restore selected ({count})',
   'firstRun.title': 'Welcome to Budgets Bro',
   'firstRun.body': 'How would you like to start? You can change your mind later in Settings.',
   'firstRun.startEmpty': 'Start empty',
   'firstRun.tryDemo': 'Try the demo board',
-  'firstRun.restore': 'Restore from a backup',
+  'firstRun.restore':
+    'Restore from a backup file',
   'firstRun.failed': 'Something went wrong. Try again.',
-  'settings.privacyHeading': 'Privacy',
   'settings.privacyTitle': 'Your money data stays yours.',
   'settings.privacyBody':
-    'This is an offline app: there’s no remote server behind it and no account. Everything stays on this iPhone. If you choose to, you can back up or sync to cloud storage of your own — your iCloud or S3 — and use your own key for AI analysis. Secret info — passcode and API keys — is kept safe in the iPhone Keychain and excluded from backups.',
+    'This is an offline app: no server behind it and no account. Everything stays on this iPhone, and backups go only to storage you own: your iCloud Drive or S3. Passcode and API keys stay in the iPhone Keychain and are never in a backup.',
   'common.more': 'More',
   'common.howThisWorks': 'How this works',
   'common.less': 'Less',
@@ -358,7 +386,7 @@ export const en = {
   'lock.setPasscodeTitle': 'Set a 4-digit passcode',
   'lock.confirmPasscodeTitle': 'Enter it again',
   'lock.setPasscodeHint':
-    'Kept in this iPhone’s Keychain, never in a backup. If you forget it, the only way back in is to reinstall the app, which erases your data.',
+    'Kept in this iPhone’s Keychain, never in a backup. If you forget it, delete and reinstall the app, then bring your boards back from iCloud Drive on the first screen.',
   'lock.biometricTitle': 'Budgets Bro is locked',
   'lock.biometricPrompt': 'Unlock Budgets Bro',
   'lock.biometricFailed': 'Not recognized. Try again.',
@@ -433,6 +461,9 @@ export const en = {
   'accounts.growthSince': '{rate} since {month}',
   'accounts.includeInNetWorth': 'Include in Net Worth',
   'accounts.addAccount': '+ Add Account',
+  'accounts.setupGuideHeading': 'Setting up your accounts',
+  'accounts.setupGuideBody':
+    'Accounts here don’t have to match your bank accounts one to one. Think of them as a simple way to sort where your money goes.\n\nCash is the money you spend day to day. One Cash account can stand for several bank accounts, and you can add one just for the notes and coins in your wallet.\n\nSavings is money set aside, not spent. One Emergency Fund account can cover several real accounts. To spend from it, transfer the money to a cash account first.\n\nThis app encourages using credit cards as little as you can. If you only use one now and then, add those purchases straight to your cash account and pay the card off yourself; its history doesn’t need to live here. If a card carries your everyday spending, add a Credit Card account for it.\n\nLiving paycheck to paycheck? Unassigned on the Budget page can go negative. That means you’ve planned more than the cash you have today.',
   'accounts.closedAccounts': 'Closed Accounts',
   'accounts.kindCash': 'Cash',
   'accounts.kindSavings': 'Savings',
@@ -465,9 +496,6 @@ export const en = {
   'accountModal.nameLabel': 'Name',
   'accountModal.namePlaceholder': 'e.g. Wallet',
   'accountModal.typeLabel': 'Type',
-  'accounts.setupGuideHeading': 'Setting up your accounts',
-  'accounts.setupGuideBody':
-    'Accounts here don’t have to match your bank accounts one to one. Think of them as a simple way to sort where your money goes.\n\nCash is the money you spend day to day. One Cash account can stand for several bank accounts, and you can add one just for the notes and coins in your wallet.\n\nSavings is money set aside, not spent. One Emergency Fund account can cover several real accounts. To spend from it, transfer the money to a cash account first.\n\nThis app encourages using credit cards as little as you can. If you only use one now and then, add those purchases straight to your cash account and pay the card off yourself; its history doesn’t need to live here. If a card carries your everyday spending, add a Credit Card account for it.\n\nLiving paycheck to paycheck? Unassigned on the Budget page can go negative. That means you’ve planned more than the cash you have today.',
   'accountModal.typeSavings': 'Savings',
   'accountModal.typeCash': 'Cash',
   'accountModal.typeCreditCard': 'Credit Card',

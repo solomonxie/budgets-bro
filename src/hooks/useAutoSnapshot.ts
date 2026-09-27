@@ -6,7 +6,7 @@ import * as boardsRepo from '../db/repositories/boardsRepo';
 import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { takeSnapshot } from '../db/preMigrationSnapshot';
 import { writeDailyBackup } from '../backup/localBackup';
-import { useAppStore } from '../state/useAppStore';
+import { backupNamesForBoards } from '../sync/backupPath';
 
 const LAST_SNAPSHOT_SEQ = 'last_snapshot_seq';
 const LAST_SNAPSHOT_AT = 'last_snapshot_at';
@@ -32,7 +32,6 @@ const SNAPSHOT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // unrecoverable between snapshots.
 export function useAutoSnapshot(): void {
   const running = useRef(false);
-  const boardId = useAppStore((s) => s.currentBoardId);
 
   useEffect(() => {
     const maybeSnapshot = async () => {
@@ -52,11 +51,12 @@ export function useAutoSnapshot(): void {
         await db.execAsync('PRAGMA wal_checkpoint(FULL)');
         takeSnapshot('budgetsbro.db', 0, 0);
 
-        // After the checkpoint, so the zip and the .db copy describe the same
-        // moment. A board that has gone missing skips the zip and still gets
-        // the snapshot — the file-level copy needs no board at all.
-        const board = (await boardsRepo.listBoards(db)).find((b) => b.id === boardId);
-        if (board) await writeDailyBackup(db, board.id, board.name);
+        // After the checkpoint, so the zips and the .db copy describe the
+        // same moment. Every board, not just the open one.
+        const boards = await boardsRepo.listBoards(db);
+        const names = backupNamesForBoards(boards);
+        for (const board of boards)
+          await writeDailyBackup(db, board.id, board.name, names.get(board.id));
 
         await settingsRepo.setSetting(db, LAST_SNAPSHOT_SEQ, String(seq));
         await settingsRepo.setSetting(db, LAST_SNAPSHOT_AT, new Date().toISOString());
@@ -73,5 +73,5 @@ export function useAutoSnapshot(): void {
       if (state === 'background' || state === 'inactive') void maybeSnapshot();
     });
     return () => sub.remove();
-  }, [boardId]);
+  }, []);
 }

@@ -4,7 +4,8 @@ import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { buildBackupZip } from './buildBackup';
 import { createS3Providers } from './s3Provider';
 import { createICloudProviders } from './icloudProvider';
-import { backupKey, staleBackupKeys } from './backupPath';
+import { backupKey, backupNamesForBoards, staleBackupKeys } from './backupPath';
+import * as boardsRepo from '../db/repositories/boardsRepo';
 import { currentDateISO } from '../domain/month';
 import { resolveSyncEnabled } from './autoSync';
 import type { CloudProvider, CloudProviderId } from './types';
@@ -90,8 +91,8 @@ export interface SyncOutcome {
 
 // One-way backup to every destination whose switch is on — not a merge (see
 // DESIGN.md Non-goals). There is no manual trigger and no per-destination
-// call: a switch that's on means "every change", which is the whole of what
-// the setting promises. Failures are returned rather than thrown — a sync
+// call: a switch that's on means "every board, daily, while anything
+// changes", which is the whole of what the setting promises. Failures are returned rather than thrown — a sync
 // hiccup must never interrupt money entry.
 // A day, and only if something actually changed since the last one.
 //
@@ -111,14 +112,25 @@ async function isBackupDue(db: SQLiteDatabase, providerId: string, currentSeq: n
   return Date.now() - new Date(lastSyncedAt).getTime() >= BACKUP_INTERVAL_MS;
 }
 
+// Destinations whose switch is on and that can take a file right now — an
+// iCloud Drive that's switched off in iOS isn't listed at all.
+export async function enabledProviders(db: SQLiteDatabase): Promise<CloudProvider[]> {
+  const all = await collectProviders(db);
+  const on = await Promise.all(all.map((p) => isSyncEnabled(db, p.id)));
+  return all.filter((_, i) => on[i]);
+}
+
+export async function getLastSyncedSeq(db: SQLiteDatabase, providerId: CloudProviderId): Promise<number | null> {
+  const stored = await settingsRepo.getSetting(db, `${LAST_SEQ_PREFIX}${providerId}`);
+  return stored == null ? null : Number(stored);
+}
+
 // Runs a backup only where one is due — what the automatic sync calls on
 // every change. `syncNow` itself stays unconditional, because a user tapping
-// Back Up Now means now.
-export async function syncIfDue(
-  db: SQLiteDatabase,
-  boardId: number,
-  boardName: string,
-): Promise<SyncOutcome[]> {
+// Back Up Now means now. Every board, not just the open one: a board you
+// haven't switched to in months is exactly the one nobody would notice
+// going unprotected.
+export async function syncIfDue(db: SQLiteDatabase): Promise<SyncOutcome[]> {
   const currentSeq = await changeLogRepo.latestChangeSeq(db);
   const all = await collectProviders(db);
   const due = (
@@ -129,42 +141,40 @@ export async function syncIfDue(
     )
   ).filter((p): p is CloudProvider => p != null);
   if (due.length === 0) return [];
-  return upload(db, boardId, boardName, due, currentSeq);
+  return upload(db, due, currentSeq);
 }
 
-export async function syncNow(
-  db: SQLiteDatabase,
-  boardId: number,
-  boardName: string,
-): Promise<SyncOutcome[]> {
-  const all = await collectProviders(db);
-  const eligible = (
-    await Promise.all(
-      all.map(async (p) => ((await isSyncEnabled(db, p.id)) ? p : null)),
-    )
-  ).filter((p): p is CloudProvider => p != null);
+export async function syncNow(db: SQLiteDatabase): Promise<SyncOutcome[]> {
+  const eligible = await enabledProviders(db);
   if (eligible.length === 0) return [];
-  return upload(db, boardId, boardName, eligible, await changeLogRepo.latestChangeSeq(db));
+  return upload(db, eligible, await changeLogRepo.latestChangeSeq(db));
 }
 
 async function upload(
   db: SQLiteDatabase,
-  boardId: number,
-  boardName: string,
   providers: CloudProvider[],
   atSeq: number,
 ): Promise<SyncOutcome[]> {
-  const bytes = await buildBackupZip(db, boardId, boardName);
-  // Built once and written under the same name everywhere — one object per
-  // board per day. Destinations differ in what they keep, not what they call
-  // it (see backupPath.ts and CloudProvider.keepLatest).
-  const key = backupKey(boardName, currentDateISO());
+  const boards = await boardsRepo.listBoards(db);
+  const names = backupNamesForBoards(boards);
+  // Built once per board and written under the same name everywhere — one
+  // object per board per day. Destinations differ in what they keep, not
+  // what they call it (see backupPath.ts and CloudProvider.keepLatest).
+  const files: { name: string; key: string; bytes: Uint8Array }[] = [];
+  for (const board of boards) {
+    const name = names.get(board.id) ?? board.name;
+    files.push({
+      name,
+      key: backupKey(name, currentDateISO()),
+      bytes: await buildBackupZip(db, board.id, board.name),
+    });
+  }
   return Promise.all(
     providers.map(async (provider) => {
       try {
-        await provider.upload(bytes, key);
+        for (const file of files) await provider.upload(file.bytes, file.key);
         const syncedAt = new Date().toISOString();
-        await prune(provider, boardName);
+        for (const file of files) await prune(provider, file.name);
         await setLastSyncedAt(db, provider.id, syncedAt);
         // Recorded only on success, so a failed upload leaves the next
         // change still looking overdue rather than silently skipped.
@@ -214,7 +224,7 @@ export async function uploadNamedBackups(
 async function prune(provider: CloudProvider, boardName: string): Promise<void> {
   if (provider.keepLatest == null || provider.remove == null) return;
   try {
-    const stale = staleBackupKeys(await provider.listKeys(), boardName, provider.keepLatest);
+    const stale = staleBackupKeys(await provider.listKeys(), boardName, provider.keepLatest, provider.keepMonths);
     for (const key of stale) await provider.remove(key);
   } catch (e) {
     console.warn(`[cloudSync] ${provider.id} prune failed`, e);

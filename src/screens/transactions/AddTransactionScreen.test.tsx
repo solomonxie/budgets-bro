@@ -14,7 +14,9 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   SafeAreaView: 'SafeAreaView',
 }));
-jest.mock('../../db/client', () => ({ getDb: async () => ({}) }));
+jest.mock('../../db/client', () => ({
+  getDb: async () => ({ getFirstAsync: async () => null }),
+}));
 jest.mock('../../hooks/useAccounts', () => ({
   useAccounts: () => ({
     accounts: [
@@ -83,9 +85,9 @@ function pressIn(node: ReturnType<typeof create>['root'], label: string) {
 describe('AddTransactionScreen', () => {
   it.each(['Payee', 'Category', 'Date'])(
     '%s unfolds in place, presenting no Modal',
-    (label) => {
+    async (label) => {
       let root!: ReturnType<typeof create>;
-      act(() => {
+      await act(async () => {
         root = create(<AddTransactionScreen />);
       });
       expect(texts(root)).toContain(label);
@@ -95,9 +97,9 @@ describe('AddTransactionScreen', () => {
     },
   );
 
-  it('the unfolded category list shows its options under the row', () => {
+  it('the unfolded category list shows its options under the row', async () => {
     let root!: ReturnType<typeof create>;
-    act(() => {
+    await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     expect(texts(root)).not.toContain('Groceries');
@@ -109,9 +111,9 @@ describe('AddTransactionScreen', () => {
     expect(shown).toContain('Date');
   });
 
-  it('the account is a link under the amount, and unfolds in place', () => {
+  it('the account is a link under the amount, and unfolds in place', async () => {
     let root!: ReturnType<typeof create>;
-    act(() => {
+    await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     expect(texts(root)).not.toContain('Account');
@@ -127,9 +129,9 @@ describe('AddTransactionScreen', () => {
     expect(texts(root)).toContain('Amex');
   });
 
-  it('Items is one row that opens its own page', () => {
+  it('Items is one row that opens its own page', async () => {
     let root!: ReturnType<typeof create>;
-    act(() => {
+    await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     expect(placeholders(root)).not.toContain('What you bought');
@@ -149,9 +151,9 @@ describe('AddTransactionScreen', () => {
     expect(itemRows()).toHaveLength(2);
   });
 
-  it('past names show without a tap, and one fills the row', () => {
+  it('past names show without a tap, and one fills the row', async () => {
     let root!: ReturnType<typeof create>;
-    act(() => {
+    await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     pressRow(root, 'Items');
@@ -167,9 +169,9 @@ describe('AddTransactionScreen', () => {
     ).toBe('decimal-pad');
   });
 
-  it('the memo is one line, and Return closes it', () => {
+  it('the memo is one line, and Return closes it', async () => {
     let root!: ReturnType<typeof create>;
-    act(() => {
+    await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     const memo = root.root
@@ -179,9 +181,9 @@ describe('AddTransactionScreen', () => {
     expect(memo.props.submitBehavior).toBe('blurAndSubmit');
   });
 
-  it('typing an item offers past names', () => {
+  it('typing an item offers past names', async () => {
     let root!: ReturnType<typeof create>;
-    act(() => {
+    await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     pressRow(root, 'Items');

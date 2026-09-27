@@ -9,6 +9,7 @@ import {
   INSERT_TRANSACTION,
   UPDATE_TRANSACTION,
   LAST_CATEGORY_FOR_PAYEE,
+  LAST_CASH_ACCOUNT_USED,
   SELECT_PURCHASE_ITEMS,
 } from '../../../databases/queries/transactions';
 
@@ -121,6 +122,17 @@ export async function getLastCategoryIdForPayee(
     payeeId,
   );
   return row?.category_id ?? null;
+}
+
+export async function getLastCashAccountId(
+  db: SQLiteDatabase,
+  boardId: number,
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ account_id: number }>(
+    LAST_CASH_ACCOUNT_USED,
+    boardId,
+  );
+  return row?.account_id ?? null;
 }
 
 export interface CreateTransactionInput {

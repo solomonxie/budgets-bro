@@ -194,7 +194,7 @@ function AddTransactionForm() {
     selectedAccount != null &&
     ((isLoanAccount && isEditing) || presetAccountId != null);
   // A category only means something where money is actually spent out of
-  // assigned cash — a cash account, savings, a credit card. Off-budget
+  // assigned cash — a cash account or a credit card. Savings and off-budget
   // accounts (Tracking, Asset) have no assigned cash for it to come out of,
   // and a loan account's rows are mirrored payment legs whose category lives
   // on the paying side. Budget activity queries already guard against this
@@ -250,38 +250,43 @@ function AddTransactionForm() {
   }, [editingTransactionId]);
 
   useEffect(() => {
-    // A preset (opened from an account page) always wins; otherwise the
-    // account last saved to, which the store remembers across visits now
-    // that this form unmounts when you leave it.
+    // A preset (opened from an account page) always wins; otherwise the last
+    // cash account used — the store's copy, or after a cold start the
+    // ledger's.
     if (editingTransactionId != null || realAccounts.length === 0) return;
-    // Opened from the budget rather than an account, the sensible default is
-    // the last account actually spent from — one where a category means
-    // something. Falling back to whatever was saved last would land on a
-    // mortgage or a tracking account, which take no category at all.
-    const spendable = realAccounts.filter((a) =>
-      isSpendingAccountType(a.account.type),
-    );
-    const lastSpendable = spendable.some((a) => a.account.id === lastAccountId)
-      ? lastAccountId
-      : null;
-    setAccountId(
-      (prev) =>
-        presetAccountId ??
-        prev ??
-        lastSpendable ??
-        spendable[0]?.account.id ??
-        realAccounts[0].account.id,
-    );
-  }, [editingTransactionId, presetAccountId, realAccounts, lastAccountId]);
-
-  // Money entered on a loan account's own page is a payment against it, so
-  // it comes in (debt down) — the outflow default belongs to the account
-  // paying, not the one being paid. A default, not a lock: the toggle still
-  // wins, and this only re-fires when the account itself changes.
-  useEffect(() => {
-    if (isEditing || !isLoanAccount) return;
-    setDirection('in');
-  }, [isEditing, isLoanAccount]);
+    const isCash = (id: number | null) =>
+      realAccounts.some(
+        (a) => a.account.id === id && a.account.type === 'cash',
+      );
+    const fallback =
+      realAccounts.find((a) => a.account.type === 'cash')?.account.id ??
+      realAccounts.find((a) => isSpendingAccountType(a.account.type))?.account
+        .id ??
+      realAccounts[0].account.id;
+    const pick = (id: number | null) =>
+      setAccountId((prev) => presetAccountId ?? prev ?? id ?? fallback);
+    if (presetAccountId != null || isCash(lastAccountId)) {
+      pick(lastAccountId);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const id = await transactionsRepo.getLastCashAccountId(
+        await getDb(),
+        boardId,
+      );
+      if (!cancelled) pick(isCash(id) ? id : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    editingTransactionId,
+    presetAccountId,
+    realAccounts,
+    lastAccountId,
+    boardId,
+  ]);
 
   // A schedule belongs to an account, so it's only offered on a new entry
   // opened from that account's page — any type, either direction (a loan's
@@ -377,10 +382,8 @@ function AddTransactionForm() {
         await transactionsRepo.createTransaction(db, boardId, input);
       }
     }
-    // Only remember somewhere you'd spend from — paying a mortgage or logging
-    // a tracking entry shouldn't become the next spend's default.
-    if (selectedAccount != null && isSpendingAccountType(selectedAccount.type))
-      rememberAccounts(accountId);
+    // The next spend's default is the last cash account, nothing else.
+    if (selectedAccount?.type === 'cash') rememberAccounts(accountId);
     bumpDataVersion();
     navigation.goBack();
   };

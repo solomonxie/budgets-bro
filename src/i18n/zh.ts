@@ -411,6 +411,9 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreFailed': '还原失败。',
   'settings.exportFailedTitle': '导出失败',
   'settings.exportFailedFallback': '出了点问题。',
+  'settings.trustProcessHeading': '相信这个过程',
+  'settings.trustProcessBody':
+    '按照这个应用的设计来记录和管理你的钱，一年之内你会养成更好的理财习惯，更清楚钱都去了哪里、下一步该做什么。\n\n感谢 YNAB（You Need A Budget）提出这种预算方法。本应用深受其启发，并在此基础上做了更多功能。',
   'settings.removeAllData': '删除所有应用数据',
   'settings.removeAllDataConfirmTitle': '删除所有应用数据？',
   'settings.removeAllDataConfirmMessage':

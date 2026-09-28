@@ -42,6 +42,7 @@ export function TrackingValueDetails({
   mode,
   refresh,
   info,
+  chart,
 }: {
   account: Account;
   history: AccountValueChange[];
@@ -51,6 +52,8 @@ export function TrackingValueDetails({
   refresh: () => void;
   // Under the chart, above the readings — the section's "How this works".
   info?: ReactNode;
+  // Replaces the logged-value chart — an asset's trend comes from its ledger.
+  chart?: ReactNode;
 }) {
   const t = useT();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -99,11 +102,13 @@ export function TrackingValueDetails({
       {currentValueCents == null ? (
         <Text style={styles.hint}>{t('trackingValueCard.noValueYet')}</Text>
       ) : null}
-      <ValueHistoryChart
-        history={history}
-        transactions={transactions}
-        mode={mode}
-      />
+      {chart ?? (
+        <ValueHistoryChart
+          history={history}
+          transactions={transactions}
+          mode={mode}
+        />
+      )}
       {info}
       {history.map((h) => (
         <Pressable

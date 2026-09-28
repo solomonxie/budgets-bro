@@ -127,6 +127,15 @@ export function AccountDetailScreen() {
       showsBalanceTrend ? monthlyBalanceTrend(transactions, balanceCents) : [],
     [showsBalanceTrend, transactions, balanceCents],
   );
+  // An asset's trend is what its recorded transactions add up to, month by
+  // month — not its logged values, which are too sparse to draw a line.
+  const assetTrend = useMemo(() => {
+    if (!isAsset || !accountWithBalance) return [];
+    const ledgerCents =
+      accountWithBalance.account.openingBalanceCents +
+      transactions.reduce((sum, txn) => sum + txn.amountCents, 0);
+    return monthlyBalanceTrend(transactions, ledgerCents);
+  }, [isAsset, accountWithBalance, transactions]);
   const {
     history: valueHistory,
     currentValueCents,
@@ -451,6 +460,9 @@ export function AccountDetailScreen() {
                   transactions={transactions}
                   mode={isAsset ? 'single' : 'stacked'}
                   refresh={refreshValueHistory}
+                  chart={
+                    isAsset ? <BalanceTrendChart points={assetTrend} /> : undefined
+                  }
                   info={
                     <View style={styles.infoGap}>
                       <InfoButton

@@ -5,6 +5,7 @@ export const DELETE_BOARD_CASCADE = [
   'DELETE FROM budget_entries WHERE board_id = ?',
   'DELETE FROM scheduled_transactions WHERE board_id = ?',
   'DELETE FROM custom_goals WHERE board_id = ?',
+  'DELETE FROM payment_decisions WHERE board_id = ?',
   'DELETE FROM categories WHERE board_id = ?',
   'DELETE FROM category_groups WHERE board_id = ?',
   'DELETE FROM payees WHERE board_id = ?',

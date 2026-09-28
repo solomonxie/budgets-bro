@@ -88,6 +88,7 @@ export async function renameOrMergePayee(
   await db.withTransactionAsync(async () => {
     await db.runAsync('UPDATE transactions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
     await db.runAsync('UPDATE scheduled_transactions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
+    await db.runAsync('UPDATE payment_decisions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
     await db.runAsync(
       `UPDATE payees SET (review_on, review_note, review_mode) = (SELECT review_on, review_note, review_mode FROM payees WHERE id = ?)
        WHERE id = ? AND review_mode IS NULL`,

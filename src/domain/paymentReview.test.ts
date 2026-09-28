@@ -1,9 +1,10 @@
 import {
   buildReviewItems,
   detectRecurring,
-  convertedAmountCents,
   firstReviewOn,
-  nextMonthlyDateAfter,
+  decisionItemKey,
+  defaultDueOn,
+  reviewOnAfterDecision,
   reviewOnAfterKeeping,
   yearlyCents,
 } from './paymentReview';
@@ -51,15 +52,7 @@ describe('paymentReview', () => {
     expect(reviewOnAfterKeeping(null, null, '2026-09-20')).toBe('2027-09-20');
   });
 
-  it('converts at equal yearly cost', () => {
-    expect(convertedAmountCents(-1000, 'monthly', 1)).toBe(12000);
-    expect(convertedAmountCents(-12000, 'yearly', 1)).toBe(1000);
-  });
 
-  it('next monthly date lands after today', () => {
-    expect(nextMonthlyDateAfter('2026-06-10', '2026-09-28')).toBe('2026-10-10');
-    expect(nextMonthlyDateAfter('2026-09-10', '2026-09-01')).toBe('2026-10-10');
-  });
 
   it('lists outflows only, flags due, sorts by review date', () => {
     const items = buildReviewItems(
@@ -68,7 +61,7 @@ describe('paymentReview', () => {
         schedule({ id: 2, amountCents: 5000 }),
         schedule({ id: 3, frequency: 'yearly', amountCents: -9900, nextDate: '2026-10-10', payeeName: 'Cloud' }),
       ],
-      [{ payeeId: 9, name: 'Gym', reviewOn: '2027-01-01', reviewNote: null, lastDate: '2026-08-01', lastAmountCents: 2000, yearCents: 6000 }],
+      [{ payeeId: 9, name: 'Gym', reviewOn: '2027-01-01', lastDate: '2026-08-01', lastAmountCents: 2000, yearCents: 6000 }],
       [],
       '2026-09-28',
     );
@@ -84,7 +77,6 @@ describe('paymentReview', () => {
       amountCents: 1099,
       dates,
       reviewOn: null,
-      reviewNote: null,
       ignored: false,
       ...over,
     });
@@ -131,6 +123,39 @@ describe('paymentReview', () => {
         [true, false],
         [true, false],
       ]);
+    });
+  });
+
+  describe('decisions', () => {
+    const today = '2026-09-28';
+    const items = buildReviewItems(
+      [
+        schedule({ id: 3, frequency: 'yearly', nextDate: '2026-10-10' }),
+        schedule({ id: 4, nextDate: '2026-09-28' }),
+      ],
+      [],
+      [],
+      today,
+    );
+    const annual = items.find((i) => i.key === 's:3')!;
+    const monthly = items.find((i) => i.key === 's:4')!;
+
+    it('actions are due the day before the next charge, else in a week; alternatives in 30 days', () => {
+      expect(defaultDueOn(annual, 'cancel', today)).toBe('2026-10-09');
+      expect(defaultDueOn(monthly, 'convert', today)).toBe('2026-10-05');
+      expect(defaultDueOn(annual, 'alternative', today)).toBe('2026-10-28');
+    });
+
+    it('a decision settles the item until next year', () => {
+      expect(reviewOnAfterDecision(annual, today)).toBe('2027-09-10');
+      expect(reviewOnAfterDecision(monthly, today)).toBe('2027-09-28');
+    });
+
+    it('a decision maps back to the item it was made for', () => {
+      const base = { id: 1, name: 'x', amountCents: 1099, decision: 'cancel' as const, note: null, decidedOn: today, dueOn: null, doneOn: null };
+      expect(decisionItemKey({ ...base, scheduleId: 4, payeeId: 7, cadence: 'monthly' })).toBe('s:4');
+      expect(decisionItemKey({ ...base, scheduleId: null, payeeId: 7, cadence: 'adHoc' })).toBe('p:7');
+      expect(decisionItemKey({ ...base, scheduleId: null, payeeId: 7, cadence: 'monthly' })).toBe('d:7:1099');
     });
   });
 });

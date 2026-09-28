@@ -5,6 +5,7 @@ import type {
   AccountValueHistoryRow,
   CategoryGroupRow,
   CustomGoalRow,
+  PaymentDecisionRow,
   ScheduledTransactionRow,
   CategoryRow,
   BudgetEntryRow,
@@ -27,6 +28,7 @@ export interface PickedAppExport {
   accountRateHistory: AccountRateHistoryRow[];
   scheduledTransactions: ScheduledTransactionRow[];
   customGoals: CustomGoalRow[];
+  paymentDecisions: PaymentDecisionRow[];
 }
 
 async function readJson<T>(zip: JSZip, name: string): Promise<T[]> {
@@ -61,5 +63,6 @@ export async function parseBackupZip(bytes: Uint8Array | ArrayBuffer): Promise<P
     accountRateHistory: await readJson<AccountRateHistoryRow>(zip, 'account_rate_history.json'),
     scheduledTransactions: await readJson<ScheduledTransactionRow>(zip, 'scheduled_transactions.json'),
     customGoals: await readJson<CustomGoalRow>(zip, 'custom_goals.json'),
+    paymentDecisions: await readJson<PaymentDecisionRow>(zip, 'payment_decisions.json'),
   };
 }

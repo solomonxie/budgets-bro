@@ -14,6 +14,7 @@ const LOGGED_TABLES = [
   'account_rate_history',
   'scheduled_transactions',
   'custom_goals',
+  'payment_decisions',
 ];
 
 async function columnsOf(db: SQLiteDatabase, table: string): Promise<string[]> {

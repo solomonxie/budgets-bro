@@ -15,27 +15,27 @@ import { useAppStore } from '../../state/useAppStore';
 import { colors } from '../../theme/colors';
 
 export const DECISION_LABEL: Record<Decision, TranslationKey> = {
-  keep: 'abr.keep',
-  alternative: 'abr.alternative',
-  convert: 'abr.convert',
-  mode: 'abr.mode',
-  cancel: 'abr.cancel',
-  dismiss: 'abr.dismiss',
-  ignore: 'abr.ignore',
-  restore: 'abr.restore',
+  keep: 'qbr.keep',
+  alternative: 'qbr.alternative',
+  convert: 'qbr.convert',
+  mode: 'qbr.mode',
+  cancel: 'qbr.cancel',
+  dismiss: 'qbr.dismiss',
+  ignore: 'qbr.ignore',
+  restore: 'qbr.restore',
 };
 
 // What the to-do asks the user to go and do — the app does none of it.
 function todoHintKey(item: ReviewItem, decision: Decision): TranslationKey | null {
   switch (decision) {
     case 'alternative':
-      return 'abr.alternativeTodo';
+      return 'qbr.alternativeTodo';
     case 'convert':
-      return item.cadence === 'annual' ? 'abr.convertToMonthlyTodo' : 'abr.convertToAnnualTodo';
+      return item.cadence === 'annual' ? 'qbr.convertToMonthlyTodo' : 'qbr.convertToAnnualTodo';
     case 'mode':
-      return item.schedule ? 'abr.toAdHocTodo' : 'abr.toScheduleTodo';
+      return item.schedule ? 'qbr.toAdHocTodo' : 'qbr.toScheduleTodo';
     case 'cancel':
-      return 'abr.cancelTodo';
+      return 'qbr.cancelTodo';
     default:
       return null;
   }
@@ -67,14 +67,14 @@ export function PaymentDecisionModal({ item, today, onClose }: { item: ReviewIte
     : [
         'keep',
         'alternative',
-        ...(item.cadence !== 'adHoc' ? (['convert'] as const) : []),
+        'convert',
         'mode',
         ...(item.detected ? (['dismiss'] as const) : []),
-        ...(item.cadence !== 'adHoc' ? (['ignore'] as const) : []),
+        'ignore',
         'cancel',
       ];
   const isAction = ACTION_DECISIONS.includes(decision);
-  const nextReviewOn = reviewOnAfterDecision(item, today);
+  const nextReviewOn = reviewOnAfterDecision(today);
   const todoHint = todoHintKey(item, decision);
 
   const save = async () => {
@@ -93,16 +93,16 @@ export function PaymentDecisionModal({ item, today, onClose }: { item: ReviewIte
     <CardModal visible onCancel={onClose}>
       <Text style={styles.title}>{item.name}</Text>
       <ChipRow options={choices.map((d) => ({ value: d, label: t(DECISION_LABEL[d]) }))} value={decision} onChange={setDecision} />
-      {decision === 'keep' ? <Text style={styles.hint}>{t('abr.keepHint', { date: formatDateLabel(nextReviewOn, locale) })}</Text> : null}
-      {decision === 'dismiss' ? <Text style={styles.hint}>{t('abr.dismissHint')}</Text> : null}
-      {decision === 'ignore' ? <Text style={styles.hint}>{t('abr.ignoreHint')}</Text> : null}
-      {decision === 'restore' ? <Text style={styles.hint}>{t('abr.restoreHint')}</Text> : null}
+      {decision === 'keep' ? <Text style={styles.hint}>{t('qbr.keepHint', { date: formatDateLabel(nextReviewOn, locale) })}</Text> : null}
+      {decision === 'dismiss' ? <Text style={styles.hint}>{t('qbr.dismissHint')}</Text> : null}
+      {decision === 'ignore' ? <Text style={styles.hint}>{t('qbr.ignoreHint')}</Text> : null}
+      {decision === 'restore' ? <Text style={styles.hint}>{t('qbr.restoreHint')}</Text> : null}
       {isAction ? (
         <>
           {todoHint ? <Text style={styles.todo}>{t(todoHint)}</Text> : null}
-          <Text style={styles.hint}>{t('abr.actionHint')}</Text>
-          <DateField label={t('abr.remindBy')} value={dueOn} onChange={setDueOn} />
-          <TextField label={t('abr.noteLabel')} value={note} onChangeText={setNote} placeholder={t('abr.notePlaceholder')} />
+          <Text style={styles.hint}>{t('qbr.actionHint')}</Text>
+          <DateField label={t('qbr.remindBy')} value={dueOn} onChange={setDueOn} />
+          <TextField label={t('qbr.noteLabel')} value={note} onChangeText={setNote} placeholder={t('qbr.notePlaceholder')} />
         </>
       ) : null}
       <View style={styles.actions}>
@@ -110,7 +110,7 @@ export function PaymentDecisionModal({ item, today, onClose }: { item: ReviewIte
           <Text style={styles.cancelText}>{t('common.cancel')}</Text>
         </Pressable>
         <Pressable style={styles.saveButton} onPress={save}>
-          <Text style={styles.saveButtonText}>{t(isAction ? 'abr.addTodo' : 'common.save')}</Text>
+          <Text style={styles.saveButtonText}>{t(isAction ? 'qbr.addTodo' : 'common.save')}</Text>
         </Pressable>
       </View>
     </CardModal>

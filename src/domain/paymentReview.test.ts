@@ -1,11 +1,11 @@
 import {
+  applyReviewFilter,
   buildReviewItems,
   detectRecurring,
-  firstReviewOn,
   decisionItemKey,
   defaultDueOn,
+  nextQuarterStart,
   reviewOnAfterDecision,
-  reviewOnAfterKeeping,
   yearlyCents,
 } from './paymentReview';
 import type { ScheduledTransactionWithLabels } from './types';
@@ -41,18 +41,12 @@ describe('paymentReview', () => {
     expect(yearlyCents(-100, 'weekly', 1)).toBe(5200);
   });
 
-  it('first review: annual 30 days before renewal, else a year after creation', () => {
-    expect(firstReviewOn('yearly', '2026-10-15', '2025-01-01')).toBe('2026-09-15');
-    expect(firstReviewOn('monthly', '2026-10-15', '2025-09-01')).toBe('2026-09-01');
+  it('next quarter starts on Jan/Apr/Jul/Oct 1', () => {
+    expect(nextQuarterStart('2026-01-01')).toBe('2026-04-01');
+    expect(nextQuarterStart('2026-06-30')).toBe('2026-07-01');
+    expect(nextQuarterStart('2026-09-28')).toBe('2026-10-01');
+    expect(nextQuarterStart('2026-12-31')).toBe('2027-01-01');
   });
-
-  it('keeping an annual charge skips to before the following renewal', () => {
-    expect(reviewOnAfterKeeping('yearly', '2026-10-15', '2026-09-20')).toBe('2027-09-15');
-    expect(reviewOnAfterKeeping('monthly', '2026-10-15', '2026-09-20')).toBe('2027-09-20');
-    expect(reviewOnAfterKeeping(null, null, '2026-09-20')).toBe('2027-09-20');
-  });
-
-
 
   it('lists outflows only, flags due, sorts by review date', () => {
     const items = buildReviewItems(
@@ -61,13 +55,37 @@ describe('paymentReview', () => {
         schedule({ id: 2, amountCents: 5000 }),
         schedule({ id: 3, frequency: 'yearly', amountCents: -9900, nextDate: '2026-10-10', payeeName: 'Cloud' }),
       ],
-      [{ payeeId: 9, name: 'Gym', reviewOn: '2027-01-01', lastDate: '2026-08-01', lastAmountCents: 2000, yearCents: 6000 }],
       [],
       '2026-09-28',
     );
-    expect(items.map((i) => i.key)).toEqual(['s:1', 's:3', 'p:9']);
-    expect(items.map((i) => i.cadence)).toEqual(['monthly', 'annual', 'adHoc']);
-    expect(items.map((i) => i.due)).toEqual([true, true, false]);
+    expect(items.map((i) => i.key)).toEqual(['s:3', 's:1']);
+    expect(items.map((i) => i.cadence)).toEqual(['annual', 'monthly']);
+    expect(items.map((i) => i.due)).toEqual([true, true]);
+  });
+
+  it('an item decided this quarter is marked decided until it comes due', () => {
+    const items = buildReviewItems(
+      [schedule({ id: 1, reviewOn: '2026-10-01' }), schedule({ id: 2, reviewOn: '2026-07-01' }), schedule({ id: 3, createdAt: '2026-09-01 10:00:00' })],
+      [],
+      '2026-09-28',
+    );
+    expect(items.map((i) => [i.key, i.decided, i.due])).toEqual([
+      ['s:2', false, true],
+      ['s:1', true, false],
+      ['s:3', false, false],
+    ]);
+  });
+
+  it('filter drops items whose payee or category is left out; empty keeps all', () => {
+    const items = buildReviewItems(
+      [schedule({ id: 1, payeeId: 7, categoryId: 20 }), schedule({ id: 2, payeeId: 8, categoryId: 21 }), schedule({ id: 3, payeeId: null, categoryId: null })],
+      [],
+      '2026-09-28',
+    );
+    const keys = (f: { payeeIds: number[]; categoryIds: number[] }) => applyReviewFilter(items, f).map((i) => i.key);
+    expect(keys({ payeeIds: [], categoryIds: [] })).toEqual(['s:1', 's:2', 's:3']);
+    expect(keys({ payeeIds: [7], categoryIds: [] })).toEqual(['s:2', 's:3']);
+    expect(keys({ payeeIds: [], categoryIds: [21] })).toEqual(['s:1', 's:3']);
   });
 
   describe('detectRecurring', () => {
@@ -76,6 +94,7 @@ describe('paymentReview', () => {
       name: 'Music',
       amountCents: 1099,
       dates,
+      categoryId: null,
       reviewOn: null,
       ignored: false,
       ...over,
@@ -101,7 +120,7 @@ describe('paymentReview', () => {
       expect(detectRecurring([charge(['2026-03-03', '2026-04-03', '2026-05-03'])], today)).toEqual([]);
     });
 
-    it('detected items review a year after they started, annual ones before renewal', () => {
+    it('detected items first come up the quarter after they started', () => {
       const detected = detectRecurring(
         [
           charge(['2025-08-03', '2025-09-03', '2025-10-03', '2025-11-03', '2025-12-03', '2026-01-03', '2026-09-03']),
@@ -109,16 +128,16 @@ describe('paymentReview', () => {
         ],
         today,
       );
-      const items = buildReviewItems([], [], detected, today);
+      const items = buildReviewItems([], detected, today);
       expect(items.map((i) => [i.key, i.cadence, i.reviewOn, i.due])).toEqual([
-        ['d:5:1099', 'monthly', '2026-08-03', true],
-        ['d:6:5000', 'annual', '2026-09-20', true],
+        ['d:6:5000', 'annual', '2025-01-01', true],
+        ['d:5:1099', 'monthly', '2025-10-01', true],
       ]);
     });
 
     it('ignored items stay listed but are never due', () => {
       const detected = detectRecurring([charge(['2026-07-03', '2026-08-03', '2026-09-03'], { ignored: true })], today);
-      const items = buildReviewItems([schedule({ reviewIgnored: true })], [], detected, today);
+      const items = buildReviewItems([schedule({ reviewIgnored: true })], detected, today);
       expect(items.map((i) => [i.ignored, i.due])).toEqual([
         [true, false],
         [true, false],
@@ -134,7 +153,6 @@ describe('paymentReview', () => {
         schedule({ id: 4, nextDate: '2026-09-28' }),
       ],
       [],
-      [],
       today,
     );
     const annual = items.find((i) => i.key === 's:3')!;
@@ -146,15 +164,14 @@ describe('paymentReview', () => {
       expect(defaultDueOn(annual, 'alternative', today)).toBe('2026-10-28');
     });
 
-    it('a decision settles the item until next year', () => {
-      expect(reviewOnAfterDecision(annual, today)).toBe('2027-09-10');
-      expect(reviewOnAfterDecision(monthly, today)).toBe('2027-09-28');
+    it('a decision settles the item until next quarter', () => {
+      expect(reviewOnAfterDecision(today)).toBe('2026-10-01');
+      expect(reviewOnAfterDecision('2026-12-15')).toBe('2027-01-01');
     });
 
     it('a decision maps back to the item it was made for', () => {
       const base = { id: 1, name: 'x', amountCents: 1099, decision: 'cancel' as const, note: null, decidedOn: today, dueOn: null, doneOn: null };
       expect(decisionItemKey({ ...base, scheduleId: 4, payeeId: 7, cadence: 'monthly' })).toBe('s:4');
-      expect(decisionItemKey({ ...base, scheduleId: null, payeeId: 7, cadence: 'adHoc' })).toBe('p:7');
       expect(decisionItemKey({ ...base, scheduleId: null, payeeId: 7, cadence: 'monthly' })).toBe('d:7:1099');
     });
   });

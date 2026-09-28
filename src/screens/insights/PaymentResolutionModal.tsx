@@ -51,8 +51,12 @@ export function PaymentResolutionModal({ item, today, onClose }: { item: ReviewI
       setAmountText(centsText(convertedAmountCents(item.schedule.amountCents, item.schedule.frequency, item.schedule.intervalN)));
       setNextDate(item.schedule.nextDate);
     } else {
+      const annual = item.cadence === 'annual';
+      setAdHocFrequency(annual ? 'yearly' : 'monthly');
       setAmountText(centsText(item.amountCents));
-      setNextDate(item.lastDate ? nextMonthlyDateAfter(item.lastDate, today) : addMonths(today, 1));
+      if (item.nextDate && item.nextDate > today) setNextDate(item.nextDate);
+      else if (item.lastDate) setNextDate(annual ? addMonths(today, 12) : nextMonthlyDateAfter(item.lastDate, today));
+      else setNextDate(addMonths(today, 1));
     }
   }, [item, today]);
 
@@ -64,10 +68,15 @@ export function PaymentResolutionModal({ item, today, onClose }: { item: ReviewI
     { value: 'alternative', label: t('abr.alternative') },
     ...(schedule ? [{ value: 'convert' as const, label: t('abr.convert') }] : []),
     ...(canChangeMode ? [{ value: 'mode' as const, label: t('abr.mode') }] : []),
+    ...(item.detected ? [{ value: 'dismiss' as const, label: t('abr.dismiss') }] : []),
     { value: 'cancel', label: t('abr.cancel') },
   ];
 
-  const keepUntil = reviewOnAfterKeeping(schedule?.frequency ?? null, schedule?.nextDate ?? null, today);
+  const keepUntil = reviewOnAfterKeeping(
+    schedule?.frequency ?? (item.cadence === 'annual' ? 'yearly' : null),
+    schedule?.nextDate ?? item.nextDate,
+    today,
+  );
   const amountCents = parseMoneyToCents(amountText);
 
   const save = async () => {
@@ -87,8 +96,11 @@ export function PaymentResolutionModal({ item, today, onClose }: { item: ReviewI
         if (schedule) await paymentReviewRepo.scheduleToAdHoc(db, item, addMonths(today, 12));
         else {
           if (amountCents <= 0) return;
-          await paymentReviewRepo.adHocToSchedule(db, boardId, item, adHocFrequency, amountCents, nextDate, reviewOnAfterKeeping(adHocFrequency, nextDate, today));
+          await paymentReviewRepo.toSchedule(db, boardId, item, adHocFrequency, amountCents, nextDate, reviewOnAfterKeeping(adHocFrequency, nextDate, today));
         }
+        break;
+      case 'dismiss':
+        await paymentReviewRepo.dismiss(db, item, today);
         break;
       case 'cancel':
         await paymentReviewRepo.cancel(db, boardId, item, parseMoneyToCents(refundText), today);
@@ -132,6 +144,7 @@ export function PaymentResolutionModal({ item, today, onClose }: { item: ReviewI
           <DateField label={t('abr.nextCharge')} value={nextDate} onChange={setNextDate} />
         </>
       ) : null}
+      {choice === 'dismiss' ? <Text style={styles.hint}>{t('abr.dismissHint')}</Text> : null}
       {choice === 'cancel' ? (
         <>
           <Text style={styles.hint}>{t(schedule ? 'abr.cancelScheduleHint' : 'abr.cancelAdHocHint')}</Text>

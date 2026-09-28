@@ -17,7 +17,7 @@ import {
   DELETE_SCHEDULED_TRANSACTION,
 } from '../../../databases/queries/scheduledTransactions';
 
-function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabels {
+export function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabels {
   return {
     id: row.id,
     accountId: row.account_id,

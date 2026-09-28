@@ -1,16 +1,22 @@
 import type { SQLiteDatabase } from '../driver';
-import type { AdHocPayee, ReviewItem } from '../../domain/paymentReview';
+import type { ScheduledTransactionJoinRow } from '../schema';
+import type { AdHocPayee, RepeatedCharge, ReviewItem } from '../../domain/paymentReview';
 import type { ScheduleFrequency } from '../../domain/recurrence';
+import type { ScheduledTransactionWithLabels } from '../../domain/types';
 import { findOrCreatePayee } from './payeesRepo';
 import * as scheduledTransactionsRepo from './scheduledTransactionsRepo';
 import * as transactionsRepo from './transactionsRepo';
 import {
+  LIST_REVIEWABLE_SCHEDULES,
   LIST_AD_HOC,
+  LIST_REPEATED_CHARGES,
   LAST_OUTFLOW_FOR_PAYEE,
   SET_SCHEDULE_REVIEW,
-  SET_PAYEE_REVIEW,
+  SET_PAYEE_REVIEW_MODE,
   CONVERT_SCHEDULE,
 } from '../../../databases/queries/paymentReview';
+
+type PayeeReviewMode = 'adHoc' | 'dismissed' | null;
 
 interface AdHocRow {
   payee_id: number;
@@ -20,6 +26,21 @@ interface AdHocRow {
   last_date: string | null;
   last_amount_cents: number | null;
   year_cents: number;
+}
+
+interface RepeatedChargeRow {
+  payee_id: number;
+  name: string;
+  amount_cents: number;
+  dates: string;
+  review_on: string | null;
+  review_note: string | null;
+  review_mode: string | null;
+}
+
+export async function listReviewableSchedules(db: SQLiteDatabase, boardId: number): Promise<ScheduledTransactionWithLabels[]> {
+  const rows = await db.getAllAsync<ScheduledTransactionJoinRow>(LIST_REVIEWABLE_SCHEDULES, boardId);
+  return rows.map(scheduledTransactionsRepo.mapRow);
 }
 
 export async function listAdHoc(db: SQLiteDatabase, boardId: number, yearStart: string): Promise<AdHocPayee[]> {
@@ -35,14 +56,39 @@ export async function listAdHoc(db: SQLiteDatabase, boardId: number, yearStart: 
   }));
 }
 
+export async function listRepeatedCharges(db: SQLiteDatabase, boardId: number, since: string): Promise<RepeatedCharge[]> {
+  const rows = await db.getAllAsync<RepeatedChargeRow>(LIST_REPEATED_CHARGES, boardId, since, boardId);
+  return rows.map((r) => {
+    const dismissed = r.review_mode === 'dismissed';
+    return {
+      payeeId: r.payee_id,
+      name: r.name,
+      amountCents: r.amount_cents,
+      dates: r.dates.split(','),
+      reviewOn: dismissed ? null : r.review_on,
+      reviewNote: dismissed ? null : r.review_note,
+    };
+  });
+}
+
+async function setPayeeReview(db: SQLiteDatabase, payeeId: number, mode: PayeeReviewMode, reviewOn: string | null, note: string | null) {
+  await db.runAsync(SET_PAYEE_REVIEW_MODE, mode, reviewOn, note, payeeId);
+}
+
 export async function trackPayee(db: SQLiteDatabase, boardId: number, name: string, reviewOn: string): Promise<void> {
   const payeeId = await findOrCreatePayee(db, boardId, name);
-  await db.runAsync(SET_PAYEE_REVIEW, reviewOn, null, payeeId);
+  if (payeeId != null) await setPayeeReview(db, payeeId, 'adHoc', reviewOn, null);
 }
 
 export async function setReview(db: SQLiteDatabase, item: ReviewItem, reviewOn: string, note: string | null): Promise<void> {
   if (item.schedule) await db.runAsync(SET_SCHEDULE_REVIEW, reviewOn, note, item.schedule.id);
-  else if (item.payeeId != null) await db.runAsync(SET_PAYEE_REVIEW, reviewOn, note, item.payeeId);
+  else if (item.payeeId != null) await setPayeeReview(db, item.payeeId, item.cadence === 'adHoc' ? 'adHoc' : null, reviewOn, note);
+}
+
+// "Not recurring": a detected pattern the user says isn't a commitment. Only
+// charges after today can bring it back.
+export async function dismiss(db: SQLiteDatabase, item: ReviewItem, today: string): Promise<void> {
+  if (item.payeeId != null) await setPayeeReview(db, item.payeeId, 'dismissed', today, null);
 }
 
 export async function convertSchedule(
@@ -62,13 +108,13 @@ export async function scheduleToAdHoc(db: SQLiteDatabase, item: ReviewItem, revi
   const scheduleId = item.schedule.id;
   const payeeId = item.payeeId;
   await db.withTransactionAsync(async () => {
-    await db.runAsync(SET_PAYEE_REVIEW, reviewOn, null, payeeId);
+    await setPayeeReview(db, payeeId, 'adHoc', reviewOn, null);
     await scheduledTransactionsRepo.deleteScheduledTransaction(db, scheduleId);
   });
 }
 
-// Pay as you go → recurring, built from the payee's last outflow.
-export async function adHocToSchedule(
+// Ad hoc or detected → a real schedule, built from the payee's last outflow.
+export async function toSchedule(
   db: SQLiteDatabase,
   boardId: number,
   item: ReviewItem,
@@ -98,13 +144,14 @@ export async function adHocToSchedule(
       endDate: null,
     });
     await db.runAsync(SET_SCHEDULE_REVIEW, reviewOn, null, id);
-    await db.runAsync(SET_PAYEE_REVIEW, null, null, payeeId);
+    await setPayeeReview(db, payeeId, null, null, null);
   });
   return true;
 }
 
 // Stops the commitment; a refund posts as an inflow back into the same
-// account and category the charge came from.
+// account and category the charge came from. The payee is dismissed so past
+// charges don't bring it straight back as detected.
 export async function cancel(db: SQLiteDatabase, boardId: number, item: ReviewItem, refundCents: number, today: string): Promise<void> {
   let target: { accountId: number; categoryId: number | null } | null = null;
   if (item.schedule) target = { accountId: item.schedule.accountId, categoryId: item.schedule.categoryId };
@@ -123,5 +170,5 @@ export async function cancel(db: SQLiteDatabase, boardId: number, item: ReviewIt
     });
   }
   if (item.schedule) await scheduledTransactionsRepo.deleteScheduledTransaction(db, item.schedule.id);
-  else if (item.payeeId != null) await db.runAsync(SET_PAYEE_REVIEW, null, null, item.payeeId);
+  if (item.payeeId != null) await setPayeeReview(db, item.payeeId, 'dismissed', today, null);
 }

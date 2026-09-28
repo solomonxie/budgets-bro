@@ -82,12 +82,13 @@ export async function importAppExport(
     for (const p of files.payees) {
       const newLinkedAccountId = p.linked_account_id != null ? (accountIdMap.get(p.linked_account_id) ?? null) : null;
       const result = await db.runAsync(
-        'INSERT INTO payees (board_id, name, linked_account_id, review_on, review_note) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO payees (board_id, name, linked_account_id, review_on, review_note, review_mode) VALUES (?, ?, ?, ?, ?, ?)',
         boardId,
         p.name,
         newLinkedAccountId,
         p.review_on ?? null,
         p.review_note ?? null,
+        p.review_mode ?? null,
       );
       payeeIdMap.set(p.id, result.lastInsertRowId);
     }

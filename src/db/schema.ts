@@ -124,6 +124,7 @@ export interface ScheduledTransactionRow {
   days_of_week_mask: number | null;
   review_on?: string | null;
   review_note?: string | null;
+  review_ignored?: number;
 }
 
 export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {

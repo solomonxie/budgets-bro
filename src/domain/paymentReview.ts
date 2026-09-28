@@ -6,7 +6,7 @@ import type { ScheduledTransactionWithLabels } from './types';
 // for a keep / change / cancel decision. Pure — no DB/React.
 
 export type ReviewCadence = 'monthly' | 'annual' | 'adHoc';
-export type ReviewResolution = 'keep' | 'alternative' | 'convert' | 'mode' | 'dismiss' | 'cancel';
+export type ReviewResolution = 'keep' | 'alternative' | 'convert' | 'mode' | 'dismiss' | 'ignore' | 'cancel' | 'restore';
 
 // An annual charge comes up this long before it renews — time to cancel.
 export const RENEWAL_NOTICE_DAYS = 30;
@@ -31,6 +31,7 @@ export interface RepeatedCharge {
   dates: string[];
   reviewOn: string | null;
   reviewNote: string | null;
+  ignored: boolean;
 }
 
 export interface DetectedRecurring {
@@ -43,6 +44,7 @@ export interface DetectedRecurring {
   nextDate: string;
   reviewOn: string | null;
   reviewNote: string | null;
+  ignored: boolean;
 }
 
 // How far back detection looks: two annual charges need just over a year.
@@ -53,6 +55,9 @@ export interface ReviewItem {
   cadence: ReviewCadence;
   // Found by detectRecurring rather than a schedule or a hand-added payee.
   detected: boolean;
+  // Real, but the user chose not to review it — listed under Ignored, never
+  // due, left out of the totals.
+  ignored: boolean;
   name: string;
   amountCents: number; // positive, per charge
   yearlyCents: number;
@@ -156,6 +161,7 @@ export function detectRecurring(charges: RepeatedCharge[], today: string): Detec
       nextDate: addMonths(lastDate, rule.months),
       reviewOn: c.reviewOn,
       reviewNote: c.reviewNote,
+      ignored: c.ignored,
     });
   }
   return found;
@@ -179,11 +185,12 @@ export function buildReviewItems(
       key: `s:${s.id}`,
       cadence: cadenceOf(s.frequency),
       detected: false,
+      ignored: s.reviewIgnored,
       name: scheduleName(s),
       amountCents: -s.amountCents,
       yearlyCents: yearlyCents(s.amountCents, s.frequency, s.intervalN),
       reviewOn,
-      due: reviewOn <= today,
+      due: !s.reviewIgnored && reviewOn <= today,
       note: s.reviewNote,
       nextDate: s.nextDate,
       lastDate: null,
@@ -196,6 +203,7 @@ export function buildReviewItems(
       key: `p:${p.payeeId}`,
       cadence: 'adHoc',
       detected: false,
+      ignored: false,
       name: p.name,
       amountCents: p.lastAmountCents ?? 0,
       yearlyCents: p.yearCents,
@@ -215,11 +223,12 @@ export function buildReviewItems(
       key: `d:${d.payeeId}:${d.amountCents}`,
       cadence: d.cadence,
       detected: true,
+      ignored: d.ignored,
       name: d.name,
       amountCents: d.amountCents,
       yearlyCents: d.cadence === 'annual' ? d.amountCents : d.amountCents * 12,
       reviewOn,
-      due: reviewOn <= today,
+      due: !d.ignored && reviewOn <= today,
       note: d.reviewNote,
       nextDate: d.nextDate,
       lastDate: d.lastDate,

@@ -34,9 +34,12 @@ export function PaymentReviewScreen() {
   const { items, loading, today } = usePaymentReview();
   const { payees } = usePayees('usage');
   const [selected, setSelected] = useState<ReviewItem | null>(null);
+  const [showIgnored, setShowIgnored] = useState(false);
 
-  const due = items.filter((i) => i.due);
-  const yearlyTotal = useMemo(() => items.reduce((s, i) => s + i.yearlyCents, 0), [items]);
+  const reviewed = useMemo(() => items.filter((i) => !i.ignored), [items]);
+  const ignored = useMemo(() => items.filter((i) => i.ignored), [items]);
+  const due = reviewed.filter((i) => i.due);
+  const yearlyTotal = useMemo(() => reviewed.reduce((s, i) => s + i.yearlyCents, 0), [reviewed]);
   const trackedPayeeIds = useMemo(() => new Set(items.map((i) => i.payeeId)), [items]);
   const payeeOptions = payees
     .filter((p) => p.linkedAccountId == null && !trackedPayeeIds.has(p.id))
@@ -95,7 +98,7 @@ export function PaymentReviewScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>{t('abr.yearlyTotal')}</Text>
         <Text style={styles.value}>{formatMoney(yearlyTotal)}</Text>
-        <Text style={styles.hint}>{t('abr.commitmentCount', { count: items.length })}</Text>
+        <Text style={styles.hint}>{t('abr.commitmentCount', { count: reviewed.length })}</Text>
       </View>
 
       {due.length > 0 ? (
@@ -106,7 +109,7 @@ export function PaymentReviewScreen() {
       ) : null}
 
       {SECTIONS.map(({ cadence, titleKey }) => {
-        const rows = items.filter((i) => i.cadence === cadence && !i.due);
+        const rows = reviewed.filter((i) => i.cadence === cadence && !i.due);
         if (rows.length === 0 && cadence !== 'adHoc') return null;
         return (
           <View key={cadence}>
@@ -133,6 +136,15 @@ export function PaymentReviewScreen() {
       />
 
       {items.length === 0 ? <Text style={styles.hint}>{t('abr.empty')}</Text> : null}
+
+      {ignored.length > 0 ? (
+        <Pressable style={styles.ignoredLink} onPress={() => setShowIgnored(!showIgnored)} hitSlop={8}>
+          <Text style={styles.ignoredLinkText}>
+            {t(showIgnored ? 'abr.hideIgnored' : 'abr.showIgnored', { count: ignored.length })}
+          </Text>
+        </Pressable>
+      ) : null}
+      {showIgnored && ignored.length > 0 ? <View style={[styles.card, styles.ignoredCard]}>{ignored.map(renderRow)}</View> : null}
 
       <PaymentResolutionModal item={selected} today={today} onClose={() => setSelected(null)} />
     </ScreenContainer>
@@ -179,4 +191,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: { color: colors.accent, fontWeight: '700' },
+  ignoredLink: { alignSelf: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
+  ignoredLinkText: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
+  ignoredCard: { opacity: 0.7 },
 });

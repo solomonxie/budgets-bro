@@ -164,8 +164,8 @@ export async function importAppExport(
       if (newAccountId == null) continue;
       await db.runAsync(
         `INSERT INTO scheduled_transactions
-           (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, days_of_week_mask, review_on, review_note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, days_of_week_mask, review_on, review_note, review_ignored)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         boardId,
         newAccountId,
         st.category_id != null ? (categoryIdMap.get(st.category_id) ?? null) : null,
@@ -179,6 +179,7 @@ export async function importAppExport(
         st.days_of_week_mask ?? null,
         st.review_on ?? null,
         st.review_note ?? null,
+        st.review_ignored ?? 0,
       );
     }
     for (const g of files.customGoals) {

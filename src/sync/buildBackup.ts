@@ -15,6 +15,7 @@ const TABLES = [
   // Baby Steps goal and its progress.
   'scheduled_transactions',
   'custom_goals',
+  'payment_decisions',
 ] as const;
 
 // Deliberately not backed up: app_settings holds cloud credentials and sync

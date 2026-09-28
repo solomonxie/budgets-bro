@@ -136,13 +136,17 @@ name-based rules: rent and the like are left to the user's Ignore.
 - **When due**: annual — 30 days before renewal; monthly/ad hoc — a year
   after creation or last review. "Find alternative" checks back in 30 days.
 - **Banner** on Insights home and a count on the row, only while due.
-- **Resolutions** (tap a row): Keep · Find Alternative (note) · Convert
-  Period (monthly ↔ annual, price prefilled at equal yearly cost) · Change
-  Mode (scheduled ↔ ad hoc; detected → scheduled) · Not Recurring
-  (detected only) · Ignore (never due, out of the total; listed behind an
-  "Ignored (n)" link at the bottom, where Restore puts it back) · Cancel &
-  Refund (deletes the schedule / stops
-  tracking; optional refund posts as an inflow to the same account+category).
+- **Decisions never change transactions or schedules.** Tap a row → Keep ·
+  Find Alternative · Convert Period · Change Mode · Cancel & Refund · Not
+  Recurring (detected only) · Ignore (never due, out of the total; behind an
+  "Ignored (n)" link, where Restore puts it back).
+- Every decision settles the item until next year's review and is logged in
+  `payment_decisions` (migration 042; backed up, restored, board-deleted).
+  Action decisions (alternative, convert, mode, cancel) stay open as a **To
+  Do** with a remind-by date (default: day before the next charge, else a
+  week; alternatives 30 days) and a note, until the user marks them done.
+  The rest are logged done on the spot. Done ones form **History**.
+- Banner counts items to decide plus to-dos that are due.
 
 ```
  ‹     Annual Review (ABR)
@@ -151,10 +155,15 @@ name-based rules: rent and the like are left to the user's Ignore.
  │ $2,340                                           │
  │ 9 payments under review                          │
  └──────────────────────────────────────────────────┘
+ TO DO · 1
+ │ Cancel & Refund · Cloud   By Oct 9 · call first › │  tap = Mark Done / Delete
  DUE FOR REVIEW · 2                                 amber
  │ Cloud Storage   Renews Oct 10, 2026   $99/yr   › │
  MONTHLY · ANNUAL · AD HOC                          non-due rows
  ( + Add Ad Hoc Payee )                             payee picker
+ HISTORY                                            newest first, 5 + Show all
+ │ Keep · Gym                Decided Sep 1           │
+ Ignored (2)                                        link, expands in place
 ```
 
 ## Tax Insights  `tax/TaxInsightsScreen.tsx`

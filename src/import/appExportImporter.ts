@@ -159,10 +159,11 @@ export async function importAppExport(
       );
     }
 
+    const scheduleIdMap = new Map<number, number>();
     for (const st of files.scheduledTransactions) {
       const newAccountId = accountIdMap.get(st.account_id);
       if (newAccountId == null) continue;
-      await db.runAsync(
+      const inserted = await db.runAsync(
         `INSERT INTO scheduled_transactions
            (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, days_of_week_mask, review_on, review_note, review_ignored)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -180,6 +181,25 @@ export async function importAppExport(
         st.review_on ?? null,
         st.review_note ?? null,
         st.review_ignored ?? 0,
+      );
+      scheduleIdMap.set(st.id, inserted.lastInsertRowId);
+    }
+    for (const d of files.paymentDecisions) {
+      await db.runAsync(
+        `INSERT INTO payment_decisions
+           (board_id, scheduled_transaction_id, payee_id, name, cadence, amount_cents, decision, note, decided_on, due_on, done_on)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        boardId,
+        d.scheduled_transaction_id != null ? (scheduleIdMap.get(d.scheduled_transaction_id) ?? null) : null,
+        d.payee_id != null ? (payeeIdMap.get(d.payee_id) ?? null) : null,
+        d.name,
+        d.cadence,
+        d.amount_cents,
+        d.decision,
+        d.note,
+        d.decided_on,
+        d.due_on,
+        d.done_on,
       );
     }
     for (const g of files.customGoals) {

@@ -132,7 +132,7 @@ export function HousingInsightsScreen() {
 
       {series.map((entry) => {
         const points = entry.points.map((p) => ({
-          label: p.asOfMonth,
+          date: p.asOfMonth,
           value: p.benchmarkPriceCents,
         }));
         const first = entry.points[0];

@@ -2,11 +2,12 @@ import { addMonths } from '../finance-tools/amortization';
 import type { ScheduleFrequency } from './recurrence';
 import type { ScheduledTransactionWithLabels } from './types';
 
-// Annual payment review (ABR): every recurring outflow comes up once a year
-// for a decision. Decisions never touch transactions or schedules — one that
+// Quarterly payment review (QBR): every recurring outflow comes up each
+// calendar quarter for a decision, and a decision holds only until the next
+// quarter starts — except Ignore, which holds until Restore. Decisions never touch transactions or schedules — one that
 // needs doing becomes a reminder for the user. Pure — no DB/React.
 
-export type ReviewCadence = 'monthly' | 'annual' | 'adHoc';
+export type ReviewCadence = 'monthly' | 'annual';
 export type Decision = 'keep' | 'alternative' | 'convert' | 'mode' | 'cancel' | 'dismiss' | 'ignore' | 'restore';
 
 // Decisions the user still has to carry out themselves: logged as a
@@ -27,21 +28,10 @@ export interface PaymentDecision {
   doneOn: string | null;
 }
 
-// An annual charge comes up this long before it renews — time to cancel.
-export const RENEWAL_NOTICE_DAYS = 30;
 // Default time to find an alternative; other actions are due before the
 // next charge, or in a week when there's no known next charge.
 export const ALTERNATIVE_DAYS = 30;
 export const ACTION_DAYS = 7;
-
-export interface AdHocPayee {
-  payeeId: number;
-  name: string;
-  reviewOn: string;
-  lastDate: string | null;
-  lastAmountCents: number | null; // positive
-  yearCents: number; // positive, last 12 months
-}
 
 // Same payee, same exact amount, more than once — see detectRecurring.
 export interface RepeatedCharge {
@@ -49,6 +39,7 @@ export interface RepeatedCharge {
   name: string;
   amountCents: number; // positive
   dates: string[];
+  categoryId: number | null; // of the latest charge
   reviewOn: string | null;
   ignored: boolean;
 }
@@ -61,6 +52,7 @@ export interface DetectedRecurring {
   firstDate: string;
   lastDate: string;
   nextDate: string;
+  categoryId: number | null;
   reviewOn: string | null;
   ignored: boolean;
 }
@@ -81,10 +73,33 @@ export interface ReviewItem {
   yearlyCents: number;
   reviewOn: string;
   due: boolean;
+  // Decided this quarter: its review date comes from a decision, not yet due.
+  decided: boolean;
   nextDate: string | null;
   lastDate: string | null;
   schedule: ScheduledTransactionWithLabels | null;
   payeeId: number | null;
+  categoryId: number | null;
+}
+
+// Payees and categories left out of the review. Stored as exclusions so
+// everything — including a payee or category added later — is in by default.
+export interface ReviewFilter {
+  payeeIds: number[];
+  categoryIds: number[];
+}
+
+export const NO_REVIEW_FILTER: ReviewFilter = { payeeIds: [], categoryIds: [] };
+
+// Items outside the filter aren't in the review at all: not listed, never
+// due, not in the total.
+export function applyReviewFilter(items: ReviewItem[], filter: ReviewFilter): ReviewItem[] {
+  if (filter.payeeIds.length === 0 && filter.categoryIds.length === 0) return items;
+  const payees = new Set(filter.payeeIds);
+  const categories = new Set(filter.categoryIds);
+  return items.filter(
+    (i) => !(i.payeeId != null && payees.has(i.payeeId)) && !(i.categoryId != null && categories.has(i.categoryId)),
+  );
 }
 
 export function addDays(dateIso: string, days: number): string {
@@ -102,18 +117,11 @@ export function yearlyCents(amountCents: number, frequency: ScheduleFrequency, i
   return Math.round((Math.abs(amountCents) * PER_YEAR[frequency]) / Math.max(1, intervalN));
 }
 
-export function firstReviewOn(frequency: ScheduleFrequency, nextDate: string, createdOn: string): string {
-  return frequency === 'yearly' ? addDays(nextDate, -RENEWAL_NOTICE_DAYS) : addMonths(createdOn, 12);
-}
-
-// After "keep": an annual charge comes up again before the renewal after
-// this one; anything else a year from today.
-export function reviewOnAfterKeeping(frequency: ScheduleFrequency | null, nextDate: string | null, today: string): string {
-  if (frequency === 'yearly' && nextDate != null) {
-    const renewal = nextDate > today ? nextDate : today;
-    return addDays(addMonths(renewal, 12), -RENEWAL_NOTICE_DAYS);
-  }
-  return addMonths(today, 12);
+// First day of the quarter after the one `dateIso` falls in.
+export function nextQuarterStart(dateIso: string): string {
+  const [y, m] = dateIso.split('-').map(Number);
+  const q = Math.floor((m - 1) / 3) + 1;
+  return q === 4 ? `${y + 1}-01-01` : `${y}-${String(q * 3 + 1).padStart(2, '0')}-01`;
 }
 
 function daysBetween(fromIso: string, toIso: string): number {
@@ -158,6 +166,7 @@ export function detectRecurring(charges: RepeatedCharge[], today: string): Detec
       firstDate: dates[0],
       lastDate,
       nextDate: addMonths(lastDate, rule.months),
+      categoryId: c.categoryId,
       reviewOn: c.reviewOn,
       ignored: c.ignored,
     });
@@ -168,7 +177,6 @@ export function detectRecurring(charges: RepeatedCharge[], today: string): Detec
 // Same key as the ReviewItem it was made for.
 export function decisionItemKey(d: PaymentDecision): string {
   if (d.scheduleId != null) return `s:${d.scheduleId}`;
-  if (d.cadence === 'adHoc') return `p:${d.payeeId}`;
   return `d:${d.payeeId}:${d.amountCents}`;
 }
 
@@ -181,9 +189,9 @@ export function defaultDueOn(item: ReviewItem, decision: Decision, today: string
   return addDays(today, ACTION_DAYS);
 }
 
-// Any decision on an item settles it until next year's review.
-export function reviewOnAfterDecision(item: ReviewItem, today: string): string {
-  return reviewOnAfterKeeping(item.cadence === 'annual' ? 'yearly' : null, item.nextDate, today);
+// A decision holds until next quarter's review (Ignore aside — see decide).
+export function reviewOnAfterDecision(today: string): string {
+  return nextQuarterStart(today);
 }
 
 function scheduleName(s: ScheduledTransactionWithLabels): string {
@@ -192,64 +200,51 @@ function scheduleName(s: ScheduledTransactionWithLabels): string {
 
 export function buildReviewItems(
   schedules: ScheduledTransactionWithLabels[],
-  adHoc: AdHocPayee[],
   detected: DetectedRecurring[],
   today: string,
 ): ReviewItem[] {
   const items: ReviewItem[] = [];
   for (const s of schedules) {
     if (s.amountCents >= 0) continue;
-    const reviewOn = s.reviewOn ?? firstReviewOn(s.frequency, s.nextDate, s.createdAt.slice(0, 10));
+    const reviewOn = s.reviewOn ?? nextQuarterStart(s.createdAt.slice(0, 10));
+    const ignored = s.reviewIgnored;
     items.push({
       key: `s:${s.id}`,
       cadence: cadenceOf(s.frequency),
       detected: false,
-      ignored: s.reviewIgnored,
+      ignored,
       name: scheduleName(s),
       amountCents: -s.amountCents,
       yearlyCents: yearlyCents(s.amountCents, s.frequency, s.intervalN),
       reviewOn,
-      due: !s.reviewIgnored && reviewOn <= today,
+      due: !ignored && reviewOn <= today,
+      decided: s.reviewOn != null && reviewOn > today,
       nextDate: s.nextDate,
       lastDate: null,
       schedule: s,
       payeeId: s.payeeId,
-    });
-  }
-  for (const p of adHoc) {
-    items.push({
-      key: `p:${p.payeeId}`,
-      cadence: 'adHoc',
-      detected: false,
-      ignored: false,
-      name: p.name,
-      amountCents: p.lastAmountCents ?? 0,
-      yearlyCents: p.yearCents,
-      reviewOn: p.reviewOn,
-      due: p.reviewOn <= today,
-      nextDate: null,
-      lastDate: p.lastDate,
-      schedule: null,
-      payeeId: p.payeeId,
+      categoryId: s.categoryId,
     });
   }
   for (const d of detected) {
-    const reviewOn =
-      d.reviewOn ?? (d.cadence === 'annual' ? addDays(d.nextDate, -RENEWAL_NOTICE_DAYS) : addMonths(d.firstDate, 12));
+    const reviewOn = d.reviewOn ?? nextQuarterStart(d.firstDate);
+    const ignored = d.ignored;
     items.push({
       key: `d:${d.payeeId}:${d.amountCents}`,
       cadence: d.cadence,
       detected: true,
-      ignored: d.ignored,
+      ignored,
       name: d.name,
       amountCents: d.amountCents,
       yearlyCents: d.cadence === 'annual' ? d.amountCents : d.amountCents * 12,
       reviewOn,
-      due: !d.ignored && reviewOn <= today,
+      due: !ignored && reviewOn <= today,
+      decided: d.reviewOn != null && reviewOn > today,
       nextDate: d.nextDate,
       lastDate: d.lastDate,
       schedule: null,
       payeeId: d.payeeId,
+      categoryId: d.categoryId,
     });
   }
   return items.sort((a, b) => (a.reviewOn < b.reviewOn ? -1 : a.reviewOn > b.reviewOn ? 1 : a.name.localeCompare(b.name)));

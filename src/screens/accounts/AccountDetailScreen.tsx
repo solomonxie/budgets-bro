@@ -100,9 +100,8 @@ export function AccountDetailScreen() {
   } = useAccountScheduledTransactions(accountId);
   const today = currentDateISO();
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
-  // Folded on arrival: the balance box is read at a glance, the sections
-  // under it are one tap away.
-  const [trendExpanded, setTrendExpanded] = useState(false);
+  // Trend graphs open on arrival; tap the header to fold.
+  const [trendExpanded, setTrendExpanded] = useState(true);
   // Typed as what the bank shows: a card's balance as the amount owed.
   const [adjustText, setAdjustText] = useState<string | null>(null);
   // undefined = all rows; null = rows with no payee.

@@ -81,6 +81,7 @@ export interface PayeeRow {
   linked_account_id: number | null;
   review_on?: string | null;
   review_note?: string | null;
+  review_mode?: string | null;
 }
 
 export interface TransactionRow {

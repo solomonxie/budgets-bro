@@ -114,18 +114,30 @@ no payee is reported at the foot, never ranked.
 
 ## Annual Review (ABR)  `insights/PaymentReviewScreen.tsx`
 
-Once a year, every recurring outflow gets a decision. Sources: scheduled
-outflows (monthly = any non-yearly frequency; annual = yearly) and ad hoc
-payees the user adds (`payees.review_on` set). Review state lives on the row
-itself — `review_on`/`review_note` on `scheduled_transactions` and `payees`
-(migration 039), so backups and board deletes need nothing extra.
+Once a year, every recurring spend gets a decision. Scope: outflows from
+cash and credit card accounts only — no transfers, no account-linked payees,
+no loan payment categories, nothing from savings/tracking.
+
+Sources:
+- **Scheduled** outflows (monthly = any non-yearly frequency; annual = yearly).
+- **Detected**: same payee + exact same amount, last 25 months
+  (`LIST_REPEATED_CHARGES`), cadence from the median gap — monthly 25–35 days
+  with ≥3 charges, annual 350–380 days with ≥2; dropped once overdue by half
+  a period. Payees with an outflow schedule are skipped.
+- **Ad hoc**: payees the user adds (`payees.review_mode = 'adHoc'`).
+
+Review state lives on the row itself — `review_on`/`review_note` on
+`scheduled_transactions` and `payees`, plus `payees.review_mode`
+(`adHoc` · `dismissed` · NULL; migrations 039–040). A dismissed payee is
+detected again only from charges after the dismissal date.
 
 - **When due**: annual — 30 days before renewal; monthly/ad hoc — a year
   after creation or last review. "Find alternative" checks back in 30 days.
 - **Banner** on Insights home and a count on the row, only while due.
 - **Resolutions** (tap a row): Keep · Find Alternative (note) · Convert
   Period (monthly ↔ annual, price prefilled at equal yearly cost) · Change
-  Mode (scheduled ↔ ad hoc) · Cancel & Refund (deletes the schedule / stops
+  Mode (scheduled ↔ ad hoc; detected → scheduled) · Not Recurring
+  (detected only) · Cancel & Refund (deletes the schedule / stops
   tracking; optional refund posts as an inflow to the same account+category).
 
 ```

@@ -82,10 +82,12 @@ export async function importAppExport(
     for (const p of files.payees) {
       const newLinkedAccountId = p.linked_account_id != null ? (accountIdMap.get(p.linked_account_id) ?? null) : null;
       const result = await db.runAsync(
-        'INSERT INTO payees (board_id, name, linked_account_id) VALUES (?, ?, ?)',
+        'INSERT INTO payees (board_id, name, linked_account_id, review_on, review_note) VALUES (?, ?, ?, ?, ?)',
         boardId,
         p.name,
         newLinkedAccountId,
+        p.review_on ?? null,
+        p.review_note ?? null,
       );
       payeeIdMap.set(p.id, result.lastInsertRowId);
     }
@@ -161,8 +163,8 @@ export async function importAppExport(
       if (newAccountId == null) continue;
       await db.runAsync(
         `INSERT INTO scheduled_transactions
-           (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, days_of_week_mask)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (board_id, account_id, category_id, payee_id, memo, amount_cents, frequency, interval_n, next_date, end_date, days_of_week_mask, review_on, review_note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         boardId,
         newAccountId,
         st.category_id != null ? (categoryIdMap.get(st.category_id) ?? null) : null,
@@ -174,6 +176,8 @@ export async function importAppExport(
         st.next_date,
         st.end_date,
         st.days_of_week_mask ?? null,
+        st.review_on ?? null,
+        st.review_note ?? null,
       );
     }
     for (const g of files.customGoals) {

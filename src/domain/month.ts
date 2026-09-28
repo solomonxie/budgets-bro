@@ -72,6 +72,11 @@ export function formatMonthLabel(month: string, locale = 'en-US'): string {
   return d.toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
+export function formatDateLabel(dateIso: string, locale = 'en-US'): string {
+  const [y, m, d] = dateIso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
 export function formatMonthShort(month: string, locale = 'en-US'): string {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1, 1));

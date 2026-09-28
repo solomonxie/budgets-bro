@@ -160,6 +160,8 @@ export interface ScheduledTransaction {
   nextDate: string; // 'YYYY-MM-DD'
   endDate: string | null;
   createdAt: string;
+  reviewOn: string | null; // see domain/paymentReview.ts
+  reviewNote: string | null;
 }
 
 export interface ScheduledTransactionWithLabels extends ScheduledTransaction {

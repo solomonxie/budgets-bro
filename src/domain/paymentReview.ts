@@ -6,7 +6,7 @@ import type { ScheduledTransactionWithLabels } from './types';
 // for a keep / change / cancel decision. Pure — no DB/React.
 
 export type ReviewCadence = 'monthly' | 'annual' | 'adHoc';
-export type ReviewResolution = 'keep' | 'alternative' | 'convert' | 'mode' | 'cancel';
+export type ReviewResolution = 'keep' | 'alternative' | 'convert' | 'mode' | 'dismiss' | 'cancel';
 
 // An annual charge comes up this long before it renews — time to cancel.
 export const RENEWAL_NOTICE_DAYS = 30;
@@ -23,9 +23,36 @@ export interface AdHocPayee {
   yearCents: number; // positive, last 12 months
 }
 
+// Same payee, same exact amount, more than once — see detectRecurring.
+export interface RepeatedCharge {
+  payeeId: number;
+  name: string;
+  amountCents: number; // positive
+  dates: string[];
+  reviewOn: string | null;
+  reviewNote: string | null;
+}
+
+export interface DetectedRecurring {
+  payeeId: number;
+  name: string;
+  amountCents: number;
+  cadence: 'monthly' | 'annual';
+  firstDate: string;
+  lastDate: string;
+  nextDate: string;
+  reviewOn: string | null;
+  reviewNote: string | null;
+}
+
+// How far back detection looks: two annual charges need just over a year.
+export const DETECTION_WINDOW_MONTHS = 25;
+
 export interface ReviewItem {
   key: string;
   cadence: ReviewCadence;
+  // Found by detectRecurring rather than a schedule or a hand-added payee.
+  detected: boolean;
   name: string;
   amountCents: number; // positive, per charge
   yearlyCents: number;
@@ -85,6 +112,55 @@ export function nextMonthlyDateAfter(fromDate: string, today: string): string {
   return next;
 }
 
+function daysBetween(fromIso: string, toIso: string): number {
+  const [y1, m1, d1] = fromIso.split('-').map(Number);
+  const [y2, m2, d2] = toIso.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+const CADENCES = [
+  // Three charges before calling it monthly: two could be coincidence.
+  { cadence: 'monthly' as const, minGap: 25, maxGap: 35, minCount: 3, months: 1, staleDays: 45 },
+  { cadence: 'annual' as const, minGap: 350, maxGap: 380, minCount: 2, months: 12, staleDays: 400 },
+];
+
+// A repeated charge is recurring when most gaps between its dates sit in one
+// cadence's band and it is still being paid (the last charge isn't overdue
+// by more than half a period).
+export function detectRecurring(charges: RepeatedCharge[], today: string): DetectedRecurring[] {
+  const found: DetectedRecurring[] = [];
+  for (const c of charges) {
+    const dates = [...new Set(c.dates)].sort();
+    if (dates.length < 2) continue;
+    const gaps = dates.slice(1).map((d, i) => daysBetween(dates[i], d));
+    const typical = median(gaps);
+    const rule = CADENCES.find((r) => typical >= r.minGap && typical <= r.maxGap);
+    if (!rule || dates.length < rule.minCount) continue;
+    const inBand = gaps.filter((g) => g >= rule.minGap && g <= rule.maxGap).length;
+    if (inBand * 3 < gaps.length * 2) continue;
+    const lastDate = dates[dates.length - 1];
+    if (daysBetween(lastDate, today) > rule.staleDays) continue;
+    found.push({
+      payeeId: c.payeeId,
+      name: c.name,
+      amountCents: c.amountCents,
+      cadence: rule.cadence,
+      firstDate: dates[0],
+      lastDate,
+      nextDate: addMonths(lastDate, rule.months),
+      reviewOn: c.reviewOn,
+      reviewNote: c.reviewNote,
+    });
+  }
+  return found;
+}
+
 function scheduleName(s: ScheduledTransactionWithLabels): string {
   return s.payeeName ?? s.memo ?? s.categoryName ?? s.accountName;
 }
@@ -92,6 +168,7 @@ function scheduleName(s: ScheduledTransactionWithLabels): string {
 export function buildReviewItems(
   schedules: ScheduledTransactionWithLabels[],
   adHoc: AdHocPayee[],
+  detected: DetectedRecurring[],
   today: string,
 ): ReviewItem[] {
   const items: ReviewItem[] = [];
@@ -101,6 +178,7 @@ export function buildReviewItems(
     items.push({
       key: `s:${s.id}`,
       cadence: cadenceOf(s.frequency),
+      detected: false,
       name: scheduleName(s),
       amountCents: -s.amountCents,
       yearlyCents: yearlyCents(s.amountCents, s.frequency, s.intervalN),
@@ -117,6 +195,7 @@ export function buildReviewItems(
     items.push({
       key: `p:${p.payeeId}`,
       cadence: 'adHoc',
+      detected: false,
       name: p.name,
       amountCents: p.lastAmountCents ?? 0,
       yearlyCents: p.yearCents,
@@ -127,6 +206,25 @@ export function buildReviewItems(
       lastDate: p.lastDate,
       schedule: null,
       payeeId: p.payeeId,
+    });
+  }
+  for (const d of detected) {
+    const reviewOn =
+      d.reviewOn ?? (d.cadence === 'annual' ? addDays(d.nextDate, -RENEWAL_NOTICE_DAYS) : addMonths(d.firstDate, 12));
+    items.push({
+      key: `d:${d.payeeId}:${d.amountCents}`,
+      cadence: d.cadence,
+      detected: true,
+      name: d.name,
+      amountCents: d.amountCents,
+      yearlyCents: d.cadence === 'annual' ? d.amountCents : d.amountCents * 12,
+      reviewOn,
+      due: reviewOn <= today,
+      note: d.reviewNote,
+      nextDate: d.nextDate,
+      lastDate: d.lastDate,
+      schedule: null,
+      payeeId: d.payeeId,
     });
   }
   return items.sort((a, b) => (a.reviewOn < b.reviewOn ? -1 : a.reviewOn > b.reviewOn ? 1 : a.name.localeCompare(b.name)));

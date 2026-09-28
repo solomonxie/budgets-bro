@@ -57,6 +57,10 @@ export function PaymentReviewScreen() {
 
   const detailLabel = (item: ReviewItem) => {
     if (item.note) return t('abr.lookingFor', { note: item.note });
+    if (item.detected && item.lastDate)
+      return t(item.cadence === 'annual' ? 'abr.detectedAnnual' : 'abr.detectedMonthly', {
+        date: formatDateLabel(item.cadence === 'annual' && item.nextDate ? item.nextDate : item.lastDate, locale),
+      });
     if (item.cadence === 'annual' && item.nextDate) return t('abr.renews', { date: formatDateLabel(item.nextDate, locale) });
     if (item.cadence === 'adHoc')
       return item.lastDate ? t('abr.lastPaid', { date: formatDateLabel(item.lastDate, locale) }) : t('abr.neverPaid');

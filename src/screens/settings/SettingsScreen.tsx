@@ -7,6 +7,7 @@ import { DropdownField } from '../../components/ui/DropdownField';
 import { BackupSection } from './BackupSection';
 import { DataSection } from './DataSection';
 import { HistorySection } from './HistorySection';
+import { FeedbackSection } from './FeedbackSection';
 import { useBoards } from '../../hooks/useBoards';
 import { LANGUAGE_KEY, useLanguageSetting } from '../../hooks/useLanguage';
 import { writeLockMode } from '../../hooks/useAppLock';
@@ -744,6 +745,8 @@ export function SettingsScreen() {
             </View>
           </View>
         </View>
+
+        <FeedbackSection />
 
         <Pressable
           accessibilityRole="button"

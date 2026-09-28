@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -6,10 +6,11 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Line, Rect } from 'react-native-svg';
+import Svg, { Polyline, Rect } from 'react-native-svg';
 import { useChartScrub } from './chartScrub';
 import { formatMonthShort } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
+import { trailingAverages } from '../../domain/movingAverage';
 import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -17,10 +18,6 @@ import { spacing } from '../../theme/spacing';
 const CHART_HEIGHT = 88;
 const MIN_BAR_SLOT = 34;
 const BAR_GAP = 2;
-// The benchmark line is a recent typical month, not a whole-history one — a
-// payee with three years behind it shouldn't have that history dragging an
-// average that's meant to say "what does this cost me lately".
-const AVERAGE_WINDOW_MONTHS = 12;
 
 export interface MonthAmount {
   month: string;
@@ -53,17 +50,19 @@ export function MonthlyBarChart({
     chartWidth,
     onSelect: setIndex,
   });
+  // Each month against its own recent past, not a whole-history average —
+  // the series starts at the first payment, so no padding months drag it.
+  const averages = useMemo(
+    () =>
+      trailingAverages(
+        series.map((m) => ({ date: m.month, value: m.spentCents })),
+      ),
+    [series],
+  );
 
   if (series.length === 0) return null;
 
   const maxCents = Math.max(...series.map((m) => m.spentCents));
-  // Series already starts at this payee's first payment, so the last 12
-  // months of it is never padded with months from before that.
-  const recentMonths = series.slice(-AVERAGE_WINDOW_MONTHS);
-  const averageCents = Math.round(
-    recentMonths.reduce((sum, m) => sum + m.spentCents, 0) /
-      recentMonths.length,
-  );
   const slot = chartWidth / series.length;
   const barWidth = Math.max(4, slot - BAR_GAP * 2);
   // Every bar shares one scale off the window's biggest month, so a short
@@ -76,7 +75,9 @@ export function MonthlyBarChart({
       ? series.findIndex((m) => m.month === selectedMonth)
       : -1;
   const activeIndex = index ?? (pinnedIndex >= 0 ? pinnedIndex : null);
-  const shown = series[activeIndex ?? series.length - 1];
+  const shownIndex = activeIndex ?? series.length - 1;
+  const shown = series[shownIndex];
+  const averageCents = Math.round(averages[shownIndex] ?? 0);
   const locale = localeTag(language);
 
   return (
@@ -103,12 +104,15 @@ export function MonthlyBarChart({
       >
         <View {...handlers}>
           <Svg width={chartWidth} height={CHART_HEIGHT}>
-            {averageCents > 0 && maxCents > 0 ? (
-              <Line
-                x1={0}
-                y1={CHART_HEIGHT - barHeight(averageCents)}
-                x2={chartWidth}
-                y2={CHART_HEIGHT - barHeight(averageCents)}
+            {maxCents > 0 ? (
+              <Polyline
+                points={averages
+                  .map(
+                    (a, i) =>
+                      `${i * slot + slot / 2},${CHART_HEIGHT - barHeight(a ?? 0)}`,
+                  )
+                  .join(' ')}
+                fill="none"
                 stroke={colors.textMuted}
                 strokeWidth={1}
                 strokeDasharray="4 4"

@@ -1,3 +1,4 @@
+import { trailingAverages } from './movingAverage';
 import { itemPriceCents, parsePurchaseItems } from './purchaseItems';
 
 // All these functions need of a transaction. Narrow on purpose: the query
@@ -47,14 +48,13 @@ export interface PurchaseItemDay {
 }
 
 export interface PurchaseItemTrend {
-  points: { date: string; priceCents: number }[];
-  // The average of everything before the newest point, over at most a year
-  // of them — the same "trailing window, excluding the one being read" rule
-  // the category trend's baseline uses on InsightsScreen.
+  // Each point's benchmark: the average of the purchases before it in the
+  // 12 months ending with its own — the same "trailing window, excluding the
+  // one being read" rule the category trend's baseline uses.
+  points: { date: string; priceCents: number; averageCents: number | null }[];
+  // The newest point's benchmark.
   benchmarkCents: number | null;
 }
-
-const BENCHMARK_WINDOW = 12;
 
 interface Occurrence {
   name: string;
@@ -161,17 +161,17 @@ export function purchaseItemHistory(
 }
 
 export function purchaseItemTrend(history: PurchaseItemDay[]): PurchaseItemTrend {
-  const points = [...history]
-    .reverse()
-    .map((day) => ({ date: day.date, priceCents: day.priceCents }));
-  const prior = points.slice(Math.max(0, points.length - 1 - BENCHMARK_WINDOW), points.length - 1);
-  return {
-    points,
-    benchmarkCents:
-      prior.length > 0
-        ? Math.round(prior.reduce((sum, p) => sum + p.priceCents, 0) / prior.length)
-        : null,
-  };
+  const days = [...history].reverse();
+  const averages = trailingAverages(
+    days.map((day) => ({ date: day.date, value: day.priceCents })),
+    { includeSelf: false },
+  );
+  const points = days.map((day, i) => ({
+    date: day.date,
+    priceCents: day.priceCents,
+    averageCents: averages[i] == null ? null : Math.round(averages[i]),
+  }));
+  return { points, benchmarkCents: points.at(-1)?.averageCents ?? null };
 }
 
 // Every item name the board has seen, commonest first — what the spend

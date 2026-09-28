@@ -274,7 +274,7 @@ export function ExchangeInsightsScreen() {
             ))}
           </View>
           <SeriesLineChart
-            points={charted.map((p) => ({ label: p.date, value: p.rate }))}
+            points={charted.map((p) => ({ date: p.date, value: p.rate }))}
             formatValue={formatRate}
           />
           <ResultRow

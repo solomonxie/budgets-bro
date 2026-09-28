@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Circle, Line, Polygon, Polyline } from 'react-native-svg';
+import { MovingAverageLine } from '../../components/ui/AverageLine';
 import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
 import {
   buildGrowthSeries,
@@ -22,6 +23,7 @@ import {
   yearsBetween,
 } from '../../domain/month';
 import { formatMoney, formatMoneyCompact } from '../../domain/money';
+import { trailingAverages } from '../../domain/movingAverage';
 import { useI18n, localeTag } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -108,6 +110,21 @@ export function ValueHistoryChart({
     () => projectGrowthOntoPeriods(series, periods),
     [series, periods],
   );
+  // The total's 12-month moving average. Not by year (a window of one), nor
+  // for overlay, whose two lines have no single total to average.
+  const averages = useMemo(
+    () =>
+      byYear || mode === 'overlay'
+        ? []
+        : trailingAverages(
+            periods.map((period, i) => ({
+              date: period,
+              value: projected[i]?.totalCents ?? null,
+            })),
+          ),
+    [byYear, mode, periods, projected],
+  );
+  const latestAverage = averages.at(-1) ?? null;
 
   const sizing = STEP_SIZING[interval];
   const fittedWidth = Math.max(
@@ -348,6 +365,17 @@ export function ValueHistoryChart({
                   strokeLinejoin="round"
                 />
               )}
+              {latestAverage != null ? (
+                <MovingAverageLine
+                  points={averages.flatMap((v, i) =>
+                    v == null ? [] : [{ x: pointX(i), y: pointY(v) }],
+                  )}
+                  width={chartWidth}
+                  label={t('chart.avgLine', {
+                    amount: formatMoneyCompact(latestAverage),
+                  })}
+                />
+              ) : null}
               {selectedIndex != null && shown != null ? (
                 <>
                   <ScrubMarker

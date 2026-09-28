@@ -5,6 +5,7 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
 
 ```
  ⚙︎    Insights
+ ⚠ Annual review: 2 payments to decide on    ›   ← only while some are due
  ‹      September 2026      ›
  ┌──────────────────────────────────────────────────┐
  │ SPENDING BREAKDOWN                               │
@@ -31,6 +32,7 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
  Plans and calculators built on your own accounts.
  Payee Trend                                    ›
  Tracked Prices                                 ›
+ Annual Review (ABR)                          2 ›
  Flagged Transactions                            3 ›
  Baby Steps                                        ›
  Mortgage Insights                                 ›
@@ -108,6 +110,35 @@ no payee is reported at the foot, never ranked.
  └──────────────────────────────────────────────────┘
  $310 of spending named no payee…                     ← only when there is some
  empty   No payees yet. Name who you paid…
+```
+
+## Annual Review (ABR)  `insights/PaymentReviewScreen.tsx`
+
+Once a year, every recurring outflow gets a decision. Sources: scheduled
+outflows (monthly = any non-yearly frequency; annual = yearly) and ad hoc
+payees the user adds (`payees.review_on` set). Review state lives on the row
+itself — `review_on`/`review_note` on `scheduled_transactions` and `payees`
+(migration 039), so backups and board deletes need nothing extra.
+
+- **When due**: annual — 30 days before renewal; monthly/ad hoc — a year
+  after creation or last review. "Find alternative" checks back in 30 days.
+- **Banner** on Insights home and a count on the row, only while due.
+- **Resolutions** (tap a row): Keep · Find Alternative (note) · Convert
+  Period (monthly ↔ annual, price prefilled at equal yearly cost) · Change
+  Mode (scheduled ↔ ad hoc) · Cancel & Refund (deletes the schedule / stops
+  tracking; optional refund posts as an inflow to the same account+category).
+
+```
+ ‹     Annual Review (ABR)
+ <guide>
+ ┌ RECURRING PAYMENTS, PER YEAR ────────────────────┐
+ │ $2,340                                           │
+ │ 9 payments under review                          │
+ └──────────────────────────────────────────────────┘
+ DUE FOR REVIEW · 2                                 amber
+ │ Cloud Storage   Renews Oct 10, 2026   $99/yr   › │
+ MONTHLY · ANNUAL · AD HOC                          non-due rows
+ ( + Add Ad Hoc Payee )                             payee picker
 ```
 
 ## Tax Insights  `tax/TaxInsightsScreen.tsx`

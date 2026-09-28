@@ -88,6 +88,12 @@ export async function renameOrMergePayee(
   await db.withTransactionAsync(async () => {
     await db.runAsync('UPDATE transactions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
     await db.runAsync('UPDATE scheduled_transactions SET payee_id = ? WHERE payee_id = ?', existing.id, id);
+    await db.runAsync(
+      'UPDATE payees SET review_on = COALESCE(review_on, (SELECT review_on FROM payees WHERE id = ?)), review_note = COALESCE(review_note, (SELECT review_note FROM payees WHERE id = ?)) WHERE id = ?',
+      id,
+      id,
+      existing.id,
+    );
     await db.runAsync('DELETE FROM payees WHERE id = ?', id);
   });
   return 'merged';
@@ -143,6 +149,7 @@ export async function pruneUnusedPayees(db: SQLiteDatabase, boardId: number): Pr
     `DELETE FROM payees
      WHERE board_id = ?
        AND linked_account_id IS NULL
+       AND review_on IS NULL
        AND id NOT IN (SELECT payee_id FROM transactions WHERE payee_id IS NOT NULL)
        AND id NOT IN (SELECT payee_id FROM scheduled_transactions WHERE payee_id IS NOT NULL)`,
     boardId,

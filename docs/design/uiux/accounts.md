@@ -55,7 +55,7 @@ One screen, everything inline — no separate cards page.
  │     (a home is re-valued rarely, not monthly),   │
  │     entry list, + Update Home Value              │
  └──────────────────────────────────────────────────┘
- ▾ expands the trend chart in place:
+ trend chart, open on arrival (▾ folds it):
  ┌──────────────────────────────────────────────────┐
  │      ╱‾‾╲       balance trend (cash/savings/     │
  │  ╱‾‾╯    ╲___   credit — credit overlays monthly │

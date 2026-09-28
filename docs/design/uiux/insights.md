@@ -116,7 +116,8 @@ no payee is reported at the foot, never ranked.
 
 Once a year, every recurring spend gets a decision. Scope: outflows from
 cash and credit card accounts only — no transfers, no account-linked payees,
-no loan payment categories, nothing from savings/tracking.
+no loan payment categories, nothing from savings/tracking, no rent (category
+or payee named with the word rent/landlord, or 房租/租金/房东).
 
 Sources:
 - **Scheduled** outflows (monthly = any non-yearly frequency; annual = yearly).

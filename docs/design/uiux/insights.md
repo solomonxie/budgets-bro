@@ -116,8 +116,7 @@ no payee is reported at the foot, never ranked.
 
 Once a year, every recurring spend gets a decision. Scope: outflows from
 cash and credit card accounts only — no transfers, no account-linked payees,
-no loan payment categories, nothing from savings/tracking, no rent (category
-or payee named with the word rent/landlord, or 房租/租金/房东).
+no loan payment categories, nothing from savings/tracking.
 
 Sources:
 - **Scheduled** outflows (monthly = any non-yearly frequency; annual = yearly).
@@ -129,8 +128,10 @@ Sources:
 
 Review state lives on the row itself — `review_on`/`review_note` on
 `scheduled_transactions` and `payees`, plus `payees.review_mode`
-(`adHoc` · `dismissed` · NULL; migrations 039–040). A dismissed payee is
-detected again only from charges after the dismissal date.
+(`adHoc` · `dismissed` · `ignored` · NULL) and
+`scheduled_transactions.review_ignored` (migrations 039–041). A dismissed
+payee is detected again only from charges after the dismissal date. No
+name-based rules: rent and the like are left to the user's Ignore.
 
 - **When due**: annual — 30 days before renewal; monthly/ad hoc — a year
   after creation or last review. "Find alternative" checks back in 30 days.
@@ -138,7 +139,9 @@ detected again only from charges after the dismissal date.
 - **Resolutions** (tap a row): Keep · Find Alternative (note) · Convert
   Period (monthly ↔ annual, price prefilled at equal yearly cost) · Change
   Mode (scheduled ↔ ad hoc; detected → scheduled) · Not Recurring
-  (detected only) · Cancel & Refund (deletes the schedule / stops
+  (detected only) · Ignore (never due, out of the total; listed behind an
+  "Ignored (n)" link at the bottom, where Restore puts it back) · Cancel &
+  Refund (deletes the schedule / stops
   tracking; optional refund posts as an inflow to the same account+category).
 
 ```

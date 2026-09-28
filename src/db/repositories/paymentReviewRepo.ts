@@ -12,11 +12,12 @@ import {
   LIST_REPEATED_CHARGES,
   LAST_OUTFLOW_FOR_PAYEE,
   SET_SCHEDULE_REVIEW,
+  SET_SCHEDULE_IGNORED,
   SET_PAYEE_REVIEW_MODE,
   CONVERT_SCHEDULE,
 } from '../../../databases/queries/paymentReview';
 
-type PayeeReviewMode = 'adHoc' | 'dismissed' | null;
+type PayeeReviewMode = 'adHoc' | 'dismissed' | 'ignored' | null;
 
 interface AdHocRow {
   payee_id: number;
@@ -67,6 +68,7 @@ export async function listRepeatedCharges(db: SQLiteDatabase, boardId: number, s
       dates: r.dates.split(','),
       reviewOn: dismissed ? null : r.review_on,
       reviewNote: dismissed ? null : r.review_note,
+      ignored: r.review_mode === 'ignored',
     };
   });
 }
@@ -89,6 +91,13 @@ export async function setReview(db: SQLiteDatabase, item: ReviewItem, reviewOn: 
 // charges after today can bring it back.
 export async function dismiss(db: SQLiteDatabase, item: ReviewItem, today: string): Promise<void> {
   if (item.payeeId != null) await setPayeeReview(db, item.payeeId, 'dismissed', today, null);
+}
+
+// Ignore: still listed (under Ignored), never due. Restore clears the review
+// state too, so it comes back on its default schedule.
+export async function setIgnored(db: SQLiteDatabase, item: ReviewItem, ignored: boolean): Promise<void> {
+  if (item.schedule) await db.runAsync(SET_SCHEDULE_IGNORED, ignored ? 1 : 0, item.schedule.id);
+  else if (item.payeeId != null) await setPayeeReview(db, item.payeeId, ignored ? 'ignored' : null, null, null);
 }
 
 export async function convertSchedule(

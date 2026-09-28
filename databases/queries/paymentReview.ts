@@ -9,20 +9,9 @@ const NOT_LOAN_CATEGORY = (col: string) =>
 const SPENDING = (t: string) =>
   `${t}.amount_cents < 0 AND ${t}.transfer_account_id IS NULL AND ${NOT_LOAN_CATEGORY(`${t}.category_id`)}`;
 
-// Rent isn't a bill you shop around or cancel, so it stays out: any category
-// or payee whose name has the word "rent"/"landlord" (or 房租/租金/房东).
-// Lowercased and space-padded so the GLOB's [^a-z] acts as a word boundary —
-// "Parenting" and "Current" don't match.
-const RENT_NAME = (col: string) =>
-  `(' ' || LOWER(COALESCE(${col}, '')) || ' ' GLOB '*[^a-z]rent[^a-z]*'
-    OR ' ' || LOWER(COALESCE(${col}, '')) || ' ' GLOB '*[^a-z]landlord[^a-z]*'
-    OR ${col} LIKE '%房租%' OR ${col} LIKE '%租金%' OR ${col} LIKE '%房东%')`;
-const NOT_RENT = (categoryCol: string, payeeCol: string) => `NOT ${RENT_NAME(categoryCol)} AND NOT ${RENT_NAME(payeeCol)}`;
-
 export const LIST_REVIEWABLE_SCHEDULES = `${SELECT_WITH_LABELS}
   WHERE s.board_id = ? AND s.amount_cents < 0 AND ${SPENDING_ACCOUNT}
     AND (p.id IS NULL OR p.linked_account_id IS NULL) AND ${NOT_LOAN_CATEGORY('s.category_id')}
-    AND ${NOT_RENT('c.name', 'p.name')}
   ORDER BY s.next_date ASC, s.id ASC`;
 
 // Payees tracked by hand as ad hoc, with their last spending outflow and
@@ -46,18 +35,18 @@ export const LIST_AD_HOC = `
 // Candidates for detected recurring payments: the same payee charging the
 // exact same amount more than once in the window. Cadence is inferred from
 // the dates (domain/paymentReview.detectRecurring). Payees already
-// scheduled or tracked as ad hoc are skipped; a dismissed payee only counts
-// charges made after it was dismissed (review_on holds that date).
+// scheduled or tracked as ad hoc are skipped; ignored ones are kept (listed
+// under Ignored); a dismissed payee only counts charges made after it was
+// dismissed (review_on holds that date).
 export const LIST_REPEATED_CHARGES = `
   SELECT t.payee_id, p.name, -t.amount_cents AS amount_cents, GROUP_CONCAT(t.date) AS dates,
     p.review_on, p.review_note, p.review_mode
   FROM transactions t
   JOIN accounts a ON a.id = t.account_id
   JOIN payees p ON p.id = t.payee_id
-  LEFT JOIN categories c ON c.id = t.category_id
   WHERE t.board_id = ? AND t.date >= ? AND ${SPENDING('t')} AND ${SPENDING_ACCOUNT}
-    AND p.linked_account_id IS NULL AND ${NOT_RENT('c.name', 'p.name')}
-    AND (p.review_mode IS NULL OR (p.review_mode = 'dismissed' AND t.date > p.review_on))
+    AND p.linked_account_id IS NULL
+    AND (p.review_mode IS NULL OR p.review_mode = 'ignored' OR (p.review_mode = 'dismissed' AND t.date > p.review_on))
     AND t.payee_id NOT IN (
       SELECT payee_id FROM scheduled_transactions WHERE board_id = ? AND payee_id IS NOT NULL AND amount_cents < 0
     )
@@ -74,6 +63,8 @@ export const LAST_OUTFLOW_FOR_PAYEE = `
 export const SET_SCHEDULE_REVIEW = 'UPDATE scheduled_transactions SET review_on = ?, review_note = ? WHERE id = ?';
 
 export const SET_PAYEE_REVIEW_MODE = 'UPDATE payees SET review_mode = ?, review_on = ?, review_note = ? WHERE id = ?';
+
+export const SET_SCHEDULE_IGNORED = 'UPDATE scheduled_transactions SET review_ignored = ?, review_on = NULL, review_note = NULL WHERE id = ?';
 
 export const CONVERT_SCHEDULE = `
   UPDATE scheduled_transactions

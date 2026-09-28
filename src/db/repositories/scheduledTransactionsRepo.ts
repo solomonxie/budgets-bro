@@ -33,6 +33,7 @@ export function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWi
     createdAt: row.created_at,
     reviewOn: row.review_on ?? null,
     reviewNote: row.review_note ?? null,
+    reviewIgnored: row.review_ignored === 1,
     payeeName: row.payee_name,
     categoryName: row.category_name,
     categoryIcon: row.category_icon,

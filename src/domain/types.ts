@@ -162,6 +162,7 @@ export interface ScheduledTransaction {
   createdAt: string;
   reviewOn: string | null; // see domain/paymentReview.ts
   reviewNote: string | null;
+  reviewIgnored: boolean;
 }
 
 export interface ScheduledTransactionWithLabels extends ScheduledTransaction {

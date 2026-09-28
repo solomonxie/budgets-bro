@@ -5,7 +5,7 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
 
 ```
  ⚙︎    Insights
- ⚠ Annual review: 2 payments to decide on    ›   ← only while some are due
+ ⚠ Quarterly review: 2 payments to decide on    ›   ← only while some are due
  ‹      September 2026      ›
  ┌──────────────────────────────────────────────────┐
  │ SPENDING BREAKDOWN                               │
@@ -32,7 +32,7 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
  Plans and calculators built on your own accounts.
  Payee Trend                                    ›
  Tracked Prices                                 ›
- Annual Review (ABR)                          2 ›
+ Quarterly Review (QBR)                       2 ›
  Flagged Transactions                            3 ›
  Baby Steps                                        ›
  Mortgage Insights                                 ›
@@ -112,9 +112,9 @@ no payee is reported at the foot, never ranked.
  empty   No payees yet. Name who you paid…
 ```
 
-## Annual Review (ABR)  `insights/PaymentReviewScreen.tsx`
+## Quarterly Review (QBR)  `insights/PaymentReviewScreen.tsx`
 
-Once a year, every recurring spend gets a decision. Scope: outflows from
+Every calendar quarter, every recurring spend gets a decision. Scope: outflows from
 cash and credit card accounts only — no transfers, no account-linked payees,
 no loan payment categories, nothing from savings/tracking.
 
@@ -124,23 +124,28 @@ Sources:
   (`LIST_REPEATED_CHARGES`), cadence from the median gap — monthly 25–35 days
   with ≥3 charges, annual 350–380 days with ≥2; dropped once overdue by half
   a period. Payees with an outflow schedule are skipped.
-- **Ad hoc**: payees the user adds (`payees.review_mode = 'adHoc'`).
 
 Review state lives on the row itself — `review_on`/`review_note` on
 `scheduled_transactions` and `payees`, plus `payees.review_mode`
-(`adHoc` · `dismissed` · `ignored` · NULL) and
-`scheduled_transactions.review_ignored` (migrations 039–041). A dismissed
-payee is detected again only from charges after the dismissal date. No
+(`dismissed` · `ignored` · NULL) and
+`scheduled_transactions.review_ignored` (migrations 039–041; 043 dropped
+ad hoc). No
 name-based rules: rent and the like are left to the user's Ignore.
 
-- **When due**: annual — 30 days before renewal; monthly/ad hoc — a year
-  after creation or last review. "Find alternative" checks back in 30 days.
+- **When due**: the first day of each quarter (Jan/Apr/Jul/Oct 1) — the
+  quarter after creation (detected: first charge), then the quarter after
+  the last decision. Same for monthly and annual.
+- **Filter**: payees and categories in the review, all by default. Stored
+  per board as exclusions (`app_settings` `qbr.excluded:<boardId>`), so new
+  ones are in. A left-out item isn't listed, due, counted or in the banner.
+  An item's category: the schedule's, or a detected charge's latest.
 - **Banner** on Insights home and a count on the row, only while due.
 - **Decisions never change transactions or schedules.** Tap a row → Keep ·
   Find Alternative · Convert Period · Change Mode · Cancel & Refund · Not
-  Recurring (detected only) · Ignore (never due, out of the total; behind an
-  "Ignored (n)" link, where Restore puts it back).
-- Every decision settles the item until next year's review and is logged in
+  Recurring (detected only, hidden for the quarter) · Ignore (never due, out
+  of the total, behind an "Ignored (n)" link until Restore).
+- **Every decision lasts one quarter**, Not Recurring included — except
+  Ignore, which stays until Restore. Next quarter the item is due again. Logged in
   `payment_decisions` (migration 042; backed up, restored, board-deleted).
   Action decisions (alternative, convert, mode, cancel) stay open as a **To
   Do** with a remind-by date (default: day before the next charge, else a
@@ -149,8 +154,9 @@ name-based rules: rent and the like are left to the user's Ignore.
 - Banner counts items to decide plus to-dos that are due.
 
 ```
- ‹     Annual Review (ABR)
+ ‹     Quarterly Review (QBR)
  <guide>
+ All payees ▾   All categories ▾                  filters, sheet of ✓ rows
  ┌ RECURRING PAYMENTS, PER YEAR ────────────────────┐
  │ $2,340                                           │
  │ 9 payments under review                          │
@@ -159,8 +165,7 @@ name-based rules: rent and the like are left to the user's Ignore.
  │ Cancel & Refund · Cloud   By Oct 9 · call first › │  tap = Mark Done / Delete
  DUE FOR REVIEW · 2                                 amber
  │ Cloud Storage   Renews Oct 10, 2026   $99/yr   › │
- MONTHLY · ANNUAL · AD HOC                          non-due rows
- ( + Add Ad Hoc Payee )                             payee picker
+ MONTHLY · ANNUAL                                   not due, not yet decided
  HISTORY                                            newest first, 5 + Show all
  │ Keep · Gym                Decided Sep 1           │
  Ignored (2)                                        link, expands in place

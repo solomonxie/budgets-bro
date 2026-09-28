@@ -78,8 +78,8 @@ export function InsightsScreen() {
   const { dueCount: reviewDecideCount, todoDueCount: reviewTodoCount } = usePaymentReview();
   const reviewDueCount = reviewDecideCount + reviewTodoCount;
   const reviewBanner = [
-    reviewDecideCount > 0 ? t('abr.bannerDecide', { count: reviewDecideCount }) : null,
-    reviewTodoCount > 0 ? t('abr.bannerTodo', { count: reviewTodoCount }) : null,
+    reviewDecideCount > 0 ? t('qbr.bannerDecide', { count: reviewDecideCount }) : null,
+    reviewTodoCount > 0 ? t('qbr.bannerTodo', { count: reviewTodoCount }) : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -237,7 +237,7 @@ export function InsightsScreen() {
       {reviewDueCount > 0 ? (
         <Pressable style={styles.banner} onPress={() => navigation.navigate('PaymentReview')}>
           <Text style={styles.bannerText} numberOfLines={1}>
-            {t('abr.banner', { items: reviewBanner })}
+            {t('qbr.banner', { items: reviewBanner })}
           </Text>
           <Text style={styles.bannerArrow}>›</Text>
         </Pressable>

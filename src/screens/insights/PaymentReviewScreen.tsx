@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
-import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
+import { BottomSheet } from '../../components/ui/BottomSheet';
+import { DropdownOption } from '../../components/ui/DropdownField';
 import { DECISION_LABEL, PaymentDecisionModal } from './PaymentDecisionModal';
 import { CardModal } from '../../components/ui/CardModal';
 import { usePaymentReview } from '../../hooks/usePaymentReview';
-import { usePayees } from '../../hooks/usePayees';
+import { useCategories } from '../../hooks/useCategories';
 import { getDb } from '../../db/client';
 import * as paymentReviewRepo from '../../db/repositories/paymentReviewRepo';
-import { addMonths } from '../../finance-tools/amortization';
 import { decisionItemKey } from '../../domain/paymentReview';
-import type { PaymentDecision, ReviewCadence, ReviewItem } from '../../domain/paymentReview';
+import type { PaymentDecision, ReviewCadence, ReviewFilter, ReviewItem } from '../../domain/paymentReview';
 import { formatDateLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
@@ -21,21 +21,27 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 const SECTIONS: { cadence: ReviewCadence; titleKey: TranslationKey }[] = [
-  { cadence: 'monthly', titleKey: 'abr.monthlySection' },
-  { cadence: 'annual', titleKey: 'abr.annualSection' },
-  { cadence: 'adHoc', titleKey: 'abr.adHocSection' },
+  { cadence: 'monthly', titleKey: 'qbr.monthlySection' },
+  { cadence: 'annual', titleKey: 'qbr.annualSection' },
 ];
 
-// Annual payment review: every recurring outflow, once a year, gets a
+type FilterKind = 'payeeIds' | 'categoryIds';
+
+interface FilterOption {
+  id: number;
+  label: string;
+}
+
+// Quarterly payment review: every recurring outflow, each quarter, gets a
 // decision. The page never changes a transaction or schedule — a decision
 // that needs doing lands in To Do until the user marks it done, then History.
 export function PaymentReviewScreen() {
   const { t, language } = useI18n();
   const locale = localeTag(language);
-  const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const { items, todo, history, loading, today } = usePaymentReview();
-  const { payees } = usePayees('usage');
+  const { allItems, items, filter, setFilter, todo, history, loading, today } = usePaymentReview();
+  const { categories } = useCategories();
+  const [filterOpen, setFilterOpen] = useState<FilterKind | null>(null);
   const [selected, setSelected] = useState<ReviewItem | null>(null);
   const [showIgnored, setShowIgnored] = useState(false);
   const [openTodo, setOpenTodo] = useState<PaymentDecision | null>(null);
@@ -46,35 +52,55 @@ export function PaymentReviewScreen() {
   const ignored = useMemo(() => items.filter((i) => i.ignored), [items]);
   const due = reviewed.filter((i) => i.due);
   const yearlyTotal = useMemo(() => reviewed.reduce((s, i) => s + i.yearlyCents, 0), [reviewed]);
-  const trackedPayeeIds = useMemo(() => new Set(items.map((i) => i.payeeId)), [items]);
-  const payeeOptions = payees
-    .filter((p) => p.linkedAccountId == null && !trackedPayeeIds.has(p.id))
-    .map((p) => ({ id: p.id, label: p.name }));
 
-  const track = async (name: string) => {
-    const db = await getDb();
-    await paymentReviewRepo.trackPayee(db, boardId, name, addMonths(today, 12));
-    bumpDataVersion();
+  // Only payees and categories that have something to review are offered.
+  const filterOptions = useMemo(() => {
+    const payees = new Map<number, string>();
+    const categoryIds = new Set<number>();
+    for (const i of allItems) {
+      if (i.payeeId != null) payees.set(i.payeeId, i.schedule?.payeeName ?? i.name);
+      if (i.categoryId != null) categoryIds.add(i.categoryId);
+    }
+    const byLabel = (a: FilterOption, b: FilterOption) => a.label.localeCompare(b.label);
+    return {
+      payeeIds: [...payees].map(([id, label]) => ({ id, label })).sort(byLabel),
+      categoryIds: categories
+        .filter((c) => categoryIds.has(c.id))
+        .map((c) => ({ id: c.id, label: `${c.icon ? c.icon + ' ' : ''}${c.name}` }))
+        .sort(byLabel),
+    } satisfies Record<FilterKind, FilterOption[]>;
+  }, [allItems, categories]);
+
+  const filterLabel = (kind: FilterKind) => {
+    const total = filterOptions[kind].length;
+    const excluded = filterOptions[kind].filter((o) => filter[kind].includes(o.id)).length;
+    const [all, some] = kind === 'payeeIds' ? (['qbr.allPayees', 'qbr.somePayees'] as const) : (['qbr.allCategories', 'qbr.someCategories'] as const);
+    return excluded === 0 ? t(all) : t(some, { count: total - excluded, total });
   };
 
+  const toggleFilter = (kind: FilterKind, id: number) => {
+    const ids = filter[kind];
+    const next: ReviewFilter = { ...filter, [kind]: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id] };
+    setFilter(next);
+  };
+
+  const selectAll = (kind: FilterKind) => setFilter({ ...filter, [kind]: [] });
+
   const amountLabel = (item: ReviewItem) => {
-    if (item.cadence === 'adHoc') return t('abr.perYear', { amount: formatMoney(item.yearlyCents) });
-    return t(item.cadence === 'annual' ? 'abr.perYear' : 'abr.perMonth', {
+    return t(item.cadence === 'annual' ? 'qbr.perYear' : 'qbr.perMonth', {
       amount: formatMoney(item.cadence === 'annual' ? item.yearlyCents : Math.round(item.yearlyCents / 12)),
     });
   };
 
   const detailLabel = (item: ReviewItem) => {
     const pending = todoByKey.get(item.key);
-    if (pending) return t('abr.todoFor', { decision: t(DECISION_LABEL[pending.decision]) });
+    if (pending) return t('qbr.todoFor', { decision: t(DECISION_LABEL[pending.decision]) });
     if (item.detected && item.lastDate)
-      return t(item.cadence === 'annual' ? 'abr.detectedAnnual' : 'abr.detectedMonthly', {
+      return t(item.cadence === 'annual' ? 'qbr.detectedAnnual' : 'qbr.detectedMonthly', {
         date: formatDateLabel(item.cadence === 'annual' && item.nextDate ? item.nextDate : item.lastDate, locale),
       });
-    if (item.cadence === 'annual' && item.nextDate) return t('abr.renews', { date: formatDateLabel(item.nextDate, locale) });
-    if (item.cadence === 'adHoc')
-      return item.lastDate ? t('abr.lastPaid', { date: formatDateLabel(item.lastDate, locale) }) : t('abr.neverPaid');
-    return t('abr.reviewBy', { date: formatDateLabel(item.reviewOn, locale) });
+    if (item.cadence === 'annual' && item.nextDate) return t('qbr.renews', { date: formatDateLabel(item.nextDate, locale) });
+    return t('qbr.reviewBy', { date: formatDateLabel(item.reviewOn, locale) });
   };
 
   const renderRow = (item: ReviewItem, i: number) => (
@@ -101,9 +127,9 @@ export function PaymentReviewScreen() {
     const overdue = open && d.dueOn != null && d.dueOn <= today;
     const when = open
       ? d.dueOn
-        ? t('abr.dueBy', { date: formatDateLabel(d.dueOn, locale) })
+        ? t('qbr.dueBy', { date: formatDateLabel(d.dueOn, locale) })
         : ''
-      : t(d.doneOn === d.decidedOn ? 'abr.decidedOn' : 'abr.doneOn', { date: formatDateLabel(d.doneOn!, locale) });
+      : t(d.doneOn === d.decidedOn ? 'qbr.decidedOn' : 'qbr.doneOn', { date: formatDateLabel(d.doneOn!, locale) });
     return (
       <Pressable
         key={d.id}
@@ -140,61 +166,55 @@ export function PaymentReviewScreen() {
 
   return (
     <ScreenContainer scroll>
-      <GuideSection heading={t('abr.guideHeading')} body={t('abr.guideBody')} />
+      <GuideSection heading={t('qbr.guideHeading')} body={t('qbr.guideBody')} />
+
+      {allItems.length > 0 ? (
+        <View style={styles.filterRow}>
+          {(['payeeIds', 'categoryIds'] as const).map((kind) => (
+            <Pressable key={kind} onPress={() => setFilterOpen(kind)} hitSlop={8}>
+              <Text style={[styles.filterText, filter[kind].length > 0 && styles.filterActive]}>{filterLabel(kind)} ▾</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.card}>
-        <Text style={styles.label}>{t('abr.yearlyTotal')}</Text>
+        <Text style={styles.label}>{t('qbr.yearlyTotal')}</Text>
         <Text style={styles.value}>{formatMoney(yearlyTotal)}</Text>
-        <Text style={styles.hint}>{t('abr.commitmentCount', { count: reviewed.length })}</Text>
+        <Text style={styles.hint}>{t('qbr.commitmentCount', { count: reviewed.length })}</Text>
       </View>
 
       {todo.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>{t('abr.todoSection', { count: todo.length })}</Text>
+          <Text style={styles.sectionTitle}>{t('qbr.todoSection', { count: todo.length })}</Text>
           <View style={styles.card}>{todo.map(renderDecision)}</View>
         </>
       ) : null}
 
       {due.length > 0 ? (
         <>
-          <Text style={[styles.sectionTitle, styles.dueTitle]}>{t('abr.dueSection', { count: due.length })}</Text>
+          <Text style={[styles.sectionTitle, styles.dueTitle]}>{t('qbr.dueSection', { count: due.length })}</Text>
           <View style={[styles.card, styles.dueCard]}>{due.map(renderRow)}</View>
         </>
       ) : null}
 
       {SECTIONS.map(({ cadence, titleKey }) => {
-        const rows = reviewed.filter((i) => i.cadence === cadence && !i.due);
-        if (rows.length === 0 && cadence !== 'adHoc') return null;
+        const rows = reviewed.filter((i) => i.cadence === cadence && !i.due && !i.decided);
+        if (rows.length === 0) return null;
         return (
           <View key={cadence}>
             <Text style={styles.sectionTitle}>{t(titleKey)}</Text>
-            {rows.length > 0 ? <View style={styles.card}>{rows.map(renderRow)}</View> : null}
+            <View style={styles.card}>{rows.map(renderRow)}</View>
           </View>
         );
       })}
-      <Text style={styles.hint}>{t('abr.adHocHint')}</Text>
-      <SearchableDropdownField
-        label={t('abr.addAdHoc')}
-        valueLabel=""
-        searchPlaceholder={t('abr.addAdHocSearch')}
-        options={payeeOptions}
-        onSelect={(o) => track(o.label)}
-        onUseText={track}
-        compact
-        autoFocusSearch={false}
-        renderField={(open) => (
-          <Pressable style={styles.addButton} onPress={open}>
-            <Text style={styles.addButtonText}>{t('abr.addAdHoc')}</Text>
-          </Pressable>
-        )}
-      />
 
-      {items.length === 0 ? <Text style={styles.hint}>{t('abr.empty')}</Text> : null}
+      {allItems.length === 0 ? <Text style={styles.hint}>{t('qbr.empty')}</Text> : null}
 
       {ignored.length > 0 ? (
         <Pressable style={styles.ignoredLink} onPress={() => setShowIgnored(!showIgnored)} hitSlop={8}>
           <Text style={styles.ignoredLinkText}>
-            {t(showIgnored ? 'abr.hideIgnored' : 'abr.showIgnored', { count: ignored.length })}
+            {t(showIgnored ? 'qbr.hideIgnored' : 'qbr.showIgnored', { count: ignored.length })}
           </Text>
         </Pressable>
       ) : null}
@@ -202,12 +222,12 @@ export function PaymentReviewScreen() {
 
       {history.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>{t('abr.historySection')}</Text>
+          <Text style={styles.sectionTitle}>{t('qbr.historySection')}</Text>
           <View style={styles.card}>{shownHistory.map(renderDecision)}</View>
           {history.length > HISTORY_PREVIEW ? (
             <Pressable style={styles.ignoredLink} onPress={() => setShowAllHistory(!showAllHistory)} hitSlop={8}>
               <Text style={styles.ignoredLinkText}>
-                {showAllHistory ? t('abr.showLessHistory') : t('abr.showAllHistory', { count: history.length })}
+                {showAllHistory ? t('qbr.showLessHistory') : t('qbr.showAllHistory', { count: history.length })}
               </Text>
             </Pressable>
           ) : null}
@@ -215,6 +235,24 @@ export function PaymentReviewScreen() {
       ) : null}
 
       <PaymentDecisionModal item={selected} today={today} onClose={() => setSelected(null)} />
+      <Modal visible={filterOpen != null} transparent animationType="slide" onRequestClose={() => setFilterOpen(null)}>
+        {filterOpen ? (
+          <BottomSheet
+            title={t(filterOpen === 'payeeIds' ? 'qbr.filterPayeesTitle' : 'qbr.filterCategoriesTitle')}
+            onClose={() => setFilterOpen(null)}
+          >
+            <DropdownOption label={t('qbr.selectAll')} selected={filter[filterOpen].length === 0} onPress={() => selectAll(filterOpen)} />
+            {filterOptions[filterOpen].map((o) => (
+              <DropdownOption
+                key={o.id}
+                label={o.label}
+                selected={!filter[filterOpen].includes(o.id)}
+                onPress={() => toggleFilter(filterOpen, o.id)}
+              />
+            ))}
+          </BottomSheet>
+        ) : null}
+      </Modal>
       <CardModal visible={openTodo != null} onCancel={() => setOpenTodo(null)}>
         {openTodo ? (
           <>
@@ -222,13 +260,13 @@ export function PaymentReviewScreen() {
               {t(DECISION_LABEL[openTodo.decision])} · {openTodo.name}
             </Text>
             {openTodo.note ? <Text style={styles.modalNote}>{openTodo.note}</Text> : null}
-            <Text style={styles.modalHint}>{t('abr.markDoneHint')}</Text>
+            <Text style={styles.modalHint}>{t('qbr.markDoneHint')}</Text>
             <View style={styles.modalActions}>
               <Pressable onPress={() => closeTodo('delete')}>
-                <Text style={styles.deleteText}>{t('abr.deleteTodo')}</Text>
+                <Text style={styles.deleteText}>{t('qbr.deleteTodo')}</Text>
               </Pressable>
               <Pressable style={styles.saveButton} onPress={() => closeTodo('done')}>
-                <Text style={styles.saveButtonText}>{t('abr.markDone')}</Text>
+                <Text style={styles.saveButtonText}>{t('qbr.markDone')}</Text>
               </Pressable>
             </View>
           </>
@@ -269,15 +307,9 @@ const styles = StyleSheet.create({
   rowDue: { color: colors.amber },
   rowAmount: { fontSize: 14, fontWeight: '700', color: colors.text },
   arrow: { fontSize: 18, color: colors.textMuted },
-  addButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  addButtonText: { color: colors.accent, fontWeight: '700' },
+  filterRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginBottom: spacing.md },
+  filterText: { fontSize: 14, color: colors.textMuted, fontWeight: '600' },
+  filterActive: { color: colors.accent },
   ignoredLink: { alignSelf: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
   ignoredLinkText: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
   ignoredCard: { opacity: 0.7 },

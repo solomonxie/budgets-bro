@@ -429,6 +429,20 @@ export const zh: Record<keyof typeof en, string> = {
 
   'settingsModal.title': '设置',
 
+  'feedback.title': '反馈',
+  'feedback.rowHint': '记录需要修复或新增的内容，仅保存在本机。',
+  'feedback.openCount': '{count} 条待处理',
+  'feedback.placeholder': '想改进什么？',
+  'feedback.add': '+ 添加',
+  'feedback.empty': '还没有反馈。',
+  'feedback.deleteHint': '点按状态可更改，长按条目可删除。',
+  'feedback.deleteTitle': '删除这条反馈？',
+  'feedback.statusTitle': '状态',
+  'feedback.statusOpen': '待处理',
+  'feedback.statusInProgress': '处理中',
+  'feedback.statusDone': '已完成',
+  'feedback.statusWontfix': '不处理',
+
   'netWorthBreakdown.heading': '{month} 构成',
   'netWorthBreakdown.noAccounts': '那个月还没有任何账户。',
   'netWorthBreakdown.homeValue': '房产 {amount}',

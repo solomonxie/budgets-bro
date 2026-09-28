@@ -205,7 +205,6 @@ export function AccountsScreen() {
           <BalanceTrendChart
             points={trendPoints}
             valueLabel={t('accounts.netWorth')}
-            showAverage
             selectedIndex={selectedIndex}
             onSelectIndex={setSelectedIndex}
           />

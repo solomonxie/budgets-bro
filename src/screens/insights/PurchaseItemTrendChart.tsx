@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Svg, { Circle, Line, Polyline } from 'react-native-svg';
+import Svg, { Circle, Polyline } from 'react-native-svg';
 import { ScrubMarker, useChartScrub } from '../../components/ui/chartScrub';
 import type { PurchaseItemTrend } from '../../domain/trackedPrices';
 import { formatMoneyExact } from '../../domain/money';
@@ -31,9 +31,8 @@ export function PurchaseItemTrendChart({ trend }: { trend: PurchaseItemTrend }) 
   if (points.length === 0) return null;
 
   const prices = points.map((p) => p.priceCents);
-  const values = benchmarkCents != null ? [...prices, benchmarkCents] : prices;
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
+  const minValue = Math.min(...prices);
+  const maxValue = Math.max(...prices);
   // A flat line (one price, bought again at the same price) would divide by
   // zero — it sits in the middle instead.
   const span = Math.max(1, maxValue - minValue);
@@ -45,8 +44,14 @@ export function PurchaseItemTrendChart({ trend }: { trend: PurchaseItemTrend }) 
     points.length > 1 ? (i / (points.length - 1)) * chartWidth : chartWidth / 2;
 
   const line = points.map((p, i) => `${pointX(i)},${pointY(p.priceCents)}`).join(' ');
+  const averageLine = points
+    .flatMap((p, i) =>
+      p.averageCents == null ? [] : [`${pointX(i)},${pointY(p.averageCents)}`],
+    )
+    .join(' ');
   const selected = index != null ? (points[index] ?? null) : null;
   const latest = points[points.length - 1];
+  const shownAverage = selected ? selected.averageCents : benchmarkCents;
 
   return (
     <View style={styles.container}>
@@ -57,21 +62,19 @@ export function PurchaseItemTrendChart({ trend }: { trend: PurchaseItemTrend }) 
         <Text style={styles.headlineLabel}>
           {selected ? selected.date : t('trackedPrices.latestPrice')}
         </Text>
-        {benchmarkCents != null ? (
+        {shownAverage != null ? (
           <Text style={styles.benchmark}>
-            {t('trackedPrices.average')} {formatMoneyExact(benchmarkCents)}
+            {t('trackedPrices.average')} {formatMoneyExact(shownAverage)}
           </Text>
         ) : null}
       </View>
       <ScrollView horizontal scrollEnabled={scrollEnabled} showsHorizontalScrollIndicator={false}>
         <View {...handlers}>
           <Svg width={chartWidth} height={CHART_HEIGHT}>
-            {benchmarkCents != null ? (
-              <Line
-                x1={0}
-                y1={pointY(benchmarkCents)}
-                x2={chartWidth}
-                y2={pointY(benchmarkCents)}
+            {averageLine !== '' ? (
+              <Polyline
+                points={averageLine}
+                fill="none"
                 stroke={colors.textMuted}
                 strokeWidth={1}
                 strokeDasharray="4 4"

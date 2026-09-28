@@ -16,6 +16,7 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { MonthNav } from '../../components/ui/MonthNav';
 import { useInsights } from '../../hooks/useInsights';
 import { RunwayCard } from './RunwayCard';
+import { usePaymentReview } from '../../hooks/usePaymentReview';
 import {
   currentMonth,
   nextMonth,
@@ -40,6 +41,7 @@ type UtilityScreen =
   | 'TaxInsights'
   | 'TrackedPrices'
   | 'PayeeTrend'
+  | 'PaymentReview'
   | 'ExchangeInsights'
   | 'CostOfLiving'
   | 'Housing'
@@ -60,6 +62,7 @@ export function InsightsScreen() {
     { label: t('insights.babySteps'), screen: 'BabySteps' },
     { label: t('insights.payeeTrend'), screen: 'PayeeTrend' },
     { label: t('insights.trackedPrices'), screen: 'TrackedPrices' },
+    { label: t('insights.paymentReview'), screen: 'PaymentReview' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
     { label: t('insights.loanInsights'), screen: 'LoanInsights' },
     { label: t('insights.investmentInsights'), screen: 'InvestmentInsights' },
@@ -72,6 +75,7 @@ export function InsightsScreen() {
   const navigation = useNavigation<Nav>();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
+  const { dueCount: reviewDueCount } = usePaymentReview();
   const { width: windowWidth } = useWindowDimensions();
   const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<number>>(
     new Set(),
@@ -223,6 +227,14 @@ export function InsightsScreen() {
 
   return (
     <ScreenContainer scroll>
+      {reviewDueCount > 0 ? (
+        <Pressable style={styles.banner} onPress={() => navigation.navigate('PaymentReview')}>
+          <Text style={styles.bannerText} numberOfLines={1}>
+            {t('abr.banner', { count: reviewDueCount })}
+          </Text>
+          <Text style={styles.bannerArrow}>›</Text>
+        </Pressable>
+      ) : null}
       <MonthNav
         label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}
@@ -451,7 +463,12 @@ export function InsightsScreen() {
             onPress={() => navigation.navigate(row.screen)}
           >
             <Text style={styles.toolRowText}>{row.label}</Text>
-            <Text style={styles.toolRowArrow}>›</Text>
+            <View style={styles.toolRowEnd}>
+              {row.screen === 'PaymentReview' && reviewDueCount > 0 ? (
+                <Text style={styles.toolRowBadge}>{reviewDueCount}</Text>
+              ) : null}
+              <Text style={styles.toolRowArrow}>›</Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -534,4 +551,19 @@ const styles = StyleSheet.create({
   toolRowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
   toolRowText: { fontSize: 15, fontWeight: '600', color: colors.text },
   toolRowArrow: { fontSize: 18, color: colors.textMuted },
+  toolRowEnd: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  toolRowBadge: { fontSize: 13, fontWeight: '700', color: colors.amber },
+  // Same look as FlaggedBanner: a decision is waiting.
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.amberTint,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  bannerText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.amber },
+  bannerArrow: { fontSize: 18, color: colors.amber },
 });

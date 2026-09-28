@@ -79,6 +79,8 @@ export interface PayeeRow {
   board_id: number;
   name: string;
   linked_account_id: number | null;
+  review_on?: string | null;
+  review_note?: string | null;
 }
 
 export interface TransactionRow {
@@ -119,6 +121,8 @@ export interface ScheduledTransactionRow {
   end_date: string | null;
   created_at: string;
   days_of_week_mask: number | null;
+  review_on?: string | null;
+  review_note?: string | null;
 }
 
 export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {

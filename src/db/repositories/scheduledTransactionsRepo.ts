@@ -31,6 +31,8 @@ function mapRow(row: ScheduledTransactionJoinRow): ScheduledTransactionWithLabel
     nextDate: row.next_date,
     endDate: row.end_date,
     createdAt: row.created_at,
+    reviewOn: row.review_on ?? null,
+    reviewNote: row.review_note ?? null,
     payeeName: row.payee_name,
     categoryName: row.category_name,
     categoryIcon: row.category_icon,

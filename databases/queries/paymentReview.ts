@@ -17,7 +17,7 @@ export const LIST_REVIEWABLE_SCHEDULES = `${SELECT_WITH_LABELS}
 // Payees tracked by hand as ad hoc, with their last spending outflow and
 // 12-month total.
 export const LIST_AD_HOC = `
-  SELECT p.id AS payee_id, p.name, p.review_on, p.review_note,
+  SELECT p.id AS payee_id, p.name, p.review_on,
     MAX(t.date) AS last_date,
     COALESCE(SUM(CASE WHEN t.date >= ? THEN -t.amount_cents ELSE 0 END), 0) AS year_cents,
     (SELECT -l.amount_cents FROM transactions l JOIN accounts a ON a.id = l.account_id
@@ -40,7 +40,7 @@ export const LIST_AD_HOC = `
 // dismissed (review_on holds that date).
 export const LIST_REPEATED_CHARGES = `
   SELECT t.payee_id, p.name, -t.amount_cents AS amount_cents, GROUP_CONCAT(t.date) AS dates,
-    p.review_on, p.review_note, p.review_mode
+    p.review_on, p.review_mode
   FROM transactions t
   JOIN accounts a ON a.id = t.account_id
   JOIN payees p ON p.id = t.payee_id
@@ -54,20 +54,26 @@ export const LIST_REPEATED_CHARGES = `
   HAVING COUNT(*) >= 2
 `;
 
-export const LAST_OUTFLOW_FOR_PAYEE = `
-  SELECT t.account_id, t.category_id, t.memo FROM transactions t JOIN accounts a ON a.id = t.account_id
-  WHERE t.payee_id = ? AND ${SPENDING('t')} AND ${SPENDING_ACCOUNT}
-  ORDER BY t.date DESC, t.id DESC LIMIT 1
-`;
+export const SET_SCHEDULE_REVIEW = 'UPDATE scheduled_transactions SET review_on = ?, review_note = NULL WHERE id = ?';
 
-export const SET_SCHEDULE_REVIEW = 'UPDATE scheduled_transactions SET review_on = ?, review_note = ? WHERE id = ?';
-
-export const SET_PAYEE_REVIEW_MODE = 'UPDATE payees SET review_mode = ?, review_on = ?, review_note = ? WHERE id = ?';
+export const SET_PAYEE_REVIEW_MODE = 'UPDATE payees SET review_mode = ?, review_on = ?, review_note = NULL WHERE id = ?';
 
 export const SET_SCHEDULE_IGNORED = 'UPDATE scheduled_transactions SET review_ignored = ?, review_on = NULL, review_note = NULL WHERE id = ?';
 
-export const CONVERT_SCHEDULE = `
-  UPDATE scheduled_transactions
-  SET frequency = ?, interval_n = 1, days_of_week_mask = NULL, amount_cents = ?, next_date = ?, review_on = ?, review_note = NULL
-  WHERE id = ?
+export const FIND_PAYEE = 'SELECT id FROM payees WHERE board_id = ? AND name = ?';
+
+// Open reminders first (soonest due), then history (newest first).
+export const LIST_DECISIONS = `
+  SELECT * FROM payment_decisions WHERE board_id = ?
+  ORDER BY done_on IS NOT NULL, CASE WHEN done_on IS NULL THEN due_on END ASC, COALESCE(done_on, decided_on) DESC, id DESC
 `;
+
+export const INSERT_DECISION = `
+  INSERT INTO payment_decisions
+    (board_id, scheduled_transaction_id, payee_id, name, cadence, amount_cents, decision, note, decided_on, due_on, done_on)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+export const MARK_DECISION_DONE = 'UPDATE payment_decisions SET done_on = ? WHERE id = ?';
+
+export const DELETE_DECISION = 'DELETE FROM payment_decisions WHERE id = ?';

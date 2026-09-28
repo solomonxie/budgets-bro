@@ -13,6 +13,7 @@ const empty: PickedAppExport = {
   accountRateHistory: [],
   scheduledTransactions: [],
   customGoals: [],
+  paymentDecisions: [],
 };
 
 describe('summarizeBackup', () => {

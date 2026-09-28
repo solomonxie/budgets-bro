@@ -134,6 +134,21 @@ export interface ScheduledTransactionJoinRow extends ScheduledTransactionRow {
   account_name: string;
 }
 
+export interface PaymentDecisionRow {
+  id: number;
+  board_id: number;
+  scheduled_transaction_id: number | null;
+  payee_id: number | null;
+  name: string;
+  cadence: string;
+  amount_cents: number;
+  decision: string;
+  note: string | null;
+  decided_on: string;
+  due_on: string | null;
+  done_on: string | null;
+}
+
 export interface CustomGoalRow {
   id: number;
   board_id: number;

@@ -3,13 +3,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
-import { PaymentResolutionModal } from './PaymentResolutionModal';
+import { DECISION_LABEL, PaymentDecisionModal } from './PaymentDecisionModal';
+import { CardModal } from '../../components/ui/CardModal';
 import { usePaymentReview } from '../../hooks/usePaymentReview';
 import { usePayees } from '../../hooks/usePayees';
 import { getDb } from '../../db/client';
 import * as paymentReviewRepo from '../../db/repositories/paymentReviewRepo';
 import { addMonths } from '../../finance-tools/amortization';
-import type { ReviewCadence, ReviewItem } from '../../domain/paymentReview';
+import { decisionItemKey } from '../../domain/paymentReview';
+import type { PaymentDecision, ReviewCadence, ReviewItem } from '../../domain/paymentReview';
 import { formatDateLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
@@ -25,16 +27,20 @@ const SECTIONS: { cadence: ReviewCadence; titleKey: TranslationKey }[] = [
 ];
 
 // Annual payment review: every recurring outflow, once a year, gets a
-// decision — keep it, change how it's billed, or stop paying for it.
+// decision. The page never changes a transaction or schedule — a decision
+// that needs doing lands in To Do until the user marks it done, then History.
 export function PaymentReviewScreen() {
   const { t, language } = useI18n();
   const locale = localeTag(language);
   const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
-  const { items, loading, today } = usePaymentReview();
+  const { items, todo, history, loading, today } = usePaymentReview();
   const { payees } = usePayees('usage');
   const [selected, setSelected] = useState<ReviewItem | null>(null);
   const [showIgnored, setShowIgnored] = useState(false);
+  const [openTodo, setOpenTodo] = useState<PaymentDecision | null>(null);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const todoByKey = useMemo(() => new Map(todo.map((d) => [decisionItemKey(d), d])), [todo]);
 
   const reviewed = useMemo(() => items.filter((i) => !i.ignored), [items]);
   const ignored = useMemo(() => items.filter((i) => i.ignored), [items]);
@@ -59,7 +65,8 @@ export function PaymentReviewScreen() {
   };
 
   const detailLabel = (item: ReviewItem) => {
-    if (item.note) return t('abr.lookingFor', { note: item.note });
+    const pending = todoByKey.get(item.key);
+    if (pending) return t('abr.todoFor', { decision: t(DECISION_LABEL[pending.decision]) });
     if (item.detected && item.lastDate)
       return t(item.cadence === 'annual' ? 'abr.detectedAnnual' : 'abr.detectedMonthly', {
         date: formatDateLabel(item.cadence === 'annual' && item.nextDate ? item.nextDate : item.lastDate, locale),
@@ -89,6 +96,46 @@ export function PaymentReviewScreen() {
     </Pressable>
   );
 
+  const renderDecision = (d: PaymentDecision, i: number) => {
+    const open = d.doneOn == null;
+    const overdue = open && d.dueOn != null && d.dueOn <= today;
+    const when = open
+      ? d.dueOn
+        ? t('abr.dueBy', { date: formatDateLabel(d.dueOn, locale) })
+        : ''
+      : t(d.doneOn === d.decidedOn ? 'abr.decidedOn' : 'abr.doneOn', { date: formatDateLabel(d.doneOn!, locale) });
+    return (
+      <Pressable
+        key={d.id}
+        disabled={!open}
+        style={({ pressed }) => [styles.row, i > 0 && styles.rowDivider, pressed && styles.rowPressed]}
+        onPress={() => setOpenTodo(d)}
+      >
+        <View style={styles.rowMain}>
+          <Text style={styles.rowName} numberOfLines={1}>
+            {t(DECISION_LABEL[d.decision])} · {d.name}
+          </Text>
+          <Text style={[styles.rowDetail, overdue && styles.rowDue]} numberOfLines={2}>
+            {[when, d.note].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+        {open ? <Text style={styles.arrow}>›</Text> : null}
+      </Pressable>
+    );
+  };
+
+  const closeTodo = async (action: 'done' | 'delete') => {
+    if (!openTodo) return;
+    const db = await getDb();
+    if (action === 'done') await paymentReviewRepo.markDecisionDone(db, openTodo.id, today);
+    else await paymentReviewRepo.deleteDecision(db, openTodo.id);
+    setOpenTodo(null);
+    bumpDataVersion();
+  };
+
+  const HISTORY_PREVIEW = 5;
+  const shownHistory = showAllHistory ? history : history.slice(0, HISTORY_PREVIEW);
+
   if (loading) return <ScreenContainer />;
 
   return (
@@ -100,6 +147,13 @@ export function PaymentReviewScreen() {
         <Text style={styles.value}>{formatMoney(yearlyTotal)}</Text>
         <Text style={styles.hint}>{t('abr.commitmentCount', { count: reviewed.length })}</Text>
       </View>
+
+      {todo.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t('abr.todoSection', { count: todo.length })}</Text>
+          <View style={styles.card}>{todo.map(renderDecision)}</View>
+        </>
+      ) : null}
 
       {due.length > 0 ? (
         <>
@@ -146,7 +200,40 @@ export function PaymentReviewScreen() {
       ) : null}
       {showIgnored && ignored.length > 0 ? <View style={[styles.card, styles.ignoredCard]}>{ignored.map(renderRow)}</View> : null}
 
-      <PaymentResolutionModal item={selected} today={today} onClose={() => setSelected(null)} />
+      {history.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{t('abr.historySection')}</Text>
+          <View style={styles.card}>{shownHistory.map(renderDecision)}</View>
+          {history.length > HISTORY_PREVIEW ? (
+            <Pressable style={styles.ignoredLink} onPress={() => setShowAllHistory(!showAllHistory)} hitSlop={8}>
+              <Text style={styles.ignoredLinkText}>
+                {showAllHistory ? t('abr.showLessHistory') : t('abr.showAllHistory', { count: history.length })}
+              </Text>
+            </Pressable>
+          ) : null}
+        </>
+      ) : null}
+
+      <PaymentDecisionModal item={selected} today={today} onClose={() => setSelected(null)} />
+      <CardModal visible={openTodo != null} onCancel={() => setOpenTodo(null)}>
+        {openTodo ? (
+          <>
+            <Text style={styles.modalTitle}>
+              {t(DECISION_LABEL[openTodo.decision])} · {openTodo.name}
+            </Text>
+            {openTodo.note ? <Text style={styles.modalNote}>{openTodo.note}</Text> : null}
+            <Text style={styles.modalHint}>{t('abr.markDoneHint')}</Text>
+            <View style={styles.modalActions}>
+              <Pressable onPress={() => closeTodo('delete')}>
+                <Text style={styles.deleteText}>{t('abr.deleteTodo')}</Text>
+              </Pressable>
+              <Pressable style={styles.saveButton} onPress={() => closeTodo('done')}>
+                <Text style={styles.saveButtonText}>{t('abr.markDone')}</Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null}
+      </CardModal>
     </ScreenContainer>
   );
 }
@@ -194,4 +281,11 @@ const styles = StyleSheet.create({
   ignoredLink: { alignSelf: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
   ignoredLinkText: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
   ignoredCard: { opacity: 0.7 },
+  modalTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
+  modalNote: { fontSize: 14, color: colors.text, lineHeight: 19 },
+  modalHint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  deleteText: { color: colors.negative, fontWeight: '600' },
+  saveButton: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16 },
+  saveButtonText: { color: '#fff', fontWeight: '700' },
 });

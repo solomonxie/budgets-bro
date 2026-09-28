@@ -75,7 +75,14 @@ export function InsightsScreen() {
   const navigation = useNavigation<Nav>();
   const [month, setMonth] = useState(currentMonth());
   const { spending, trendPoints, trendMonths } = useInsights(month);
-  const { dueCount: reviewDueCount } = usePaymentReview();
+  const { dueCount: reviewDecideCount, todoDueCount: reviewTodoCount } = usePaymentReview();
+  const reviewDueCount = reviewDecideCount + reviewTodoCount;
+  const reviewBanner = [
+    reviewDecideCount > 0 ? t('abr.bannerDecide', { count: reviewDecideCount }) : null,
+    reviewTodoCount > 0 ? t('abr.bannerTodo', { count: reviewTodoCount }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const { width: windowWidth } = useWindowDimensions();
   const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<number>>(
     new Set(),
@@ -230,7 +237,7 @@ export function InsightsScreen() {
       {reviewDueCount > 0 ? (
         <Pressable style={styles.banner} onPress={() => navigation.navigate('PaymentReview')}>
           <Text style={styles.bannerText} numberOfLines={1}>
-            {t('abr.banner', { count: reviewDueCount })}
+            {t('abr.banner', { items: reviewBanner })}
           </Text>
           <Text style={styles.bannerArrow}>›</Text>
         </Pressable>

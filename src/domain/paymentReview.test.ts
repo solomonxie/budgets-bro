@@ -24,6 +24,7 @@ const schedule = (over: Partial<ScheduledTransactionWithLabels>): ScheduledTrans
   createdAt: '2025-09-01 10:00:00',
   reviewOn: null,
   reviewNote: null,
+  reviewIgnored: false,
   payeeName: 'Streamy',
   categoryName: null,
   categoryIcon: null,
@@ -84,6 +85,7 @@ describe('paymentReview', () => {
       dates,
       reviewOn: null,
       reviewNote: null,
+      ignored: false,
       ...over,
     });
     const today = '2026-09-28';
@@ -119,6 +121,15 @@ describe('paymentReview', () => {
       expect(items.map((i) => [i.key, i.cadence, i.reviewOn, i.due])).toEqual([
         ['d:5:1099', 'monthly', '2026-08-03', true],
         ['d:6:5000', 'annual', '2026-09-20', true],
+      ]);
+    });
+
+    it('ignored items stay listed but are never due', () => {
+      const detected = detectRecurring([charge(['2026-07-03', '2026-08-03', '2026-09-03'], { ignored: true })], today);
+      const items = buildReviewItems([schedule({ reviewIgnored: true })], [], detected, today);
+      expect(items.map((i) => [i.ignored, i.due])).toEqual([
+        [true, false],
+        [true, false],
       ]);
     });
   });

@@ -44,8 +44,6 @@ link.
  Import from YNAB                                    ›
  Import a backup                                     ›
  Export this board                                   ›
- FEEDBACK
- Feedback                                3 open    ›   → FeedbackScreen: add · status chip · long-press delete (Documents/feedback.json)
  ABOUT
  Version                                        1.4.0
 ```

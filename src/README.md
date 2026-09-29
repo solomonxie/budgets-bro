@@ -12,7 +12,6 @@ TypeScript/React Native source for Budgets Bro:
 - `import/` — YNAB CSV and app-backup import
 - `export/` — share-sheet board export
 - `sync/` — cloud/local backup providers (S3, on-device)
-- `feedback/` — in-app feedback log (`Documents/feedback.json`, pulled by devicectl)
 - `secure/` — secure-storage wrapper for API keys/credentials
 - `finance-tools/` — standalone calculators (amortization, etc.)
 - `i18n/` — English/Chinese translations

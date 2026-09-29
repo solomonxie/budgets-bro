@@ -14,7 +14,14 @@ import { useAppStore } from '../state/useAppStore';
 // once you are looking at one of them, "since when" is the question.
 export const PAYEE_WINDOW_MONTHS = 12;
 
-export function usePayeeTrend() {
+export type PayeeFlow = 'spending' | 'income';
+
+const READERS = {
+  spending: reportsRepo.spendingByPayeeOverMonths,
+  income: reportsRepo.incomeByPayeeOverMonths,
+};
+
+export function usePayeeTrend(flow: PayeeFlow = 'spending') {
   const [points, setPoints] = useState<PayeeTrendPoint[]>([]);
   const [allMonths, setAllMonths] = useState<string[]>([currentMonth()]);
   const [loading, setLoading] = useState(true);
@@ -27,9 +34,9 @@ export function usePayeeTrend() {
     const earliest = await reportsRepo.earliestTransactionMonth(db, boardId);
     const months = monthsBetween(earliest ?? month, month);
     setAllMonths(months);
-    setPoints(await reportsRepo.spendingByPayeeOverMonths(db, boardId, months));
+    setPoints(await READERS[flow](db, boardId, months));
     setLoading(false);
-  }, [boardId]);
+  }, [boardId, flow]);
 
   useEffect(() => {
     refresh();

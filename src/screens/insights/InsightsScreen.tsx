@@ -41,6 +41,7 @@ type UtilityScreen =
   | 'TaxInsights'
   | 'TrackedPrices'
   | 'PayeeTrend'
+  | 'IncomeTrend'
   | 'PaymentReview'
   | 'ExchangeInsights'
   | 'CostOfLiving'
@@ -61,6 +62,7 @@ export function InsightsScreen() {
   const UTILITY_ROWS: UtilityRow[] = [
     { label: t('insights.babySteps'), screen: 'BabySteps' },
     { label: t('insights.payeeTrend'), screen: 'PayeeTrend' },
+    { label: t('insights.incomeTrend'), screen: 'IncomeTrend' },
     { label: t('insights.trackedPrices'), screen: 'TrackedPrices' },
     { label: t('insights.paymentReview'), screen: 'PaymentReview' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },

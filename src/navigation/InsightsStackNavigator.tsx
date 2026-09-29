@@ -10,7 +10,7 @@ import { financeTool } from '../screens/finance-tools/registry';
 import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
 import { TaxInsightsScreen } from '../screens/tax/TaxInsightsScreen';
 import { TrackedPricesScreen } from '../screens/insights/TrackedPricesScreen';
-import { PayeeTrendScreen } from '../screens/insights/PayeeTrendScreen';
+import { IncomeTrendScreen, PayeeTrendScreen } from '../screens/insights/PayeeTrendScreen';
 import { PaymentReviewScreen } from '../screens/insights/PaymentReviewScreen';
 import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
 import { CostOfLivingScreen } from '../screens/insights/CostOfLivingScreen';
@@ -55,6 +55,11 @@ export function InsightsStackNavigator() {
         name="PayeeTrend"
         component={PayeeTrendScreen}
         options={{ title: t('insights.payeeTrend') }}
+      />
+      <Stack.Screen
+        name="IncomeTrend"
+        component={IncomeTrendScreen}
+        options={{ title: t('insights.incomeTrend') }}
       />
       <Stack.Screen
         name="PaymentReview"

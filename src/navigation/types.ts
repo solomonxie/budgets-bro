@@ -34,6 +34,7 @@ export type InsightsStackParamList = {
   TaxInsights: undefined;
   TrackedPrices: undefined;
   PayeeTrend: undefined;
+  IncomeTrend: undefined;
   PaymentReview: undefined;
   ExchangeInsights: undefined;
   CostOfLiving: undefined;

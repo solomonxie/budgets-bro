@@ -1260,6 +1260,29 @@ export const en = {
     '{amount} of spending has no payee, so it isn’t shown here. Add a payee to a transaction and it joins the ranking.',
   'payeeTrend.empty':
     'No payees yet. Add who you paid on your transactions and they’ll show up here, with what they cost you month by month.',
+  'insights.incomeTrend': 'Income Trend',
+  'incomeTrend.guideHeading': 'Where the money comes from',
+  'incomeTrend.guideBody':
+    'Every source of income, ranked by what it paid you over the last year, each with month-by-month bars. A source is the payee on an inflow. Transfers and tracking accounts are left out — this is money arriving in a budget account.',
+  'incomeTrend.guideBottomHeading': 'What to do with it',
+  'incomeTrend.guideBottomBody':
+    'A budget is only as steady as what feeds it. The top source’s share shows how much rides on one employer or client; the bars show whether pay is regular or lumpy, so you know how big a buffer to keep. A dip below average is worth a look before it shows up as a shortfall.',
+  'incomeTrend.window': 'Last {months} months',
+  'incomeTrend.topPayee': 'Top source',
+  'incomeTrend.totalOverWindow': '{amount} · {percent}% of income',
+  'incomeTrend.paymentsCount': '{count} deposits',
+  'incomeTrend.perMonth': '{amount}/mo',
+  'incomeTrend.shareOfSpending': '{percent}% of income',
+  'incomeTrend.lastMonthUp': 'Last month was {percent}% above its average.',
+  'incomeTrend.lastMonthDown': 'Last month was {percent}% below its average.',
+  'incomeTrend.othersHeading': 'Other sources',
+  'incomeTrend.smallerHeading': 'All the other {count} sources · {percent}% of income',
+  'incomeTrend.rowDetail':
+    'Average {average} per deposit over {months} months, including months with none.',
+  'incomeTrend.unnamed':
+    '{amount} of income has no payee, so it isn’t shown here. Add who paid you on the transaction and it joins the ranking.',
+  'incomeTrend.empty':
+    'No income yet. Record an inflow with who paid you and it shows up here, month by month.',
   'insights.paymentReview': 'Quarterly Review (QBR)',
   'qbr.banner': '⚠ Quarterly review: {items}',
   'qbr.bannerDecide': '{count} to decide',

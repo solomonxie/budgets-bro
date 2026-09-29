@@ -57,6 +57,9 @@ PayeeTrendScreen.tsx
 └───────────────────────────────┘
 ```
 
+IncomeTrendScreen (same file) is this page for inflows — who pays you;
+usePayeeTrend('income') swaps the query and the copy prefix, nothing else.
+
 TrackedPricesScreen.tsx is the same layout, per item instead of per
 payee: most-bought item in the top card with its price trend already open,
 everything else ranked below and expanding in place. Both cards and rows

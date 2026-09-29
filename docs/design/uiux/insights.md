@@ -31,6 +31,7 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
  UTILITIES
  Plans and calculators built on your own accounts.
  Payee Trend                                    ›
+ Income Trend                                   ›
  Tracked Prices                                 ›
  Quarterly Review (QBR)                       2 ›
  Flagged Transactions                            3 ›
@@ -111,6 +112,14 @@ no payee is reported at the foot, never ranked.
  $310 of spending named no payee…                     ← only when there is some
  empty   No payees yet. Name who you paid…
 ```
+
+## Income Trend  `insights/PayeeTrendScreen.tsx` (`IncomeTrendScreen`)
+
+Payee Trend's page for inflows: who pays you. Same layout, same windows;
+an inflow's source is its payee. Income = positive, non-transfer, on-budget,
+already happened — the definition Tax Insights totals use
+(`INCOME_BY_PAYEE_OVER_MONTHS`). Top card reads "Top source · % of income ·
+N deposits"; untagged income is a footnote, never ranked.
 
 ## Quarterly Review (QBR)  `insights/PaymentReviewScreen.tsx`
 

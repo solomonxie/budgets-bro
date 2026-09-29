@@ -1231,6 +1231,29 @@ export const zh: Record<keyof typeof en, string> = {
     '有 {amount} 的支出没有收款方，未显示在这里。在交易里补上收款方即可计入。',
   'payeeTrend.empty':
     '还没有收款方。在交易里填上付给了谁，就会显示在这里，并按月显示花费。',
+  'insights.incomeTrend': '收入趋势',
+  'incomeTrend.guideHeading': '钱从哪里来',
+  'incomeTrend.guideBody':
+    '每个收入来源，按过去一年付给你的金额排序，各有月度柱状图。来源就是流入交易的收付方。不含转账和追踪账户，只看流入预算账户的钱。',
+  'incomeTrend.guideBottomHeading': '这一页怎么用',
+  'incomeTrend.guideBottomBody':
+    '预算稳不稳，取决于收入稳不稳。最大来源的占比说明你有多依赖一个雇主或客户；柱状图显示收入是按时到账还是时多时少，由此决定该留多少缓冲。低于平均的月份值得早点留意，别等到变成缺口。',
+  'incomeTrend.window': '最近 {months} 个月',
+  'incomeTrend.topPayee': '最大收入来源',
+  'incomeTrend.totalOverWindow': '{amount} · 占收入 {percent}%',
+  'incomeTrend.paymentsCount': '{count} 笔入账',
+  'incomeTrend.perMonth': '{amount}/月',
+  'incomeTrend.shareOfSpending': '占收入 {percent}%',
+  'incomeTrend.lastMonthUp': '上个月比平均高 {percent}%。',
+  'incomeTrend.lastMonthDown': '上个月比平均低 {percent}%。',
+  'incomeTrend.othersHeading': '其他来源',
+  'incomeTrend.smallerHeading': '其余 {count} 个来源 · 占收入 {percent}%',
+  'incomeTrend.rowDetail':
+    '{months} 个月内平均每笔 {average}，含没有入账的月份。',
+  'incomeTrend.unnamed':
+    '有 {amount} 的收入没有收付方，未显示在这里。在交易里补上是谁付的即可计入。',
+  'incomeTrend.empty':
+    '还没有收入。记一笔流入并填上付款方，就会按月显示在这里。',
   'insights.paymentReview': '季度付款审查 (QBR)',
   'qbr.banner': '⚠ 季度审查：{items}',
   'qbr.bannerDecide': '{count} 项待决定',

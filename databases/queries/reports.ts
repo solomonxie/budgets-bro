@@ -71,6 +71,19 @@ export const SPENDING_BY_PAYEE_OVER_MONTHS = `
   GROUP BY t.payee_id, month
 `;
 
+// The inflow mirror of SPENDING_BY_PAYEE_OVER_MONTHS, with the same
+// definition of income as INCOME_AND_SPENDING_IN_RANGE — an inflow's source
+// is its payee (docs/DESIGN.md, "Income accounts (removed)").
+export const INCOME_BY_PAYEE_OVER_MONTHS = `
+  SELECT t.payee_id, p.name as payee_name, substr(t.date, 1, 7) as month,
+         SUM(t.amount_cents) as total, COUNT(t.id) as count
+  FROM transactions t
+  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
+  LEFT JOIN payees p ON p.id = t.payee_id
+  WHERE t.amount_cents > 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ?
+  GROUP BY t.payee_id, month
+`;
+
 // Runway (domain/runway): the money you could live on — cash, savings, less
 // what's owed on cards — and what it costs to live. A cost is anything
 // leaving that pool for good: spending, card purchases, loan payments. Moving

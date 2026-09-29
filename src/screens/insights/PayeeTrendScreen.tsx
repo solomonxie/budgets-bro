@@ -4,10 +4,12 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { MonthlyBarChart } from '../../components/ui/MonthlyBarChart';
 import { usePayeeTrend } from '../../hooks/usePayeeTrend';
+import type { PayeeFlow } from '../../hooks/usePayeeTrend';
 import { payeeMonthOverAverage } from '../../domain/payeeTrend';
 import type { PayeeSummary } from '../../domain/payeeTrend';
 import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
+import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -21,9 +23,35 @@ import { spacing } from '../../theme/spacing';
 // ranking is the frame of reference, and pushing a detail page would cost
 // you your place in it.
 export function PayeeTrendScreen() {
-  const t = useT();
+  return <PayeeRanking flow="spending" />;
+}
+
+// The same page for money coming in: who pays you, ranked, with each
+// source's months. An inflow's source is its payee.
+export function IncomeTrendScreen() {
+  return <PayeeRanking flow="income" />;
+}
+
+const COPY_PREFIX = { spending: 'payeeTrend', income: 'incomeTrend' } as const;
+type Prefix = (typeof COPY_PREFIX)[PayeeFlow];
+type CopyKey<P extends Prefix> = {
+  [K in TranslationKey]: K extends `${P}.${infer S}` ? S : never;
+}[TranslationKey];
+// Only what both pages define, so a missing income string fails tsc.
+type SharedCopyKey = CopyKey<'payeeTrend'> & CopyKey<'incomeTrend'>;
+
+function PayeeRanking({ flow }: { flow: PayeeFlow }) {
+  const translate = useT();
+  const t = (
+    key: `payeeTrend.${SharedCopyKey}`,
+    vars?: Record<string, string | number>,
+  ) =>
+    translate(
+      `${COPY_PREFIX[flow]}.${key.slice('payeeTrend.'.length) as SharedCopyKey}`,
+      vars,
+    );
   const { payees, unnamedCents, totalCents, months, history, loading } =
-    usePayeeTrend();
+    usePayeeTrend(flow);
   const [openId, setOpenId] = useState<number | null>(null);
 
   if (loading) return <ScreenContainer />;

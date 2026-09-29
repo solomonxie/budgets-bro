@@ -7,6 +7,7 @@ import {
   INCOME_AND_SPENDING_IN_RANGE,
   INCOME_BY_PAYEE_IN_RANGE,
   SPENDING_BY_PAYEE_OVER_MONTHS,
+  INCOME_BY_PAYEE_OVER_MONTHS,
 } from '../../../databases/queries/reports';
 
 export interface CategorySpend {
@@ -238,11 +239,21 @@ export interface PayeeTrendPoint {
 // these and plots each payee's own series, the same pivot-in-memory shape
 // spendingByCategoryOverMonths feeds the category trend.
 export async function spendingByPayeeOverMonths(db: SQLiteDatabase, boardId: number, months: string[]): Promise<PayeeTrendPoint[]> {
+  return payeeTotalsOverMonths(db, SPENDING_BY_PAYEE_OVER_MONTHS, boardId, months);
+}
+
+// Same points for inflows — Income Trend. `spentCents` holds the amount
+// received; summarizePayees doesn't care which way the money went.
+export async function incomeByPayeeOverMonths(db: SQLiteDatabase, boardId: number, months: string[]): Promise<PayeeTrendPoint[]> {
+  return payeeTotalsOverMonths(db, INCOME_BY_PAYEE_OVER_MONTHS, boardId, months);
+}
+
+async function payeeTotalsOverMonths(db: SQLiteDatabase, sql: string, boardId: number, months: string[]): Promise<PayeeTrendPoint[]> {
   if (months.length === 0) return [];
   const start = `${months[0]}-01`;
   const endExclusive = `${nextMonth(months[months.length - 1])}-01`;
   const rows = await db.getAllAsync<{ payee_id: number | null; payee_name: string | null; month: string; total: number; count: number }>(
-    SPENDING_BY_PAYEE_OVER_MONTHS,
+    sql,
     start,
     endExclusive,
     currentDateISO(),

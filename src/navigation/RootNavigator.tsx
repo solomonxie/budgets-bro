@@ -15,7 +15,6 @@ import { FlaggedTransactionsScreen } from '../screens/transactions/FlaggedTransa
 import { FirstRunPrompt } from '../screens/onboarding/FirstRunPrompt';
 import { AccountModal } from '../screens/accounts/AccountModal';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
-import { FeedbackScreen } from '../screens/settings/FeedbackScreen';
 import { TabBarIcon } from '../components/ui/TabBarIcon';
 import { focusedAccountId } from './focusedAccount';
 import type { TabNavState } from './focusedAccount';
@@ -172,15 +171,6 @@ export function RootNavigator() {
           component={SettingsScreen}
           options={{
             title: t('settingsModal.title'),
-            headerBackTitle: t('common.backTitle'),
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <RootStack.Screen
-          name="Feedback"
-          component={FeedbackScreen}
-          options={{
-            title: t('feedback.title'),
             headerBackTitle: t('common.backTitle'),
             fullScreenGestureEnabled: true,
           }}

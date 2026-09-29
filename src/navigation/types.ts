@@ -75,6 +75,4 @@ export type RootStackParamList = {
   // The whole-board cleanup worklist, opened from the history page — every
   // transaction missing a payee or category, duplicated or zero.
   FlaggedTransactions: undefined;
-  // Settings → Feedback; see feedback/feedbackLog.ts.
-  Feedback: undefined;
 };

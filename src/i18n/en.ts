@@ -434,20 +434,6 @@ export const en = {
 
   'settingsModal.title': 'Settings',
 
-  'feedback.title': 'Feedback',
-  'feedback.rowHint': 'Notes on what to fix or add, kept on this iPhone.',
-  'feedback.openCount': '{count} open',
-  'feedback.placeholder': 'What should change?',
-  'feedback.add': '+ Add',
-  'feedback.empty': 'No feedback yet.',
-  'feedback.deleteHint': 'Tap a status to change it. Long-press an entry to delete it.',
-  'feedback.deleteTitle': 'Delete this feedback?',
-  'feedback.statusTitle': 'Status',
-  'feedback.statusOpen': 'Open',
-  'feedback.statusInProgress': 'In progress',
-  'feedback.statusDone': 'Done',
-  'feedback.statusWontfix': 'Won’t fix',
-
   'netWorthBreakdown.heading': '{month} breakdown',
   'netWorthBreakdown.noAccounts': 'No accounts existed yet that month.',
   'netWorthBreakdown.homeValue': 'home {amount}',

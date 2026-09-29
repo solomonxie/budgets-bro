@@ -47,10 +47,6 @@ SettingsScreen.tsx
 │                                  │    automation — see
 │                                  │    docs/DESIGN.md#no-bank-automation
 ├───────────────────────────────┤
-│ FEEDBACK (row, open count)      │──→ ./FeedbackSection.tsx → Feedback
-│                                  │    route (./FeedbackScreen.tsx);
-│                                  │    Documents/feedback.json
-├───────────────────────────────┤
 │ About section (version row)     │──→ inline
 ├───────────────────────────────┤
 │ PromptModal (new/rename)        │──→ ../../components/ui/PromptModal.tsx

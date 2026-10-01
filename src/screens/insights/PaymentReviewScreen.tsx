@@ -10,7 +10,7 @@ import { usePaymentReview } from '../../hooks/usePaymentReview';
 import { useCategories } from '../../hooks/useCategories';
 import { getDb } from '../../db/client';
 import * as paymentReviewRepo from '../../db/repositories/paymentReviewRepo';
-import { decisionItemKey } from '../../domain/paymentReview';
+import { decisionItemKey, nextQuarterStart } from '../../domain/paymentReview';
 import type { PaymentDecision, ReviewCadence, ReviewFilter, ReviewItem } from '../../domain/paymentReview';
 import { formatDateLabel } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
@@ -32,6 +32,11 @@ interface FilterOption {
   label: string;
 }
 
+const quarterOf = (dateIso: string) => {
+  const [year, month] = dateIso.split('-').map(Number);
+  return { q: Math.floor((month - 1) / 3) + 1, year };
+};
+
 // Quarterly payment review: every recurring outflow, each quarter, gets a
 // decision. The page never changes a transaction or schedule — a decision
 // that needs doing lands in To Do until the user marks it done, then History.
@@ -52,6 +57,8 @@ export function PaymentReviewScreen() {
   const ignored = useMemo(() => items.filter((i) => i.ignored), [items]);
   const due = reviewed.filter((i) => i.due);
   const yearlyTotal = useMemo(() => reviewed.reduce((s, i) => s + i.yearlyCents, 0), [reviewed]);
+  const decided = reviewed.filter((i) => i.decided).length;
+  const pending = decided + due.length;
 
   // Only payees and categories that have something to review are offered.
   const filterOptions = useMemo(() => {
@@ -166,23 +173,45 @@ export function PaymentReviewScreen() {
 
   return (
     <ScreenContainer scroll>
-      <GuideSection heading={t('qbr.guideHeading')} body={t('qbr.guideBody')} />
+      <View style={styles.hero}>
+        <Text style={styles.heroEyebrow}>{t('qbr.quarterLabel', quarterOf(today))}</Text>
+        <Text style={styles.heroValue}>{formatMoney(yearlyTotal)}</Text>
+        <Text style={styles.heroSub}>
+          {t('qbr.yearlySummary', { monthly: formatMoney(Math.round(yearlyTotal / 12)), count: reviewed.length })}
+        </Text>
+        {pending > 0 ? (
+          <View style={styles.progress}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { flex: decided }]} />
+              <View style={{ flex: pending - decided }} />
+            </View>
+            <Text style={[styles.progressText, due.length > 0 && styles.progressDue]}>
+              {due.length > 0
+                ? t('qbr.progress', { done: decided, total: pending })
+                : t('qbr.allDecided', { date: formatDateLabel(nextQuarterStart(today), locale) })}
+            </Text>
+          </View>
+        ) : null}
+      </View>
 
       {allItems.length > 0 ? (
         <View style={styles.filterRow}>
-          {(['payeeIds', 'categoryIds'] as const).map((kind) => (
-            <Pressable key={kind} onPress={() => setFilterOpen(kind)} hitSlop={8}>
-              <Text style={[styles.filterText, filter[kind].length > 0 && styles.filterActive]}>{filterLabel(kind)} ▾</Text>
-            </Pressable>
-          ))}
+          {(['payeeIds', 'categoryIds'] as const).map((kind) => {
+            const active = filter[kind].length > 0;
+            return (
+              <Pressable
+                key={kind}
+                onPress={() => setFilterOpen(kind)}
+                style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.rowPressed]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+                  {filterLabel(kind)} ▾
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
-
-      <View style={styles.card}>
-        <Text style={styles.label}>{t('qbr.yearlyTotal')}</Text>
-        <Text style={styles.value}>{formatMoney(yearlyTotal)}</Text>
-        <Text style={styles.hint}>{t('qbr.commitmentCount', { count: reviewed.length })}</Text>
-      </View>
 
       {todo.length > 0 ? (
         <>
@@ -233,6 +262,10 @@ export function PaymentReviewScreen() {
           ) : null}
         </>
       ) : null}
+
+      <View style={styles.guide}>
+        <GuideSection heading={t('qbr.guideHeading')} body={t('qbr.guideBody')} />
+      </View>
 
       <PaymentDecisionModal item={selected} today={today} onClose={() => setSelected(null)} />
       <Modal visible={filterOpen != null} transparent animationType="slide" onRequestClose={() => setFilterOpen(null)}>
@@ -287,14 +320,21 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dueCard: { borderColor: colors.amber },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: colors.textMuted,
+  hero: {
+    backgroundColor: colors.tint,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
   },
-  value: { fontSize: 30, fontWeight: '700', color: colors.text },
+  heroEyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: colors.accent },
+  heroValue: { fontSize: 34, fontWeight: '800', color: colors.text, fontVariant: ['tabular-nums'] },
+  heroSub: { fontSize: 13, color: colors.textMuted },
+  progress: { marginTop: spacing.sm, gap: 6 },
+  progressTrack: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)' },
+  progressFill: { backgroundColor: colors.accent },
+  progressText: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  progressDue: { color: colors.amber },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17, marginVertical: spacing.sm },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.sm },
   dueTitle: { color: colors.amber },
@@ -307,9 +347,19 @@ const styles = StyleSheet.create({
   rowDue: { color: colors.amber },
   rowAmount: { fontSize: 14, fontWeight: '700', color: colors.text },
   arrow: { fontSize: 18, color: colors.textMuted },
-  filterRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginBottom: spacing.md },
-  filterText: { fontSize: 14, color: colors.textMuted, fontWeight: '600' },
-  filterActive: { color: colors.accent },
+  filterRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  chip: {
+    flexShrink: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  chipActive: { borderColor: colors.accent, backgroundColor: colors.tint },
+  chipText: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
+  chipTextActive: { color: colors.accent },
+  guide: { marginTop: spacing.xl },
   ignoredLink: { alignSelf: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
   ignoredLinkText: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
   ignoredCard: { opacity: 0.7 },

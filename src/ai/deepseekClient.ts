@@ -1,7 +1,7 @@
 import { runOpenAiCompatibleCompletion } from './openaiCompatibleClient';
 import type { ChatMessage } from './types';
 
-const MODEL = 'deepseek-chat';
+const MODEL = 'deepseek-v4-pro';
 
 export async function runChatCompletion(
   apiKey: string,

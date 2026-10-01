@@ -271,8 +271,6 @@ export function BudgetScreen() {
         viewportHeight.current = e.nativeEvent.layout.height;
       }}
     >
-      <BackupBanner />
-      <FlaggedBanner />
       <MonthNav
         label={formatMonthLabel(month, localeTag(language))}
         onPrevious={() => setMonth(previousMonth(month))}
@@ -375,6 +373,11 @@ export function BudgetScreen() {
         </View>
       ) : null}
 
+      {/* Under the hero, so the month and its numbers lead the page. */}
+      <View style={styles.banners}>
+        <BackupBanner />
+        <FlaggedBanner />
+      </View>
       {pending.length > 0 ? (
         <Pressable
           style={styles.pendingBanner}
@@ -652,6 +655,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+  banners: { marginTop: spacing.sm },
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'center',

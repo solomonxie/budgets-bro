@@ -6,15 +6,37 @@ import * as accountValueHistoryRepo from '../repositories/accountValueHistoryRep
 import * as categoriesRepo from '../repositories/categoriesRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as budgetsRepo from '../repositories/budgetsRepo';
-import { currentMonth, lastNMonths } from '../../domain/month';
+import * as scheduledTransactionsRepo from '../repositories/scheduledTransactionsRepo';
+import * as paymentReviewRepo from '../repositories/paymentReviewRepo';
+import * as customGoalsRepo from '../repositories/customGoalsRepo';
+import * as housesRepo from '../repositories/housesRepo';
+import * as communityPricesRepo from '../repositories/communityPricesRepo';
+import * as settingsRepo from '../repositories/settingsRepo';
+import { currentDateISO, currentMonth, lastNMonths, nextMonth } from '../../domain/month';
 import { addMonths } from '../../finance-tools/amortization';
+import { formatPurchaseItems } from '../../domain/purchaseItems';
+import { DETECTION_WINDOW_MONTHS, addDays, buildReviewItems, detectRecurring, reviewOnAfterDecision } from '../../domain/paymentReview';
+import type { Decision } from '../../domain/paymentReview';
+import type { ScheduleFrequency } from '../../domain/recurrence';
+import { houseListings, communityBenchmarks } from './demoHouseHunt';
 
 export const DEMO_BOARD_NAME = 'Demo';
 
 const cents = (dollars: number) => Math.round(dollars * 100);
 const day = (month: string, d: number) => `${month}-${String(d).padStart(2, '0')}`;
-const rand = (min: number, max: number) => min + Math.random() * (max - min);
-const pick = <T>(items: T[]) => items[Math.floor(Math.random() * items.length)];
+const calendarMonth = (month: string) => Number(month.slice(5, 7));
+
+// Fixed seed: every install draws the same numbers, so screenshots match.
+export function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 interface AmortStep {
   interestCents: number;
@@ -22,9 +44,7 @@ interface AmortStep {
   balanceCents: number;
 }
 
-// Fixed-payment amortization off the *original* principal/term — same
-// payment every month, split between interest and principal as the
-// balance shrinks. Real enough for a demo without modeling rate resets.
+// Same payment every month off the original principal/term.
 function amortize(principalCents: number, annualRateBps: number, termMonths: number, numMonths: number): AmortStep[] {
   const r = annualRateBps / 10000 / 12;
   const payment = r === 0 ? principalCents / termMonths : (principalCents * r) / (1 - (1 + r) ** -termMonths);
@@ -39,9 +59,7 @@ function amortize(principalCents: number, annualRateBps: number, termMonths: num
   return steps;
 }
 
-// Repeated "Create Demo Board" taps (see SettingsScreen.runCreateDemoBoard)
-// would otherwise pile up several boards all named "Demo" — append " 2",
-// " 3", etc. until the name is free.
+// Repeated "Create Demo Board" taps get "Demo 2", "Demo 3", …
 async function uniqueBoardName(db: SQLiteDatabase, base: string): Promise<string> {
   const existing = new Set((await boardsRepo.listBoards(db)).map((b) => b.name));
   if (!existing.has(base)) return base;
@@ -50,42 +68,115 @@ async function uniqueBoardName(db: SQLiteDatabase, base: string): Promise<string
   return `${base} ${n}`;
 }
 
-// Invented, middle-class household finances shaped like a real board —
-// three income accounts (salary, part-time, freelance; ~$140k/yr combined),
-// one mortgaged primary residence, one fully paid-off cabin, a couple of
-// credit cards, car loan/lease, a student loan, a line of credit, and
-// modest RRSP/TFSA/investing — for showing someone the app without
-// exposing any real money. Every number here is fictional; nothing is
-// derived from the caller's actual data.
-export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
-  const boardId = await boardsRepo.createBoard(db, await uniqueBoardName(db, DEMO_BOARD_NAME));
-  const months = lastNMonths(currentMonth(), 24); // oldest → newest, 24 entries
+// [name, base price] — prices drift up ~0.4%/month (see itemPrice).
+const GROCERY_ITEMS: [string, number][] = [
+  ['Milk 4L', 5.79],
+  ['Eggs (dozen)', 4.29],
+  ['Sourdough Bread', 5.49],
+  ['Bananas', 1.89],
+  ['Chicken Breast', 14.99],
+  ['Olive Oil', 11.99],
+  ['Butter', 6.49],
+  ['Coffee Beans', 16.99],
+  ['Avocados', 4.99],
+  ['Greek Yogurt', 6.99],
+];
+const COSTCO_ITEMS: [string, number][] = [
+  ['Kirkland Paper Towels', 24.99],
+  ['Kirkland Olive Oil 3L', 32.99],
+  ['Rotisserie Chicken', 7.99],
+  ['Atlantic Salmon', 29.99],
+];
+const COFFEE_SHOPS: [string, string, number][] = [
+  ['Starbucks', 'Oat Latte', 5.95],
+  ['Tim Hortons', 'Medium Double-Double', 2.29],
+  ['Matchstick Coffee', 'Cortado', 4.75],
+];
 
-  const checkingId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Everyday Chequing',
-    type: 'cash',
-    openingBalanceCents: cents(4000),
+// Invented, middle-class Vancouver-area household — two earners, two kids,
+// one mortgaged home, a paid-off cabin, cards, car loan/lease, student loan,
+// line of credit, RRSP/TFSA/RESP. ~24 months, deterministic, dated relative
+// to today. Every number is fictional.
+export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
+  let boardId = 0;
+  await db.withTransactionAsync(async () => {
+    boardId = await seed(db);
   });
+  return boardId;
+}
+
+async function seed(db: SQLiteDatabase): Promise<number> {
+  const random = seededRandom(20240917);
+  const rand = (min: number, max: number) => min + random() * (max - min);
+  const pick = <T>(items: T[]) => items[Math.floor(random() * items.length)];
+  const chance = (p: number) => random() < p;
+
+  const today = currentDateISO();
+  const thisMonth = currentMonth();
+  const boardId = await boardsRepo.createBoard(db, await uniqueBoardName(db, DEMO_BOARD_NAME));
+  const months = lastNMonths(thisMonth, 24); // oldest → newest
+  const waterDue = day([...months].reverse().find((m) => calendarMonth(m) % 3 === 1)!, 1);
+
+  const logValue = async (accountId: number, valueCents: number, date: string, note: string | null = null) => {
+    if (date <= today) await accountValueHistoryRepo.addValueChange(db, accountId, valueCents, date, note);
+  };
+
+  // --- categories (before accounts: loans name their payment category) ---
+  const cat = async (groupId: number, name: string) => categoriesRepo.createCategory(db, boardId, { groupId, name, icon: null });
+  const housingGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Mortgages & Housing');
+  const catHouse = await cat(housingGroup, '🏡 Mortgage Payment');
+  const catPropertyTax = await cat(housingGroup, '🧾 Property Tax');
+  const catHomeInsurance = await cat(housingGroup, '🛡️ Home Insurance');
+  const catUtilities = await cat(housingGroup, '💡 Utilities');
+  const catPhoneInternet = await cat(housingGroup, '📶 Phone & Internet');
+  const catHomeMaintenance = await cat(housingGroup, '🛠️ Home Maintenance');
+
+  const everydayGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Everyday Expenses');
+  const catGroceries = await cat(everydayGroup, '🛒 Groceries');
+  const catDining = await cat(everydayGroup, '🍽️ Dining Out');
+  const catCoffee = await cat(everydayGroup, '☕ Coffee & Quick Stops');
+  const catTransport = await cat(everydayGroup, '⛽ Transportation & Gas');
+  const catCarCare = await cat(everydayGroup, '🔧 Car Insurance & Care');
+  const catShopping = await cat(everydayGroup, '🛍️ Shopping');
+  const catKids = await cat(everydayGroup, '🧒 Kids & Activities');
+  const catSubscriptions = await cat(everydayGroup, '📱 Subscriptions');
+  const catInterest = await cat(everydayGroup, '💳 Interest & Fees');
+
+  const qolGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Quality of Life');
+  const catTravel = await cat(qolGroup, '✈️ Travel & Vacation');
+  const catGifts = await cat(qolGroup, '🎄 Holidays & Gifts');
+  const catHobbies = await cat(qolGroup, '🎉 Hobbies & Recreation');
+  const catGym = await cat(qolGroup, '💪 Gym & Wellness');
+
+  const givingGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Giving');
+  const catCharity = await cat(givingGroup, '🎁 Charitable Giving');
+
+  const savingsGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Savings Goals');
+  const catRrsp = await cat(savingsGroup, '🏦 RRSP Contributions');
+  const catTfsa = await cat(savingsGroup, '💰 TFSA Contributions');
+  const catResp = await cat(savingsGroup, '🎓 RESP for the Kids');
+  const catInvest = await cat(savingsGroup, '📈 Investment Contributions');
+
+  const loansGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Loans & Financing');
+  const catCarLoan = await cat(loansGroup, '🚙 Highlander Loan Payment');
+  const catCarLease = await cat(loansGroup, '🚗 CR-V Lease Payment');
+  const catStudentLoan = await cat(loansGroup, '📚 Student Loan Payment');
+  const catLocDraw = await cat(loansGroup, '🛠️ Line of Credit Draws');
+
+  // --- accounts ---
+  const checkingId = await accountsRepo.createAccount(db, boardId, { name: 'Everyday Chequing', type: 'cash', openingBalanceCents: cents(4000) });
   const savingsId = await accountsRepo.createAccount(db, boardId, {
     name: 'High-Interest Savings',
     type: 'savings',
     openingBalanceCents: cents(12000),
+    note: 'Emergency fund — 4 months of spending.',
   });
+  const ccId = await accountsRepo.createAccount(db, boardId, { name: 'Rewards Visa', type: 'credit_card', openingBalanceCents: 0 });
+  const cc2Id = await accountsRepo.createAccount(db, boardId, { name: 'Cashback Mastercard', type: 'credit_card', openingBalanceCents: 0 });
 
-  const ccId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Rewards Visa',
-    type: 'credit_card',
-    openingBalanceCents: 0,
-  });
-  const cc2Id = await accountsRepo.createAccount(db, boardId, {
-    name: 'Cashback Mastercard',
-    type: 'credit_card',
-    openingBalanceCents: 0,
-  });
-
-  // Primary residence — already a year into its term when the window
-  // starts; a modest ~8% down payment, not a wealthy one.
-  const houseSchedule = amortize(cents(900000), 575, 300, 36);
+  // Primary residence — a year into its term when the window starts.
+  const housePrincipal = cents(640000);
+  const houseSchedule = amortize(housePrincipal, 575, 300, 36);
   const houseOpeningCents = -houseSchedule[11].balanceCents;
   const housePayments = houseSchedule.slice(12);
   const houseId = await accountsRepo.createAccount(db, boardId, {
@@ -94,80 +185,30 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     openingBalanceCents: houseOpeningCents,
     interestRateBps: 575,
     termMonths: 300,
-    originalPrincipalCents: cents(900000),
-    originationDate: day(months[0], 1),
-    originalHousePriceCents: cents(980000),
+    originalPrincipalCents: housePrincipal,
+    originationDate: addMonths(day(months[0], 1), -12),
+    originalHousePriceCents: cents(800000),
+    loanPaymentCategoryId: catHouse,
+    note: '5-year fixed with Coastal Credit Union, renews in 2028.',
   });
-  await accountRateHistoryRepo.addRateChange(db, houseId, 575, day(months[0], 1));
-  // A statement figure, a year in — the anchor every later payment is
-  // measured from, the same thing the account page's "Update Remaining
-  // Principal" writes.
+  await accountRateHistoryRepo.addRateChange(db, houseId, 575, addMonths(day(months[0], 1), -12), '5-year fixed');
   await accountValueHistoryRepo.addValueChange(db, houseId, -houseOpeningCents, day(months[12], 1), 'Annual statement', 'principal');
-  await accountValueHistoryRepo.addValueChange(db, houseId, cents(980000), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, houseId, cents(1010000), day(months[11], 1));
-  await accountValueHistoryRepo.addValueChange(db, houseId, cents(1040000), day(months[23], 15));
-
-  // A small cabin, paid off years ago — tracked as a plain Asset (no
-  // loan), just a logged value that drifts up slowly. One paid-off
-  // property alongside one still-mortgaged one is the point of this pair.
-  const cabinId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Whistler Cabin',
-    type: 'asset',
-    openingBalanceCents: cents(350000),
-  });
-  await accountValueHistoryRepo.addValueChange(db, cabinId, cents(350000), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, cabinId, cents(365000), day(months[11], 1));
-  await accountValueHistoryRepo.addValueChange(db, cabinId, cents(380000), day(months[23], 15));
-
-  // Everyday resellable belongings, same Asset type as the cabin — one
-  // account bundling ordinary household/personal items (electronics,
-  // furniture, jewelry) rather than a line per item, so Net Worth's asset
-  // side isn't just real estate. Value drifts like real mixed possessions
-  // would: electronics/furniture depreciate, a mid-window purchase bumps it
-  // back up, jewelry holds value — same multi-point history shape as the
-  // cabin above. Unlike the cabin, this one also gets real itemized
-  // purchase transactions (a watch, an iPad, …) — the BALANCE figure still
-  // comes from the value log above (see accountsRepo.resolveBalanceCents),
-  // not these, so they don't need to reconcile to the cent; they're here so
-  // the account's transaction list isn't just empty.
-  const belongingsId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Personal Belongings',
-    type: 'asset',
-    openingBalanceCents: cents(9600),
-  });
-  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(9600), day(months[0], 1));
-  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(8700), day(months[7], 1));
-  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(10200), day(months[8], 15));
-  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(9300), day(months[15], 1));
-  await accountValueHistoryRepo.addValueChange(db, belongingsId, cents(8100), day(months[23], 15));
-
-  const belongingsPurchases: [string, string, number, number, number][] = [
-    // [item, merchant, price, monthIndex, day]
-    ['iPad Air', 'Apple Store', 650, 2, 14],
-    ['Sony WH-1000XM5 Headphones', 'Best Buy', 380, 5, 20],
-    ['Apple Watch Ultra 2', 'Apple Store', 850, 8, 9], // + the Dyson below is the "mid-window purchase" bump logged on the 15th
-    ['Dyson V15 Vacuum', 'Best Buy', 650, 8, 11],
-    ['PlayStation 5', 'Best Buy', 500, 12, 5],
-    ['Sectional Sofa', 'IKEA', 700, 18, 22],
-    ['Canon EOS R50 Camera', 'Canon Store', 680, 21, 9],
-  ];
-  for (const [item, merchant, price, monthIndex, d] of belongingsPurchases) {
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: belongingsId,
-      categoryId: null, // off-budget asset account — a category wouldn't mean anything here
-      payeeName: item,
-      memo: merchant,
-      amountCents: cents(price),
-      date: day(months[monthIndex], d),
-    });
+  const houseValues = [800000, 812000, 826000, 819000, 834000, 851000];
+  for (let k = 0; k < houseValues.length; k++) {
+    const note = k === 0 ? 'Purchase price' : k % 2 === 0 ? 'BC Assessment' : 'Realtor estimate';
+    await logValue(houseId, cents(houseValues[k]), day(months[Math.min(23, k * 4 + (k ? 3 : 0))], 1), note);
   }
 
-  // Loans — three different repayment shapes beyond the mortgage above:
-  // a standard interest-bearing installment loan (car), a fixed-payment
-  // loan with no interest to break out (lease — the money factor is baked
-  // into the manufacturer's residual pricing, not itemized like a real
-  // loan's rate), and a long-term loan already partway through repayment
-  // (student, seasoned like the house above, just further along).
+  const cabinId = await accountsRepo.createAccount(db, boardId, { name: 'Whistler Cabin', type: 'asset', openingBalanceCents: cents(350000) });
+  for (const [m, v] of [[0, 350000], [6, 356000], [11, 365000], [17, 371000], [23, 380000]] as const) {
+    await logValue(cabinId, cents(v), day(months[m], 1));
+  }
+
+  const belongingsId = await accountsRepo.createAccount(db, boardId, { name: 'Personal Belongings', type: 'asset', openingBalanceCents: cents(9600) });
+  for (const [m, v] of [[0, 9600], [7, 8700], [8, 10200], [15, 9300], [23, 8100]] as const) {
+    await logValue(belongingsId, cents(v), day(months[m], m === 8 || m === 23 ? 15 : 1));
+  }
+
   const carLoanSchedule = amortize(cents(28000), 649, 60, 14 + months.length);
   const carLoanId = await accountsRepo.createAccount(db, boardId, {
     name: 'Highlander Auto Loan',
@@ -177,12 +218,12 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     termMonths: 60,
     originalPrincipalCents: cents(28000),
     originationDate: addMonths(day(months[0], 1), -14),
+    loanPaymentCategoryId: catCarLoan,
   });
   await accountRateHistoryRepo.addRateChange(db, carLoanId, 649, addMonths(day(months[0], 1), -14));
   const carLoanPayments = carLoanSchedule.slice(14);
 
   const carLeasePrincipalCents = cents(420 * 36);
-  const carLeaseSchedule = amortize(carLeasePrincipalCents, 0, 36, months.length);
   const carLeaseId = await accountsRepo.createAccount(db, boardId, {
     name: 'CR-V Lease',
     type: 'loan',
@@ -191,6 +232,7 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     termMonths: 36,
     originalPrincipalCents: carLeasePrincipalCents,
     originationDate: day(months[0], 1),
+    loanPaymentCategoryId: catCarLease,
   });
   await accountRateHistoryRepo.addRateChange(db, carLeaseId, 0, day(months[0], 1));
 
@@ -203,379 +245,371 @@ export async function seedDemoBoard(db: SQLiteDatabase): Promise<number> {
     termMonths: 120,
     originalPrincipalCents: cents(22000),
     originationDate: addMonths(day(months[0], 1), -30),
+    loanPaymentCategoryId: catStudentLoan,
   });
   await accountRateHistoryRepo.addRateChange(db, studentLoanId, 549, addMonths(day(months[0], 1), -30));
   const studentLoanPayments = studentLoanSchedule.slice(30);
 
-  // Revolving, not installment — modeled like the credit cards below rather
-  // than a LoanDetailsCard-style amortization: a draw against it spends
-  // directly from the account (no linked-payee mirror needed), interest
-  // accrues monthly on whatever's outstanding, and only part of it gets
-  // paid down each month.
-  const locId = await accountsRepo.createAccount(db, boardId, {
-    name: 'Personal Line of Credit',
-    type: 'credit_card',
-    openingBalanceCents: -cents(3500),
-  });
-  let locBalance = cents(3500);
+  const locId = await accountsRepo.createAccount(db, boardId, { name: 'Personal Line of Credit', type: 'credit_card', openingBalanceCents: -cents(3500) });
 
-  const rrspId = await accountsRepo.createAccount(db, boardId, { name: 'RRSP', type: 'tracking', openingBalanceCents: cents(45000) });
-  const tfsaId = await accountsRepo.createAccount(db, boardId, { name: 'TFSA', type: 'tracking', openingBalanceCents: cents(22000) });
+  const rrspId = await accountsRepo.createAccount(db, boardId, { name: 'RRSP', type: 'tracking', openingBalanceCents: cents(45000), trackingKind: 'ca_rrsp' });
+  const tfsaId = await accountsRepo.createAccount(db, boardId, { name: 'TFSA', type: 'tracking', openingBalanceCents: cents(22000), trackingKind: 'ca_tfsa' });
+  const respId = await accountsRepo.createAccount(db, boardId, { name: 'Family RESP', type: 'tracking', openingBalanceCents: cents(14000), trackingKind: 'ca_resp' });
   const investId = await accountsRepo.createAccount(db, boardId, {
     name: 'Non-Registered Investments',
     type: 'tracking',
     openingBalanceCents: cents(12000),
+    trackingKind: 'general',
   });
 
-  // --- categories ---
-  const housingGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Mortgages & Housing');
-  const catHouse = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🏡 Mortgage Payment', icon: null });
-  const catPropertyTax = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🧾 Property Tax', icon: null });
-  const catHomeInsurance = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🛡️ Home Insurance', icon: null });
-  const catUtilities = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '💡 Utilities', icon: null });
-  const catHomeMaintenance = await categoriesRepo.createCategory(db, boardId, { groupId: housingGroup, name: '🛠️ Home Maintenance', icon: null });
-
-  const everydayGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Everyday Expenses');
-  const catGroceries = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '🛒 Groceries', icon: null });
-  const catDining = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '🍽️ Dining Out', icon: null });
-  const catCoffee = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '☕ Coffee & Quick Stops', icon: null });
-  const catTransport = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '⛽ Transportation & Gas', icon: null });
-  const catShopping = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '🛍️ Shopping', icon: null });
-  const catSubscriptions = await categoriesRepo.createCategory(db, boardId, { groupId: everydayGroup, name: '📱 Subscriptions', icon: null });
-
-  const qolGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Quality of Life');
-  const catTravel = await categoriesRepo.createCategory(db, boardId, { groupId: qolGroup, name: '✈️ Travel & Vacation', icon: null });
-  const catHobbies = await categoriesRepo.createCategory(db, boardId, { groupId: qolGroup, name: '🎉 Hobbies & Recreation', icon: null });
-  const catGym = await categoriesRepo.createCategory(db, boardId, { groupId: qolGroup, name: '💪 Gym & Wellness', icon: null });
-
-  const givingGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Giving');
-  const catCharity = await categoriesRepo.createCategory(db, boardId, { groupId: givingGroup, name: '🎁 Charitable Giving', icon: null });
-
-  const savingsGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Savings Goals');
-  const catRrsp = await categoriesRepo.createCategory(db, boardId, { groupId: savingsGroup, name: '🏦 RRSP Contributions', icon: null });
-  const catTfsa = await categoriesRepo.createCategory(db, boardId, { groupId: savingsGroup, name: '💰 TFSA Contributions', icon: null });
-  const catInvest = await categoriesRepo.createCategory(db, boardId, { groupId: savingsGroup, name: '📈 Investment Contributions', icon: null });
-
-  const loansGroup = await categoriesRepo.createCategoryGroup(db, boardId, 'Loans & Financing');
-  const catCarLoan = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🚙 Highlander Loan Payment', icon: null });
-  const catCarLease = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🚗 CR-V Lease Payment', icon: null });
-  const catStudentLoan = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🎓 Student Loan Payment', icon: null });
-  const catLocDraw = await categoriesRepo.createCategory(db, boardId, { groupId: loansGroup, name: '🛠️ Line of Credit Draws', icon: null });
-
-  // --- 24 months of transactions + budget ---
-  const groceryPayees = ['Save-On-Foods', 'Whole Foods', 'Costco'];
-  const diningPayees = ['The Keg Steakhouse', 'Uber Eats', 'Local Bistro'];
-  const coffeePayees = ['Tim Hortons', 'Starbucks', 'Circle K'];
-  const shoppingPayees = ['Amazon', 'Best Buy', 'Apple Store'];
-  const travelPayees = ['Air Canada', 'WestJet'];
-
+  // --- posting helpers: nothing dated after today is written ---
   let checkingBalance = cents(4000);
-  let rrspBalance = cents(45000);
-  let tfsaBalance = cents(22000);
-  let investBalance = cents(12000);
   let savingsBalance = cents(12000);
-  let ccBalance = 0;
-  let cc2Balance = 0;
   const CHECKING_FLOOR = cents(300);
+  const cardOwed = new Map<number, number>([[ccId, 0], [cc2Id, 0], [locId, cents(3500)]]);
 
-  // Every Chequing in/out runs through this — a mid-cycle bill landing
-  // before the next paycheque nets the month positive but can still dip
-  // Chequing below the floor day-to-day. Real banks cover that with
-  // overdraft protection linked to Savings; model the same thing instead
-  // of letting the balance go negative.
-  const postChecking = async (
+  const post = async (
+    accountId: number,
     categoryId: number | null,
     payeeName: string,
     amountCents: number,
     date: string,
-  ) => {
-    const shortfall = amountCents < 0 ? CHECKING_FLOOR - (checkingBalance + amountCents) : 0;
-    if (shortfall > 0) {
-      const coverCents = Math.min(shortfall, Math.max(0, savingsBalance));
-      if (coverCents > 0) {
-        savingsBalance -= coverCents;
-        checkingBalance += coverCents;
-        await transactionsRepo.createTransaction(db, boardId, {
-          accountId: savingsId,
-          categoryId: null,
-          payeeName: 'Overdraft Protection Transfer',
-          memo: null,
-          amountCents: -coverCents,
-          date,
-        });
-        await transactionsRepo.createTransaction(db, boardId, {
-          accountId: checkingId,
-          categoryId: null,
-          payeeName: 'Overdraft Protection Transfer',
-          memo: null,
-          amountCents: coverCents,
-          date,
-        });
+    memo: string | null = null,
+    purchaseItems: string | null = null,
+  ): Promise<boolean> => {
+    if (date > today) return false;
+    if (accountId === checkingId) {
+      // Overdraft protection from Savings rather than going negative.
+      const shortfall = amountCents < 0 ? CHECKING_FLOOR - (checkingBalance + amountCents) : 0;
+      const cover = Math.min(Math.max(0, shortfall), Math.max(0, savingsBalance));
+      if (cover > 0) {
+        savingsBalance -= cover;
+        checkingBalance += cover;
+        await transactionsRepo.createTransfer(db, boardId, { fromAccountId: savingsId, toAccountId: checkingId, amountCents: cover, date, memo: 'Overdraft protection' });
       }
+      checkingBalance += amountCents;
+    } else if (cardOwed.has(accountId)) {
+      cardOwed.set(accountId, cardOwed.get(accountId)! - amountCents);
     }
-    checkingBalance += amountCents;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: checkingId,
-      categoryId,
-      payeeName,
-      memo: null,
-      amountCents,
-      date,
-    });
+    await transactionsRepo.createTransaction(db, boardId, { accountId, categoryId, payeeName, memo, amountCents, date, purchaseItems });
+    return true;
+  };
+  const payCard = async (cardId: number, payee: string, fraction: number, date: string) => {
+    const owed = cardOwed.get(cardId)!;
+    const amount = Math.round(owed * fraction);
+    if (amount <= 0 || date > today) return;
+    cardOwed.set(cardId, owed - amount);
+    await post(checkingId, null, payee, -amount, date);
+  };
+  const transferToSavings = async (amount: number, date: string) => {
+    if (amount <= 0 || date > today) return;
+    checkingBalance -= amount;
+    savingsBalance += amount;
+    await transactionsRepo.createTransfer(db, boardId, { fromAccountId: checkingId, toAccountId: savingsId, amountCents: amount, date, memo: 'Monthly sweep' });
   };
 
-  // Money in is just a positive transaction on the cash account — its payee
-  // says where it came from, which is all the tax breakdown needs.
-  const postIncome = (payeeName: string, amountCents: number, date: string) =>
-    postChecking(null, payeeName, amountCents, date);
+  const itemPrice = (base: number, i: number) => (base * (1 + 0.004 * i) * rand(0.97, 1.03)).toFixed(2);
+  const basket = (catalogue: [string, number][], i: number, n: number) => {
+    const chosen = [...catalogue].sort(() => random() - 0.5).slice(0, n);
+    const items = chosen.map(([key, base]) => ({ key, value: itemPrice(base, i) }));
+    return { items, totalCents: items.reduce((s, it) => s + cents(Number(it.value)), 0) };
+  };
+
+  // Fixed monthly bills (the scheduled ones below continue these).
+  const NETFLIX_OLD = 20.99;
+  const NETFLIX_NEW = 23.99;
+  const ICLOUD_OLD = 3.99;
+  const ICLOUD_NEW = 12.99;
+
+  const salaryBase = 3350;
+  const partnerBase = 2050;
+  const rrspContribution = cents(400);
+  const tfsaContribution = cents(300);
+  const respContribution = cents(208);
+  const investContribution = cents(150);
+  let rrspValue = cents(45000);
+  let tfsaValue = cents(22000);
+  let respValue = cents(14000);
+  let investValue = cents(12000);
 
   for (let i = 0; i < months.length; i++) {
     const month = months[i];
-    const inflation = 1 + (i / months.length) * 0.05; // slow drift up over the 2 years
+    const cal = calendarMonth(month);
+    const inflation = 1 + i * 0.002;
+    const winter = cal === 11 || cal === 12 || cal === 1 || cal === 2;
+    const yearsIn = months.slice(1, i + 1).filter((m) => calendarMonth(m) === 1).length;
 
-    // Household income — two earners paid twice a month (~$140k/yr
-    // combined salary + part-time), plus the odd freelance gig. Sized so
-    // real cash keeps pace with the mortgage/loans/expenses below —
-    // otherwise Unassigned drifts deeply negative and every category
-    // assignment (even leaving one unchanged) gets rejected as "exceeds
-    // unassigned" (see AssignedAmountModal's cap).
-    await postIncome('Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 1));
-    await postIncome('Meridian Robotics Inc', cents(rand(3400, 3600) * inflation), day(month, 15));
-    await postIncome('Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 1));
-    await postIncome('Alderbrook Consulting Group', cents(rand(1900, 2100) * inflation), day(month, 15));
-    // Freelance work is lumpy — most months get one payment, some get
-    // none, so the trend graph actually looks like gig income.
-    if (Math.random() < 0.75) {
-      await postIncome('Freelance Design Gigs', cents(rand(400, 1200) * inflation), day(month, pick([8, 22])));
-    }
+    // --- income: several payers, raises over time ---
+    const salary = cents(salaryBase * 1.035 ** yearsIn);
+    await post(checkingId, null, 'Meridian Robotics Inc', salary, day(month, 1));
+    await post(checkingId, null, 'Meridian Robotics Inc', salary, day(month, 15));
+    const partner = cents(partnerBase * (i >= 14 ? 1.08 : 1)); // promotion
+    await post(checkingId, null, 'Alderbrook Consulting Group', partner, day(month, 1));
+    await post(checkingId, null, 'Alderbrook Consulting Group', partner, day(month, 15));
+    if (chance(0.6)) await post(checkingId, null, 'Northwind Studio', cents(rand(400, 1200)), day(month, 8), 'Logo + brand refresh');
+    if (chance(0.35)) await post(checkingId, null, 'Brightline Media', cents(rand(600, 1600)), day(month, 22), 'Freelance illustration');
+    await post(checkingId, null, 'Canada Child Benefit', cents(248.5), day(month, 20));
+    if (cal === 5) await post(checkingId, null, 'Canada Revenue Agency', cents(rand(800, 1400)), day(month, 9), 'Tax refund');
+    if (cal === 12) await post(checkingId, null, 'Meridian Robotics Inc', cents(rand(2500, 3500)), day(month, 19), 'Year-end bonus');
 
-    // One payment per loan, for the whole amount, exactly as a bank statement
-    // shows it — the payeeName match mirrors it onto the loan account (see
-    // transactionsRepo.postLinkedAccountLeg) and that account splits it
-    // interest-first when it derives what is still owed (see
-    // finance-tools/remainingPrincipal). Posting the principal and interest
-    // as two transactions would make the split happen twice. The cabin has
-    // no payment of its own — it's paid off, just a logged value.
+    // --- loans ---
     const house = housePayments[i];
-    await postChecking(catHouse, 'Maple Street House Mortgage', -(house.principalCents + house.interestCents), day(month, 1));
+    await post(checkingId, catHouse, 'Maple Street House Mortgage', -(house.principalCents + house.interestCents), day(month, 1));
     const carLoan = carLoanPayments[i];
-    await postChecking(catCarLoan, 'Highlander Auto Loan', -(carLoan.principalCents + carLoan.interestCents), day(month, 4));
-    const carLease = carLeaseSchedule[i];
-    await postChecking(catCarLease, 'CR-V Lease', -carLease.principalCents, day(month, 4));
+    await post(checkingId, catCarLoan, 'Highlander Auto Loan', -(carLoan.principalCents + carLoan.interestCents), day(month, 4));
+    await post(checkingId, catCarLease, 'CR-V Lease', -cents(420), day(month, 4));
     const studentLoan = studentLoanPayments[i];
-    await postChecking(catStudentLoan, 'Student Loan', -(studentLoan.principalCents + studentLoan.interestCents), day(month, 20));
+    await post(checkingId, catStudentLoan, 'Student Loan', -(studentLoan.principalCents + studentLoan.interestCents), day(month, 20));
 
-    // Line of credit — revolving, not installment: an occasional draw
-    // spends directly from the account (like a card purchase, no transfer
-    // leg), interest accrues on whatever's outstanding, and only part of
-    // it gets paid down each month (same "don't always pay in full" shape
-    // as the credit cards below).
     if (i % 7 === 3) {
-      const drawCents = cents(rand(500, 1400));
-      locBalance += drawCents;
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: locId,
-        categoryId: catLocDraw,
-        payeeName: 'Rona',
-        memo: null,
-        amountCents: -drawCents,
-        date: day(month, 10),
-      });
+      await post(locId, catLocDraw, 'Rona', -cents(rand(500, 1400)), day(month, 10), pick(['Deck boards', 'Fence repair', 'Bathroom fan + tile']));
     }
-    const locInterestCents = Math.round(locBalance * (rand(0.075, 0.095) / 12));
-    locBalance += locInterestCents;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: locId,
-      categoryId: null,
-      payeeName: 'Line of Credit Interest',
-      memo: null,
-      amountCents: -locInterestCents,
-      date: day(month, 25),
-    });
-    const locPaymentCents = Math.round(locBalance * rand(0.1, 0.2));
-    locBalance -= locPaymentCents;
-    await postChecking(null, 'Personal Line of Credit', -locPaymentCents, day(month, 26));
+    await post(locId, catInterest, 'Line of Credit Interest', -Math.round(cardOwed.get(locId)! * 0.0075), day(month, 25));
+    await payCard(locId, 'Personal Line of Credit', rand(0.1, 0.2), day(month, 26));
 
-    // Property tax — quarterly.
-    if (i % 3 === 0) {
-      await postChecking(catPropertyTax, 'City Property Tax', -cents(rand(1000, 1200) * 3), day(month, 2));
-    }
-    await postChecking(catHomeInsurance, 'Coastal Insurance Co.', -cents(rand(130, 160)), day(month, 3));
-    await postChecking(catUtilities, pick(['BC Hydro', 'Telus', 'Shaw']), -cents(rand(180, 260)), day(month, 8));
-    if (Math.random() < 0.3) {
-      await postChecking(catHomeMaintenance, 'Home Depot', -cents(rand(120, 500)), day(month, 12));
-    }
+    // --- housing ---
+    if (cal === 7) await post(checkingId, catPropertyTax, 'City of Burnaby', -cents(4300 * inflation), day(month, 2), 'Property tax, net of home owner grant');
+    await post(checkingId, catHomeInsurance, 'Coastal Insurance Co.', -cents(148.2), day(month, 3));
+    await post(checkingId, catUtilities, 'BC Hydro', -cents(rand(85, 110) * (winter ? 1.7 : 1)), day(month, 9));
+    await post(checkingId, catUtilities, 'FortisBC Gas', -cents(winter ? rand(150, 195) : rand(40, 60)), day(month, 11));
+    if (cal % 3 === 1 && day(month, 1) < waterDue) await post(checkingId, catUtilities, 'City Water & Sewer', -cents(212.4), day(month, 1));
+    await post(checkingId, catPhoneInternet, 'Telus Mobility', -cents(95), day(month, 8));
+    await post(checkingId, catPhoneInternet, 'Shaw Internet', -cents(85), day(month, 10));
+    if (chance(0.3)) await post(checkingId, catHomeMaintenance, 'Home Depot', -cents(rand(60, 320)), day(month, 12), pick(['Paint', 'Air filters', 'Garden soil', null]));
+    if (cal === 10) await post(checkingId, catHomeMaintenance, 'Reliance Home Comfort', -cents(189), day(month, 14), 'Furnace service');
 
-    // Everyday spend — groceries/dining on Chequing, discretionary split
-    // across the two cards.
+    // --- groceries with itemized baskets ---
     for (let g = 0; g < 4; g++) {
-      await postChecking(catGroceries, pick(groceryPayees), -cents(rand(130, 230)), day(month, 3 + g * 6));
+      const store = g === 3 ? 'Whole Foods' : 'Save-On-Foods';
+      const b = basket(GROCERY_ITEMS, i, 4 + Math.floor(random() * 3));
+      await post(checkingId, catGroceries, store, -(b.totalCents + cents(rand(70, 140))), day(month, 3 + g * 7), null, formatPurchaseItems(b.items));
     }
+    const costco = basket(COSTCO_ITEMS, i, 3);
+    await post(ccId, catGroceries, 'Costco', -(costco.totalCents + cents(rand(140, 260))), day(month, 13), null, formatPurchaseItems(costco.items));
+
+    // --- dining / coffee / transport ---
     for (let d = 0; d < 4; d++) {
-      await postChecking(catDining, pick(diningPayees), -cents(rand(40, 110)), day(month, 4 + d * 6));
+      await post(cc2Id, catDining, pick(['The Keg Steakhouse', 'Uber Eats', 'Nando’s', 'Sushi Town', 'Local Bistro']), -cents(rand(35, 110)), day(month, 5 + d * 6));
+    }
+    for (let c = 0; c < 7; c++) {
+      const [shop, item, base] = pick(COFFEE_SHOPS);
+      const price = itemPrice(base, i);
+      await post(cc2Id, catCoffee, shop, -cents(Number(price) * (chance(0.3) ? 2 : 1)), day(month, 2 + c * 4), null, formatPurchaseItems([{ key: item, value: price }]));
     }
     for (let g = 0; g < 3; g++) {
-      await postChecking(catTransport, 'Chevron', -cents(rand(55, 90)), day(month, 6 + g * 8));
+      const perLitre = (1.68 + 0.18 * Math.sin(((cal - 2) / 12) * 2 * Math.PI) + rand(-0.04, 0.04)).toFixed(3);
+      const litres = rand(40, 55);
+      await post(cc2Id, catTransport, pick(['Chevron', 'Shell', 'Petro-Canada']), -cents(Number(perLitre) * litres), day(month, 6 + g * 8), null, formatPurchaseItems([{ key: 'Regular Gas per L', value: perLitre }]));
+    }
+    await post(cc2Id, catTransport, 'TransLink Compass', -cents(50), day(month, 2));
+    if (i % 4 === 1) await post(checkingId, catCarCare, 'Jiffy Lube', -cents(rand(85, 110)), day(month, 16), 'Oil change');
+    if (cal === 11) await post(checkingId, catCarCare, 'Kal Tire', -cents(rand(120, 160)), day(month, 3), 'Winter tire swap');
+    if (cal === 3) await post(checkingId, catCarCare, 'ICBC', -cents(1980 * inflation), day(month, 15), 'Annual Autoplan renewal');
+
+    // --- shopping, seasonal ---
+    const shoppingTrips = cal === 12 ? 2 : cal === 11 ? 3 : 2;
+    for (let s = 0; s < shoppingTrips; s++) {
+      await post(ccId, catShopping, pick(['Amazon', 'Canadian Tire', 'Best Buy', 'Winners', 'IKEA']), -cents(rand(40, 160)), day(month, 9 + s * 7));
+    }
+    if (cal === 11) await post(ccId, catShopping, 'Best Buy', -cents(rand(350, 600)), day(month, 28), 'Black Friday');
+    if (cal === 12) {
+      await post(ccId, catGifts, 'Amazon', -cents(rand(300, 450)), day(month, 6), 'Christmas gifts');
+      await post(ccId, catGifts, 'Indigo', -cents(rand(80, 150)), day(month, 12), 'Books for the kids');
+      await post(ccId, catGifts, 'Toys"R"Us', -cents(rand(150, 260)), day(month, 16));
+      await post(ccId, catGifts, 'Lululemon', -cents(rand(180, 280)), day(month, 18));
+    }
+    if (cal === 8) await post(ccId, catKids, 'Staples', -cents(rand(140, 220)), day(month, 24), 'Back to school');
+
+    // --- kids, hobbies, gym, giving ---
+    await post(checkingId, catKids, 'Burnaby Parks & Rec', -cents(cal >= 7 && cal <= 8 ? rand(300, 420) : rand(60, 120)), day(month, 7), cal >= 7 && cal <= 8 ? 'Summer day camp' : 'Swim lessons');
+    if (chance(0.5)) await post(cc2Id, catHobbies, pick(['Cineplex', 'Steve’s Music', 'MEC']), -cents(rand(30, 90)), day(month, 21));
+    await post(checkingId, catGym, 'GoodLife Fitness', -cents(69.99), day(month, 4));
+    await post(checkingId, catCharity, 'Greater Vancouver Food Bank', -cents(80), day(month, 20));
+    if (cal === 12) await post(checkingId, catCharity, 'BC Children’s Hospital Foundation', -cents(250), day(month, 15));
+
+    // --- subscriptions: fixed amounts, monthly and annual ---
+    await post(ccId, catSubscriptions, 'Netflix', -cents(i < 10 ? NETFLIX_OLD : NETFLIX_NEW), day(month, 5));
+    await post(ccId, catSubscriptions, 'Spotify', -cents(21.99), day(month, 7));
+    await post(ccId, catSubscriptions, 'Disney+', -cents(14.99), day(month, 12));
+    await post(ccId, catSubscriptions, 'YouTube Premium', -cents(13.99), day(month, 18));
+    await post(ccId, catSubscriptions, 'iCloud+', -cents(i < 12 ? ICLOUD_OLD : ICLOUD_NEW), day(month, 14));
+    if (cal === 3) await post(ccId, catSubscriptions, 'Microsoft 365', -cents(139), day(month, 11));
+    if (cal === 8) await post(ccId, catSubscriptions, 'Namecheap', -cents(18.98), day(month, 3), 'Domain renewal');
+    if (cal === 6) await post(ccId, catSubscriptions, 'Amazon Prime', -cents(99), day(month, 17));
+    if (cal === 4) await post(checkingId, catShopping, 'Costco Membership', -cents(130), day(month, 22));
+    if (cal === 9) await post(checkingId, catCarCare, 'BCAA', -cents(124), day(month, 2), 'Roadside membership');
+
+    // --- travel, seasonal ---
+    if (cal === 7) {
+      await post(ccId, catTravel, 'Air Canada', -cents(rand(1800, 2400)), day(month, 2), 'Flights to Halifax');
+      await post(ccId, catTravel, 'Airbnb', -cents(rand(1300, 1700)), day(month, 3), 'Summer trip — 8 nights');
+      await post(ccId, catTravel, 'Enterprise Rent-A-Car', -cents(rand(420, 560)), day(month, 18));
+    }
+    if (cal === 3) await post(ccId, catTravel, 'WestJet', -cents(rand(700, 950)), day(month, 9), 'Spring break in Kelowna');
+    if (cal === 2) await post(cc2Id, catTravel, 'Whistler Blackcomb', -cents(rand(380, 520)), day(month, 14), 'Family ski day');
+
+    // --- card payments ---
+    await payCard(ccId, 'Rewards Visa', rand(0.85, 1), day(month, 26));
+    await payCard(cc2Id, 'Cashback Mastercard', 1, day(month, 26));
+
+    // --- contributions (transfers via linked payees) + statement values ---
+    await post(checkingId, catRrsp, 'RRSP', -rrspContribution, day(month, 27));
+    await post(checkingId, catTfsa, 'TFSA', -tfsaContribution, day(month, 27));
+    await post(checkingId, catResp, 'Family RESP', -respContribution, day(month, 27));
+    await post(checkingId, catInvest, 'Non-Registered Investments', -investContribution, day(month, 27));
+    rrspValue = Math.round(rrspValue * (1 + rand(-0.02, 0.03))) + rrspContribution;
+    tfsaValue = Math.round(tfsaValue * (1 + rand(-0.02, 0.03))) + tfsaContribution;
+    respValue = Math.round(respValue * (1 + rand(-0.01, 0.02))) + Math.round(respContribution * 1.2); // + CESG
+    investValue = Math.round(investValue * (1 + rand(-0.025, 0.035))) + investContribution;
+    if (day(month, 28) <= today) {
+      await accountValueHistoryRepo.addValueChange(db, rrspId, rrspValue, day(month, 28), 'Statement');
+      await accountValueHistoryRepo.addValueChange(db, tfsaId, tfsaValue, day(month, 28), 'Statement');
+      await accountValueHistoryRepo.addValueChange(db, respId, respValue, day(month, 28), 'Statement');
+      await accountValueHistoryRepo.addValueChange(db, investId, investValue, day(month, 28), 'Statement');
     }
 
-    let ccCharges = 0;
-    for (let s = 0; s < 3; s++) {
-      const amt = cents(rand(70, 180));
-      ccCharges += amt;
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: ccId,
-        categoryId: catShopping,
-        payeeName: pick(shoppingPayees),
-        memo: null,
-        amountCents: -amt,
-        date: day(month, 9 + s * 7),
-      });
-    }
-    const subAmt = cents(rand(55, 70));
-    ccCharges += subAmt;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: ccId,
-      categoryId: catSubscriptions,
-      payeeName: 'Streaming Bundle',
-      memo: null,
-      amountCents: -subAmt,
-      date: day(month, 5),
-    });
-    if (i % 6 === 2) {
-      const travelAmt = cents(rand(1500, 3000));
-      ccCharges += travelAmt;
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: ccId,
-        categoryId: catTravel,
-        payeeName: pick(travelPayees),
-        memo: null,
-        amountCents: -travelAmt,
-        date: day(month, 18),
-      });
-    }
+    // --- savings sweep + interest ---
+    await transferToSavings(Math.floor(Math.max(0, checkingBalance - cents(3000)) / cents(50)) * cents(50), day(month, 28));
+    const savingsInterest = Math.round(savingsBalance * 0.0028);
+    if (await post(savingsId, null, 'Savings Interest', savingsInterest, day(month, 28))) savingsBalance += savingsInterest;
 
-    // Second card — a small, everyday-carry balance (coffee/quick stops),
-    // paid off almost in full most months.
-    let cc2Charges = 0;
-    for (let c = 0; c < 6; c++) {
-      const amt = cents(rand(4, 9));
-      cc2Charges += amt;
-      await transactionsRepo.createTransaction(db, boardId, {
-        accountId: cc2Id,
-        categoryId: catCoffee,
-        payeeName: pick(coffeePayees),
-        memo: null,
-        amountCents: -amt,
-        date: day(month, 2 + c * 4),
-      });
-    }
-
-    for (let h = 0; h < 2; h++) {
-      await postChecking(catHobbies, 'Local Rec Centre', -cents(rand(30, 70)), day(month, 14 + h * 10));
-    }
-    await postChecking(catGym, 'GoodLife Fitness', -cents(60), day(month, 4));
-    await postChecking(catCharity, 'Local Food Bank', -cents(80), day(month, 20));
-
-    // Pay most (not all) of each card's balance each month — a small
-    // revolving balance reads more real than always paying in full.
-    const owed = ccBalance + ccCharges;
-    const ccPayment = Math.round(owed * rand(0.75, 0.95));
-    ccBalance = owed - ccPayment;
-    await postChecking(null, 'Rewards Visa', -ccPayment, day(month, 26));
-    const owed2 = cc2Balance + cc2Charges;
-    const cc2Payment = Math.round(owed2 * rand(0.9, 1));
-    cc2Balance = owed2 - cc2Payment;
-    await postChecking(null, 'Cashback Mastercard', -cc2Payment, day(month, 26));
-
-    // Retirement/investment contributions + simulated growth — modest,
-    // not maxed out, given how much of the paycheque the mortgage takes.
-    const rrspContribution = cents(400);
-    await postChecking(catRrsp, 'RRSP', -rrspContribution, day(month, 27));
-    const rrspGrowth = Math.round(rrspBalance * rand(-0.01, 0.02));
-    rrspBalance += rrspContribution + rrspGrowth;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: rrspId,
-      categoryId: null,
-      payeeName: 'RRSP Market Growth',
-      memo: null,
-      amountCents: rrspGrowth,
-      date: day(month, 28),
-    });
-
-    const tfsaContribution = cents(300);
-    await postChecking(catTfsa, 'TFSA', -tfsaContribution, day(month, 27));
-    const tfsaGrowth = Math.round(tfsaBalance * rand(-0.01, 0.02));
-    tfsaBalance += tfsaContribution + tfsaGrowth;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: tfsaId,
-      categoryId: null,
-      payeeName: 'TFSA Market Growth',
-      memo: null,
-      amountCents: tfsaGrowth,
-      date: day(month, 28),
-    });
-
-    const investContribution = cents(200);
-    await postChecking(catInvest, 'Non-Registered Investments', -investContribution, day(month, 27));
-    const investGrowth = Math.round(investBalance * rand(-0.015, 0.025));
-    investBalance += investContribution + investGrowth;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: investId,
-      categoryId: null,
-      payeeName: 'Investment Market Growth',
-      memo: null,
-      amountCents: investGrowth,
-      date: day(month, 28),
-    });
-
-    // Sweep whatever's left in Chequing past a comfortable cushion into
-    // Savings, which also earns a bit of interest on its own — capped to
-    // what's actually there so the sweep itself never forces an overdraft
-    // cover-transfer right back out of Savings.
-    const sweepHeadroom = Math.max(0, checkingBalance - CHECKING_FLOOR - cents(200));
-    const savingsTransfer = Math.min(cents(rand(150, 350)), sweepHeadroom);
-    if (savingsTransfer > 0) {
-      await postChecking(null, 'High-Interest Savings', -savingsTransfer, day(month, 28));
-    }
-    const savingsInterest = Math.round(savingsBalance * rand(0.002, 0.004));
-    savingsBalance += savingsTransfer + savingsInterest;
-    await transactionsRepo.createTransaction(db, boardId, {
-      accountId: savingsId,
-      categoryId: null,
-      payeeName: 'Savings Interest',
-      memo: null,
-      amountCents: savingsInterest,
-      date: day(month, 28),
-    });
-
-    // Budget — assign roughly what the month spent, plus a small buffer.
+    // --- budget: what the month needs, with a little buffer ---
     const assignments: [number, number][] = [
       [catHouse, house.principalCents + house.interestCents],
       [catCarLoan, carLoan.principalCents + carLoan.interestCents],
-      [catCarLease, carLease.principalCents],
+      [catCarLease, cents(420)],
       [catStudentLoan, studentLoan.principalCents + studentLoan.interestCents],
       [catLocDraw, cents(100)],
-      [catPropertyTax, cents(370)],
-      [catHomeInsurance, cents(145)],
-      [catUtilities, cents(230)],
-      [catHomeMaintenance, cents(200)],
-      [catGroceries, cents(800)],
-      [catDining, cents(400)],
-      [catCoffee, cents(50)],
-      [catTransport, cents(240)],
-      [catShopping, cents(400)],
-      [catSubscriptions, cents(60)],
-      [catTravel, cents(350)],
-      [catHobbies, cents(120)],
-      [catGym, cents(60)],
-      [catCharity, cents(80)],
+      [catPropertyTax, cents(360)],
+      [catHomeInsurance, cents(149)],
+      [catUtilities, cents(winter ? 380 : 240)],
+      [catPhoneInternet, cents(180)],
+      [catHomeMaintenance, cents(150)],
+      [catGroceries, cents(1150)],
+      [catDining, cents(320)],
+      [catCoffee, cents(60)],
+      [catTransport, cents(300)],
+      [catCarCare, cents(200)],
+      [catShopping, cents(300)],
+      [catKids, cents(cal >= 7 && cal <= 8 ? 400 : 120)],
+      [catSubscriptions, cents(100)],
+      [catInterest, cents(30)],
+      [catTravel, cents(450)],
+      [catGifts, cents(cal >= 10 ? 300 : 50)],
+      [catHobbies, cents(60)],
+      [catGym, cents(70)],
+      [catCharity, cents(cal === 12 ? 330 : 80)],
       [catRrsp, rrspContribution],
       [catTfsa, tfsaContribution],
+      [catResp, respContribution],
       [catInvest, investContribution],
     ];
     for (const [categoryId, base] of assignments) {
       await budgetsRepo.setAssignedCents(db, boardId, categoryId, month, Math.round(base * inflation));
     }
+  }
+
+  // --- belongings: itemized big-ticket purchases ---
+  const belongingsPurchases: [string, string, number, number, number][] = [
+    ['iPad Air', 'Apple Store', 650, 2, 14],
+    ['Sony WH-1000XM5 Headphones', 'Best Buy', 380, 5, 20],
+    ['Apple Watch Ultra 2', 'Apple Store', 850, 8, 9],
+    ['Dyson V15 Vacuum', 'Best Buy', 650, 8, 11],
+    ['PlayStation 5', 'Best Buy', 500, 12, 5],
+    ['Sectional Sofa', 'IKEA', 700, 18, 22],
+    ['Canon EOS R50 Camera', 'Canon Store', 680, 21, 9],
+  ];
+  for (const [item, merchant, price, m, d] of belongingsPurchases) {
+    await post(belongingsId, null, item, cents(price), day(months[m], d), merchant);
+  }
+
+  // --- a few rows that need a look (Flagged) ---
+  const recent = months[months.length - 2];
+  await post(ccId, null, 'Amazon', -cents(64.38), day(recent, 19), 'Not sure what this was');
+  await post(checkingId, catDining, 'Uber Eats', -cents(42.17), day(recent, 23));
+  await post(checkingId, catDining, 'Uber Eats', -cents(42.17), day(recent, 23));
+  await post(checkingId, catHobbies, '', -cents(60), day(recent, 24), 'ATM withdrawal');
+
+  // --- schedules: bills and subscriptions continuing the history above ---
+  const nextMonthly = (d: number) => (day(thisMonth, d) > today ? day(thisMonth, d) : day(nextMonth(thisMonth), d));
+  const nextYearly = (cal: number, d: number) => {
+    const thisYear = `${thisMonth.slice(0, 4)}-${String(cal).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    return thisYear > today ? thisYear : addMonths(thisYear, 12);
+  };
+  const schedule = async (
+    accountId: number,
+    categoryId: number | null,
+    payeeName: string,
+    amountCents: number,
+    frequency: ScheduleFrequency,
+    nextDate: string,
+    intervalN = 1,
+    memo: string | null = null,
+  ) =>
+    scheduledTransactionsRepo.createScheduledTransaction(db, boardId, {
+      accountId, categoryId, payeeName, memo, amountCents, frequency, intervalN, daysOfWeekMask: null, nextDate, endDate: null,
+    });
+  const lastSalary = cents(salaryBase * 1.035 ** months.slice(1).filter((m) => calendarMonth(m) === 1).length);
+  await schedule(checkingId, null, 'Meridian Robotics Inc', lastSalary, 'monthly', nextMonthly(1));
+  await schedule(checkingId, null, 'Meridian Robotics Inc', lastSalary, 'monthly', nextMonthly(15));
+  await schedule(checkingId, catHouse, 'Maple Street House Mortgage', -(housePayments[23].principalCents + housePayments[23].interestCents), 'monthly', nextMonthly(1));
+  await schedule(checkingId, catCarLoan, 'Highlander Auto Loan', -(carLoanPayments[23].principalCents + carLoanPayments[23].interestCents), 'monthly', nextMonthly(4));
+  await schedule(checkingId, catCarLease, 'CR-V Lease', -cents(420), 'monthly', nextMonthly(4));
+  await schedule(checkingId, catHomeInsurance, 'Coastal Insurance Co.', -cents(148.2), 'monthly', nextMonthly(3));
+  await schedule(checkingId, catPhoneInternet, 'Telus Mobility', -cents(95), 'monthly', nextMonthly(8));
+  await schedule(checkingId, catPhoneInternet, 'Shaw Internet', -cents(85), 'monthly', nextMonthly(10));
+  await schedule(checkingId, catGym, 'GoodLife Fitness', -cents(69.99), 'monthly', nextMonthly(4));
+  await schedule(ccId, catSubscriptions, 'Netflix', -cents(NETFLIX_NEW), 'monthly', nextMonthly(5));
+  await schedule(ccId, catSubscriptions, 'iCloud+', -cents(ICLOUD_NEW), 'monthly', nextMonthly(14), 1, '2 TB family plan');
+  await schedule(ccId, catSubscriptions, 'Amazon Prime', -cents(99), 'yearly', nextYearly(6, 17));
+  await schedule(checkingId, catShopping, 'Costco Membership', -cents(130), 'yearly', nextYearly(4, 22));
+  await schedule(checkingId, catCarCare, 'BCAA', -cents(124), 'yearly', nextYearly(9, 2));
+  await schedule(checkingId, catRrsp, 'RRSP', -rrspContribution, 'monthly', nextMonthly(27));
+  // Quarterly, left unapproved — shows as waiting for approval.
+  await schedule(checkingId, catUtilities, 'City Water & Sewer', -cents(212.4), 'monthly', waterDue, 3);
+
+  // --- QBR: a few decisions — two kept, two left as To Do ---
+  const schedules = await paymentReviewRepo.listReviewableSchedules(db, boardId);
+  const repeated = await paymentReviewRepo.listRepeatedCharges(db, boardId, addMonths(today, -DETECTION_WINDOW_MONTHS), today);
+  const items = buildReviewItems(schedules, detectRecurring(repeated, today), today);
+  const decisions: [string, Decision, string | null, number][] = [
+    ['Spotify', 'keep', 'Whole family uses it daily', 0],
+    ['Microsoft 365', 'keep', 'Cheaper than buying Office', 0],
+    ['Disney+', 'cancel', 'Kids moved on — cancel before next charge', 7],
+    ['YouTube Premium', 'alternative', 'Check a family plan or drop ads-free', 30],
+  ];
+  for (const [name, decision, note, dueDays] of decisions) {
+    const item = items.find((it) => it.name === name);
+    if (!item) continue;
+    await paymentReviewRepo.decide(db, boardId, item, decision, {
+      note,
+      dueOn: dueDays ? addDays(today, dueDays) : null,
+      nextReviewOn: reviewOnAfterDecision(today),
+      today,
+    });
+  }
+  await settingsRepo.setJsonSetting(db, `qbr.excluded:${boardId}`, { payeeIds: [], categoryIds: [catCharity] });
+
+  // --- goals, Baby Steps, tax settings ---
+  await customGoalsRepo.createGoal(db, boardId, { name: 'Emergency Fund', targetCents: cents(40000), linkedAccountId: savingsId, manualProgressCents: null });
+  await customGoalsRepo.createGoal(db, boardId, { name: 'Japan Trip 2027', targetCents: cents(9000), linkedAccountId: null, manualProgressCents: cents(3650) });
+  await customGoalsRepo.createGoal(db, boardId, { name: 'Kitchen Renovation', targetCents: cents(35000), linkedAccountId: null, manualProgressCents: cents(8200) });
+  const setJson = (key: string, value: unknown) => settingsRepo.setJsonSetting(db, `${key}:${boardId}`, value);
+  await setJson('babySteps.step1AccountIds', [savingsId]);
+  await setJson('babySteps.step3AccountIds', [savingsId]);
+  await setJson('babySteps.home', `mortgage:${houseId}`);
+  await setJson('babySteps.step4AccountIds', [rrspId, tfsaId]);
+  await setJson('babySteps.step5AccountIds', [respId]);
+  await setJson('babySteps.step7CategoryIds', [catCharity]);
+  await settingsRepo.setSetting(db, `taxInsights.country:${boardId}`, 'CA');
+  await settingsRepo.setSetting(db, `taxInsights.province:${boardId}`, 'BC');
+
+  // --- house hunt ---
+  for (const house of houseListings(months)) {
+    await housesRepo.createHouse(db, boardId, { ...housesRepo.emptyHouse(), ...house });
+  }
+  for (const price of communityBenchmarks(months)) {
+    await communityPricesRepo.addPrice(db, boardId, price);
   }
 
   return boardId;

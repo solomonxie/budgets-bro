@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CardModal } from '../../components/ui/CardModal';
 import { getDb } from '../../db/client';
-import { seedDemoBoard } from '../../db/seed/demoBoard';
 import { useBoards, useFirstRunPending } from '../../hooks/useBoards';
 import { pickAppExport } from '../../import/pickAppExport';
 import { importAppExport } from '../../import/appExportImporter';
@@ -14,7 +13,7 @@ import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-type Choice = 'demo' | 'restore' | 'icloud';
+type Choice = 'restore' | 'icloud';
 
 // A backup this much older than the newest one is most likely a board that
 // was deleted since — offered, but not ticked.
@@ -87,8 +86,6 @@ export function FirstRunPrompt() {
       setBusy(null);
     }
   };
-
-  const tryDemo = () => run('demo', async () => seedDemoBoard(await getDb()));
 
   const restore = () =>
     run('restore', async () => {
@@ -167,7 +164,6 @@ export function FirstRunPrompt() {
         onPress={startEmpty}
         disabled={busy != null}
       />
-      <Option label={t('firstRun.tryDemo')} onPress={tryDemo} busy={busy === 'demo'} disabled={busy != null} />
       <Option label={t('firstRun.restore')} onPress={restore} busy={busy === 'restore'} disabled={busy != null} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </CardModal>

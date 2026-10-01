@@ -93,7 +93,6 @@ Judged against: `AGENTS.md`, `DESIGN.md`, `UIUX-DESIGN.md` (Languages → Copy),
 | settings.boardsHeading | Budget Boards | Budgets | 预算账本 | 账本 | "board" jargon |
 | settings.boardsHint | A board is a self-contained budget you can switch between. | Keep separate budgets, like household and side business, and switch between them. | 账本是一个可切换的独立预算。 | 把不同的钱分开记，比如家庭和副业，随时切换。 | defines jargon |
 | settings.newBoardLink | + New Board | + New budget | — | — | glossary |
-| settings.createDemoBoard | Create Demo Board | Create demo budget | — | — | glossary |
 | settings.creatingDemoBoard | Creating demo board — this takes a few seconds… | Creating demo budget… | 正在创建演示账本——需要几秒钟…… | 正在创建演示账本… | wordy |
 | settings.createDemoBoardFailed | Could not create the demo board. | Couldn't create the demo budget. | — | — | glossary |
 | settings.themeLightHint | Light theme is coming soon — your preference is saved for when it ships. | Light mode is coming. We'll switch when it's ready. | 浅色主题即将推出——你的选择已保存，上线后自动生效。 | 浅色模式即将推出，届时会自动切换。 | "ships" |

@@ -12,7 +12,6 @@ link.
  Personal Budget                                    ⋯
  Side Business                                      ⋯
                   ( + New Board )
-                  ( Create Demo Board )   ⟳ Creating…
  ⋯ ▸ Rename · Delete !
  ⇒ Delete "Side Business"?  (message names the fallout)
  ⇒ Can't delete your only board · Create another board first.

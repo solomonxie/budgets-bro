@@ -70,9 +70,6 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.boardsHint':
     '每个账本是一份独立的预算，比如家庭和副业，可随时切换。',
   'settings.newBoardLink': '+ 新建账本',
-  'settings.createDemoBoard': '创建演示账本',
-  'settings.creatingDemoBoard': '正在创建演示账本…',
-  'settings.createDemoBoardFailed': '无法创建演示账本。',
   'settings.payeeSelectPlaceholder': '选择或创建…',
   'settings.payeeSearchPlaceholder': '搜索或输入新的收款方',
   'settings.appearanceHeading': '外观',
@@ -274,7 +271,6 @@ export const zh: Record<keyof typeof en, string> = {
   'firstRun.title': '欢迎使用 Budgets Bro',
   'firstRun.body': '想怎么开始？之后也可以在设置中更改。',
   'firstRun.startEmpty': '从空账本开始',
-  'firstRun.tryDemo': '试用演示账本',
   'firstRun.restore':
     '从备份文件恢复',
   'firstRun.failed': '出了点问题，请重试。',
@@ -402,6 +398,11 @@ export const zh: Record<keyof typeof en, string> = {
     '它也会牺牲隐私。银行同步要经过一家中间公司，你的网银登录信息会存在它们的服务器上，等于把你所有账户的永久访问权交到别人手里。本应用没有服务器，这些信息无处可放。',
   'settings.bankFresh':
     '你也不需要录入过去的记录。给每个账户设好初始余额，从今天开始记就行。漏记了几笔？没关系——填上银行显示的余额，会自动生成一笔调整交易补上差额。',
+  'settings.enterDemoMode': '进入演示模式',
+  'settings.exitDemoMode': '退出演示模式',
+  'settings.demoModeHint': '示例家庭数据，与你的数据分开存放。开启期间暂停备份。',
+  'settings.demoModeSwitching': '切换中…',
+  'settings.demoModeFailed': '无法切换演示模式。',
   'settings.version': '版本',
   'settings.newBoardTitle': '新建账本',
   'settings.renameBoardTitle': '重命名账本',

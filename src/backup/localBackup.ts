@@ -16,6 +16,7 @@ import {
   isStale,
   operationBackupName,
 } from './localBackupName';
+import { isDemoMode } from '../db/client';
 
 // Tier 1: the copy that lives on the phone, in the app's own Documents
 // folder, where the Files app can see it ("On My iPhone → Budgets Bro →
@@ -66,7 +67,9 @@ export async function pruneLocalBackups(now = new Date()): Promise<number> {
   return removed;
 }
 
+// Skipped in demo mode, so a demo board can't replace a real one's zip.
 export async function writeLocalBackupBytes(name: string, bytes: Uint8Array): Promise<void> {
+  if (await isDemoMode()) return;
   await writeBytes(joinPath(await dir(), name), bytes);
 }
 

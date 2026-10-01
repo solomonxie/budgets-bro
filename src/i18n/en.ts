@@ -68,9 +68,6 @@ export const en = {
   'settings.boardsHint':
     'Each board is a separate budget — say, household and side business. Switch between them any time.',
   'settings.newBoardLink': '+ New Board',
-  'settings.createDemoBoard': 'Create Demo Board',
-  'settings.creatingDemoBoard': 'Creating demo board…',
-  'settings.createDemoBoardFailed': 'Couldn’t create the demo board.',
   'settings.payeeSelectPlaceholder': 'Select or create…',
   'settings.payeeSearchPlaceholder': 'Search or type a new payee',
   'settings.appearanceHeading': 'Appearance',
@@ -278,7 +275,6 @@ export const en = {
   'firstRun.title': 'Welcome to Budgets Bro',
   'firstRun.body': 'How would you like to start? You can change your mind later in Settings.',
   'firstRun.startEmpty': 'Start empty',
-  'firstRun.tryDemo': 'Try the demo board',
   'firstRun.restore':
     'Restore from a backup file',
   'firstRun.failed': 'Something went wrong. Try again.',
@@ -406,6 +402,11 @@ export const en = {
     'It would cost privacy too. Bank feeds go through a middleman company that keeps your bank login on its servers — permanent access to every account you have, in someone else’s hands. This app has no servers, so there’s nowhere for that to live.',
   'settings.bankFresh':
     'And you don’t need your history. Set each account’s starting balance and record from today on. Missed a few purchases? That’s fine — enter the balance your bank shows, and one adjustment transaction closes the gap.',
+  'settings.enterDemoMode': 'Enter Demo Mode',
+  'settings.exitDemoMode': 'Exit Demo Mode',
+  'settings.demoModeHint': 'Sample household data, kept apart from yours. Backups pause while it’s on.',
+  'settings.demoModeSwitching': 'Switching…',
+  'settings.demoModeFailed': 'Couldn’t switch demo mode.',
   'settings.version': 'Version',
   'settings.newBoardTitle': 'New Board',
   'settings.renameBoardTitle': 'Rename Board',

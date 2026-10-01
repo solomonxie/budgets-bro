@@ -59,15 +59,6 @@ function amortize(principalCents: number, annualRateBps: number, termMonths: num
   return steps;
 }
 
-// Repeated "Create Demo Board" taps get "Demo 2", "Demo 3", …
-async function uniqueBoardName(db: SQLiteDatabase, base: string): Promise<string> {
-  const existing = new Set((await boardsRepo.listBoards(db)).map((b) => b.name));
-  if (!existing.has(base)) return base;
-  let n = 2;
-  while (existing.has(`${base} ${n}`)) n++;
-  return `${base} ${n}`;
-}
-
 // [name, base price] — prices drift up ~0.4%/month (see itemPrice).
 const GROCERY_ITEMS: [string, number][] = [
   ['Milk 4L', 5.79],
@@ -113,7 +104,7 @@ async function seed(db: SQLiteDatabase): Promise<number> {
 
   const today = currentDateISO();
   const thisMonth = currentMonth();
-  const boardId = await boardsRepo.createBoard(db, await uniqueBoardName(db, DEMO_BOARD_NAME));
+  const boardId = await boardsRepo.createBoard(db, DEMO_BOARD_NAME);
   const months = lastNMonths(thisMonth, 24); // oldest → newest
   const waterDue = day([...months].reverse().find((m) => calendarMonth(m) % 3 === 1)!, 1);
 

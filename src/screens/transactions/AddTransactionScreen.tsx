@@ -27,6 +27,7 @@ import {
   DropdownGroupLabel,
   DropdownOption,
 } from '../../components/ui/DropdownField';
+import { BlinkingCaret } from '../../components/ui/BlinkingCaret';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
@@ -470,7 +471,7 @@ function AddTransactionForm() {
           >
             {amountDisplay || t('spend.amountPlaceholder')}
           </Text>
-          <View style={styles.amountCaret} />
+          <BlinkingCaret style={styles.amountCaret} resetKey={amount} />
         </Pressable>
         {/* Right most of the time, so a line under the amount it moves
             rather than a field competing with the ones that change. */}

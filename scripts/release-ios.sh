@@ -8,6 +8,9 @@
 set -e
 cd "$(dirname "$0")/.."
 
+# xcodebuild reads env vars as build settings; never ship a test storefront.
+unset BB_STOREFRONT STOREFRONT
+
 SCHEME=BudgetsBro
 BUILD=${1:-$(date +%Y%m%d%H%M)}
 ARCHIVE=/tmp/budgetsbro-release/$SCHEME-$BUILD.xcarchive

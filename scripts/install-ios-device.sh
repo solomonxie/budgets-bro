@@ -3,7 +3,10 @@
 # devicectl installs and launches. Release bundles the JS into the app, so
 # nothing here depends on a dev server being up.
 #
-# Usage: scripts/install-ios-device.sh [udid]
+# STOREFRONT sets the App Store country the app acts as if installed from:
+# CAN unless told otherwise, CHN to see what the China store sees.
+#
+# Usage: [STOREFRONT=CHN] scripts/install-ios-device.sh [udid]
 set -e
 cd "$(dirname "$0")/.."
 
@@ -20,9 +23,11 @@ UDID=${1:-$(xcrun devicectl list devices |
 
 xcodebuild -workspace "ios/$SCHEME.xcworkspace" -scheme "$SCHEME" \
   -configuration Release -destination "id=$UDID" \
-  -allowProvisioningUpdates -derivedDataPath "$DERIVED" build
+  -allowProvisioningUpdates -derivedDataPath "$DERIVED" \
+  BB_STOREFRONT="${STOREFRONT:-CAN}" build
 
 APP="$DERIVED/Build/Products/Release-iphoneos/$SCHEME.app"
+IDENTITY=$(codesign -dvv "$APP" 2>&1 | awk -F'= *' '/^Authority=/{print $2; exit}')
 
 # Debug symbols are two thirds of what lands on the phone: 28MB installs as
 # 16MB once the app binary and the three embedded frameworks are stripped.
@@ -30,7 +35,6 @@ APP="$DERIVED/Build/Products/Release-iphoneos/$SCHEME.app"
 # again with the identity the build already used, and the result is only
 # installed if it verifies — otherwise the untouched build is.
 STRIPPED="$DERIVED/Build/Products/Release-iphoneos/$SCHEME-stripped.app"
-IDENTITY=$(codesign -dvv "$APP" 2>&1 | awk -F'= *' '/^Authority=/{print $2; exit}')
 if [ -n "$IDENTITY" ]; then
   rm -rf "$STRIPPED"
   cp -R "$APP" "$STRIPPED"

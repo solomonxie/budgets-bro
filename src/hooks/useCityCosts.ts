@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getDb } from '../db/client';
 import * as settingsRepo from '../db/repositories/settingsRepo';
-import { listAiKeys, runWithAiKeys, aiVendorName } from '../ai/aiKeys';
+import { listUsableAiKeys, runWithAiKeys, aiKeyName } from '../ai/aiKeys';
 import { cityById, COST_OF_LIVING_AS_OF } from '../market/costOfLiving';
 import type { CityCostsUpdate, CostBucket } from '../market/costOfLiving';
 import { cityCostPrompt, parseCityCostReply } from '../market/cityCostPrompt';
@@ -25,7 +25,7 @@ export function useCityCosts(cityId: string, cityName: string) {
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      setHasAiKey((await listAiKeys(db)).length > 0);
+      setHasAiKey((await listUsableAiKeys(db)).length > 0);
       setUpdate(
         await settingsRepo.getJsonSetting<CityCostsUpdate | null>(
           db,
@@ -43,7 +43,7 @@ export function useCityCosts(cityId: string, cityName: string) {
     setError(null);
     try {
       const db = await getDb();
-      const keys = await listAiKeys(db);
+      const keys = await listUsableAiKeys(db);
       const reply = await runWithAiKeys(db, [
         { role: 'user', content: cityCostPrompt(cityName, preset.currency) },
       ]);
@@ -57,7 +57,7 @@ export function useCityCosts(cityId: string, cityName: string) {
         cityId,
         currency: preset.currency,
         monthly: merged,
-        model: keys[0] ? aiVendorName(keys[0].vendor) : 'AI',
+        model: keys[0] ? aiKeyName(keys[0]) : 'AI',
         askedOn: currentDateISO(),
       };
       await settingsRepo.setJsonSetting(db, cacheKey(cityId), next);

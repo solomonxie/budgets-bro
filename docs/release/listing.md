@@ -246,7 +246,7 @@ OPTIONAL FEATURES (off by default; the app is fully usable without them)
 
 EXTERNAL SERVICES
 - Frankfurter (api.frankfurter.app): public European Central Bank exchange rates, used for multi-currency totals. No personal data is sent.
-- Only if the user adds their own key: OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek or xAI, called directly from the device.
+- Only if the user adds their own key: OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek, xAI, Qwen, Kimi, GLM, ERNIE or an OpenAI-compatible server the user enters, called directly from the device. On the China storefront only DeepSeek, Qwen, Kimi, GLM and ERNIE are offered; the others are not shown.
 - Only if the user turns it on: Apple iCloud Drive, or Amazon S3 with the user's own credentials.
 No analytics, advertising, crash reporting, authentication or payment services. We run no server.
 
@@ -392,7 +392,7 @@ Budgets Bro 是一款只留在你 iPhone 上的零基预算应用。月初就给
 • 面容 ID、触控 ID 或密码锁定应用
 
 可选 AI
-使用你自己的 OpenAI、Anthropic、Google、Mistral、Groq、DeepSeek 或 xAI 的 API 密钥，就自己的数据提问。密钥属于你，用量显示在服务商后台，默认关闭。完全不用它，应用照样好用。
+使用你自己的 DeepSeek、通义千问、Kimi、智谱 GLM 或文心的 API 密钥，就自己的数据提问。密钥属于你，用量显示在服务商后台，默认关闭。完全不用它，应用照样好用。
 
 免费，无内购推销，无广告，无统计分析。
 ```

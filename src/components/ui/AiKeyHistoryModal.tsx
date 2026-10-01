@@ -15,7 +15,7 @@ import {
   listAiRequests,
 } from '../../db/repositories/aiRequestsRepo';
 import type { AiRequest } from '../../db/repositories/aiRequestsRepo';
-import { aiVendorName } from '../../ai/aiKeys';
+import { aiKeyName } from '../../ai/aiKeys';
 import type { AiKeyMeta } from '../../ai/aiKeys';
 import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -96,7 +96,7 @@ export function AiKeyHistoryModal({ aiKey, onClose }: AiKeyHistoryModalProps) {
           <Pressable onPress={onClose}>
             <Text style={styles.headerBtn}>{t('common.done')}</Text>
           </Pressable>
-          <Text style={styles.title}>{aiVendorName(aiKey.vendor)}</Text>
+          <Text style={styles.title}>{aiKeyName(aiKey)}</Text>
           <View style={styles.headerBtn} />
         </View>
 

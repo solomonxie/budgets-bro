@@ -9,21 +9,36 @@ import { runChatCompletion as runGroq } from './groqClient';
 import { runChatCompletion as runMistral } from './mistralClient';
 import { runChatCompletion as runDeepSeek } from './deepseekClient';
 import { runChatCompletion as runXai } from './xaiClient';
+import { runCustom, runErnie, runGlm, runKimi, runQwen } from './chinaClients';
+import { isChinaStorefront } from './storefront';
+import { AiClientError } from './types';
 import type { ChatMessage } from './types';
 
 export type AiVendor =
-  'openai' | 'anthropic' | 'google' | 'groq' | 'mistral' | 'deepseek' | 'xai';
+  | 'openai'
+  | 'anthropic'
+  | 'google'
+  | 'groq'
+  | 'mistral'
+  | 'deepseek'
+  | 'xai'
+  | 'qwen'
+  | 'kimi'
+  | 'glm'
+  | 'ernie'
+  | 'custom';
 export type AiKeyStrategy = 'sequential' | 'round_robin';
 
 // Display name, a short hint about what the key looks like, and where to
 // go make one — shown in AiKeyForm so connecting one doesn't require already
 // knowing each vendor's console. keyHint doubles as the field's masked
-// placeholder.
+// placeholder. `china`: licensed there, so offered on the China App Store.
 export interface AiVendorMeta {
   code: AiVendor;
   name: string;
   keyHint: string;
   docsUrl: string;
+  china?: boolean;
 }
 
 export const AI_VENDORS: AiVendorMeta[] = [
@@ -62,6 +77,7 @@ export const AI_VENDORS: AiVendorMeta[] = [
     name: 'DeepSeek',
     keyHint: 'sk-...',
     docsUrl: 'https://platform.deepseek.com/api_keys',
+    china: true,
   },
   {
     code: 'xai',
@@ -69,10 +85,59 @@ export const AI_VENDORS: AiVendorMeta[] = [
     keyHint: 'xai-...',
     docsUrl: 'https://console.x.ai',
   },
+  {
+    code: 'qwen',
+    name: 'Qwen (通义千问)',
+    keyHint: 'sk-...',
+    docsUrl: 'https://bailian.console.aliyun.com/?apiKey=1',
+    china: true,
+  },
+  {
+    code: 'kimi',
+    name: 'Kimi (月之暗面)',
+    keyHint: 'sk-...',
+    docsUrl: 'https://platform.moonshot.cn/console/api-keys',
+    china: true,
+  },
+  {
+    code: 'glm',
+    name: 'GLM (智谱)',
+    keyHint: '...',
+    docsUrl: 'https://bigmodel.cn/usercenter/proj-mgmt/apikeys',
+    china: true,
+  },
+  {
+    code: 'ernie',
+    name: 'ERNIE (文心)',
+    keyHint: 'bce-v3/...',
+    docsUrl: 'https://console.bce.baidu.com/iam/#/iam/apikey/list',
+    china: true,
+  },
+  {
+    code: 'custom',
+    name: 'Custom (OpenAI-compatible)',
+    keyHint: '...',
+    docsUrl: '',
+  },
 ];
 
 export function aiVendorName(vendor: AiVendor): string {
   return AI_VENDORS.find((v) => v.code === vendor)?.name ?? vendor;
+}
+
+export function vendorAllowed(vendor: AiVendor, inChina: boolean): boolean {
+  return !inChina || AI_VENDORS.some((v) => v.code === vendor && v.china);
+}
+
+export function aiKeyName(key: Pick<AiKeyMeta, 'vendor' | 'custom'>): string {
+  return key.custom?.label || aiVendorName(key.vendor);
+}
+
+// Where a Custom connection goes; not secret, so kept beside the key's meta.
+export interface CustomEndpoint {
+  label: string;
+  endpoint: string;
+  model: string;
 }
 
 // requestCount is a plain usage counter (every attempt, success or not) —
@@ -85,6 +150,7 @@ export interface AiKeyMeta {
   id: string;
   vendor: AiVendor;
   requestCount: number;
+  custom?: CustomEndpoint;
 }
 
 const KEYS_KEY = 'ai_keys';
@@ -121,13 +187,14 @@ export async function addAiKey(
   db: SQLiteDatabase,
   vendor: AiVendor,
   secret: string,
+  custom?: CustomEndpoint,
 ): Promise<string> {
   const keys = await listAiKeys(db);
   const id = newKeyId();
   await secureStore.setAiKeySecret(id, secret);
   await settingsRepo.setJsonSetting(db, KEYS_KEY, [
     ...keys,
-    { id, vendor, requestCount: 0 },
+    { id, vendor, requestCount: 0, ...(custom ? { custom } : {}) },
   ]);
   return id;
 }
@@ -197,7 +264,7 @@ async function setCursor(db: SQLiteDatabase, value: number): Promise<void> {
 }
 
 const VENDOR_RUNNERS: Record<
-  AiVendor,
+  Exclude<AiVendor, 'custom'>,
   (secret: string, messages: ChatMessage[]) => Promise<string>
 > = {
   openai: runOpenAi,
@@ -207,14 +274,52 @@ const VENDOR_RUNNERS: Record<
   mistral: runMistral,
   deepseek: runDeepSeek,
   xai: runXai,
+  qwen: runQwen,
+  kimi: runKimi,
+  glm: runGlm,
+  ernie: runErnie,
 };
 
-export async function runChatCompletionForVendor(
+// A busy provider can hold a request open for minutes sending only
+// keep-alives (DeepSeek does); give up rather than spin forever.
+export const AI_TIMEOUT_MS = 90_000;
+export const AI_TEST_TIMEOUT_MS = 10_000;
+
+export function runChatCompletionForVendor(
   vendor: AiVendor,
   secret: string,
   messages: ChatMessage[],
+  custom?: CustomEndpoint,
+  timeoutMs = AI_TIMEOUT_MS,
 ): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new AiClientError('network', `${custom?.label || aiVendorName(vendor)} didn’t answer in ${timeoutMs / 1000}s — it may be busy. Try again later.`)),
+      timeoutMs,
+    );
+  });
+  return Promise.race([callVendor(vendor, secret, messages, custom), timeout]).finally(() => clearTimeout(timer));
+}
+
+async function callVendor(
+  vendor: AiVendor,
+  secret: string,
+  messages: ChatMessage[],
+  custom?: CustomEndpoint,
+): Promise<string> {
+  if (vendor === 'custom') {
+    if (!custom) throw new Error('Custom connection has no endpoint.');
+    return runCustom(custom.endpoint, custom.model, custom.label || 'Custom')(secret, messages);
+  }
   return VENDOR_RUNNERS[vendor](secret, messages);
+}
+
+// Keys this App Store country may use: on the China storefront only the
+// licensed providers, whatever was saved before.
+export async function listUsableAiKeys(db: SQLiteDatabase): Promise<AiKeyMeta[]> {
+  const inChina = await isChinaStorefront();
+  return (await listAiKeys(db)).filter((k) => vendorAllowed(k.vendor, inChina));
 }
 
 export class NoAiKeyError extends Error {
@@ -235,7 +340,7 @@ export async function runWithAiKeys(
   db: SQLiteDatabase,
   messages: ChatMessage[],
 ): Promise<string> {
-  const keys = await listAiKeys(db);
+  const keys = await listUsableAiKeys(db);
   if (keys.length === 0) throw new NoAiKeyError();
   const strategy = await getAiKeyStrategy(db);
   const startAt = (await getCursor(db)) % keys.length;
@@ -255,6 +360,7 @@ export async function runWithAiKeys(
         key.vendor,
         secret,
         messages,
+        key.custom,
       );
       // Recorded here rather than in each vendor client: this is the one
       // place every call passes through, and it's the only place that knows

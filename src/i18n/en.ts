@@ -88,7 +88,7 @@ export const en = {
   'aiInfo.ownAccount':
     'There’s no AI built into this app and no subscription. Sign up with an AI provider, copy the key they give you, and paste it here. The app then talks to that provider directly from this iPhone.',
   'aiInfo.whereToRegister':
-    'Get a key from OpenAI, Anthropic, Google Gemini, Groq, Mistral, DeepSeek or xAI. Pick a provider below and the link takes you to the right page.',
+    'Pick a provider below and the link takes you to the page where you get a key.',
   'aiInfo.cost':
     'You pay the provider directly for what you use — usually a fraction of a cent per question, and every charge shows in their dashboard. Nothing is billed through this app.',
   'aiInfo.privacy':
@@ -131,6 +131,11 @@ export const en = {
   'aiKeyModal.keyLabel': 'Access key',
   'aiKeyModal.getKeyHint': "Don't have a {vendor} account yet?",
   'aiKeyModal.getKeyLink': 'Get one →',
+  'aiKeyModal.missingEndpoint': 'Enter the server address and model.',
+  'aiKeyModal.customName': 'Name',
+  'aiKeyModal.customEndpoint': 'Server address',
+  'aiKeyModal.customModel': 'Model',
+  'aiKeyModal.customHint': 'Any server that speaks the OpenAI chat completions API — a base URL ending in /v1 or the full /chat/completions address.',
   'aiKeyModal.missingKey': 'Paste your access key.',
   'aiKeyModal.testing': 'Checking the connection…',
   'aiKeyModal.testFailed': 'Couldn’t connect: {error}',

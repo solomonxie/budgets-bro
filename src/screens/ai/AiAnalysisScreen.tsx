@@ -30,7 +30,7 @@ import { ANALYSIS_KINDS, buildAnalysisMessages } from '../../ai/prompts';
 import type { AnalysisKind } from '../../ai/prompts';
 import { AiClientError } from '../../ai/openaiClient';
 import type { AiClientErrorCode } from '../../ai/openaiClient';
-import { listAiKeys, runWithAiKeys } from '../../ai/aiKeys';
+import { listUsableAiKeys, runWithAiKeys } from '../../ai/aiKeys';
 import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -84,7 +84,7 @@ export function AiAnalysisScreen() {
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      setHasAiKey((await listAiKeys(db)).length > 0);
+      setHasAiKey((await listUsableAiKeys(db)).length > 0);
       setProfile(
         await settingsRepo.getJsonSetting(
           db,

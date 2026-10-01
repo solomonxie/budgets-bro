@@ -25,14 +25,15 @@ import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
 import {
   listAiKeys,
+  listUsableAiKeys,
   addAiKey,
   removeAiKey,
   moveAiKey,
   getAiKeyStrategy,
   setAiKeyStrategy,
-  aiVendorName,
+  aiKeyName,
 } from '../../ai/aiKeys';
-import type { AiKeyMeta, AiVendor, AiKeyStrategy } from '../../ai/aiKeys';
+import type { AiKeyMeta, AiVendor, AiKeyStrategy, CustomEndpoint } from '../../ai/aiKeys';
 import { AiKeyForm } from '../../components/ui/AiKeyForm';
 import { AiKeyHistoryModal } from '../../components/ui/AiKeyHistoryModal';
 import { ResultToast } from '../../components/ui/ResultToast';
@@ -111,7 +112,7 @@ export function SettingsScreen() {
       const db = await getDb();
       const savedTheme = await settingsRepo.getSetting(db, THEME_KEY);
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
-      setAiKeys(await listAiKeys(db));
+      setAiKeys(await listUsableAiKeys(db));
       setAiKeyStrategyState(await getAiKeyStrategy(db));
       setBiometry(await biometryName());
     })();
@@ -168,10 +169,10 @@ export function SettingsScreen() {
     await settingsRepo.setSetting(db, THEME_KEY, next);
   };
 
-  const addAiKeyRow = async (vendor: AiVendor, secret: string) => {
+  const addAiKeyRow = async (vendor: AiVendor, secret: string, custom?: CustomEndpoint) => {
     const db = await getDb();
-    await addAiKey(db, vendor, secret);
-    setAiKeys(await listAiKeys(db));
+    await addAiKey(db, vendor, secret, custom);
+    setAiKeys(await listUsableAiKeys(db));
     setAddingAiKey(false);
   };
 
@@ -187,7 +188,7 @@ export function SettingsScreen() {
           onPress: async () => {
             const db = await getDb();
             await removeAiKey(db, key.id);
-            setAiKeys(await listAiKeys(db));
+            setAiKeys(await listUsableAiKeys(db));
           },
         },
       ],
@@ -197,7 +198,7 @@ export function SettingsScreen() {
   const moveAiKeyRow = async (id: string, direction: -1 | 1) => {
     const db = await getDb();
     await moveAiKey(db, id, direction);
-    setAiKeys(await listAiKeys(db));
+    setAiKeys(await listUsableAiKeys(db));
   };
 
   const selectAiKeyStrategy = async (strategy: AiKeyStrategy) => {
@@ -639,7 +640,7 @@ export function SettingsScreen() {
                     onPress={() => setAiKeyHistory(key)}
                   >
                     <Text style={styles.rowTitle}>
-                      {aiVendorName(key.vendor)}
+                      {aiKeyName(key)}
                     </Text>
                     <Text style={styles.rowValue}>
                       {t('settings.aiKeyRequestCount', {

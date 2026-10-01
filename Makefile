@@ -2,6 +2,7 @@
 
 help:
 	@echo "make ios          Release build onto the paired iPhone"
+	@echo "make install-ios  onto the iPhone as a Canada store install; STOREFRONT=CHN for China"
 	@echo "make release      check, then archive + upload to App Store Connect"
 	@echo "make check        typecheck and tests (release runs this first)"
 	@echo "make lint         eslint"
@@ -17,7 +18,7 @@ lint:
 	npx eslint .
 
 install-ios:
-	scripts/install-ios-device.sh
+	STOREFRONT=$(or $(STOREFRONT),CAN) scripts/install-ios-device.sh
 
 # Uploads whatever is on disk, so say so when that isn't a commit.
 release: check

@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>BBStorefrontOverride</key>
+	<string>$(BB_STOREFRONT)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Budgets Bro</string>
 	<key>CFBundleExecutable</key>

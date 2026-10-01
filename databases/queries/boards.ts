@@ -6,6 +6,11 @@ export const DELETE_BOARD_CASCADE = [
   'DELETE FROM scheduled_transactions WHERE board_id = ?',
   'DELETE FROM custom_goals WHERE board_id = ?',
   'DELETE FROM payment_decisions WHERE board_id = ?',
+  'DELETE FROM houses WHERE board_id = ?',
+  'DELETE FROM community_prices WHERE board_id = ?',
+  // Accounts point back at a category for loan payments; clear that before
+  // the categories go, or the FK blocks the whole delete.
+  'UPDATE accounts SET loan_payment_category_id = NULL WHERE board_id = ?',
   'DELETE FROM categories WHERE board_id = ?',
   'DELETE FROM category_groups WHERE board_id = ?',
   'DELETE FROM payees WHERE board_id = ?',

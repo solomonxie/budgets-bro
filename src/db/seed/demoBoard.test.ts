@@ -5,6 +5,7 @@ import { openDatabase } from '../driver';
 import type { SQLiteDatabase } from '../driver';
 import { migrate } from '../migrate';
 import { seedDemoBoard } from './demoBoard';
+import * as boardsRepo from '../repositories/boardsRepo';
 import * as accountsRepo from '../repositories/accountsRepo';
 import * as transactionsRepo from '../repositories/transactionsRepo';
 import * as scheduledTransactionsRepo from '../repositories/scheduledTransactionsRepo';
@@ -115,5 +116,14 @@ describe('seedDemoBoard', () => {
     expect((await customGoalsRepo.listForBoard(db, boardId)).length).toBe(3);
     expect((await housesRepo.listHouses(db, boardId)).length).toBe(5);
     expect((await communityPricesRepo.listPrices(db, boardId)).length).toBe(24);
+  });
+
+  // Last: removes the board the tests above read.
+  it('deletes cleanly with foreign keys on', async () => {
+    await db.execAsync('PRAGMA foreign_keys = ON');
+    const boards = await boardsRepo.listBoards(db);
+    for (const b of boards) await boardsRepo.deleteBoard(db, b.id);
+    for (const table of ['accounts', 'categories', 'transactions', 'houses', 'community_prices', 'payment_decisions'])
+      expect(await count(`SELECT COUNT(*) AS n FROM ${table}`)).toBe(0);
   });
 });

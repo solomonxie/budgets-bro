@@ -6,7 +6,7 @@ import * as settingsRepo from '../db/repositories/settingsRepo';
 import type { Board } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
 
-const ACTIVE_BOARD_KEY = 'active_board_id';
+export const ACTIVE_BOARD_KEY = 'active_board_id';
 export const FIRST_RUN_DONE_KEY = 'demo_board_seeded';
 
 // Restores whichever board was active last session — mounted once near the
@@ -23,9 +23,8 @@ export function useBootstrapActiveBoard() {
   }, [setCurrentBoardId]);
 }
 
-// First launch only: the choice between an empty board, the demo board and a
-// backup (screens/onboarding/FirstRunPrompt). Once made — any of the three —
-// it is never asked again. The key predates the prompt: installs that got
+// First launch only: the choice between an empty board and a backup
+// (screens/onboarding/FirstRunPrompt). Once made it is never asked again. The key predates the prompt: installs that got
 // the demo board automatically already have it set and skip the question.
 export function useFirstRunPending(): [boolean, () => Promise<void>] {
   const [pending, setPending] = useState(false);

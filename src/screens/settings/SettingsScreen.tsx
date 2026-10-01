@@ -38,7 +38,7 @@ import { AiKeyForm } from '../../components/ui/AiKeyForm';
 import { AiKeyHistoryModal } from '../../components/ui/AiKeyHistoryModal';
 import { ResultToast } from '../../components/ui/ResultToast';
 import type { AppExportImportResult } from '../../import/appExportImporter';
-import { seedDemoBoard } from '../../db/seed/demoBoard';
+import { enterDemoMode, leaveDemoMode } from '../../demo/demoMode';
 import { useAppStore } from '../../state/useAppStore';
 import { useT, LANGUAGES } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -80,7 +80,9 @@ export function SettingsScreen() {
   const boardId = useAppStore((s) => s.currentBoardId);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const [prompt, setPrompt] = useState<PromptState>(null);
-  const [creatingDemoBoard, setCreatingDemoBoard] = useState(false);
+  const demoMode = useAppStore((s) => s.demoMode);
+  const setDemoModeFlag = useAppStore((s) => s.setDemoModeFlag);
+  const [switchingDemo, setSwitchingDemo] = useState(false);
   const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
   const [removingAllData, setRemovingAllData] = useState(false);
 
@@ -225,31 +227,26 @@ export function SettingsScreen() {
     setPrompt(null);
   };
 
-  // Always makes a fresh one — deleting the demo board doesn't bring it back
-  // on its own (see FirstRunPrompt), so this is the only way back.
-  // Seeding is a few hundred sequential writes (24 months of transactions
-  // across a dozen accounts) — a few seconds, not instant — so this guards
-  // against a second tap starting a duplicate board mid-seed and surfaces
-  // a failure instead of leaving the UI looking stuck with no feedback.
-  const runCreateDemoBoard = async () => {
-    if (creatingDemoBoard) return;
-    setCreatingDemoBoard(true);
+  // Its own database file, seeded the first time: nothing done in demo
+  // mode touches real data, and turning it off returns to it untouched.
+  const toggleDemoMode = async (on: boolean) => {
+    if (switchingDemo) return;
+    setSwitchingDemo(true);
     try {
-      const db = await getDb();
-      const id = await seedDemoBoard(db);
-      bumpDataVersion();
-      await switchBoard(id);
+      if (on) await enterDemoMode();
+      else await leaveDemoMode();
+      setDemoModeFlag(on);
     } catch {
-      Alert.alert(t('settings.createDemoBoardFailed'));
+      Alert.alert(t('settings.demoModeFailed'));
     } finally {
-      setCreatingDemoBoard(false);
+      setSwitchingDemo(false);
     }
   };
 
   // Guards against a double-tap firing two overlapping deletes (deleteBoard's
   // transaction isn't exclusive, so two interleaved runs can step on each
   // other) and surfaces a failure instead of leaving the row looking stuck
-  // with no feedback — same pattern as runCreateDemoBoard above.
+  // with no feedback.
   const runDeleteBoard = async (id: number) => {
     if (deletingBoardId != null) return;
     setDeletingBoardId(id);
@@ -413,11 +410,6 @@ export function SettingsScreen() {
             {t('settings.boardsHeading')}
           </Text>
           <Text style={styles.sectionHint}>{t('settings.boardsHint')}</Text>
-          {creatingDemoBoard ? (
-            <Text style={styles.sectionHint}>
-              {t('settings.creatingDemoBoard')}
-            </Text>
-          ) : null}
           {deletingBoardId != null ? (
             <Text style={styles.sectionHint}>{t('common.deleting')}</Text>
           ) : null}
@@ -484,14 +476,6 @@ export function SettingsScreen() {
                 >
                   <Text style={styles.addLinkText}>
                     {t('settings.newBoardLink')}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={styles.addLink}
-                  onPress={() => close(runCreateDemoBoard)}
-                >
-                  <Text style={styles.addLinkText}>
-                    {t('settings.createDemoBoard')}
                   </Text>
                 </Pressable>
               </>
@@ -746,13 +730,27 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {demoMode ? null : (
+          <Pressable
+            accessibilityRole="button"
+            disabled={removingAllData}
+            onPress={confirmRemoveAllData}
+            style={styles.removeAllDataLink}
+          >
+            <Text style={styles.removeAllDataText}>{t('settings.removeAllData')}</Text>
+          </Pressable>
+        )}
+
         <Pressable
           accessibilityRole="button"
-          disabled={removingAllData}
-          onPress={confirmRemoveAllData}
-          style={styles.removeAllDataLink}
+          disabled={switchingDemo}
+          onPress={() => toggleDemoMode(!demoMode)}
+          style={styles.demoModeLink}
         >
-          <Text style={styles.removeAllDataText}>{t('settings.removeAllData')}</Text>
+          <Text style={styles.demoModeText}>
+            {t(switchingDemo ? 'settings.demoModeSwitching' : demoMode ? 'settings.exitDemoMode' : 'settings.enterDemoMode')}
+          </Text>
+          <Text style={styles.demoModeHint}>{t('settings.demoModeHint')}</Text>
         </Pressable>
 
         <ResultToast
@@ -844,6 +842,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   strategyLinkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
+  demoModeLink: { alignItems: 'center', gap: 4, paddingVertical: spacing.md },
+  demoModeText: { color: colors.accent, fontSize: 15, fontWeight: '600' },
+  demoModeHint: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
   removeAllDataLink: { alignSelf: 'center', paddingVertical: spacing.sm, marginBottom: spacing.lg },
   removeAllDataText: { color: colors.negative, fontSize: 12, fontWeight: '600' },
   sectionHint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },

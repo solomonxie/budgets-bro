@@ -1290,8 +1290,10 @@ export const en = {
   'qbr.guideHeading': 'Every quarter, decide on every bill',
   'qbr.guideBody':
     'Recurring spending from your cash and credit card accounts — transfers and loan or mortgage payments are left out. Scheduled payments are listed as monthly or annual; so is any payee that charges the exact same amount every month or every year, found for you. Pick which payees and categories take part, and ignore anything you don’t want to review — rent, say. Each one comes up at the start of every quarter, and whatever you decide holds only for that quarter — except Ignore, which lasts until you restore it. Deciding changes nothing in your transactions or schedules: keep it, or choose what to do and it goes on your to-do list with a reminder date. Mark it done once you’ve done it, and it moves to History.',
-  'qbr.yearlyTotal': 'Recurring payments, per year',
-  'qbr.commitmentCount': '{count} payments under review',
+  'qbr.quarterLabel': 'Q{q} {year} review',
+  'qbr.yearlySummary': '≈ {monthly}/mo across {count} recurring payments',
+  'qbr.progress': '{done} of {total} decided this quarter',
+  'qbr.allDecided': 'All decided · next review {date}',
   'qbr.todoSection': 'To do · {count}',
   'qbr.dueSection': 'Due for review · {count}',
   'qbr.monthlySection': 'Monthly',

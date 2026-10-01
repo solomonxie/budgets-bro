@@ -1261,8 +1261,10 @@ export const zh: Record<keyof typeof en, string> = {
   'qbr.guideHeading': '每季度一次，逐笔决定每项账单',
   'qbr.guideBody':
     '来自现金和信用卡账户的定期支出——转账和贷款、房贷还款不计入。已设定计划的付款按月付或年付列出；每月或每年扣同样金额的收款方也会被自动识别出来。可以选择哪些收款方和分类参与审查；不想审查的项目（比如房租）可以忽略。每一项在每个季度开始时出现，所做的决定只在当季有效——忽略除外，它会一直有效，直到你恢复。做出决定不会改动你的交易或计划：可以保留，或选择要做的事，它会带着提醒日期进入待办。你自己办完后标记完成，它就会移到历史记录。',
-  'qbr.yearlyTotal': '定期付款，每年合计',
-  'qbr.commitmentCount': '{count} 笔付款在审查中',
+  'qbr.quarterLabel': '{year} 年第 {q} 季度审查',
+  'qbr.yearlySummary': '约 {monthly}/月 · 共 {count} 笔定期付款',
+  'qbr.progress': '本季度已决定 {done}/{total}',
+  'qbr.allDecided': '全部已决定 · 下次审查 {date}',
   'qbr.todoSection': '待办 · {count}',
   'qbr.dueSection': '待审查 · {count}',
   'qbr.monthlySection': '月付',

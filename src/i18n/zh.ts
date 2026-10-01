@@ -90,7 +90,7 @@ export const zh: Record<keyof typeof en, string> = {
   'aiInfo.ownAccount':
     '应用不内置 AI，也没有订阅。到 AI 服务商注册，把他们给你的密钥粘贴到这里，应用就会从这台 iPhone 直接和该服务商通信。',
   'aiInfo.whereToRegister':
-    '可从 OpenAI、Anthropic、Google Gemini、Groq、Mistral、DeepSeek 或 xAI 获取密钥。在下方选择服务商，链接会打开对应页面。',
+    '在下方选择服务商，链接会打开获取密钥的页面。',
   'aiInfo.cost':
     '费用直接付给服务商，通常每次提问不到一分钱，每笔费用都能在他们的后台查到。本应用不收任何费用。',
   'aiInfo.privacy':
@@ -132,6 +132,11 @@ export const zh: Record<keyof typeof en, string> = {
   'aiKeyModal.keyLabel': 'API 密钥',
   'aiKeyModal.getKeyHint': '还没有 {vendor} 密钥？',
   'aiKeyModal.getKeyLink': '去获取 →',
+  'aiKeyModal.missingEndpoint': '请填写服务器地址和模型。',
+  'aiKeyModal.customName': '名称',
+  'aiKeyModal.customEndpoint': '服务器地址',
+  'aiKeyModal.customModel': '模型',
+  'aiKeyModal.customHint': '任何兼容 OpenAI chat completions 接口的服务——填以 /v1 结尾的基础地址，或完整的 /chat/completions 地址。',
   'aiKeyModal.missingKey': '请输入密钥。',
   'aiKeyModal.testing': '正在测试密钥……',
   'aiKeyModal.testFailed': '无法连接：{error}',

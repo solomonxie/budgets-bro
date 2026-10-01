@@ -46,6 +46,11 @@ interface AppState {
   // miss those writes.
   dataVersion: number;
   bumpDataVersion: () => void;
+
+  // Which database is open (see db/client setDemoMode). App remounts its
+  // tree on change so every bootstrap hook rereads from the new one.
+  demoMode: boolean;
+  setDemoModeFlag: (on: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -74,4 +79,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   dataVersion: 0,
   bumpDataVersion: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
+
+  demoMode: false,
+  setDemoModeFlag: (demoMode) => set({ demoMode }),
 }));

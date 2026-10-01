@@ -9,6 +9,7 @@ import * as boardsRepo from '../db/repositories/boardsRepo';
 import { currentDateISO } from '../domain/month';
 import { resolveSyncEnabled } from './autoSync';
 import type { CloudProvider, CloudProviderId } from './types';
+import { isDemoMode } from '../db/client';
 
 const SYNC_PREFIX = 'sync_auto_';
 // The two settings this one switch replaced — see autoSync.ts.
@@ -75,7 +76,10 @@ async function setLastSyncedAt(
 // holds the backups it already took.
 // New providers (Google Drive, etc.) just add another `create*Providers(db)`
 // call — see docs/design/cloud-sync/DESIGN.md.
+// Demo data never leaves the phone: no destination exists in demo mode, so
+// it can't overwrite a real board's backup of the same name.
 async function collectProviders(db: SQLiteDatabase): Promise<CloudProvider[]> {
+  if (await isDemoMode()) return [];
   const [s3, icloud] = await Promise.all([
     createS3Providers(db),
     createICloudProviders(),

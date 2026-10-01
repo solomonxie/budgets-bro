@@ -7,6 +7,7 @@ import * as changeLogRepo from '../db/repositories/changeLogRepo';
 import { takeSnapshot } from '../db/preMigrationSnapshot';
 import { writeDailyBackup } from '../backup/localBackup';
 import { backupNamesForBoards } from '../sync/backupPath';
+import { isDemoMode } from '../db/client';
 
 const LAST_SNAPSHOT_SEQ = 'last_snapshot_seq';
 const LAST_SNAPSHOT_AT = 'last_snapshot_at';
@@ -35,7 +36,7 @@ export function useAutoSnapshot(): void {
 
   useEffect(() => {
     const maybeSnapshot = async () => {
-      if (running.current) return;
+      if (running.current || (await isDemoMode())) return;
       running.current = true;
       try {
         const db = await getDb();

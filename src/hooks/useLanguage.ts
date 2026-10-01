@@ -2,12 +2,14 @@ import { useCallback, useEffect } from 'react';
 import { getDb } from '../db/client';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { useAppStore } from '../state/useAppStore';
+import { isChinaStorefront } from '../ai/storefront';
 import type { Language } from '../i18n';
 
 export const LANGUAGE_KEY = 'language_preference';
 
 // Restores the saved language once near the app root — same pattern as
-// useBoards' useBootstrapActiveBoard.
+// useBoards' useBootstrapActiveBoard. Nothing saved yet: Chinese on the China
+// App Store, English elsewhere.
 export function useBootstrapLanguage() {
   const setLanguage = useAppStore((s) => s.setLanguage);
   useEffect(() => {
@@ -15,6 +17,7 @@ export function useBootstrapLanguage() {
       const db = await getDb();
       const saved = await settingsRepo.getSetting(db, LANGUAGE_KEY);
       if (saved === 'en' || saved === 'zh') setLanguage(saved);
+      else if (await isChinaStorefront()) setLanguage('zh');
     })();
   }, [setLanguage]);
 }

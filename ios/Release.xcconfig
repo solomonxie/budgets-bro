@@ -1,2 +1,7 @@
 #include "Pods/Target Support Files/Pods-BudgetsBro/Pods-BudgetsBro.release.xcconfig"
 #include? "Local.xcconfig"
+
+// App Store country the app acts as if installed from (CAN, USA, CHN).
+// install-ios-device.sh always sets it; empty = the real storefront, which
+// is what release-ios.sh ships.
+BB_STOREFRONT =

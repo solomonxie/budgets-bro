@@ -2098,6 +2098,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - Storefront (1.0.0):
+    - React-Core
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2186,6 +2188,7 @@ DEPENDENCIES:
   - RNKeychain (from `../node_modules/react-native-keychain`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
+  - Storefront (from `../modules/storefront/ios`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 EXTERNAL SOURCES:
@@ -2358,6 +2361,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-screens"
   RNSVG:
     :path: "../node_modules/react-native-svg"
+  Storefront:
+    :path: "../modules/storefront/ios"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -2446,8 +2451,9 @@ SPEC CHECKSUMS:
   RNKeychain: 6778b35b5bd067c322f8479526ac09b1d61f31d0
   RNScreens: 7118cd7715c226856125b5bece3c4d9abec90356
   RNSVG: 3fe8590403ac9f107b4d14591bc6e54da4894e5c
+  Storefront: 859d145d028db4b334e956359ae78a624510bac6
   Yoga: 18b74b3ade30bebc1904004dfaceae1dd02a330a
 
-PODFILE CHECKSUM: ea355174d7685abdbe3fb8fb0c636398a86da507
+PODFILE CHECKSUM: 274b7adb3d06ef3627bf8918ac0fcc5351b4511b
 
 COCOAPODS: 1.16.2

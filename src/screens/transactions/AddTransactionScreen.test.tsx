@@ -8,6 +8,7 @@ import { AddTransactionScreen } from './AddTransactionScreen';
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ setOptions: jest.fn(), goBack: jest.fn() }),
   useRoute: () => ({ params: {} }),
+  useIsFocused: () => true,
 }));
 jest.mock('@react-navigation/elements', () => ({ useHeaderHeight: () => 0 }));
 jest.mock('react-native-safe-area-context', () => ({

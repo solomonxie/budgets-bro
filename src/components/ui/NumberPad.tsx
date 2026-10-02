@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   shortKey: { height: '100%' },
   keyPressed: { backgroundColor: colors.surface },
-  keyText: { fontSize: 32, fontWeight: '500', color: colors.text },
+  keyText: { fontSize: 40, fontWeight: '500', color: colors.text },
   keyTextShort: { fontSize: 20, fontWeight: '500' },
   keyTextOperator: { fontSize: 23, fontWeight: '600', color: colors.accent },
   keyTextMuted: { fontSize: 22, color: colors.textMuted },

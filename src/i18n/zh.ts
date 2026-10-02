@@ -398,10 +398,8 @@ export const zh: Record<keyof typeof en, string> = {
     '它也会牺牲隐私。银行同步要经过一家中间公司，你的网银登录信息会存在它们的服务器上，等于把你所有账户的永久访问权交到别人手里。本应用没有服务器，这些信息无处可放。',
   'settings.bankFresh':
     '你也不需要录入过去的记录。给每个账户设好初始余额，从今天开始记就行。漏记了几笔？没关系——填上银行显示的余额，会自动生成一笔调整交易补上差额。',
-  'settings.enterDemoMode': '进入演示模式',
-  'settings.exitDemoMode': '退出演示模式',
+  'settings.demoMode': '演示模式',
   'settings.demoModeHint': '示例家庭数据，与你的数据分开存放。开启期间暂停备份。',
-  'settings.demoModeSwitching': '切换中…',
   'settings.demoModeFailed': '无法切换演示模式。',
   'settings.version': '版本',
   'settings.newBoardTitle': '新建账本',

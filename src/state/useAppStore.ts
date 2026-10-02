@@ -51,6 +51,10 @@ interface AppState {
   // tree on change so every bootstrap hook rereads from the new one.
   demoMode: boolean;
   setDemoModeFlag: (on: boolean) => void;
+
+  // Spend tab opens the payee search before the amount. Off by default.
+  payeeFirst: boolean;
+  setPayeeFirst: (on: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -82,4 +86,6 @@ export const useAppStore = create<AppState>((set) => ({
 
   demoMode: false,
   setDemoModeFlag: (demoMode) => set({ demoMode }),
+  payeeFirst: false,
+  setPayeeFirst: (payeeFirst) => set({ payeeFirst }),
 }));

@@ -68,7 +68,16 @@ export type RootTabParamList = {
 // route.
 export type RootStackParamList = {
   Tabs: NavigatorScreenParams<RootTabParamList>;
-  AddTransaction: { transactionId?: number; presetAccountId?: number } | undefined;
+  // `presetPayee` is from QuickPayee; no `id` means a newly typed name.
+  AddTransaction:
+    | {
+        transactionId?: number;
+        presetAccountId?: number;
+        presetPayee?: { name: string; id?: number };
+      }
+    | undefined;
+  // The Spend tab's payee search, replaced by AddTransaction once picked.
+  QuickPayee: undefined;
   // Settings is a page you go to and come back from, not a sheet you
   // dismiss: a route here gives it the native header's back button and the
   // swipe-back gesture, and lets anything it opens push on top of it.

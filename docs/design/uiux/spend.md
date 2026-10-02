@@ -68,6 +68,15 @@ An inflow drops Category: where money came from is its payee, which the
 form already asks for. Payee is greyed too on a loan or mortgage row — it is
 the account's own payee, and that name is what links the mirrored pair.
 
+## Quick payee
+
+`✛ Spend` from anywhere but an account page opens a payee search card above
+the keyboard first (`QuickPayeeScreen.tsx`); tap outside to cancel. Typing ranks fuzzy matches; the top one is
+highlighted and Done takes it (no match → the typed name). The search is
+*replaced* by this form, payee filled in, so it slides straight in. Nothing
+saves until there's an amount. Done with nothing typed opens the form
+blank.
+
 ## Repeating
 
 ```

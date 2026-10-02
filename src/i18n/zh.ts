@@ -1367,6 +1367,7 @@ export const zh: Record<keyof typeof en, string> = {
   'spend.payeePlaceholder': '收款方',
   'spend.paidFromPlaceholder': '账户',
   'spend.payeeSearchPlaceholder': '搜索或输入新的收款方',
+  'spend.quickPayeePlaceholder': '收款方 — 直接完成可跳过',
   'spend.memoPlaceholder': '备注',
   'purchaseItems.label': '物品',
   'purchaseItems.namePlaceholder': '买了什么',

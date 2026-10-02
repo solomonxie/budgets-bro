@@ -11,6 +11,7 @@ import { AccountsStackNavigator } from './AccountsStackNavigator';
 import { BudgetStackNavigator } from './BudgetStackNavigator';
 import { InsightsStackNavigator } from './InsightsStackNavigator';
 import { AddTransactionScreen } from '../screens/transactions/AddTransactionScreen';
+import { QuickPayeeScreen } from '../screens/transactions/QuickPayeeScreen';
 import { FlaggedTransactionsScreen } from '../screens/transactions/FlaggedTransactionsScreen';
 import { FirstRunPrompt } from '../screens/onboarding/FirstRunPrompt';
 import { AccountModal } from '../screens/accounts/AccountModal';
@@ -19,9 +20,7 @@ import { TabBarIcon } from '../components/ui/TabBarIcon';
 import { focusedAccountId } from './focusedAccount';
 import type { TabNavState } from './focusedAccount';
 import type { TabIconName } from '../components/ui/TabBarIcon';
-import {
-  useBootstrapActiveBoard,
-} from '../hooks/useBoards';
+import { useBootstrapActiveBoard } from '../hooks/useBoards';
 import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
 import { useAutoSnapshot } from '../hooks/useAutoSnapshot';
@@ -67,60 +66,61 @@ function Tabs() {
   // whole tab bar.
   const rootNavigation = useNavigation<RootNav>();
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ color }) =>
-          TAB_ICONS[route.name] ? (
-            <TabBarIcon name={TAB_ICONS[route.name]} color={color} />
-          ) : null,
-        tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        // Without an explicit background, iOS renders its own default
-        // translucent-blur tab bar — against this app's near-black
-        // (but not pure black) theme that blur reads as a stray dark
-        // seam right above the tab bar on every screen.
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-        },
-      })}
-    >
-      <Tab.Screen
-        name="Budget"
-        component={BudgetStackNavigator}
-        options={{ tabBarLabel: t('nav.budget') }}
-      />
-      <Tab.Screen
-        name="SpendTab"
-        component={NoopScreen}
-        options={{ tabBarLabel: t('nav.spend') }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            const presetAccountId = focusedAccountId(
-              navigation.getState() as unknown as TabNavState,
-            );
-            rootNavigation.navigate(
-              'AddTransaction',
-              presetAccountId != null ? { presetAccountId } : undefined,
-            );
+    <>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarIcon: ({ color }) =>
+            TAB_ICONS[route.name] ? (
+              <TabBarIcon name={TAB_ICONS[route.name]} color={color} />
+            ) : null,
+          tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textMuted,
+          // Without an explicit background, iOS renders its own default
+          // translucent-blur tab bar — against this app's near-black
+          // (but not pure black) theme that blur reads as a stray dark
+          // seam right above the tab bar on every screen.
+          tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: StyleSheet.hairlineWidth,
           },
         })}
-      />
-      <Tab.Screen
-        name="Accounts"
-        component={AccountsStackNavigator}
-        options={{ tabBarLabel: t('nav.accounts') }}
-      />
-      <Tab.Screen
-        name="Insights"
-        component={InsightsStackNavigator}
-        options={{ tabBarLabel: t('nav.insights') }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="Budget"
+          component={BudgetStackNavigator}
+          options={{ tabBarLabel: t('nav.budget') }}
+        />
+        <Tab.Screen
+          name="SpendTab"
+          component={NoopScreen}
+          options={{ tabBarLabel: t('nav.spend') }}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              e.preventDefault();
+              const presetAccountId = focusedAccountId(
+                navigation.getState() as unknown as TabNavState,
+              );
+              if (presetAccountId != null)
+                rootNavigation.navigate('AddTransaction', { presetAccountId });
+              else rootNavigation.navigate('QuickPayee');
+            },
+          })}
+        />
+        <Tab.Screen
+          name="Accounts"
+          component={AccountsStackNavigator}
+          options={{ tabBarLabel: t('nav.accounts') }}
+        />
+        <Tab.Screen
+          name="Insights"
+          component={InsightsStackNavigator}
+          options={{ tabBarLabel: t('nav.insights') }}
+        />
+      </Tab.Navigator>
+    </>
   );
 }
 
@@ -156,6 +156,15 @@ export function RootNavigator() {
             headerBackTitle: t('common.backTitle'),
             fullScreenGestureEnabled: true,
           })}
+        />
+        <RootStack.Screen
+          name="QuickPayee"
+          component={QuickPayeeScreen}
+          options={{
+            headerShown: false,
+            presentation: 'transparentModal',
+            animation: 'none',
+          }}
         />
         <RootStack.Screen
           name="FlaggedTransactions"

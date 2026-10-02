@@ -38,7 +38,7 @@ const COMPACT_LIST_HEIGHT = 5 * 54;
 // Substring match ranks highest (by position); otherwise falls back to an
 // in-order fuzzy subsequence match (typo/skip-tolerant), scored by how
 // contiguous the matched characters are. Null means no match at all.
-function fuzzyScore(label: string, query: string): number | null {
+export function fuzzyScore(label: string, query: string): number | null {
   const idx = label.indexOf(query);
   if (idx !== -1) return 10000 - idx;
 

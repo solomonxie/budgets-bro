@@ -25,6 +25,7 @@ import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
 import { useAutoSnapshot } from '../hooks/useAutoSnapshot';
 import { useT } from '../i18n';
+import { useAppStore } from '../state/useAppStore';
 import { colors } from '../theme/colors';
 import type { RootStackParamList, RootTabParamList } from './types';
 
@@ -65,9 +66,11 @@ function Tabs() {
   // navigation — what the Spend tab needs to push Add Transaction over the
   // whole tab bar.
   const rootNavigation = useNavigation<RootNav>();
+  const demoMode = useAppStore((s) => s.demoMode);
   return (
     <>
       <Tab.Navigator
+        key={demoMode ? 'demo' : 'real'}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarIcon: ({ color }) =>
@@ -125,14 +128,24 @@ function Tabs() {
   );
 }
 
-export function RootNavigator() {
+function DatabaseHooks() {
   useBootstrapActiveBoard();
   useBootstrapLanguage();
   useAutoCloudSync();
   useAutoSnapshot();
+  return null;
+}
+
+// Demo mode swaps the database: whatever reads it is keyed and starts over,
+// out of sight behind Settings, so the toggle is all the user sees.
+export function RootNavigator() {
+  const demoMode = useAppStore((s) => s.demoMode);
+  const dbKey = demoMode ? 'demo' : 'real';
   const t = useT();
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer
+      theme={navigationTheme}
+    >
       <RootStack.Navigator>
         <RootStack.Screen
           name="Tabs"
@@ -186,8 +199,9 @@ export function RootNavigator() {
           }}
         />
       </RootStack.Navigator>
-      <AccountModal />
-      <FirstRunPrompt />
+      <DatabaseHooks key={dbKey} />
+      <AccountModal key={`account-${dbKey}`} />
+      <FirstRunPrompt key={`first-run-${dbKey}`} />
     </NavigationContainer>
   );
 }

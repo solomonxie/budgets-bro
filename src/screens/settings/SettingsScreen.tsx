@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
@@ -83,6 +83,8 @@ export function SettingsScreen() {
   const demoMode = useAppStore((s) => s.demoMode);
   const setDemoModeFlag = useAppStore((s) => s.setDemoModeFlag);
   const [switchingDemo, setSwitchingDemo] = useState(false);
+  // Sections that read the database start over when demo mode swaps it.
+  const dbKey = demoMode ? 'demo' : 'real';
   const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
   const [removingAllData, setRemovingAllData] = useState(false);
 
@@ -118,7 +120,7 @@ export function SettingsScreen() {
       setAiKeyStrategyState(await getAiKeyStrategy(db));
       setBiometry(await biometryName());
     })();
-  }, []);
+  }, [demoMode]);
 
   // Switching the lock off clears both secrets; switching it on proves the
   // new lock works *before* it is saved, so nobody ends up holding a key
@@ -236,6 +238,7 @@ export function SettingsScreen() {
       if (on) await enterDemoMode();
       else await leaveDemoMode();
       setDemoModeFlag(on);
+      bumpDataVersion();
     } catch {
       Alert.alert(t('settings.demoModeFailed'));
     } finally {
@@ -382,7 +385,7 @@ export function SettingsScreen() {
               <Text style={styles.rowTitle}>{t('settings.version')}</Text>
               <Text style={styles.rowValue}>1.0.0 (MVP)</Text>
             </View>
-            <DataSafetyRow />
+            <DataSafetyRow key={dbKey} />
             <View style={[styles.row, styles.rowDivider]}>
               <View style={styles.rowMain}>
                 <Text style={styles.rowTitle}>
@@ -694,9 +697,10 @@ export function SettingsScreen() {
           />
         </View>
 
-        <BackupSection boardId={boardId} boardName={boardName} />
+        <BackupSection key={dbKey} boardId={boardId} boardName={boardName} />
 
         <DataSection
+          key={dbKey}
           boardId={boardId}
           boardName={boardName}
           onImported={bumpDataVersion}
@@ -741,17 +745,19 @@ export function SettingsScreen() {
           </Pressable>
         )}
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={switchingDemo}
-          onPress={() => toggleDemoMode(!demoMode)}
-          style={styles.demoModeLink}
-        >
-          <Text style={styles.demoModeText}>
-            {t(switchingDemo ? 'settings.demoModeSwitching' : demoMode ? 'settings.exitDemoMode' : 'settings.enterDemoMode')}
-          </Text>
-          <Text style={styles.demoModeHint}>{t('settings.demoModeHint')}</Text>
-        </Pressable>
+        <View style={[styles.group, styles.demoModeGroup]}>
+          <View style={styles.row}>
+            <View style={styles.rowMain}>
+              <Text style={styles.rowTitle}>{t('settings.demoMode')}</Text>
+              <Text style={styles.rowHint}>{t('settings.demoModeHint')}</Text>
+            </View>
+            <Switch
+              value={demoMode}
+              disabled={switchingDemo}
+              onValueChange={toggleDemoMode}
+            />
+          </View>
+        </View>
 
         <ResultToast
           visible={restoreResult != null}
@@ -842,9 +848,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   strategyLinkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
-  demoModeLink: { alignItems: 'center', gap: 4, paddingVertical: spacing.md },
-  demoModeText: { color: colors.accent, fontSize: 15, fontWeight: '600' },
-  demoModeHint: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
+  demoModeGroup: { marginBottom: spacing.lg },
+  rowHint: { color: colors.textMuted, fontSize: 12 },
   removeAllDataLink: { alignSelf: 'center', paddingVertical: spacing.sm, marginBottom: spacing.lg },
   removeAllDataText: { color: colors.negative, fontSize: 12, fontWeight: '600' },
   sectionHint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },

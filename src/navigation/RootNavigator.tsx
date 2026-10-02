@@ -103,9 +103,10 @@ function Tabs() {
               const presetAccountId = focusedAccountId(
                 navigation.getState() as unknown as TabNavState,
               );
-              if (presetAccountId != null)
-                rootNavigation.navigate('AddTransaction', { presetAccountId });
-              else rootNavigation.navigate('QuickPayee');
+              rootNavigation.navigate(
+                'QuickPayee',
+                presetAccountId != null ? { presetAccountId } : undefined,
+              );
             },
           })}
         />

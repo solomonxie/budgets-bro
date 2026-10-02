@@ -304,6 +304,15 @@ function AddTransactionForm() {
     if (lastCategoryId != null) setCategoryId(lastCategoryId);
   };
 
+  const presetPayee = params?.presetPayee;
+  useEffect(() => {
+    if (!presetPayee) return;
+    if (presetPayee.id != null) selectPayee(presetPayee.name, presetPayee.id);
+    else setPayee(presetPayee.name);
+    // Once, on open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const submitPayeeRename = async (name: string) => {
     if (!renamingPayee) return;
     const db = await getDb();

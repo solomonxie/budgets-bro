@@ -1397,6 +1397,7 @@ export const en = {
   'spend.payeePlaceholder': 'Payee',
   'spend.paidFromPlaceholder': 'Account',
   'spend.payeeSearchPlaceholder': 'Search or type a new payee',
+  'spend.quickPayeePlaceholder': 'Payee — or Done to skip',
   'spend.memoPlaceholder': 'Memo',
   'purchaseItems.label': 'Items',
   'purchaseItems.namePlaceholder': 'What you bought',

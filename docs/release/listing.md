@@ -173,10 +173,10 @@ App Preview video: skip for 1.0.
 | App Review → Attachment | none |
 | Version Release | **Manually release this version** |
 
-Promotional Text (150/170):
+Promotional Text (≤170, no price wording — Guideline 2.3.7):
 
 ```
-Powerful budgeting app, completely free, completely offline native, completely private backup, no account, no subscription, no backend server running.
+Zero-based budgeting that stays on your iPhone. Works offline, backs up privately, no account, no server.
 ```
 
 Description:
@@ -354,7 +354,7 @@ The app ships `zh`. App Store Connect → App Information → language dropdown 
 Promotional Text:
 
 ```
-完全免费、完全离线、备份完全私有的预算应用。无需账号，无订阅，没有任何后端服务器。
+留在你 iPhone 上的零基预算。离线可用，备份私有，无需账号，没有服务器。
 ```
 
 Description:

@@ -9,6 +9,7 @@ import { DataSection } from './DataSection';
 import { HistorySection } from './HistorySection';
 import { useBoards } from '../../hooks/useBoards';
 import { LANGUAGE_KEY, useLanguageSetting } from '../../hooks/useLanguage';
+import { savePayeeFirst } from '../../hooks/usePayeeFirst';
 import { writeLockMode } from '../../hooks/useAppLock';
 import {
   biometryName,
@@ -85,6 +86,7 @@ export function SettingsScreen() {
   const [switchingDemo, setSwitchingDemo] = useState(false);
   // Sections that read the database start over when demo mode swaps it.
   const dbKey = demoMode ? 'demo' : 'real';
+  const payeeFirst = useAppStore((s) => s.payeeFirst);
   const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
   const [removingAllData, setRemovingAllData] = useState(false);
 
@@ -515,6 +517,19 @@ export function SettingsScreen() {
               {t('settings.themeLightHint')}
             </Text>
           ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>{t('settings.spendHeading')}</Text>
+          <View style={styles.group}>
+            <View style={styles.row}>
+              <View style={styles.rowMain}>
+                <Text style={styles.rowTitle}>{t('settings.payeeFirst')}</Text>
+                <Text style={styles.rowHint}>{t('settings.payeeFirstHint')}</Text>
+              </View>
+              <Switch value={payeeFirst} onValueChange={savePayeeFirst} />
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>

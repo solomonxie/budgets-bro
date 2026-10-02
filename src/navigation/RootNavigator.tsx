@@ -21,6 +21,7 @@ import { focusedAccountId } from './focusedAccount';
 import type { TabNavState } from './focusedAccount';
 import type { TabIconName } from '../components/ui/TabBarIcon';
 import { useBootstrapActiveBoard } from '../hooks/useBoards';
+import { useBootstrapPayeeFirst } from '../hooks/usePayeeFirst';
 import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
 import { useAutoSnapshot } from '../hooks/useAutoSnapshot';
@@ -107,7 +108,7 @@ function Tabs() {
                 navigation.getState() as unknown as TabNavState,
               );
               rootNavigation.navigate(
-                'QuickPayee',
+                useAppStore.getState().payeeFirst ? 'QuickPayee' : 'AddTransaction',
                 presetAccountId != null ? { presetAccountId } : undefined,
               );
             },
@@ -130,6 +131,7 @@ function Tabs() {
 
 function DatabaseHooks() {
   useBootstrapActiveBoard();
+  useBootstrapPayeeFirst();
   useBootstrapLanguage();
   useAutoCloudSync();
   useAutoSnapshot();

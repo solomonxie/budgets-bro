@@ -399,6 +399,9 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.bankFresh':
     '你也不需要录入过去的记录。给每个账户设好初始余额，从今天开始记就行。漏记了几笔？没关系——填上银行显示的余额，会自动生成一笔调整交易补上差额。',
   'settings.demoMode': '演示模式',
+  'settings.spendHeading': '记账',
+  'settings.payeeFirst': '先选收款方',
+  'settings.payeeFirstHint': '记一笔支出时，先搜索收款方，再输入金额。',
   'settings.demoModeHint': '示例家庭数据，与你的数据分开存放。开启期间暂停备份。',
   'settings.demoModeFailed': '无法切换演示模式。',
   'settings.version': '版本',

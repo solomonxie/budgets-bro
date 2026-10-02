@@ -403,6 +403,9 @@ export const en = {
   'settings.bankFresh':
     'And you don’t need your history. Set each account’s starting balance and record from today on. Missed a few purchases? That’s fine — enter the balance your bank shows, and one adjustment transaction closes the gap.',
   'settings.demoMode': 'Demo Mode',
+  'settings.spendHeading': 'Spending',
+  'settings.payeeFirst': 'Pick payee first',
+  'settings.payeeFirstHint': 'Spend opens a payee search before the amount.',
   'settings.demoModeHint': 'Sample household data, kept apart from yours. Backups pause while it’s on.',
   'settings.demoModeFailed': 'Couldn’t switch demo mode.',
   'settings.version': 'Version',

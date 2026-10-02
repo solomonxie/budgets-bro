@@ -24,13 +24,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-    window = UIWindow(frame: UIScreen.main.bounds)
-    factory.startReactNative(
-      withModuleName: "main",
-      in: window,
-      launchOptions: launchOptions)
-
     return true
+  }
+
+  func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+    config.delegateClass = SceneDelegate.self
+    return config
   }
 
   // Linking API
@@ -50,6 +54,46 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   ) -> Bool {
     RCTLinkingManager.application(
       application, continue: userActivity, restorationHandler: restorationHandler)
+  }
+}
+
+// iOS 27 terminates apps without UIScene lifecycle.
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let windowScene = scene as? UIWindowScene,
+      let appDelegate = UIApplication.shared.delegate as? AppDelegate
+    else { return }
+
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+    appDelegate.window = window
+    appDelegate.reactNativeFactory?.startReactNative(
+      withModuleName: "main",
+      in: window,
+      launchOptions: nil)
+
+    if let context = connectionOptions.urlContexts.first {
+      self.scene(scene, openURLContexts: [context])
+    }
+    if let activity = connectionOptions.userActivities.first {
+      self.scene(scene, continue: activity)
+    }
+  }
+
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    guard let url = URLContexts.first?.url else { return }
+    RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+  }
+
+  func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    RCTLinkingManager.application(
+      UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
   }
 }
 

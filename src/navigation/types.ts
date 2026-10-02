@@ -77,7 +77,7 @@ export type RootStackParamList = {
       }
     | undefined;
   // The Spend tab's payee search, replaced by AddTransaction once picked.
-  QuickPayee: undefined;
+  QuickPayee: { presetAccountId?: number } | undefined;
   // Settings is a page you go to and come back from, not a sheet you
   // dismiss: a route here gives it the native header's back button and the
   // swipe-back gesture, and lets anything it opens push on top of it.

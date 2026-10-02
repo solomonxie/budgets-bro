@@ -155,10 +155,8 @@ export function RootNavigator() {
         <RootStack.Screen
           name="AddTransaction"
           component={AddTransactionScreen}
-          // fullScreenGestureEnabled: the swipe back works from anywhere on
-          // the page, not just the left edge — this page is a form, and
-          // hunting for the edge to get out of it is the thing the sheet's
-          // pull-down was replaced for.
+          // No fullScreenGestureEnabled: its native pan sits over the number
+          // pad and cancelled fast taps that slid a point or two. Edge swipe only.
           options={({ route }) => ({
             title: t(
               route.params?.transactionId != null
@@ -168,7 +166,6 @@ export function RootNavigator() {
             // The plain word: 'common.back' carries its own ‹ for in-page
             // buttons, and the native header already draws one.
             headerBackTitle: t('common.backTitle'),
-            fullScreenGestureEnabled: true,
           })}
         />
         <RootStack.Screen

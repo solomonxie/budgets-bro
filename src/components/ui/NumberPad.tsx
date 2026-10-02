@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import type { GestureResponderEvent } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   AmountExpression,
@@ -76,7 +77,8 @@ export function NumberPad({
       return (
         <Pressable
           key={key}
-          style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+          style={({ pressed }) => [styles.key, styles.spaced, pressed && styles.keyPressed]}
+          hitSlop={GAP / 2}
           onPress={action.onPress}
         >
           <Text style={styles.wordKeyText} numberOfLines={1}>
@@ -89,8 +91,9 @@ export function NumberPad({
       return (
         <Pressable
           key={key}
+          hitSlop={GAP / 2}
           style={({ pressed }) => [
-            styles.key,
+            styles.spaced,
             styles.submitKey,
             pressed && styles.submitKeyPressed,
           ]}
@@ -102,31 +105,15 @@ export function NumberPad({
         </Pressable>
       );
     return (
-      <Pressable
+      <TapKey
         key={key}
-        style={({ pressed }) => [
-          styles.key,
-          short && styles.shortKey,
-          pressed && styles.keyPressed,
-        ]}
-        onPress={() => press(key)}
+        label={key}
+        short={short}
+        onTap={() => press(key)}
         // No C key — holding backspace wipes the whole amount, which is the
         // only time anyone reached for it.
-        onLongPress={
-          key === '⌫' ? () => press('C') : undefined
-        }
-      >
-        <Text
-          style={[
-            styles.keyText,
-            (isAmountOperator(key) || key === '=') && styles.keyTextOperator,
-            key === '⌫' && styles.keyTextMuted,
-            short && styles.keyTextShort,
-          ]}
-        >
-          {key}
-        </Text>
-      </Pressable>
+        onHold={key === '⌫' ? () => press('C') : undefined}
+      />
     );
   };
 
@@ -159,24 +146,102 @@ export function NumberPad({
   );
 }
 
+// Pressable lets one touch be the responder at a time, so a thumb landing
+// before the last one lifted was dropped. Raw touch events reach every key
+// under every finger. The key fills its cell, gap included: no dead space.
+function TapKey({
+  label,
+  short,
+  onTap,
+  onHold,
+}: {
+  label: AmountKey;
+  short: boolean;
+  onTap: () => void;
+  onHold?: () => void;
+}) {
+  const [pressed, setPressed] = useState(false);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearHold = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  };
+  const begin = (e: GestureResponderEvent) => {
+    start.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+    setPressed(true);
+    if (onHold)
+      holdTimer.current = setTimeout(() => {
+        holdTimer.current = null;
+        start.current = null;
+        onHold();
+      }, 500);
+  };
+  const end = (e: GestureResponderEvent) => {
+    const from = start.current;
+    const held = onHold && !holdTimer.current;
+    clearHold();
+    start.current = null;
+    setPressed(false);
+    if (!from || held) return;
+    const { pageX, pageY } = e.nativeEvent;
+    if (Math.abs(pageX - from.x) < 30 && Math.abs(pageY - from.y) < 30) onTap();
+  };
+  const cancel = () => {
+    clearHold();
+    start.current = null;
+    setPressed(false);
+  };
+  return (
+    <View
+      style={[styles.cell, short && styles.shortCell]}
+      onTouchStart={begin}
+      onTouchEnd={end}
+      onTouchCancel={cancel}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onAccessibilityTap={onTap}
+    >
+      <View
+        style={[styles.key, short && styles.shortKey, pressed && styles.keyPressed]}
+      >
+        <Text
+          style={[
+            styles.keyText,
+            (isAmountOperator(label) || label === '=') && styles.keyTextOperator,
+            label === '⌫' && styles.keyTextMuted,
+            short && styles.keyTextShort,
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 const GAP = 6;
 const KEY_HEIGHT = 54;
 const SAVE_HEIGHT = 58;
 
 const styles = StyleSheet.create({
-  pad: { flexDirection: 'row', gap: GAP },
-  row: { flexDirection: 'row', gap: GAP },
+  // Gaps live inside each cell as padding, so every point is some key's.
+  pad: { flexDirection: 'row', margin: -GAP / 2 },
+  row: { flexDirection: 'row' },
   // Three digit columns against two narrower calculator ones.
-  digitBlock: { flex: 9, gap: GAP },
-  opBlock: { flex: 4, gap: GAP },
+  digitBlock: { flex: 9 },
+  opBlock: { flex: 4 },
   shortRow: { flex: 1 },
-  submitRow: { flexDirection: 'row', height: KEY_HEIGHT },
-  tallSubmit: { height: SAVE_HEIGHT },
+  submitRow: { flexDirection: 'row', height: KEY_HEIGHT + GAP },
+  tallSubmit: { height: SAVE_HEIGHT + GAP },
+  cell: { flex: 1, padding: GAP / 2 },
+  shortCell: { height: '100%' },
+  spaced: { flex: 1, margin: GAP / 2 },
   // No boxes: a grid of outlined tiles reads as clutter under a form that
   // is already all bordered fields. The glyph is the key, and pressing one
   // lights a rounded patch under your thumb.
   key: {
-    flex: 1,
     // Not 60: with a Purchase items row on the spend form the pad was being
     // pushed half off the bottom of a 14-sized screen.
     height: KEY_HEIGHT,
@@ -192,7 +257,8 @@ const styles = StyleSheet.create({
   keyTextMuted: { fontSize: 22, color: colors.textMuted },
   // Save is the one real button down here, so it keeps its fill.
   submitKey: {
-    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.accent,
     borderRadius: 16,
   },

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   AmountExpression,
@@ -46,6 +47,16 @@ export function NumberPad({
   bottomLeft,
   bottomRight,
 }: NumberPadProps) {
+  // Taps faster than the form re-renders would each start from the same
+  // stale `value` and overwrite one another; this tracks every press.
+  const latest = useRef(value);
+  useLayoutEffect(() => {
+    latest.current = value;
+  }, [value]);
+  const press = (key: AmountKey) => {
+    latest.current = pressAmountKey(latest.current, key);
+    onChange(latest.current);
+  };
   // 0 sits under 8, phone-keypad style, with ⌫ to its right — unless that
   // slot holds a word, which sends ⌫ back up beside the =.
   const digitRows: AmountKey[][] = [
@@ -98,11 +109,11 @@ export function NumberPad({
           short && styles.shortKey,
           pressed && styles.keyPressed,
         ]}
-        onPress={() => onChange(pressAmountKey(value, key))}
+        onPress={() => press(key)}
         // No C key — holding backspace wipes the whole amount, which is the
         // only time anyone reached for it.
         onLongPress={
-          key === '⌫' ? () => onChange(pressAmountKey(value, 'C')) : undefined
+          key === '⌫' ? () => press('C') : undefined
         }
       >
         <Text

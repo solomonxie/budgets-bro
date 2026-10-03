@@ -73,8 +73,8 @@ npx eas-cli submit --platform ios --latest
 ## Screenshots
 | Budgets | Spent | Accounts |
 |---|---|---|
-| <img src="docs/release/screenshots/screenshot-1-budgets.jpg" alt="Budgets screen" width="260"> | <img src="docs/release/screenshots/screenshot-2-spent.jpg" alt="Spent screen" width="260"> | <img src="docs/release/screenshots/screenshot-3-accounts.jpg" alt="Accounts screen" width="260"> |
+| <img src="docs/release/screenshots/01-budgets.jpg" alt="Budgets screen" width="260"> | <img src="docs/release/screenshots/02-spend.jpg" alt="Spent screen" width="260"> | <img src="docs/release/screenshots/03-accounts.jpg" alt="Accounts screen" width="260"> |
 | **Chequing** | **Mortgage** | **Insights** |
-| <img src="docs/release/screenshots/screenshot-4-chequing.jpg" alt="Chequing account screen" width="260"> | <img src="docs/release/screenshots/screenshot-5-mortgage.jpg" alt="Mortgage screen" width="260"> | <img src="docs/release/screenshots/screenshot-6-insights.jpg" alt="Insights screen" width="260"> |
+| <img src="docs/release/screenshots/04-chequing.jpg" alt="Chequing account screen" width="260"> | <img src="docs/release/screenshots/05-mortgage.jpg" alt="Mortgage screen" width="260"> | <img src="docs/release/screenshots/06-insights.jpg" alt="Insights screen" width="260"> |
 | **Insights (cont.)** | **Payee Trend** | **Settings** |
-| <img src="docs/release/screenshots/screenshot-7-insights2.jpg" alt="Insights screen, continued" width="260"> | <img src="docs/release/screenshots/screenshot-8-payee-trend.jpg" alt="Payee trend screen" width="260"> | <img src="docs/release/screenshots/screenshot-9-settings.jpg" alt="Settings screen" width="260"> |
+| <img src="docs/release/screenshots/07-payee.jpg" alt="Payee trend screen" width="260"> | <img src="docs/release/screenshots/08-settings.jpg" alt="Settings screen" width="260"> |

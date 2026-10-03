@@ -1,3 +1,4 @@
+import { screenshotNav } from '../demo/screenshot';
 import { StyleSheet } from 'react-native';
 import {
   DarkTheme,
@@ -146,6 +147,7 @@ export function RootNavigator() {
   const t = useT();
   return (
     <NavigationContainer
+      ref={screenshotNav}
       theme={navigationTheme}
     >
       <RootStack.Navigator>

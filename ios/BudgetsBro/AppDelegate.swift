@@ -76,6 +76,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     appDelegate.reactNativeFactory?.startReactNative(
       withModuleName: "main",
       in: window,
+      initialProperties: screenshotProps(),
       launchOptions: nil)
 
     if let context = connectionOptions.urlContexts.first {
@@ -84,6 +85,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     if let activity = connectionOptions.userActivities.first {
       self.scene(scene, continue: activity)
     }
+  }
+
+  private func screenshotProps() -> [AnyHashable: Any]? {
+    #if SCREENSHOTS
+    let d = UserDefaults.standard
+    guard let screen = d.string(forKey: "screen") else { return nil }
+    return ["screen": screen, "lang": d.string(forKey: "lang") ?? "en"]
+    #else
+    return nil
+    #endif
   }
 
   func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

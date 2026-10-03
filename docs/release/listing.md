@@ -119,9 +119,10 @@ Hello, thank you for the review. Answers below, and the same text is now in the 
 
 App Store Connect slot **iPhone 6.9" Display** takes `1320 × 2868`. Upload that one set; App Store Connect scales it for smaller phones.
 
-Ready now — nine Release-build shots (2026-09-24), upload in filename order:
+Ready now — eight shots (2026-10-03, simulator, demo board, JPEG q80), upload in filename order:
 
-- `docs/release/screenshots/*.jpg` — 1320 × 2868
+- `docs/release/screenshots/*.jpg` — 1320 × 2868 (English)
+- `docs/release/screenshots/zh-Hans/*.jpg` — 简体中文 localization
 
 To recapture:
 
@@ -134,9 +135,8 @@ To recapture:
    4. **Chequing** — one account's register
    5. **Mortgage** — loan details with payoff date
    6. **Insights** — spending breakdown + top categories
-   7. **Insights (cont.)** — second page of insights
-   8. **Payee trend** — who the money goes to
-   9. **Settings → privacy / backup** — "no server, no account" copy
+   7. **Payee trend** — who the money goes to
+   8. **Settings** — "no server, no account" copy
 4. AirDrop to the Mac, e.g. `~/Desktop/shots/`, then:
 
 ```
@@ -349,7 +349,7 @@ The app ships `zh`. App Store Connect → App Information → language dropdown 
 | Subtitle | `零基预算，离线也能用` |
 | Privacy Policy URL | same |
 | Keywords | `预算,记账,零基预算,支出,理财,离线,隐私,房贷,储蓄,账本` |
-| Screenshots | reuse English ones (App Store Connect falls back automatically) |
+| Screenshots | upload `docs/release/screenshots/zh-Hans/*.jpg` |
 
 Promotional Text:
 

@@ -12,6 +12,6 @@ mkdir -p "$OUT"
 for f in "$IN"/*.png "$IN"/*.PNG "$IN"/*.jpg "$IN"/*.jpeg "$IN"/*.JPG "$IN"/*.HEIC; do
   [ -f "$f" ] || continue
   name=$(basename "${f%.*}")
-  sips -s format jpeg -s formatOptions 95 -z 2868 1320 "$f" --out "$OUT/$name.jpg" >/dev/null
+  sips -s format jpeg -s formatOptions 80 -z 2868 1320 "$f" --out "$OUT/$name.jpg" >/dev/null
   echo "$name"
 done

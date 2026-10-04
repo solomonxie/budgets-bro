@@ -11,7 +11,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 SCHEME=BudgetsBro
-BUNDLE_ID=com.example.budgetsbro
+BUNDLE_ID=$(sed -n 's/^APP_BUNDLE_ID *= *//p' ios/Local.xcconfig)
 DERIVED=${DERIVED_DATA:-/tmp/budgetsbro-device}
 
 # A paired phone reads "connected" while attached and "available (paired)" once

@@ -5,7 +5,7 @@ import React
 // bundle (it dragged in `buffer` and `http-status-codes`) for eight calls.
 // Paths are absolute; bytes cross the bridge as base64, like ICloudDrive.
 
-private let queue = DispatchQueue(label: "com.example.budgetsbro.files", qos: .userInitiated)
+private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".files", qos: .userInitiated)
 
 @objc(FileStore)
 public class FileStore: NSObject {

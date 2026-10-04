@@ -29,7 +29,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.example.budgetsbro</string>
+				<string>$(APP_BUNDLE_ID)</string>
 			</array>
 		</dict>
 	</array>
@@ -54,7 +54,7 @@
 	<string>Face ID unlocks Budgets Bro. Your budget never leaves this iPhone.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
-		<key>iCloud.com.example.budgetsbro</key>
+		<key>iCloud.APP_BUNDLE_ID</key>
 		<dict>
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>

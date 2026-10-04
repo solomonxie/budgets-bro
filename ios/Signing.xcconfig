@@ -1,0 +1,15 @@
+// Placeholders for a fresh clone. Put your own values in ios/Local.xcconfig (gitignored):
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   APP_BUNDLE_ID = com.yourname.budgetsbro
+DEVELOPMENT_TEAM =
+APP_BUNDLE_ID = com.example.budgetsbro
+PRODUCT_BUNDLE_IDENTIFIER = $(APP_BUNDLE_ID)
+
+// Xcode expands $(...) in Info.plist values but not keys; the preprocessor
+// rewrites the NSUbiquitousContainers key (`iCloud.APP_BUNDLE_ID`).
+// -traditional keeps `//` in plist strings from being read as comments.
+INFOPLIST_PREPROCESS = YES
+INFOPLIST_PREPROCESSOR_DEFINITIONS = APP_BUNDLE_ID=$(APP_BUNDLE_ID)
+INFOPLIST_OTHER_PREPROCESSOR_FLAGS = -traditional
+
+#include? "Local.xcconfig"

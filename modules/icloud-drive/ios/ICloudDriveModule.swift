@@ -15,7 +15,7 @@ private let errorDomain = "ICloudDrive"
 
 // Every call does disk I/O and a read may sit waiting on a download, so none
 // of it belongs on the main thread.
-private let queue = DispatchQueue(label: "com.example.budgetsbro.icloud", qos: .userInitiated)
+private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".icloud", qos: .userInitiated)
 
 // Bytes cross the bridge as base64. A plain React Native module has no
 // Uint8Array to hand (that is a TurboModule spec's job, and this one call

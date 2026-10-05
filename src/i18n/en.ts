@@ -195,6 +195,8 @@ export const en = {
   'settings.restoreCategories': 'Restore Categories from YNAB',
   'settings.dataHeading': 'Data',
   'settings.exportBoardHint': 'Saves this board as a .zip file.',
+  'settings.exportCsvHint': 'Saves all transactions as a spreadsheet .csv file.',
+  'settings.exportCsv': 'Export transactions (CSV)',
   'settings.importAppBackupHint': 'Opens a backup .zip as a new board.',
   'settings.importYnabHint': 'Adds a YNAB export to this board.',
   'settings.restoreCategoriesHint':

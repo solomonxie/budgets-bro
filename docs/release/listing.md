@@ -228,12 +228,12 @@ networth,envelope,zero-based,expense,money,finance,tracker,offline,privacy,mortg
 App Review Notes (also the Guideline 2.1 answers Apple asked to keep here):
 
 ```
-No account or login. The app opens straight into a working budget; a sample budget named "Demo" is created on first launch so every screen has data.
+No account or login. On first launch tap "Start empty", then Settings (top-left icon) → Demo Mode: every screen fills with a sample household, kept apart from real data. Turn it off to return to the empty budget.
 
 PURPOSE AND AUDIENCE
 Budgets Bro is a zero-based budgeting app for individuals and households who want to plan their money privately, on their own iPhone. You give every dollar of income a job (a category) before the month starts, record spending as it happens, and see what's left in each category. It solves overspending and "where did the money go" without handing bank logins or financial data to a company: there is no account, no server, and no bank connection.
 
-HOW TO USE THE MAIN FEATURES (no setup needed)
+HOW TO USE THE MAIN FEATURES (with Demo Mode on)
 - Budget tab: the month's categories, what's assigned and what's left. Tap a category's amount to assign money.
 - Spend tab: enter an amount, pick a payee, category and account, Save.
 - Accounts tab: balances, net worth; tap an account for its transactions and balance trend.

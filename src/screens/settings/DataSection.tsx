@@ -11,6 +11,7 @@ import {
 import { ResultToast } from '../../components/ui/ResultToast';
 import { getDb } from '../../db/client';
 import { exportBoardZip } from '../../export/exportBoard';
+import { exportTransactionsCsv } from '../../export/exportCsv';
 import { pickYnabExport } from '../../import/pickYnabExport';
 import { importYnabExport } from '../../import/ynabImporter';
 import type { YnabImportResult } from '../../import/ynabImporter';
@@ -22,7 +23,7 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-type Action = 'export' | 'importBackup' | 'importYnab';
+type Action = 'export' | 'exportCsv' | 'importBackup' | 'importYnab';
 
 interface DataSectionProps {
   boardId: number;
@@ -60,6 +61,22 @@ export function DataSection({
     try {
       const db = await getDb();
       await exportBoardZip(db, boardId, boardName || 'board');
+    } catch (e) {
+      Alert.alert(
+        t('settings.exportFailedTitle'),
+        e instanceof Error ? e.message : t('settings.exportFailedFallback'),
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runExportCsv = async () => {
+    setBusy('exportCsv');
+    setError(null);
+    try {
+      const db = await getDb();
+      await exportTransactionsCsv(db, boardId, boardName || 'board');
     } catch (e) {
       Alert.alert(
         t('settings.exportFailedTitle'),
@@ -122,6 +139,12 @@ export function DataSection({
       label: t('settings.exportBoard'),
       hint: t('settings.exportBoardHint'),
       onPress: runExport,
+    },
+    {
+      action: 'exportCsv',
+      label: t('settings.exportCsv'),
+      hint: t('settings.exportCsvHint'),
+      onPress: runExportCsv,
     },
     {
       action: 'importBackup',

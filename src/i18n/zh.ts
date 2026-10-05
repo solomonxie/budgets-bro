@@ -194,6 +194,8 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.restoreCategories': '从 YNAB 恢复分类',
   'settings.dataHeading': '数据',
   'settings.exportBoardHint': '把当前账本存为 .zip 文件。',
+  'settings.exportCsvHint': '把所有交易存为可用表格打开的 .csv 文件。',
+  'settings.exportCsv': '导出交易记录 (CSV)',
   'settings.importAppBackupHint': '把备份 .zip 作为新账本打开。',
   'settings.importYnabHint': '把 YNAB 导出文件并入当前账本。',
   'settings.restoreCategoriesHint':

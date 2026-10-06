@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -179,12 +179,26 @@ function AddTransactionForm() {
   const payeeReadOnly = isLoanAccount && isEditing;
   // Only an account can pay a loan: a typed name would make a plain payee,
   // which posts no mirror leg and leaves the payment one-sided.
-  const payeeOptions =
-    isLoanAccount && !isEditing
-      ? payees.filter(
-          (p) => p.linkedAccountId != null && p.linkedAccountId !== accountId,
-        )
-      : payees;
+  const payeeOptions = useMemo(
+    () =>
+      isLoanAccount && !isEditing
+        ? payees.filter(
+            (p) => p.linkedAccountId != null && p.linkedAccountId !== accountId,
+          )
+        : payees,
+    [payees, isLoanAccount, isEditing, accountId],
+  );
+  const payeePickerOptions = useMemo(
+    () =>
+      payeeOptions.map((p) => ({
+        id: p.id,
+        label: p.name,
+        badge:
+          p.linkedAccountId != null ? t('payeePicker.accountBadge') : undefined,
+        editable: p.linkedAccountId == null,
+      })),
+    [payeeOptions, t],
+  );
   // Opened from an account's page, the account is the context you came from,
   // not a field — and an existing loan row cannot move accounts at all
   // without orphaning its mirror.
@@ -334,6 +348,17 @@ function AddTransactionForm() {
     if (payee === renamingPayee.name) setPayee(name.trim());
     setRenamingPayee(null);
     bumpDataVersion();
+  };
+
+  const [payeeSignal, setPayeeSignal] = useState(0);
+  const [categorySignal, setCategorySignal] = useState(0);
+  const needsPayee = !payeeReadOnly && !payee;
+  const needsCategory =
+    direction === 'out' && takesCategory && categoryId == null;
+  const needsMore = !isEditing && (needsPayee || needsCategory);
+  const next = () => {
+    if (needsPayee) setPayeeSignal((n) => n + 1);
+    else setCategorySignal((n) => n + 1);
   };
 
   const save = async () => {
@@ -594,6 +619,7 @@ function AddTransactionForm() {
                   compact
                   row
                   autoFocusSearch={false}
+                  openSignal={payeeSignal}
                   label={t('common.payee')}
                   valueLabel={payee}
                   placeholder={t(
@@ -602,17 +628,7 @@ function AddTransactionForm() {
                       : 'spend.payeePlaceholder',
                   )}
                   searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                  options={payeeOptions.map((p) => ({
-                    id: p.id,
-                    label: p.name,
-                    badge:
-                      p.linkedAccountId != null
-                        ? t('payeePicker.accountBadge')
-                        : undefined,
-                    // An account-linked payee is named by its account and
-                    // renamed with it (payeesRepo.ensureAccountPayee).
-                    editable: p.linkedAccountId == null,
-                  }))}
+                  options={payeePickerOptions}
                   onSelect={(o) => selectPayee(o.label, o.id)}
                   onEditOption={(o) =>
                     setRenamingPayee({ id: o.id, name: o.label })
@@ -645,6 +661,7 @@ function AddTransactionForm() {
                   compact
                   row
                   label={t('common.category')}
+                  openSignal={categorySignal}
                   valueLabel={
                     categoryId == null
                       ? ''
@@ -779,8 +796,8 @@ function AddTransactionForm() {
               <NumberPad
                 value={amount}
                 onChange={setAmount}
-                submitLabel={t('common.save')}
-                onSubmit={save}
+                submitLabel={needsMore ? t('common.next') : t('common.save')}
+                onSubmit={needsMore ? next : save}
               />
             </View>
             {isEditing ? (

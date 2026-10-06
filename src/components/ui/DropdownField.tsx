@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from './ScreenContainer';
@@ -48,10 +48,12 @@ interface DropdownFieldProps {
   center?: boolean;
   // An ⓘ beside the label, for a picker whose options need a paragraph to
   // explain — same slot TextField carries.
+  // Bump to open the picker from outside (a Next button).
+  openSignal?: number;
   info?: ReactNode;
 }
 
-export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link, center, info }: DropdownFieldProps) {
+export function DropdownField({ label, valueLabel, placeholder = 'Select…', children, compact, hideLabel, row, link, center, info, openSignal }: DropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const pendingRef = useRef<(() => void) | null>(null);
@@ -87,6 +89,11 @@ export function DropdownField({ label, valueLabel, placeholder = 'Select…', ch
     if (inline) inline.toggle();
     else setOpen(true);
   };
+
+  useEffect(() => {
+    if (openSignal) openPicker();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSignal]);
 
   return (
     <View>

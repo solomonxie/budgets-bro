@@ -5,6 +5,7 @@ export const en = {
   'common.back': '‹ Back',
   'common.backTitle': 'Back',
   'common.save': 'Save',
+  'common.next': 'Next',
   'common.done': 'Done',
   'common.delete': 'Delete',
   'common.deleting': 'Deleting…',

@@ -8,6 +8,7 @@ export const zh: Record<keyof typeof en, string> = {
   'common.back': '‹ 返回',
   'common.backTitle': '返回',
   'common.save': '保存',
+  'common.next': '下一步',
   'common.done': '完成',
   'common.delete': '删除',
   'common.deleting': '正在删除…',

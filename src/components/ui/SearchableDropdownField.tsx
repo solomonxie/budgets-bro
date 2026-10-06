@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Keyboard,
@@ -35,12 +35,19 @@ interface Option {
 // narrows the list down to.
 const COMPACT_LIST_HEIGHT = 5 * 54;
 
+// Mounting hundreds of rows on open is what made the picker slow; the search
+// box reaches the rest. Untyped, only the first screenful or so is mounted —
+// the list is usage-ordered, so those are the ones reached for anyway.
+const MAX_ROWS = 30;
+const IDLE_ROWS = 12;
+
 // Substring match ranks highest (by position); otherwise falls back to an
 // in-order fuzzy subsequence match (typo/skip-tolerant), scored by how
 // contiguous the matched characters are. Null means no match at all.
 export function fuzzyScore(label: string, query: string): number | null {
+  if (label === query) return 30000;
   const idx = label.indexOf(query);
-  if (idx !== -1) return 10000 - idx;
+  if (idx !== -1) return 10000 - idx - label.length / 1000;
 
   let li = 0;
   let run = 0;
@@ -89,6 +96,8 @@ interface SearchableDropdownFieldProps {
   // Off where picking from the list is the common case — the keyboard
   // would cover the rows the user came to tap.
   autoFocusSearch?: boolean;
+  // Bump to open the picker from outside (a Next button), search focused.
+  openSignal?: number;
 }
 
 export function SearchableDropdownField({
@@ -105,6 +114,7 @@ export function SearchableDropdownField({
   row,
   renderField,
   autoFocusSearch = true,
+  openSignal,
 }: SearchableDropdownFieldProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -122,8 +132,10 @@ export function SearchableDropdownField({
   // own Modal — otherwise iOS restores focus to whatever was last focused
   // (e.g. the Spend form's amount field) the instant this Modal closes,
   // popping its keyboard back up regardless of what was actually picked.
-  const openPicker = () => {
+  const [focusSearch, setFocusSearch] = useState(autoFocusSearch);
+  const openPicker = (focus = autoFocusSearch) => {
     Keyboard.dismiss();
+    setFocusSearch(focus);
     if (inline) {
       setQuery('');
       inline.toggle();
@@ -132,14 +144,22 @@ export function SearchableDropdownField({
     setOpen(true);
   };
 
+  useEffect(() => {
+    if (openSignal) openPicker(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSignal]);
+
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? options
-        .map((o) => ({ o, score: fuzzyScore(o.label.toLowerCase(), q) }))
-        .filter((m): m is { o: Option; score: number } => m.score != null)
-        .sort((a, b) => b.score - a.score)
-        .map((m) => m.o)
-    : options;
+  const shown = useMemo(() => {
+    if (!q) return options.slice(0, IDLE_ROWS);
+    return options
+      .map((o) => ({ o, score: fuzzyScore(o.label.toLowerCase(), q) }))
+      .filter((m): m is { o: Option; score: number } => m.score != null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_ROWS)
+      .map((m) => m.o);
+  }, [options, q]);
+  const typed = query.trim();
   const hasExactMatch = options.some((o) => o.label.toLowerCase() === q);
 
   const searchBox = (
@@ -150,7 +170,14 @@ export function SearchableDropdownField({
       keyboardAppearance="dark"
       value={query}
       onChangeText={setQuery}
-      autoFocus={autoFocusSearch}
+      autoFocus={focusSearch}
+      returnKeyType="done"
+      onSubmitEditing={() => {
+        if (shown[0]) onSelect(shown[0]);
+        else if (typed) onUseText(typed);
+        else return;
+        close();
+      }}
       autoCorrect={false}
       autoComplete="off"
       spellCheck={false}
@@ -161,23 +188,10 @@ export function SearchableDropdownField({
 
   const optionRows = (
     <>
-      {query.trim() && !hasExactMatch ? (
-        <Pressable
-          style={styles.option}
-          onPress={() => {
-            onUseText(query.trim());
-            close();
-          }}
-        >
-          <Text style={styles.useText}>
-            {t('searchableDropdown.useText', { text: query.trim() })}
-          </Text>
-        </Pressable>
-      ) : null}
-      {filtered.map((o) => (
+      {shown.map((o, i) => (
         <Pressable
           key={o.id}
-          style={styles.option}
+          style={[styles.option, typed && i === 0 && styles.optionBest]}
           onPress={() => {
             onSelect(o);
             close();
@@ -207,24 +221,37 @@ export function SearchableDropdownField({
           ) : null}
         </Pressable>
       ))}
+      {query.trim() && !hasExactMatch ? (
+        <Pressable
+          style={styles.option}
+          onPress={() => {
+            onUseText(query.trim());
+            close();
+          }}
+        >
+          <Text style={styles.useText}>
+            {t('searchableDropdown.useText', { text: query.trim() })}
+          </Text>
+        </Pressable>
+      ) : null}
     </>
   );
 
   return (
     <View>
       {renderField ? (
-        renderField(openPicker, inline?.expanded ?? open)
+        renderField(() => openPicker(), inline?.expanded ?? open)
       ) : row ? (
         <FieldRow
           label={label}
           value={valueLabel}
-          onPress={openPicker}
+          onPress={() => openPicker()}
           expanded={inline?.expanded}
         />
       ) : (
         <>
           {hideLabel ? null : <Text style={styles.label}>{label}</Text>}
-          <Pressable style={styles.field} onPress={openPicker}>
+          <Pressable style={styles.field} onPress={() => openPicker()}>
             <Text
               style={[styles.valueText, !valueLabel && styles.placeholder]}
               numberOfLines={1}
@@ -333,7 +360,7 @@ const styles = StyleSheet.create({
   },
   search: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'transparent',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -341,6 +368,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
     marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   // Unfolded in place *inside a FieldCard* the box is a row of that card,
   // not a box inside it: full width, square, its text on the same left edge
@@ -362,15 +390,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 17,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginVertical: 1,
+    borderRadius: 10,
   },
   optionText: { flex: 1, fontSize: 15, color: colors.text },
   badge: {
-    borderWidth: 1,
-    borderColor: colors.accent,
+    backgroundColor: colors.tint,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -379,5 +406,6 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '700', color: colors.accent },
   edit: { paddingHorizontal: spacing.sm },
   editText: { fontSize: 15, color: colors.textMuted },
+  optionBest: { backgroundColor: colors.tint },
   useText: { fontSize: 15, color: colors.accent, fontWeight: '600' },
 });

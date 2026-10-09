@@ -9,11 +9,12 @@ import * as boardsRepo from '../../db/repositories/boardsRepo';
 import { findICloudBoardBackups } from '../../sync/findICloudBackups';
 import type { FoundBoardBackup } from '../../sync/findICloudBackups';
 import { useAppStore } from '../../state/useAppStore';
+import { enterDemoMode } from '../../demo/demoMode';
 import { localeTag, useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-type Choice = 'restore' | 'icloud';
+type Choice = 'restore' | 'icloud' | 'demo';
 
 // A backup this much older than the newest one is most likely a board that
 // was deleted since — offered, but not ticked.
@@ -30,6 +31,7 @@ export function FirstRunPrompt() {
   const [pending, done] = useFirstRunPending();
   const { switchBoard } = useBoards();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
+  const setDemoModeFlag = useAppStore((s) => s.setDemoModeFlag);
   const [busy, setBusy] = useState<Choice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
@@ -112,6 +114,23 @@ export function FirstRunPrompt() {
       return first;
     });
 
+  // Marked done on the real database first, so leaving demo mode lands on
+  // the empty budget rather than this prompt again.
+  const tryDemo = async () => {
+    setBusy('demo');
+    setError(null);
+    try {
+      await done();
+      await enterDemoMode();
+      setDemoModeFlag(true);
+      bumpDataVersion();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('firstRun.failed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const startEmpty = () => {
     if (!busy) done();
   };
@@ -159,11 +178,13 @@ export function FirstRunPrompt() {
         </>
       ) : null}
       <Option
-        label={t('firstRun.startEmpty')}
+        label={t('firstRun.tryDemo')}
         primary={found.length === 0}
-        onPress={startEmpty}
+        onPress={tryDemo}
+        busy={busy === 'demo'}
         disabled={busy != null}
       />
+      <Option label={t('firstRun.startEmpty')} onPress={startEmpty} disabled={busy != null} />
       <Option label={t('firstRun.restore')} onPress={restore} busy={busy === 'restore'} disabled={busy != null} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </CardModal>

@@ -9,11 +9,19 @@ export const screenshotNav = createNavigationContainerRef<any>();
 
 const insights = (screen: string) => () => screenshotNav.navigate('Tabs', { screen: 'Insights', params: { screen } });
 
+const account = (accountId: number) => () =>
+  screenshotNav.navigate('Tabs', { screen: 'Accounts', params: { screen: 'AccountDetail', params: { accountId } } });
+
 const ROUTES: Record<string, () => void> = {
+  qbr: insights('PaymentReview'),
+  prices: insights('TrackedPrices'),
+  income: insights('IncomeTrend'),
+  house: insights('Housing'),
+  loan: account(5),
   budgets: () => screenshotNav.navigate('Tabs', { screen: 'Budget' }),
   spend: () => screenshotNav.navigate('AddTransaction'),
   accounts: () => screenshotNav.navigate('Tabs', { screen: 'Accounts' }),
-  chequing: () => screenshotNav.navigate('Tabs', { screen: 'Accounts', params: { screen: 'AccountDetail', params: { accountId: 1 } } }),
+  chequing: account(1),
   mortgage: insights('MortgageInsights'),
   insights: insights('InsightsHome'),
   payee: insights('PayeeTrend'),

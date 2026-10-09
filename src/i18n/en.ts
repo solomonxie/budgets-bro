@@ -192,16 +192,16 @@ export const en = {
     'Every backup is the whole board, not just the changes since last time, so the newest file is complete on its own.',
   'backup.infoRestore':
     'Restoring never overwrites anything. A restored backup opens as a new board next to your others, so picking the wrong file costs you nothing. iCloud Drive keeps the last 10 days plus one copy per month for a year; an S3 bucket keeps everything; backups you name yourself are always kept.',
-  'settings.importYnab': 'Import from YNAB',
-  'settings.restoreCategories': 'Restore Categories from YNAB',
+  'settings.importYnab': 'Import Register CSV',
+  'settings.restoreCategories': 'Restore Categories from CSV',
   'settings.dataHeading': 'Data',
   'settings.exportBoardHint': 'Saves this board as a .zip file.',
   'settings.exportCsvHint': 'Saves all transactions as a spreadsheet .csv file.',
   'settings.exportCsv': 'Export transactions (CSV)',
   'settings.importAppBackupHint': 'Opens a backup .zip as a new board.',
-  'settings.importYnabHint': 'Adds a YNAB export to this board.',
+  'settings.importYnabHint': 'Adds a budget export (Register + Plan CSV, or its zip) to this board.',
   'settings.restoreCategoriesHint':
-    'Fills in missing categories from a YNAB export, without importing it again.',
+    'Fills in missing categories from the same export, without importing it again.',
   'settings.fixTransfersHint':
     'Makes sure every transfer has both sides, named and linked.',
   'settings.purgeBackupsHint':
@@ -277,6 +277,7 @@ export const en = {
   'firstRun.restoreSelected': 'Restore selected ({count})',
   'firstRun.title': 'Welcome to Budgets Bro',
   'firstRun.body': 'How would you like to start? You can change your mind later in Settings.',
+  'firstRun.tryDemo': 'Try with sample data',
   'firstRun.startEmpty': 'Start empty',
   'firstRun.restore':
     'Restore from a backup file',
@@ -427,7 +428,7 @@ export const en = {
   'settings.exportFailedFallback': 'Something went wrong.',
   'settings.trustProcessHeading': 'Trust the process',
   'settings.trustProcessBody':
-    'Track and manage your money the way this app is designed, and within a year you’ll have built better money habits, with a clearer sense of what’s happening and what to do next.\n\nThanks to YNAB (You Need A Budget) for this way of budgeting. This app is heavily inspired by it and builds more features on top.',
+    'Track and manage your money the way this app is designed, and within a year you’ll have built better money habits, with a clearer sense of what’s happening and what to do next.',
   'settings.removeAllData': 'Remove all app data',
   'settings.removeAllDataConfirmTitle': 'Remove all app data?',
   'settings.removeAllDataConfirmMessage':

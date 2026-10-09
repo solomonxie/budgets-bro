@@ -191,16 +191,16 @@ export const zh: Record<keyof typeof en, string> = {
     '每次备份都是完整的账本，而不是上次之后的改动，所以最新的那个文件本身就是完整的。',
   'backup.infoRestore':
     '恢复不会覆盖任何数据。恢复的备份会作为新账本出现在其他账本旁边，选错文件也没关系。iCloud 云盘保留最近 10 天，外加一年内每月一份；S3 存储桶全部保留；你自己命名的备份始终保留。',
-  'settings.importYnab': '从 YNAB 导入',
-  'settings.restoreCategories': '从 YNAB 恢复分类',
+  'settings.importYnab': '导入 Register CSV',
+  'settings.restoreCategories': '从 CSV 恢复分类',
   'settings.dataHeading': '数据',
   'settings.exportBoardHint': '把当前账本存为 .zip 文件。',
   'settings.exportCsvHint': '把所有交易存为可用表格打开的 .csv 文件。',
   'settings.exportCsv': '导出交易记录 (CSV)',
   'settings.importAppBackupHint': '把备份 .zip 作为新账本打开。',
-  'settings.importYnabHint': '把 YNAB 导出文件并入当前账本。',
+  'settings.importYnabHint': '把预算导出文件（Register + Plan CSV 或其 zip）并入当前账本。',
   'settings.restoreCategoriesHint':
-    '从 YNAB 导出文件补上缺失的分类，不重复导入。',
+    '从同一份导出文件补上缺失的分类，不重复导入。',
   'settings.fixTransfersHint': '确保每笔转账两边齐全、名称正确并相互关联。',
   'settings.purgeBackupsHint': '删除所有地方的全部备份。你的数据本身不受影响。',
   'history.openHint': '撤销某次修改，或恢复到之前的完整副本。',
@@ -273,6 +273,7 @@ export const zh: Record<keyof typeof en, string> = {
   'firstRun.restoreSelected': '恢复所选（{count}）',
   'firstRun.title': '欢迎使用 Budgets Bro',
   'firstRun.body': '想怎么开始？之后也可以在设置中更改。',
+  'firstRun.tryDemo': '用示例数据试试',
   'firstRun.startEmpty': '从空账本开始',
   'firstRun.restore':
     '从备份文件恢复',
@@ -423,7 +424,7 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.exportFailedFallback': '出了点问题。',
   'settings.trustProcessHeading': '相信这个过程',
   'settings.trustProcessBody':
-    '按照这个应用的设计来记录和管理你的钱，一年之内你会养成更好的理财习惯，更清楚钱都去了哪里、下一步该做什么。\n\n感谢 YNAB（You Need A Budget）提出这种预算方法。本应用深受其启发，并在此基础上做了更多功能。',
+    '按照这个应用的设计来记录和管理你的钱，一年之内你会养成更好的理财习惯，更清楚钱都去了哪里、下一步该做什么。',
   'settings.removeAllData': '删除所有应用数据',
   'settings.removeAllDataConfirmTitle': '删除所有应用数据？',
   'settings.removeAllDataConfirmMessage':

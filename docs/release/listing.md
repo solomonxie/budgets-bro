@@ -93,9 +93,9 @@ Record the build Apple will review. If it's a new build, upload it first (`npm r
 
 Recording (the build Apple reviews, on the iPhone, current iOS):
 1. iPhone Settings → Control Center → add **Screen Recording**. Turn on Do Not Disturb.
-2. In the app, Settings → Budget Boards → switch to **Demo** (keeps your real numbers out). Swipe the app away.
+2. Fresh install from TestFlight → **Try with sample data** (keeps your real numbers out). Swipe the app away.
 3. Start recording, then launch the app from the Home Screen.
-4. ~2 minutes: Budget (scroll, assign an amount) → Spend (enter a spend with a payee, category, one item, Save) → Accounts (open an account, its trend) → Insights (breakdown, Baby Steps, one calculator) → Settings (language, app lock, export, AI Connections showing it needs the user's own key, Remove all app data shown but cancelled).
+4. ~2 minutes, distinct features first: Insights → Quarterly Review (decide one bill) → Tracked Prices (one item's trend) → Runway card → Accounts → a loan → Health / stress test → Insights → House Hunting → Budget (assign an amount) → Spend (payee, category, one item, Save) → Settings (History, app lock, AI Connections needing the user's own key).
 5. Stop. Photos → trim → share the video.
 
 Reply: `App Review` in App Store Connect → the message → **Reply**, attach the video (or a link, e.g. an unlisted YouTube/iCloud link, if it's too large), paste:
@@ -108,6 +108,32 @@ Hello, thank you for the review. Answers below, and the same text is now in the 
 [paste the App Review Notes block from PURPOSE AND AUDIENCE to the end]
 ```
 
+### Guideline 4.3(a) Spam (2026-10)
+
+Rejected as too similar to other budgeting apps. Fix shipped: listing leads with the distinct features, screenshots reordered, no competitor named anywhere, first launch offers sample data so the reviewer lands on a full app.
+
+Before resubmitting: App Store Connect → Apps → make sure no other app or old bundle ID of yours (e.g. a pre-rebrand "Yama" record) is live or in review with the same binary — that alone triggers 4.3.
+
+Reply (App Review → the message → **Reply**), attach a ~90 s recording of the distinct features from a fresh "Try with sample data" launch:
+
+```
+Hello, thank you for the review. We've resubmitted build <BUILD> with updated metadata, screenshots and first-launch flow so the app's distinct features are visible straight away. Budgets Bro is not a template or a repackaged budgeting app; it was written from scratch, by one developer, around features we have not found together in any other app on the App Store:
+
+1. Quarterly Review (Insights → Quarterly Review): detects recurring payments from the user's own spending (same payee, exact amount) and asks for one decision per bill each quarter: keep, find an alternative, switch billing period, or cancel and ask for a refund. Decisions become to-dos; nothing is changed automatically.
+2. Tracked Prices (Insights → Tracked Prices): items recorded inside a purchase, with each item's price and purchase frequency over time.
+3. Runway (Insights, bottom card): how many months the user's cash would last without income, month by month.
+4. Loan health (Accounts → mortgage account): every loan measured against take-home pay, with a mortgage rate stress test.
+5. House Hunting (Insights → House Hunting): a shortlist filled in while viewing a house, compared side by side against local benchmark prices.
+6. Full history (Settings → History): every change to every row is recorded, and a whole import can be undone in one tap.
+7. Fully on-device: no account, no server, no bank connection, no analytics.
+
+To see all of them: on first launch tap "Try with sample data". The attached recording walks through each one.
+
+Thank you for taking another look.
+```
+
+If rejected again with the same reason: appeal to the App Review Board (developer.apple.com/contact/app-store/?topic=appeal) with the same text and recording.
+
 ## 13. Release
 
 - [ ] Status **Pending Developer Release** → `1.0` page → **Release This Version**. Live in the store within ~24 h.
@@ -119,31 +145,30 @@ Hello, thank you for the review. Answers below, and the same text is now in the 
 
 App Store Connect slot **iPhone 6.9" Display** takes `1320 × 2868`. Upload that one set; App Store Connect scales it for smaller phones.
 
-Ready now — eight shots (2026-10-03, simulator, demo board, JPEG q80), upload in filename order:
+Lead with what no other budgeting app shows; generic screens last (Guideline 4.3).
+Upload in filename order:
+
+1. `01-qbr` — Quarterly Review
+2. `02-prices` — Tracked Prices
+3. `03-payee` — Payee Trend
+4. `04-loan` — mortgage account with Health / stress test
+5. `05-house` — House Hunting
+6. `06-insights` — Insights
+7. `07-budgets` — Budget
+8. `08-settings` — "no server, no account" copy
 
 - `docs/release/screenshots/*.jpg` — 1320 × 2868 (English)
 - `docs/release/screenshots/zh-Hans/*.jpg` — 简体中文 localization
 
-To recapture:
-
-1. `npm run ios` (Release — no dev overlay). Load a realistic board, no real personal figures.
-2. Status bar: full battery, Wi-Fi, no notifications. Side button + Volume Up per shot.
-3. Shots, in upload order:
-   1. **Budgets** — month with a healthy "Unassigned" and several categories
-   2. **Spent** — add-transaction screen mid-entry
-   3. **Accounts** — list with net worth
-   4. **Chequing** — one account's register
-   5. **Mortgage** — loan details with payoff date
-   6. **Insights** — spending breakdown + top categories
-   7. **Payee trend** — who the money goes to
-   8. **Settings** — "no server, no account" copy
-4. AirDrop to the Mac, e.g. `~/Desktop/shots/`, then:
+To capture, from the paired iPhone (unlocked, full battery, Wi-Fi, Do Not Disturb):
 
 ```
-scripts/store-screenshots.sh ~/Desktop/shots
+scripts/device-screenshots.sh en && scripts/store-screenshots.sh /tmp/budgetsbro-shots/en
+scripts/device-screenshots.sh zh && scripts/store-screenshots.sh /tmp/budgetsbro-shots/zh docs/release/screenshots/zh-Hans
 ```
 
-Outputs overwrite `docs/release/screenshots/`. Drag its files into the 6.9" slot.
+It ends by putting the normal build back. Turn Demo Mode off in Settings afterwards.
+Old files with other names in `docs/release/screenshots/` are stale; remove them before uploading.
 
 App Preview video: skip for 1.0.
 
@@ -173,62 +198,73 @@ App Preview video: skip for 1.0.
 | App Review → Attachment | none |
 | Version Release | **Manually release this version** |
 
-Promotional Text (≤170, no price wording — Guideline 2.3.7):
+Promotional Text (≤170, no price wording — Guideline 2.3.7). No other app's name anywhere in the metadata (2.3.7, and 4.3 reads it as a clone):
 
 ```
-Zero-based budgeting that stays on your iPhone. Works offline, backs up privately, no account, no server.
+Every quarter it lists your recurring bills to keep or cancel. It tracks what the things you buy cost, and how many months your cash would last. Offline, no account.
 ```
 
 Description:
 
 ```
-Budgets Bro is zero-based budgeting that stays on your iPhone. Give every dollar a job before the month starts, watch the categories rather than the balance, and know where the money is going before it goes.
+Budgets Bro is a budgeting app that doesn't stop at the budget. Every quarter it lists your recurring bills to keep or cancel. It shows which things you buy are getting more expensive, how many months your cash would last without income, and whether your loans fit your take-home pay. Everything stays on your iPhone. No account, no server, no bank login.
 
-No account. No subscription. No server holding your ledger.
+ONLY IN BUDGETS BRO
+• Quarterly Review — every recurring payment, found from your own spending (same payee, same amount), comes up once a quarter: keep it, find an alternative, switch monthly/annual billing, or cancel and ask for a refund. Each decision becomes a to-do. Nothing changes until you act.
+• Tracked Prices — note what was in the bag, then see each item's price over time and how often you buy it.
+• Runway — how many months your cash would last without income, month by month.
+• Loan health — every loan measured against your take-home pay, plus a mortgage stress test at higher rates.
+• Payee and Income Trends — who your money goes to and who pays you, ranked month by month.
+• House Hunting — a shortlist you fill in while viewing a house, compared side by side against local prices.
+• Cost of Living — what a city costs, next to what you actually spend.
+• Full history — every change to every row is recorded, and a whole import can be undone in one tap.
+• No bank feed, on purpose — you enter each spend yourself, which is how you notice it.
 
 BUDGETING
-• Zero-based budgeting — assign every dollar to a category until nothing is left unassigned
-• Accounts, transactions, payees, and categories, with running balances
-• Flagged transactions for anything that needs a second look
+• Zero-based: give every dollar a category before the month starts
+• Accounts, payees, categories, running balances, flagged transactions
 • Multi-currency: type in one currency, read the totals in the rest
-• Baby Steps progress, each step saying what it is for
-• Import your history from a YNAB export
-
-INSIGHTS
-• Spending by category and by payee — who the money actually goes to
-• Account balance and net-worth trends over time
-• Exchange-rate history for the currencies you actually hold
-• Cost-of-living view of where each month goes
+• Baby Steps, each with a 12-month pace
 
 CALCULATORS
-• Mortgage, payoff, refinance, affordability, and rent vs. buy
-• Amortization, auto loan, loan payoff, and debt-to-income
-• Compound interest, investment growth, and tax savings
-• Canadian mortgage rules built in
+• Mortgage, refinance, affordability, rent vs. buy, stress test
+• Amortization, auto loan, payoff, debt-to-income, required income
+• Compound interest, investment growth, tax savings
+• Canadian purchase and mortgage rules; China mortgage prepayment
 
 YOUR DATA
-• Everything lives in a local database on the device, and works with the network off
-• Optional backup to your own iCloud Drive folder, visible in the Files app
-• Optional backup to your own S3 bucket
-• Export and import as plain files — you can walk away with your data at any time
-• Face ID, Touch ID, or a passcode locks the app
+• A local database on the device; works with the network off
+• Optional backup to your own iCloud Drive or your own S3 bucket
+• Export as plain files or CSV; import a Register CSV export
+• Face ID, Touch ID or passcode lock
 
 OPTIONAL AI
-Bring your own API key from OpenAI, Anthropic, Google, Mistral, Groq, DeepSeek, or xAI and ask questions about your own numbers. The key is yours, usage shows up in your provider's dashboard, and the feature is off until you turn it on. Skip it entirely and the app works the same.
+Bring your own API key from OpenAI, Anthropic, Google, Mistral, Groq, DeepSeek or xAI and ask questions about your own numbers. Off until you turn it on.
 
-Free, with no upsell, no ads, and no analytics.
+No ads, no analytics, no upsell.
 ```
 
-Keywords (98/100 — "budget" is omitted, the name already indexes it):
+Keywords (≤100 — "budget" is omitted, the name already indexes it):
 
 ```
-networth,envelope,zero-based,expense,money,finance,tracker,offline,privacy,mortgage,savings,ledger
+subscriptions,recurring,bills,runway,price,inflation,networth,zero-based,expense,offline,mortgage
 ```
 
 App Review Notes (also the Guideline 2.1 answers Apple asked to keep here):
 
 ```
-No account or login. On first launch tap "Start empty", then Settings (top-left icon) → Demo Mode: every screen fills with a sample household, kept apart from real data. Turn it off to return to the empty budget.
+No account or login. On first launch tap "Try with sample data": every screen fills with a sample household, kept apart from real data. Settings (top-left icon) → Demo Mode turns it off.
+
+WHAT IS DISTINCT (with sample data on)
+- Quarterly Review (Insights → Quarterly Review): recurring payments detected from the user's own spending (same payee + exact amount), each decided once a quarter: keep, find an alternative, switch billing period, cancel and refund. Decisions become to-dos, never automatic changes.
+- Tracked Prices (Insights → Tracked Prices): items recorded inside a spend, with each item's price and purchase frequency over time.
+- Runway (Insights, bottom card): months the user's cash would last without income, month by month.
+- Loan health (Accounts → a loan account → Health): debt measured against take-home pay, with a mortgage stress test.
+- Payee Trend / Income Trend (Insights): who money goes to and comes from, ranked by month.
+- House Hunting (Insights → House Hunting): a viewing shortlist and side-by-side comparison against local prices.
+- Cost of Living (Insights → Cost of Living): a city's costs next to the user's actual spending.
+- History (Settings → History): every change to every row is recorded, and a whole import can be undone in one tap.
+These run entirely on the device with no bank connection, no account and no server. We are not aware of another budgeting app that combines them.
 
 PURPOSE AND AUDIENCE
 Budgets Bro is a zero-based budgeting app for individuals and households who want to plan their money privately, on their own iPhone. You give every dollar of income a job (a category) before the month starts, record spending as it happens, and see what's left in each category. It solves overspending and "where did the money go" without handing bank logins or financial data to a company: there is no account, no server, and no bank connection.
@@ -266,7 +302,7 @@ What's New: not shown for a first version. From 1.1 on, write it here.
 | Field | Value |
 |---|---|
 | Name | `Budgets Bro` |
-| Subtitle (29/30) | `Zero-based budgeting, offline` |
+| Subtitle (30/30) | `Quarterly review of every bill` |
 | Category — Primary | Finance |
 | Category — Secondary | Productivity |
 | Content Rights | **No**, it does not contain, show, or access third-party content |

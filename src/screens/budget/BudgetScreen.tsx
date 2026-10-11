@@ -32,6 +32,7 @@ import {
   previousMonth,
   lastNMonths,
   formatMonthLabel,
+  currentMonth,
 } from '../../domain/month';
 import { formatMoney, formatMoneyExact } from '../../domain/money';
 import { useI18n, localeTag } from '../../i18n';
@@ -530,6 +531,8 @@ export function BudgetScreen() {
                           item.assignedThisMonthCents -
                           item.activityThisMonthCents
                         }
+                        closed={month < currentMonth()}
+                        currentMonthLabel={formatMonthLabel(currentMonth(), localeTag(language))}
                         onSave={saveAssigned}
                         onCancel={() => setEditingItem(null)}
                         onHistory={openHistory}

@@ -62,6 +62,8 @@ export const en = {
   'assignedAmountModal.unassignedHint':
     'Unassigned: {unassigned} · Assigned last month: {lastMonth}',
   'assignedAmountModal.rolloverHint': 'Carried over: {amount}',
+  'assignedAmountModal.closedHint':
+    'This month is closed: it keeps only what was spent, and anything left over moved into {month}. Assign there.',
   'assignedAmountModal.exceedsError': '{amount} more than you have unassigned',
   'assignedAmountModal.history': 'History',
 

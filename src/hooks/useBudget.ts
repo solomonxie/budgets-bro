@@ -5,6 +5,7 @@ import * as categoriesRepo from '../db/repositories/categoriesRepo';
 import {
   categoryBalanceCents,
   categoryCaption,
+  categoryFundedCents,
   categoryStatus,
 } from '../domain/budgetMath';
 import type { CategoryStatus } from '../domain/budgetMath';
@@ -35,6 +36,7 @@ export function useBudget(month: string) {
 
   const refresh = useCallback(async () => {
     const db = await getDb();
+    await budgetsRepo.closePastBudgetMonths(db, boardId);
     const [
       allGroups,
       allCategories,
@@ -60,12 +62,13 @@ export function useBudget(month: string) {
       const balanceCents = categoryBalanceCents(assignedCum, activityCum);
       const assignedThisMonthCents = thisAssigned[category.id] ?? 0;
       const activityThisMonthCents = thisActivity[category.id] ?? 0;
-      const status = categoryStatus(balanceCents, assignedThisMonthCents);
+      const fundedCents = categoryFundedCents(balanceCents, activityThisMonthCents);
+      const status = categoryStatus(balanceCents, fundedCents);
       const spentThisMonthCents = Math.max(0, -activityThisMonthCents);
       const captionText = categoryCaption(
         status,
         spentThisMonthCents,
-        assignedThisMonthCents,
+        fundedCents,
         balanceCents,
       );
       const item: CategoryBudgetItem = {

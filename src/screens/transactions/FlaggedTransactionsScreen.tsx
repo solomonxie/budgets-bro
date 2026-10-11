@@ -166,6 +166,7 @@ export function FlaggedTransactionsScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     const db = await getDb();
+    await budgetsRepo.closePastBudgetMonths(db, boardId);
     const [all, violations, totals] = await Promise.all([
       transactionsRepo.listTransactions(db, boardId),
       auditBoardTransfers(db, boardId),

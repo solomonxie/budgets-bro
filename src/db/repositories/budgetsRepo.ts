@@ -1,7 +1,8 @@
 import type { SQLiteDatabase } from '../../db/driver';
-import { nextMonth, currentDateISO, currentMonth } from '../../domain/month';
+import { nextMonth, previousMonth, currentDateISO, currentMonth } from '../../domain/month';
 import {
   categoryBalanceCents,
+  closePastMonths,
   unassignedCashCents,
 } from '../../domain/budgetMath';
 import type { CategoryMonthTotals } from '../../domain/budgetMath';
@@ -20,6 +21,7 @@ import {
   CASH_ACCOUNTS_BALANCE_THROUGH_MONTH,
   CREDIT_CARD_BALANCE_THROUGH_MONTH,
   UPSERT_ASSIGNED_CENTS,
+  ADD_ASSIGNED_CENTS,
 } from '../../../databases/queries/budgets';
 
 async function sumOrZero(
@@ -295,4 +297,35 @@ export async function setAssignedCents(
     assignedCents,
     boardId,
   );
+}
+
+// Two screens refreshing at once would each add the same leftover.
+let closing: Promise<void> | null = null;
+
+// Closes every month before this one (see domain/budgetMath.closePastMonths).
+// Runs before the budget is read, so a backdated spend or an edit to an old
+// month settles into this month the next time anyone looks.
+export function closePastBudgetMonths(
+  db: SQLiteDatabase,
+  boardId: number,
+): Promise<void> {
+  closing = (closing ?? Promise.resolve())
+    .catch(() => {})
+    .then(async () => {
+      const current = currentMonth();
+      const totals = await monthlyTotalsByCategory(db, boardId, previousMonth(current));
+      const changes = Object.entries(totals)
+        .map(([id, months]) => ({ categoryId: Number(id), ...closePastMonths(months, current) }))
+        .filter((c) => c.assigned.length > 0 || c.carryCents !== 0);
+      if (changes.length === 0) return;
+      await db.withTransactionAsync(async () => {
+        for (const c of changes) {
+          for (const m of c.assigned)
+            await db.runAsync(UPSERT_ASSIGNED_CENTS, c.categoryId, m.month, m.assignedCents, boardId);
+          if (c.carryCents !== 0)
+            await db.runAsync(ADD_ASSIGNED_CENTS, c.categoryId, current, c.carryCents, boardId);
+        }
+      });
+    });
+  return closing;
 }

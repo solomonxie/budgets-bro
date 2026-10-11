@@ -22,6 +22,10 @@ interface CategoryAssignPanelProps {
   unassignedCents: number;
   lastMonthAssignedCents: number;
   rolloverCents: number;
+  // A month before this one: its leftovers have already moved up into
+  // `currentMonthLabel`, so there is nothing left to assign here.
+  closed: boolean;
+  currentMonthLabel: string;
   onSave: (cents: number) => void;
   onCancel: () => void;
   onHistory: () => void;
@@ -56,6 +60,8 @@ export function CategoryAssignPanel({
   unassignedCents,
   lastMonthAssignedCents,
   rolloverCents,
+  closed,
+  currentMonthLabel,
   onSave,
   onCancel,
   onHistory,
@@ -125,6 +131,11 @@ export function CategoryAssignPanel({
         })}
       </Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {closed ? (
+        <Text style={[styles.hint, styles.closedNote]}>
+          {t('assignedAmountModal.closedHint', { month: currentMonthLabel })}
+        </Text>
+      ) : (
       <NumberPad
         value={amount}
         onChange={(next) => {
@@ -139,6 +150,7 @@ export function CategoryAssignPanel({
           onPress: onHistory,
         }}
       />
+      )}
       <View style={styles.actions}>
         <Pressable
           style={({ pressed }) => [styles.actionKey, pressed && styles.actionKeyPressed]}
@@ -186,6 +198,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   hint: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
+  closedNote: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   error: {
     fontSize: 12,
     color: colors.negative,

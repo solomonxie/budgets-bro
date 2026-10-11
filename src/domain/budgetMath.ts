@@ -37,10 +37,8 @@ export interface CategoryMonthTotals {
 // it made things worse than it found them, and its shortfall is the new
 // deficit it added, so fixing each one in turn actually converges.
 //
-// The month matters as much as the amount: money has to be assigned into
-// the month that broke. Assigning it in whatever month you happen to be
-// looking at leaves the broken one still reading as overspent, however much
-// you put in.
+// Past months are closed (see closePastMonths), so in practice this only
+// ever finds the current month.
 export function overspentMonths(
   months: CategoryMonthTotals[],
 ): { month: string; shortfallCents: number }[] {
@@ -58,14 +56,50 @@ export function overspentMonths(
   return found;
 }
 
+// What the category had to spend this month: carried in plus assigned.
+export function categoryFundedCents(
+  balanceCents: number,
+  activityThisMonthCents: number,
+): number {
+  return balanceCents - activityThisMonthCents;
+}
+
+export interface ClosedMonths {
+  // New assignment for each past month whose figure changes.
+  assigned: { month: string; assignedCents: number }[];
+  // Leftover to add on top of the current month's assignment.
+  carryCents: number;
+}
+
+// Every month before `current` closes at zero: its assignment becomes
+// exactly what was spent, a leftover moves up into the next month, and an
+// overspend is covered from Unassigned instead of following the category
+// around. Walked in order, so a leftover covers a later overspend just as it
+// would have had each month been closed on time. Idempotent: once closed,
+// past months net zero and this returns nothing.
+export function closePastMonths(
+  months: CategoryMonthTotals[],
+  current: string,
+): ClosedMonths {
+  const assigned: ClosedMonths['assigned'] = [];
+  let carryCents = 0;
+  for (const m of [...months].sort((a, b) => a.month.localeCompare(b.month))) {
+    if (m.month >= current) continue;
+    carryCents = Math.max(0, carryCents + m.assignedCents + m.activityCents);
+    const closedCents = -m.activityCents;
+    if (closedCents !== m.assignedCents)
+      assigned.push({ month: m.month, assignedCents: closedCents });
+  }
+  return { assigned, carryCents };
+}
+
 export function categoryStatus(
   balanceCents: number,
-  assignedThisMonthCents: number,
+  fundedCents: number,
 ): CategoryStatus {
   if (balanceCents < 0) return 'overspent';
-  if (assignedThisMonthCents === 0) return 'unbudgeted';
-  if (balanceCents === 0) return 'fully-spent';
-  return 'funded';
+  if (balanceCents > 0) return 'funded';
+  return fundedCents === 0 ? 'unbudgeted' : 'fully-spent';
 }
 
 // Exact cents, not whole dollars: a category sitting at −40¢ is overspent,
@@ -74,7 +108,7 @@ export function categoryStatus(
 export function categoryCaption(
   status: CategoryStatus,
   spentThisMonthCents: number,
-  assignedThisMonthCents: number,
+  fundedCents: number,
   balanceCents: number,
 ): string {
   switch (status) {
@@ -86,7 +120,7 @@ export function categoryCaption(
       return `Fully spent ${formatMoneyExact(spentThisMonthCents)}`;
     default:
       return spentThisMonthCents > 0
-        ? `Spent ${formatMoneyExact(spentThisMonthCents)} of ${formatMoneyExact(assignedThisMonthCents)}`
+        ? `Spent ${formatMoneyExact(spentThisMonthCents)} of ${formatMoneyExact(fundedCents)}`
         : 'Funded';
   }
 }

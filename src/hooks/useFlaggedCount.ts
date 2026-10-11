@@ -47,6 +47,7 @@ export function useFlaggedCount(): number {
 
 async function countFlagged(boardId: number): Promise<number> {
   const db = await getDb();
+  await budgetsRepo.closePastBudgetMonths(db, boardId);
   const [all, violations, monthTotals] = await Promise.all([
     transactionsRepo.listTransactions(db, boardId),
     auditBoardTransfers(db, boardId),

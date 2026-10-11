@@ -3,7 +3,9 @@ import {
   categoryBarSegments,
   categoryBalanceCents,
   categoryCaption,
+  categoryFundedCents,
   categoryStatus,
+  closePastMonths,
   overspentMonths,
   unassignedCashCents,
 } from './budgetMath';
@@ -52,6 +54,92 @@ describe('categoryStatus', () => {
 
   it('is funded when balance is positive', () => {
     expect(categoryStatus(2000, 5000)).toBe('funded');
+  });
+
+  it('is funded by a carry-over alone, with nothing assigned this month', () => {
+    expect(categoryStatus(8000, categoryFundedCents(8000, 0))).toBe('funded');
+  });
+
+  it('is fully spent when a carry-over was spent to zero', () => {
+    expect(categoryStatus(0, categoryFundedCents(0, -5000))).toBe('fully-spent');
+  });
+
+  it('is funded by a refund alone', () => {
+    expect(categoryStatus(1200, categoryFundedCents(1200, 1200))).toBe('funded');
+  });
+});
+
+describe('closePastMonths', () => {
+  const m = (month: string, assignedCents: number, activityCents: number) => ({
+    month,
+    assignedCents,
+    activityCents,
+  });
+
+  it('trims an over-assigned month to what was spent and carries the rest', () => {
+    expect(closePastMonths([m('2026-08', 20000, -15000)], '2026-10')).toEqual({
+      assigned: [{ month: '2026-08', assignedCents: 15000 }],
+      carryCents: 5000,
+    });
+  });
+
+  it('covers an overspend from Unassigned instead of carrying a hole', () => {
+    expect(closePastMonths([m('2026-09', 10000, -14000)], '2026-10')).toEqual({
+      assigned: [{ month: '2026-09', assignedCents: 14000 }],
+      carryCents: 0,
+    });
+  });
+
+  it('lets an earlier leftover cover a later overspend', () => {
+    const r = closePastMonths(
+      [m('2026-07', 5000, -2000), m('2026-08', 0, -1000), m('2026-09', 0, -4000)],
+      '2026-10',
+    );
+    expect(r.carryCents).toBe(0);
+    expect(r.assigned).toEqual([
+      { month: '2026-07', assignedCents: 2000 },
+      { month: '2026-08', assignedCents: 1000 },
+      { month: '2026-09', assignedCents: 4000 },
+    ]);
+  });
+
+  it('turns a spend with no assignment into a covered month', () => {
+    expect(closePastMonths([m('2026-09', 0, -2500)], '2026-10').assigned).toEqual([
+      { month: '2026-09', assignedCents: 2500 },
+    ]);
+  });
+
+  it('closes a refund month at a negative assignment and carries the refund', () => {
+    expect(closePastMonths([m('2026-09', 0, 3000)], '2026-10')).toEqual({
+      assigned: [{ month: '2026-09', assignedCents: -3000 }],
+      carryCents: 3000,
+    });
+  });
+
+  it('leaves the current and future months alone', () => {
+    expect(
+      closePastMonths([m('2026-10', 9000, -1000), m('2026-11', 5000, 0)], '2026-10'),
+    ).toEqual({ assigned: [], carryCents: 0 });
+  });
+
+  it('does nothing the second time', () => {
+    const months = [m('2026-08', 20000, -15000), m('2026-09', 0, -14000)];
+    const first = closePastMonths(months, '2026-10');
+    const closed = months.map((x) => ({
+      ...x,
+      assignedCents: first.assigned.find((a) => a.month === x.month)?.assignedCents ?? x.assignedCents,
+    }));
+    expect(closePastMonths(closed, '2026-10')).toEqual({ assigned: [], carryCents: 0 });
+  });
+
+  it('keeps every dollar: cash assigned changes only by the overspend covered', () => {
+    const months = [m('2026-06', 30000, -10000), m('2026-07', 0, -25000), m('2026-08', 10000, -2000)];
+    const r = closePastMonths(months, '2026-10');
+    const before = months.reduce((s, x) => s + x.assignedCents, 0);
+    const after = r.assigned.reduce((s, x) => s + x.assignedCents, 0) + r.carryCents;
+    // June leaves 200, July overspends 250: 50 covered, August leaves 80.
+    expect(r.carryCents).toBe(8000);
+    expect(after - before).toBe(5000);
   });
 });
 

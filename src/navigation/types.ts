@@ -1,3 +1,4 @@
+import type { SetupStep } from '../screens/accounts/setup/options';
 import type { FinanceToolId } from '../screens/finance-tools/registry';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
@@ -85,4 +86,7 @@ export type RootStackParamList = {
   // The whole-board cleanup worklist, opened from the history page — every
   // transaction missing a payee or category, duplicated or zero.
   FlaggedTransactions: undefined;
+  // Guided setup: questions, then the accounts they add up to. `step` only
+  // lets a screenshot build open straight onto one question.
+  AccountSetup: { step?: SetupStep } | undefined;
 };

@@ -1,4 +1,4 @@
-import type { AccountType } from '../../domain/types';
+import type { AccountKind, AccountType } from '../../domain/types';
 import type { TranslationKey } from '../../i18n';
 
 // What each account type is called, and the two paragraphs explaining it.
@@ -26,3 +26,13 @@ export function whatItIsForKey(type: AccountType): TranslationKey {
 export function trackingKindKey(kind: string): TranslationKey {
   return `trackingKind.${kind}` as TranslationKey;
 }
+
+export const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
+  Cash: 'accounts.kindCash',
+  Savings: 'accounts.kindSavings',
+  Credit: 'accounts.kindCredit',
+  Loan: 'accounts.kindLoan',
+  Tracking: 'accounts.kindTracking',
+  Asset: 'accounts.kindAsset',
+  Giving: 'accounts.kindGiving',
+};

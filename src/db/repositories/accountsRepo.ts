@@ -124,6 +124,13 @@ async function derivedBalanceSources(db: SQLiteDatabase, boardId: number): Promi
   };
 }
 
+// Closed ones too — a new account named after a closed one would be two
+// "Checking"s the moment it is reopened.
+export async function listAccountNames(db: SQLiteDatabase, boardId: number): Promise<string[]> {
+  const rows = await db.getAllAsync<{ name: string }>('SELECT name FROM accounts WHERE board_id = ?', boardId);
+  return rows.map((r) => r.name);
+}
+
 export async function listAccountsWithBalances(db: SQLiteDatabase, boardId: number): Promise<AccountWithBalance[]> {
   const [rows, sources] = await Promise.all([
     db.getAllAsync<AccountRow & { activity_cents: number }>(LIST_ACCOUNTS_WITH_BALANCES, currentDateISO(), boardId),

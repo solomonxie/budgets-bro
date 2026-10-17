@@ -3,7 +3,7 @@ import { getDb } from '../db/client';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { LANGUAGE_KEY } from '../hooks/useLanguage';
 import { useAppStore } from '../state/useAppStore';
-import { enterDemoMode } from './demoMode';
+import { enterDemoMode, leaveDemoMode } from './demoMode';
 
 export const screenshotNav = createNavigationContainerRef<any>();
 
@@ -26,6 +26,12 @@ const ROUTES: Record<string, () => void> = {
   insights: insights('InsightsHome'),
   payee: insights('PayeeTrend'),
   settings: () => screenshotNav.navigate('Settings'),
+  'setup-country': () => screenshotNav.navigate('AccountSetup'),
+  'setup-saving': () => screenshotNav.navigate('AccountSetup', { step: 'saving' }),
+  'setup-else': () => screenshotNav.navigate('AccountSetup', { step: 'else' }),
+  'setup-review': () => screenshotNav.navigate('AccountSetup', { step: 'review' }),
+  // Last launch of a screenshot run, so the phone is back on its real data.
+  'leave-demo': () => leaveDemoMode().then(() => useAppStore.getState().setDemoModeFlag(false)),
 };
 
 // Only reachable when the native side passes `screen` (SCREENSHOTS builds).

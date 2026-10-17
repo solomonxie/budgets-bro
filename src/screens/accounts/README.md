@@ -15,6 +15,7 @@ AccountsScreen.tsx
 │  └ account rows                │
 ├───────────────────────────────┤
 │ + Add Account                  │──→ openAddAccount() → AccountModal (below)
+│ Set Up My Accounts / hero card │──→ setup/AccountSetupScreen.tsx (root modal)
 │ Closed Accounts →               │──→ ClosedAccountsScreen.tsx
 └───────────────────────────────┘
 

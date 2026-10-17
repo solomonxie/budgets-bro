@@ -23,23 +23,49 @@
  Tracking                                    $2,196.00
  401(k)                                      $2,196.00
                    ( + Add Account )
+                 ( Set Up My Accounts )   ← hero card instead when empty
                    ( Closed Accounts )
 ```
 
-Groups in a fixed order — Cash · Savings · Tracking · Loan · Asset ·
-Credit — with a subtotal each and extra space between groups. A
-loan/mortgage row is negative: what's still owed.
+## Set up accounts  `setup/AccountSetupScreen.tsx`
 
-Rows within a group: user's order (tie → name). Hold a row ~⅓ s to lift
-it, drag, drop; only within its own group, page scroll locked meanwhile.
-New account → last in its group. Tap still opens the account.
+Full-screen modal from the Accounts page: a hero card when the board has no
+accounts (replaces the $0 net worth card), a "Set Up My Accounts" link
+otherwise. One question per step; single choice advances on tap.
 
 ```
- ( Customize ) ⇒ bottom sheet
- Include in Net Worth
- ✓ Wallet     ✓ Checking     ○ 401(k)   …
-             [ Done ]
+ ✕  ▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  2/8
+ What's your home situation?
+ A mortgage is an account. Rent is just a budget category.
+ ╭────────────────────────────────────╮
+ │ (🔑)  I rent                        │   tap → next step
+ ╰────────────────────────────────────╯
+ │ (🏡)  I own, with a mortgage      ✓ │
+ ( ‹ Back )                 [[ Next ]]     multi steps: "None of These" until one ticked
 ```
+
+Steps: country · home · day-to-day · credit cards · saving & investing
+(per country: 401(k)/RRSP/ISA/公积金…) · loans · anything else (abroad, car,
+giving) · review.
+
+```
+ Here's your list
+ CASH
+ │ (✓) Chequing▌      Balance today ± [ 1,240.00 ] │  name editable; ± on cash/savings/card
+ │ (✓) Amex           Already have one with this name │  rename clash → red, Add disabled
+ LOAN
+ │ (✓) Mortgage       Owed today     [          ] │
+ │                    Home worth today [        ] │
+ Already on your list: Wallet
+ ( ‹ Back )               [[ Add 6 Accounts ]]
+```
+
+Amounts optional: cash/savings → Balance Adjustment transaction; card →
+negative one; loan → principal reading; tracking/asset/home → value reading
+(`domain/accountSetup.openingEntries`). All in one DB transaction. Mortgaged
+property → one mortgage account. Bank abroad → Savings (off-budget).
+Default country from device region. ✕ after step 1 asks before discarding.
+Save failure → alert, nothing written.
 
 ## Account detail  `AccountDetailScreen.tsx`
 

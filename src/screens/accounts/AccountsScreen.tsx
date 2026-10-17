@@ -27,32 +27,28 @@ import {
   countsTowardNetWorth,
   netWorth as computeNetWorth,
 } from '../../domain/accountKind';
-import type { AccountKind } from '../../domain/types';
 import { formatMoney, formatMoneyCompact } from '../../domain/money';
 import { formatMonthLabel } from '../../domain/month';
 import { localeTag, useI18n } from '../../i18n';
-import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import type { AccountsStackParamList } from '../../navigation/types';
+import type {
+  AccountsStackParamList,
+  RootStackParamList,
+} from '../../navigation/types';
+import { KIND_LABEL_KEY } from './accountTypeGuide';
 
 type Nav = NativeStackNavigationProp<AccountsStackParamList, 'AccountsList'>;
-
-const KIND_LABEL_KEY: Record<AccountKind, TranslationKey> = {
-  Cash: 'accounts.kindCash',
-  Savings: 'accounts.kindSavings',
-  Credit: 'accounts.kindCredit',
-  Loan: 'accounts.kindLoan',
-  Tracking: 'accounts.kindTracking',
-  Asset: 'accounts.kindAsset',
-  Giving: 'accounts.kindGiving',
-};
 
 export function AccountsScreen() {
   const { t, language } = useI18n();
   const navigation = useNavigation<Nav>();
   const openAddAccount = useAppStore((s) => s.openAddAccount);
-  const { accounts } = useAccounts();
+  const rootNavigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { accounts, loading } = useAccounts();
+  const isEmpty = !loading && accounts.length === 0;
+  const openSetup = () => rootNavigation.navigate('AccountSetup');
   const { valuesByAccountId: houseValues } = useAccountValues();
   const [excludedAccountIds, setExcludedAccountIds] = useState<Set<number>>(
     new Set(),
@@ -142,95 +138,123 @@ export function AccountsScreen() {
 
   return (
     <ScreenContainer scroll scrollEnabled={scrollEnabled}>
-      <View style={styles.netWorthCard}>
-        <View style={styles.netWorthHeader}>
-          <View style={styles.netWorthTitleRow}>
-            <Text style={styles.netWorthLabel}>{t('accounts.netWorth')}</Text>
-            {/* The number is a dozen derivations summed — the ⓘ is where
-                they're spelled out, rather than on the card all the time. */}
-            <InfoButton
-              title={t('netWorthInfo.title')}
-              paragraphs={[
-                t('netWorthInfo.recomputed'),
-                t('netWorthInfo.assets'),
-                t('netWorthInfo.debts'),
-                t('netWorthInfo.history'),
-                t('netWorthInfo.excluded'),
-              ]}
-              closeLabel={t('common.done')}
-            />
-          </View>
-          <Pressable onPress={() => setAccountPickerOpen(true)}>
-            <Text style={styles.customizeLink}>{t('accounts.customize')}</Text>
+      {/* An empty board's net worth is a $0 card with nothing to explain —
+          the page leads with the way to fill it instead. */}
+      {isEmpty ? (
+        <View style={styles.hero}>
+          <Text style={styles.heroGlyph}>🧭</Text>
+          <Text style={styles.heroTitle}>{t('accounts.setupHeroTitle')}</Text>
+          <Text style={styles.heroBody}>{t('accounts.setupHeroBody')}</Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.heroButton,
+              pressed && styles.rowPressed,
+            ]}
+            onPress={openSetup}
+          >
+            <Text style={styles.heroButtonText}>
+              {t('accounts.setupHeroStart')}
+            </Text>
           </Pressable>
         </View>
-        <Text
-          style={[
-            styles.netWorthValue,
-            netWorth.netWorthCents < 0 && styles.negative,
-          ]}
-        >
-          {formatMoney(netWorth.netWorthCents)}
-        </Text>
-        <View style={styles.netWorthBreakdown}>
-          <Text style={styles.netWorthPart}>
-            {t('accounts.assets', {
-              amount: formatMoneyCompact(netWorth.assetsCents),
-            })}
+      ) : (
+        <View style={styles.netWorthCard}>
+          <View style={styles.netWorthHeader}>
+            <View style={styles.netWorthTitleRow}>
+              <Text style={styles.netWorthLabel}>{t('accounts.netWorth')}</Text>
+              {/* The number is a dozen derivations summed — the ⓘ is where
+                  they're spelled out, rather than on the card all the time. */}
+              <InfoButton
+                title={t('netWorthInfo.title')}
+                paragraphs={[
+                  t('netWorthInfo.recomputed'),
+                  t('netWorthInfo.assets'),
+                  t('netWorthInfo.debts'),
+                  t('netWorthInfo.history'),
+                  t('netWorthInfo.excluded'),
+                ]}
+                closeLabel={t('common.done')}
+              />
+            </View>
+            <Pressable onPress={() => setAccountPickerOpen(true)}>
+              <Text style={styles.customizeLink}>
+                {t('accounts.customize')}
+              </Text>
+            </Pressable>
+          </View>
+          <Text
+            style={[
+              styles.netWorthValue,
+              netWorth.netWorthCents < 0 && styles.negative,
+            ]}
+          >
+            {formatMoney(netWorth.netWorthCents)}
           </Text>
-          <Text style={styles.netWorthPart}>
-            {t('accounts.debts', {
-              amount: formatMoneyCompact(netWorth.debtsCents),
-            })}
-          </Text>
-          {growth ? (
-            <Text
-              style={[
-                styles.netWorthPart,
-                growth.percent < 0 ? styles.negative : styles.positive,
-              ]}
-            >
-              {growth.fullYear
-                ? t('accounts.growth12m', { rate: formatRate(growth.percent) })
-                : t('accounts.growthSince', {
-                    rate: formatRate(growth.percent),
-                    month: formatMonthLabel(growth.month, localeTag(language)),
-                  })}
+          <View style={styles.netWorthBreakdown}>
+            <Text style={styles.netWorthPart}>
+              {t('accounts.assets', {
+                amount: formatMoneyCompact(netWorth.assetsCents),
+              })}
             </Text>
+            <Text style={styles.netWorthPart}>
+              {t('accounts.debts', {
+                amount: formatMoneyCompact(netWorth.debtsCents),
+              })}
+            </Text>
+            {growth ? (
+              <Text
+                style={[
+                  styles.netWorthPart,
+                  growth.percent < 0 ? styles.negative : styles.positive,
+                ]}
+              >
+                {growth.fullYear
+                  ? t('accounts.growth12m', {
+                      rate: formatRate(growth.percent),
+                    })
+                  : t('accounts.growthSince', {
+                      rate: formatRate(growth.percent),
+                      month: formatMonthLabel(
+                        growth.month,
+                        localeTag(language),
+                      ),
+                    })}
+              </Text>
+            ) : null}
+          </View>
+          {/* Needs two points to be a line — a board opened today is just the
+              number above. */}
+          {trendPoints.length > 1 ? (
+            <BalanceTrendChart
+              points={trendPoints}
+              valueLabel={t('accounts.netWorth')}
+              selectedIndex={selectedIndex}
+              onSelectIndex={setSelectedIndex}
+            />
+          ) : null}
+          {/* The line is a dozen derivations summed; when a month reads wrong,
+              the only useful question is which account made it that way. */}
+          {trendPoints.length > 1 ? (
+            <Pressable
+              onPress={() => setSelectedIndex(null)}
+              disabled={selectedPoint == null}
+              hitSlop={6}
+            >
+              <Text style={styles.breakdownLink}>
+                {selectedPoint != null
+                  ? t('common.hide')
+                  : t('netWorthBreakdown.explain')}
+              </Text>
+            </Pressable>
+          ) : null}
+          {selectedPoint != null ? (
+            <NetWorthBreakdown
+              point={selectedPoint}
+              accounts={accounts.map((a) => a.account)}
+            />
           ) : null}
         </View>
-        {/* Needs two points to be a line — a board opened today is just the
-            number above. */}
-        {trendPoints.length > 1 ? (
-          <BalanceTrendChart
-            points={trendPoints}
-            valueLabel={t('accounts.netWorth')}
-            selectedIndex={selectedIndex}
-            onSelectIndex={setSelectedIndex}
-          />
-        ) : null}
-        {/* The line is a dozen derivations summed; when a month reads wrong,
-            the only useful question is which account made it that way. */}
-        {trendPoints.length > 1 ? (
-          <Pressable
-            onPress={() => setSelectedIndex(null)}
-            disabled={selectedPoint == null}
-            hitSlop={6}
-          >
-            <Text style={styles.breakdownLink}>
-              {selectedPoint != null
-                ? t('common.hide')
-                : t('netWorthBreakdown.explain')}
-            </Text>
-          </Pressable>
-        ) : null}
-        {selectedPoint != null ? (
-          <NetWorthBreakdown
-            point={selectedPoint}
-            accounts={accounts.map((a) => a.account)}
-          />
-        ) : null}
-      </View>
+      )}
 
       <Modal
         visible={accountPickerOpen}
@@ -342,6 +366,13 @@ export function AccountsScreen() {
       <Pressable style={styles.addButton} onPress={openAddAccount}>
         <Text style={styles.addButtonText}>{t('accounts.addAccount')}</Text>
       </Pressable>
+      {!isEmpty ? (
+        <Pressable style={styles.closedLink} onPress={openSetup}>
+          <Text style={styles.setupLinkText}>
+            {t('accounts.setUpAccounts')}
+          </Text>
+        </Pressable>
+      ) : null}
       <Pressable
         style={styles.closedLink}
         onPress={() => navigation.navigate('ClosedAccounts')}
@@ -486,6 +517,38 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   closedLinkText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
+  setupLinkText: { color: colors.textMuted, fontWeight: '600', fontSize: 14 },
+  hero: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  heroGlyph: { fontSize: 40 },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  heroBody: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  heroButton: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  heroButtonText: { color: colors.background, fontWeight: '700', fontSize: 16 },
   guide: { marginTop: spacing.md, marginBottom: 80 },
 });
 

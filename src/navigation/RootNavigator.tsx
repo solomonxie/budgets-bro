@@ -1,3 +1,4 @@
+import { AccountSetupScreen } from '../screens/accounts/setup/AccountSetupScreen';
 import { screenshotNav } from '../demo/screenshot';
 import { StyleSheet } from 'react-native';
 import {
@@ -189,6 +190,11 @@ export function RootNavigator() {
             headerBackTitle: t('common.backTitle'),
             fullScreenGestureEnabled: true,
           }}
+        />
+        <RootStack.Screen
+          name="AccountSetup"
+          component={AccountSetupScreen}
+          options={{ headerShown: false, presentation: 'fullScreenModal' }}
         />
         <RootStack.Screen
           name="Settings"

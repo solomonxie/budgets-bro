@@ -39,21 +39,30 @@ export function buildAnalysisMessages(
 }
 
 // Only the text read off the receipt on the device is sent, never the photo.
+// General names, because each store abbreviates its own way and a price is
+// only comparable across stores under one name.
 export function buildReceiptMessages(
   rows: string[],
   knownNames: string[],
+  language: 'en' | 'zh',
 ): ChatMessage[] {
   return [
     {
       role: 'system',
       content:
-        'You turn text read from a shopping receipt into a list of items for a personal budget. ' +
+        'You turn text read from a shopping receipt into items for tracking prices across stores. ' +
         'Reply with JSON only: {"items":[{"name":"...","price":0.00}],"total":0.00}. ' +
         'One entry per product bought, price after any discount printed for it. ' +
         'Leave out tax, fees, deposits, subtotals and payment lines. ' +
-        'Names: short and readable, in the language of the receipt, expanding obvious abbreviations ' +
-        '(e.g. "ORG GUAC" → "Organic Guacamole"), no item codes. ' +
-        'If a product matches one of the known names, use that exact spelling. ' +
+        'Name each item with a general, store-independent name: no brands, sizes, codes or "organic". ' +
+        'Food: specific enough to compare a price — animal and cut for meat ' +
+        '("B/S BREASTS" → "Chicken Breast", "SIRLOIN TIP" → "Beef Top Sirloin", "THIGHS" → "Chicken Thighs"), ' +
+        'the plain product otherwise ("HOMO MILK" → "Milk", "RED GRAPES" → "Grapes"). ' +
+        'Non-food: one broad category, no subcategory: Clothes, Skin Care, Personal Care, Household Supplies, ' +
+        'Home Maintenance, Electronics, Kitchenware, Toys, Pet Supplies, Supplements ' +
+        '("KS T-SHIRT" → "Clothes", "DOVE ORIG" → "Skin Care"). ' +
+        'If a known name means the same thing, use its exact spelling. ' +
+        `Write names in ${language === 'zh' ? 'Simplified Chinese' : 'English'}. ` +
         'Use null for total if none is printed. Never invent items.',
     },
     {

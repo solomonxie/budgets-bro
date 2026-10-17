@@ -1522,7 +1522,7 @@ export const zh: Record<keyof typeof en, string> = {
   'receiptScan.reading': '识别中…',
   'receiptScan.camera': '扫描小票',
   'receiptScan.library': '选择照片',
-  'receiptScan.useAi': '用 AI 整理商品名（仅发送小票文字）',
+  'receiptScan.useAi': '用 AI 命名商品（只发送小票文字，不发照片）',
   'receiptScan.nothingFound': '这张小票上没有识别到价格。',
   'receiptScan.failed': '无法识别小票',
   'spend.memoSection': '备注',

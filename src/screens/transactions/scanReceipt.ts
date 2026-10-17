@@ -15,7 +15,11 @@ import type { Receipt } from '../../domain/receipt';
 // reading if it fails or makes no sense.
 export async function scanReceipt(
   source: 'camera' | 'library',
-  { useAi, knownNames }: { useAi: boolean; knownNames: string[] },
+  {
+    useAi,
+    knownNames,
+    language,
+  }: { useAi: boolean; knownNames: string[]; language: 'en' | 'zh' },
 ): Promise<Receipt | null> {
   const texts = await ReceiptScanner.scan(source);
   if (!texts) return null;
@@ -24,7 +28,7 @@ export async function scanReceipt(
   let receipt = local;
   if (useAi && rows.length > 0) {
     try {
-      const reply = await runWithAiKeys(await getDb(), buildReceiptMessages(rows, knownNames));
+      const reply = await runWithAiKeys(await getDb(), buildReceiptMessages(rows, knownNames, language));
       const fromAi = receiptFromAiReply(reply);
       if (fromAi && fromAi.items.length > 0)
         receipt = { items: fromAi.items, totalCents: fromAi.totalCents ?? local.totalCents };

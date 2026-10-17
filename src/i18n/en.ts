@@ -1553,7 +1553,7 @@ export const en = {
   'receiptScan.reading': 'Reading…',
   'receiptScan.camera': 'Scan Receipt',
   'receiptScan.library': 'Choose Photo',
-  'receiptScan.useAi': 'Tidy scanned names with AI (sends receipt text only)',
+  'receiptScan.useAi': 'Name items with AI (sends the receipt text, not the photo)',
   'receiptScan.nothingFound': 'No prices found on that receipt.',
   'receiptScan.failed': 'Couldn’t read the receipt',
   'spend.memoSection': 'Memo',

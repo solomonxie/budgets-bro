@@ -22,7 +22,7 @@ import {
   parsePurchaseItems,
 } from '../../domain/purchaseItems';
 import { scanReceipt } from './scanReceipt';
-import { useT } from '../../i18n';
+import { useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -48,7 +48,7 @@ export function PurchaseItemsPage({
   onScannedTotal?: (cents: number) => void;
   onClose: () => void;
 }) {
-  const t = useT();
+  const { t, language } = useI18n();
   const { height } = useWindowDimensions();
   // Focus waits for the sheet to finish sliding in: a field focused inside
   // a Modal that isn't shown yet gets no keyboard.
@@ -74,7 +74,11 @@ export function PurchaseItemsPage({
 
   const scan = (source: 'camera' | 'library') => {
     setReading(true);
-    scanReceipt(source, { useAi: hasAiKey && useAi, knownNames: nameOptions })
+    scanReceipt(source, {
+      useAi: hasAiKey && useAi,
+      knownNames: nameOptions,
+      language,
+    })
       .then((receipt) => {
         if (!receipt) return;
         if (receipt.items.length === 0) {

@@ -30,15 +30,35 @@ const COSTCO = [
 ];
 
 describe('parseReceipt', () => {
+  it('gives store abbreviations a general name', () => {
+    expect(
+      parseReceipt([
+        '22057 SIRLOIN TIP  89.77',
+        '55501 THIGHS  25.30',
+        '7771713 KS T-SHIRT  28.99 GP',
+        '1555495 DOVE ORIG  19.99 GP',
+        '1426812 CREST  15.99 GP',
+        '9999 XYZ GADGET  5.00',
+      ]).items.map((i) => i.name),
+    ).toEqual([
+      'Beef Top Sirloin',
+      'Chicken Thighs',
+      'Clothes',
+      'Skin Care',
+      'Personal Care',
+      'Xyz Gadget',
+    ]);
+  });
+
   it('reads a Costco receipt: codes stripped, discounts applied, fees and tax left out', () => {
     expect(parseReceipt(COSTCO)).toEqual({
       items: [
-        { name: 'Cretors Mix', priceCents: 949 },
-        { name: 'KS Dish', priceCents: 1099 },
-        { name: 'Witor Truf', priceCents: 1499 },
-        { name: 'Homo Milk', priceCents: 611 },
-        { name: 'Org Guac', priceCents: 1199 },
-        { name: 'B/S Breasts', priceCents: 3329 },
+        { name: 'Popcorn', priceCents: 949 },
+        { name: 'Household Supplies', priceCents: 1099 },
+        { name: 'Chocolate', priceCents: 1499 },
+        { name: 'Milk', priceCents: 611 },
+        { name: 'Guacamole', priceCents: 1199 },
+        { name: 'Chicken Breast', priceCents: 3329 },
       ],
       totalCents: 42239,
     });
@@ -63,8 +83,8 @@ describe('parseReceipt', () => {
   it('reads Chinese receipts', () => {
     expect(parseReceipt(['牛奶  12.50', '鸡蛋  ¥18.00', '合计  30.50'])).toEqual({
       items: [
-        { name: '牛奶', priceCents: 1250 },
-        { name: '鸡蛋', priceCents: 1800 },
+        { name: 'Milk', priceCents: 1250 },
+        { name: 'Eggs', priceCents: 1800 },
       ],
       totalCents: 3050,
     });

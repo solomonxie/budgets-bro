@@ -2,6 +2,9 @@
 // purchase items: one priced row per thing bought, discounts taken off the
 // item they name, and the total when the receipt prints one. Tax, fees and
 // deposits are not things anyone tracks the price of, so they are left out.
+// Items get a general name ("Chicken Breast", not "B/S BREASTS"), because
+// every store abbreviates differently and a price is only comparable across
+// stores under one name.
 
 export interface ScannedText {
   text: string;
@@ -46,7 +49,7 @@ const PRICE_AT_END = /(-)?\s*[$¥￥€£]?\s*(\d{1,6}[.,]\d{2})\s*(-)?\s*-?\s*[
 const TOTAL = /(^|[^A-Z])(TOTAL|AMOUNT|BALANCE DUE)\b|合计|总计|实付|应付/i;
 const SUBTOTAL = /SUB\s*-?\s*TOTAL|小计/i;
 const NOT_AN_ITEM =
-  /\b(TAX|GST|PST|HST|QST|VAT|FEE|DEPOSIT|ENVIRO|ECO|LEVY|BOTTLE|CHANGE|CASH|TIP|ROUNDING)\b|税|找零|押金/i;
+  /\b(TAX|GST|PST|HST|QST|VAT|FEE|DEPOSIT|ENVIRO|ECO|LEVY|BOTTLE|CHANGE|CASH|GRATUITY|ROUNDING)\b|税|找零|押金/i;
 const QUANTITY = /@|\d\s*(kg|lb|g)\b|^\s*\d+\s*x\b/i;
 const LEADING_CODE = /^(?:[A-Z]\s+)?\d{3,}\s+/;
 const REFERENCE = /\/\s*(\d{3,})/;
@@ -71,6 +74,53 @@ export function tidyItemName(raw: string): string {
         : word[0] + word.slice(1).toLowerCase(),
     )
     .join(' ');
+}
+
+// Food specific enough to compare a price (cut and animal); everything else
+// one broad category. First match wins, so specific patterns go first.
+const GENERAL_NAMES: [RegExp, string][] = [
+  [/BREAST|鸡胸/i, 'Chicken Breast'],
+  [/THIGH|鸡腿/i, 'Chicken Thighs'],
+  [/WING|鸡翅/i, 'Chicken Wings'],
+  [/DRUMSTICK/i, 'Chicken Drumsticks'],
+  [/WHOLE CHICKEN|ROTISSERIE/i, 'Whole Chicken'],
+  [/SIRLOIN/i, 'Beef Top Sirloin'],
+  [/BRISKET|牛腩/i, 'Beef Brisket'],
+  [/SHANK|牛腱/i, 'Beef Shank'],
+  [/RIB ?EYE/i, 'Beef Ribeye'],
+  [/STRIPLOIN|NY STRIP/i, 'Beef Striploin'],
+  [/GR(OU)?ND BEEF|LEAN GRND|牛肉末/i, 'Ground Beef'],
+  [/PORK BELLY|五花/i, 'Pork Belly'],
+  [/PORK CHOP/i, 'Pork Chops'],
+  [/GR(OU)?ND PORK|猪肉末/i, 'Ground Pork'],
+  [/SALMON|三文鱼/i, 'Salmon'],
+  [/SHRIMP|PRAWN|虾/i, 'Shrimp'],
+  [/MILK|牛奶/i, 'Milk'],
+  [/\bEGGS?\b|鸡蛋/i, 'Eggs'],
+  [/BUTTER/i, 'Butter'],
+  [/CHEESE|CASTELLO|PARM|CHEDDAR|BRIE/i, 'Cheese'],
+  [/YOG(H)?URT|酸奶/i, 'Yogurt'],
+  [/BREAD|BAGEL|面包/i, 'Bread'],
+  [/GRAPE/i, 'Grapes'],
+  [/BANANA|香蕉/i, 'Bananas'],
+  [/STRAWBERR/i, 'Strawberries'],
+  [/BLUEBERR/i, 'Blueberries'],
+  [/AVOCADO/i, 'Avocados'],
+  [/GUAC/i, 'Guacamole'],
+  [/\bRICE\b|大米/i, 'Rice'],
+  [/POPCORN|CRETORS/i, 'Popcorn'],
+  [/TRUF|CHOC/i, 'Chocolate'],
+  [/SYRUP/i, 'Syrup'],
+  [/PROBIOTIC|VITAMIN|OMEGA|SUPPLEMENT/i, 'Supplements'],
+  [/T-?SHIRT|SHIRT|PANTS?\b|JEANS|SOCKS?|JACKET|HOODIE|DRESS|SWEATER|UNDERWEAR|衣|裤/i, 'Clothes'],
+  [/LOTION|MOISTUR|SUNSCREEN|CLEANSER|SHAVE|DOVE|SERUM|护肤/i, 'Skin Care'],
+  [/CREST|COLGATE|TOOTHPASTE|SHAMPOO|CONDITIONER|DEODORANT|牙膏|洗发/i, 'Personal Care'],
+  [/DISH|DETERGENT|TISSUE|PAPER TOWEL|TRASH BAG|GARBAGE BAG|CLEANER|纸巾/i, 'Household Supplies'],
+  [/BULB|FILTER|PAINT|SCREW|BATTER(Y|IES)|CAULK|TOOL/i, 'Home Maintenance'],
+];
+
+export function generalItemName(raw: string): string {
+  return GENERAL_NAMES.find(([pattern]) => pattern.test(raw))?.[1] ?? tidyItemName(raw);
 }
 
 export function parseReceipt(rows: string[]): Receipt {
@@ -118,7 +168,7 @@ export function parseReceipt(rows: string[]): Receipt {
 
   return {
     items: items
-      .map((i) => ({ name: tidyItemName(i.name), priceCents: i.priceCents }))
+      .map((i) => ({ name: generalItemName(i.name), priceCents: i.priceCents }))
       .filter((i) => i.name !== ''),
     totalCents,
   };

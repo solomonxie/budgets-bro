@@ -47,6 +47,7 @@ import {
   EMPTY_AMOUNT,
   amountCents,
   amountFromCents,
+  isEmptyAmount,
   formatAmountExpression,
 } from '../../domain/amountExpression';
 import { parsePurchaseItems } from '../../domain/purchaseItems';
@@ -819,6 +820,9 @@ function AddTransactionForm() {
           onChange={setPurchaseItems}
           nameOptions={itemNames}
           totalCents={amountCents(amount) || undefined}
+          onScannedTotal={(cents) => {
+            if (isEmptyAmount(amount)) setAmount(amountFromCents(cents));
+          }}
           onClose={() => setItemsOpen(false)}
         />
       ) : null}

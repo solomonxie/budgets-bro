@@ -1940,6 +1940,8 @@ PODS:
     - React-utils (= 0.86.3)
     - ReactNativeDependencies
   - ReactNativeDependencies (0.86.3)
+  - ReceiptScanner (1.0.0):
+    - React-Core
   - RNCPicker (2.11.4):
     - hermes-engine
     - RCTRequired
@@ -2183,6 +2185,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
+  - ReceiptScanner (from `../modules/receipt-scanner/ios`)
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNKeychain (from `../node_modules/react-native-keychain`)
@@ -2351,6 +2354,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
+  ReceiptScanner:
+    :path: "../modules/receipt-scanner/ios"
   RNCPicker:
     :path: "../node_modules/@react-native-picker/picker"
   RNDateTimePicker:
@@ -2446,6 +2451,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 828f54f35f2bc4ee3f39345144ff0ec22c9535c2
   ReactCommon: 02f6a489d5eb4ab79d7deba5cd4434e0ba351a07
   ReactNativeDependencies: 6738e602b46fd24aa453cd58267ec3bb8bf29d27
+  ReceiptScanner: 2549bdc0656d82032742b5d2fe8786b82755755a
   RNCPicker: d74667bdfc08ed389a2a277d95b8faf2349290a9
   RNDateTimePicker: 7b2738f1e595f83c14580a11c476872755c5befc
   RNKeychain: 6778b35b5bd067c322f8479526ac09b1d61f31d0
@@ -2454,6 +2460,6 @@ SPEC CHECKSUMS:
   Storefront: 859d145d028db4b334e956359ae78a624510bac6
   Yoga: 18b74b3ade30bebc1904004dfaceae1dd02a330a
 
-PODFILE CHECKSUM: 274b7adb3d06ef3627bf8918ac0fcc5351b4511b
+PODFILE CHECKSUM: 4b1fa03ffb7db6a5d3e7512167703336deadb92d
 
 COCOAPODS: 1.16.2

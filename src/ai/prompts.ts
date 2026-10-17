@@ -37,3 +37,28 @@ export function buildAnalysisMessages(
     { role: 'user', content: `${INSTRUCTION[kind]}\n\nData:\n${contextText}` },
   ];
 }
+
+// Only the text read off the receipt on the device is sent, never the photo.
+export function buildReceiptMessages(
+  rows: string[],
+  knownNames: string[],
+): ChatMessage[] {
+  return [
+    {
+      role: 'system',
+      content:
+        'You turn text read from a shopping receipt into a list of items for a personal budget. ' +
+        'Reply with JSON only: {"items":[{"name":"...","price":0.00}],"total":0.00}. ' +
+        'One entry per product bought, price after any discount printed for it. ' +
+        'Leave out tax, fees, deposits, subtotals and payment lines. ' +
+        'Names: short and readable, in the language of the receipt, expanding obvious abbreviations ' +
+        '(e.g. "ORG GUAC" → "Organic Guacamole"), no item codes. ' +
+        'If a product matches one of the known names, use that exact spelling. ' +
+        'Use null for total if none is printed. Never invent items.',
+    },
+    {
+      role: 'user',
+      content: `Known names: ${knownNames.slice(0, 80).join('; ') || 'none'}\n\nReceipt:\n${rows.join('\n')}`,
+    },
+  ];
+}

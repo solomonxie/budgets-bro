@@ -50,6 +50,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera scans receipts into items and prices. The photo is read on this iPhone and isn’t kept.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID unlocks Budgets Bro. Your budget never leaves this iPhone.</string>
 	<key>NSUbiquitousContainers</key>

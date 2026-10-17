@@ -1,16 +1,27 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActionSheetIOS,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
+import { listUsableAiKeys } from '../../ai/aiKeys';
+import { getDb } from '../../db/client';
+import * as settingsRepo from '../../db/repositories/settingsRepo';
+import {
+  formatPurchaseItems,
+  parsePurchaseItems,
+} from '../../domain/purchaseItems';
+import { scanReceipt } from './scanReceipt';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -18,18 +29,23 @@ import { spacing } from '../../theme/spacing';
 // What was in the bag, in a short sheet: the spend form keeps one row for
 // it, and this is where the list is typed — names and prices on the system
 // keyboard. A few rows is all it ever holds, so 40% of the screen, riding
-// up above the keyboard, rather than a whole page.
+// up above the keyboard, rather than a whole page. Scan fills it from a
+// receipt instead, adding to what is already listed.
+const USE_AI_SETTING = 'receiptScan.useAi';
+
 export function PurchaseItemsPage({
   value,
   onChange,
   nameOptions,
   totalCents,
+  onScannedTotal,
   onClose,
 }: {
   value: string | null;
   onChange: (next: string | null) => void;
   nameOptions: string[];
   totalCents?: number;
+  onScannedTotal?: (cents: number) => void;
   onClose: () => void;
 }) {
   const t = useT();
@@ -39,6 +55,62 @@ export function PurchaseItemsPage({
   const [shown, setShown] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
+  const [hasAiKey, setHasAiKey] = useState(false);
+  const [useAi, setUseAi] = useState(false);
+  const [reading, setReading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      setHasAiKey((await listUsableAiKeys(db)).length > 0);
+      setUseAi((await settingsRepo.getSetting(db, USE_AI_SETTING)) === '1');
+    })();
+  }, []);
+
+  const toggleAi = async (next: boolean) => {
+    setUseAi(next);
+    await settingsRepo.setSetting(await getDb(), USE_AI_SETTING, next ? '1' : '0');
+  };
+
+  const scan = (source: 'camera' | 'library') => {
+    setReading(true);
+    scanReceipt(source, { useAi: hasAiKey && useAi, knownNames: nameOptions })
+      .then((receipt) => {
+        if (!receipt) return;
+        if (receipt.items.length === 0) {
+          Alert.alert(t('receiptScan.nothingFound'));
+          return;
+        }
+        onChange(
+          formatPurchaseItems([
+            ...parsePurchaseItems(value),
+            ...receipt.items.map((item) => ({
+              key: item.name,
+              value: (item.priceCents / 100).toFixed(2),
+            })),
+          ]),
+        );
+        if (receipt.totalCents) onScannedTotal?.(receipt.totalCents);
+      })
+      .catch((e: Error) => Alert.alert(t('receiptScan.failed'), e.message))
+      .finally(() => setReading(false));
+  };
+
+  const chooseSource = () =>
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [
+          t('receiptScan.camera'),
+          t('receiptScan.library'),
+          t('common.cancel'),
+        ],
+        cancelButtonIndex: 2,
+      },
+      (index) => {
+        if (index === 0) scan('camera');
+        else if (index === 1) scan('library');
+      },
+    );
 
   // The row being typed goes to the top of the sheet, so it and the name
   // chips under it are never behind the keyboard or the header.
@@ -62,9 +134,11 @@ export function PurchaseItemsPage({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.sheet, { height: height * 0.4 }]}>
           <View style={styles.header}>
-            <Text style={[styles.headerBtn, styles.hidden]}>
-              {t('common.done')}
-            </Text>
+            <Pressable hitSlop={8} disabled={reading} onPress={chooseSource}>
+              <Text style={styles.headerBtn}>
+                {reading ? t('receiptScan.reading') : t('receiptScan.scan')}
+              </Text>
+            </Pressable>
             <Text style={styles.title}>{t('purchaseItems.label')}</Text>
             <Pressable hitSlop={8} onPress={onClose}>
               <Text style={styles.headerBtn}>{t('common.done')}</Text>
@@ -72,6 +146,12 @@ export function PurchaseItemsPage({
           </View>
           <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled">
             <View ref={contentRef} style={styles.content}>
+              {hasAiKey ? (
+                <View style={styles.aiRow}>
+                  <Text style={styles.aiLabel}>{t('receiptScan.useAi')}</Text>
+                  <Switch value={useAi} onValueChange={toggleAi} />
+                </View>
+              ) : null}
               <PurchaseItemsField
                 value={value}
                 onChange={onChange}
@@ -107,6 +187,12 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   headerBtn: { fontSize: 16, fontWeight: '600', color: colors.accent },
-  hidden: { opacity: 0 },
+  aiRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: spacing.sm,
+  },
+  aiLabel: { flex: 1, fontSize: 14, color: colors.textMuted, marginRight: spacing.sm },
   content: { padding: spacing.md, paddingTop: 0 },
 });

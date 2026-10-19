@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { BottomSheet } from '../../components/ui/BottomSheet';
-import { Card } from '../../components/ui/Card';
 import { DropdownOption } from '../../components/ui/DropdownField';
 import { GuideSection } from '../../components/ui/GuideSection';
 import { NumberPad } from '../../components/ui/NumberPad';
-import { ResultRow } from '../../components/ui/ResultRow';
-import { SeriesLineChart } from '../../components/ui/SeriesLineChart';
-import { useExchangeRates } from '../../hooks/useExchangeRates';
 import { useFxCurrencies } from '../../hooks/useFxCurrencies';
 import { useLatestRates } from '../../hooks/useLatestRates';
 import { crossRate, FX_CURRENCIES } from '../../market/exchangeRates';
@@ -18,7 +21,6 @@ import {
   currencyNameKey,
   currencySymbol,
 } from '../../market/currencies';
-import { downsample, fxStats, sliceRecent } from '../../market/fxStats';
 import {
   amountCents,
   amountFromCents,
@@ -29,18 +31,6 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
-const WINDOWS = [
-  { days: 30, labelKey: 'fx.window1m' },
-  { days: 365, labelKey: 'fx.window1y' },
-  { days: 365 * 5, labelKey: 'fx.window5y' },
-] as const;
-
-const CHART_POINTS = 180;
-
-function formatRate(rate: number): string {
-  return rate >= 100 ? rate.toFixed(2) : rate.toPrecision(5);
-}
-
 function formatUnits(cents: number): string {
   return (cents / 100).toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -48,29 +38,31 @@ function formatUnits(cents: number): string {
   });
 }
 
+const START_CENTS = 10000;
+
 // A board of currencies rather than a From and a To: type into whichever
 // one you are holding, and every other row is the same money said another
-// way. Underneath is the thing a converter never tells you — whether today
-// is a good day to move it, which only five years of the same line can
-// answer.
+// way.
 export function ExchangeInsightsScreen() {
   const t = useT();
   const { codes, focused, ready, add, remove, move, focus } = useFxCurrencies();
-  const [expr, setExpr] = useState<AmountExpression>(amountFromCents(10000));
+  const [expr, setExpr] = useState<AmountExpression>(
+    amountFromCents(START_CENTS),
+  );
+  // Until a key is pressed, tapping a row reads as "what is 100 of this?"
+  // rather than carrying the untouched starting amount across.
+  const [typed, setTyped] = useState(false);
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [against, setAgainst] = useState<string | null>(null);
-  const [windowDays, setWindowDays] = useState<number>(365 * 5);
+  const [query, setQuery] = useState('');
 
   const latest = useLatestRates();
   const cents = amountCents(expr);
 
   // The typed amount is always denominated in the focused row, so moving the
   // focus — by tapping a row, or by deleting the one that had it — converts
-  // it on the way. One rule, rather than one per way the focus can move.
-  // Null until the saved row lands: the currency restored from last time is
-  // adopted, not converted into, or a reopened page would multiply the
-  // starting amount by whatever pair the defaults happened to name.
+  // it on the way. Null until the saved row lands: the currency restored
+  // from last time is adopted, not converted into.
   const denomination = useRef<string | null>(null);
   useEffect(() => {
     if (!ready) return;
@@ -82,73 +74,76 @@ export function ExchangeInsightsScreen() {
       setExpr((prev) => amountFromCents(Math.round(amountCents(prev) * rate)));
   }, [ready, focused, latest.rates]);
 
-  const others = codes.filter((code) => code !== focused);
-  const pairTo = against && others.includes(against) ? against : others[0];
-  const series = useExchangeRates(focused, pairTo ?? focused);
+  const tapRow = (code: string) => {
+    if (!typed || cents === 0) {
+      denomination.current = code;
+      setExpr(amountFromCents(START_CENTS));
+      setTyped(false);
+    }
+    focus(code);
+  };
 
-  const windowed = useMemo(
-    () => sliceRecent(series.points, windowDays),
-    [series.points, windowDays],
-  );
-  const stats = useMemo(() => fxStats(windowed), [windowed]);
-  const charted = useMemo(
-    () => downsample(windowed, CHART_POINTS),
-    [windowed],
-  );
   const available = FX_CURRENCIES.filter((code) => !codes.includes(code));
+  const needle = query.trim().toLowerCase();
+  const matches = needle
+    ? available.filter(
+        (code) =>
+          code.toLowerCase().includes(needle) ||
+          t(currencyNameKey(code)).toLowerCase().includes(needle),
+      )
+    : available;
+  const shown = formatAmountExpression(expr, '') || formatUnits(0);
 
-  const rate = stats.latest?.rate ?? 0;
-  const typed = formatAmountExpression(expr, '') || formatUnits(0);
-
-  const refresh = () => {
-    latest.refresh();
-    series.refresh();
+  const closeAdding = () => {
+    setAdding(false);
+    setQuery('');
   };
 
   return (
     <ScreenContainer scroll>
       <ExperimentalBanner />
-      <GuideSection heading={t('fx.guideHeading')} body={t('fx.guideBody')} />
 
-      <Card>
-        <View style={styles.cardHead}>
-          <Text style={styles.cardTitle}>{t('fx.converterHeading')}</Text>
-          <Pressable onPress={() => setEditing((on) => !on)} hitSlop={8}>
-            <Text style={styles.link}>
-              {editing ? t('common.done') : t('common.edit')}
-            </Text>
-          </Pressable>
-        </View>
-        {editing ? null : (
-          <Text style={styles.muted}>{t('fx.converterHint')}</Text>
-        )}
+      <View style={styles.head}>
+        <Pressable onPress={latest.refresh} hitSlop={8}>
+          <Text style={styles.muted} numberOfLines={1}>
+            {latest.loading
+              ? t('fx.updating')
+              : latest.fetchedOn
+                ? t('fx.updatedOn', { date: latest.fetchedOn })
+                : t('fx.neverUpdated')}
+          </Text>
+        </Pressable>
+      </View>
+      {latest.error ? (
+        <Text style={styles.error}>{t('fx.offline')}</Text>
+      ) : null}
 
+      <View style={styles.board}>
         {codes.map((code, i) => {
           const isFocused = code === focused;
-          const pairRate = isFocused ? 1 : crossRate(latest.rates, focused, code);
+          const pairRate = isFocused
+            ? 1
+            : crossRate(latest.rates, focused, code);
           return (
             <Pressable
               key={code}
-              style={[styles.row, isFocused && styles.rowFocused]}
-              onPress={() => focus(code)}
+              style={[
+                styles.row,
+                i > 0 && styles.rowDivider,
+                isFocused && styles.rowFocused,
+              ]}
+              onPress={() => tapRow(code)}
             >
               <Text style={styles.flag}>{currencyFlag(code)}</Text>
-              <Text style={[styles.code, isFocused && styles.codeFocused]}>
-                {code}
-              </Text>
+              <Text style={styles.code}>{code}</Text>
               {editing ? (
-                <>
-                  <Text style={styles.editName} numberOfLines={1}>
-                    {t(currencyNameKey(code))}
-                  </Text>
+                <View style={styles.editKeys}>
                   <Pressable
                     hitSlop={8}
                     disabled={i === 0}
                     onPress={() => move(code, -1)}
                   >
-                    <Text style={[styles.arrow, i === 0 && styles.arrowOff]}>
-                      ↑
-                    </Text>
+                    <Text style={[styles.arrow, i === 0 && styles.off]}>↑</Text>
                   </Pressable>
                   <Pressable
                     hitSlop={8}
@@ -158,7 +153,7 @@ export function ExchangeInsightsScreen() {
                     <Text
                       style={[
                         styles.arrow,
-                        i === codes.length - 1 && styles.arrowOff,
+                        i === codes.length - 1 && styles.off,
                       ]}
                     >
                       ↓
@@ -170,27 +165,28 @@ export function ExchangeInsightsScreen() {
                     onPress={() => remove(code)}
                   >
                     <Text
-                      style={[
-                        styles.removeKey,
-                        codes.length <= 1 && styles.arrowOff,
-                      ]}
+                      style={[styles.removeKey, codes.length <= 1 && styles.off]}
                     >
                       ✕
                     </Text>
                   </Pressable>
-                </>
+                </View>
               ) : (
                 <View style={styles.valueColumn}>
-                  <Text
-                    style={[styles.amount, isFocused && styles.amountFocused]}
-                    numberOfLines={1}
-                  >
-                    {isFocused
-                      ? typed
-                      : pairRate != null
-                        ? formatUnits(Math.round(cents * pairRate))
-                        : '—'}
-                  </Text>
+                  <View style={styles.amountLine}>
+                    <Text
+                      style={styles.amount}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {isFocused
+                        ? shown
+                        : pairRate != null
+                          ? formatUnits(Math.round(cents * pairRate))
+                          : '—'}
+                    </Text>
+                    {isFocused ? <View style={styles.caret} /> : null}
+                  </View>
                   <Text style={styles.name} numberOfLines={1}>
                     {t(currencyNameKey(code))} {currencySymbol(code)}
                   </Text>
@@ -199,112 +195,30 @@ export function ExchangeInsightsScreen() {
             </Pressable>
           );
         })}
-
-        <Pressable onPress={refresh} hitSlop={8}>
-          <Text style={styles.muted}>
-            {latest.loading
-              ? t('fx.updating')
-              : latest.fetchedOn
-                ? t('fx.updatedOn', { date: latest.fetchedOn })
-                : t('fx.neverUpdated')}
-          </Text>
-        </Pressable>
-        {latest.error ? (
-          <Text style={styles.error}>{t('fx.offline')}</Text>
+        {available.length > 0 ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.addRow,
+              pressed && styles.addRowPressed,
+            ]}
+            onPress={() => setAdding(true)}
+          >
+            <Text style={styles.addText}>{t('fx.addCurrency')}</Text>
+          </Pressable>
         ) : null}
-      </Card>
+      </View>
 
       <View style={styles.pad}>
         <NumberPad
           value={expr}
-          onChange={setExpr}
-          submitLabel={t('fx.addCurrency')}
-          onSubmit={() => setAdding(true)}
+          onChange={(next) => {
+            setExpr(next);
+            setTyped(true);
+          }}
+          submitLabel={editing ? t('common.done') : t('common.edit')}
+          onSubmit={() => setEditing((on) => !on)}
         />
       </View>
-
-      {pairTo == null ? (
-        <Text style={styles.muted}>{t('fx.addSecondHint')}</Text>
-      ) : charted.length > 1 ? (
-        <Card title={t('fx.trendHeading', { from: focused, to: pairTo })}>
-          {others.length > 1 ? (
-            <View style={styles.chips}>
-              <Text style={styles.chipLabel}>{t('fx.against')}</Text>
-              {others.map((code) => (
-                <Pressable
-                  key={code}
-                  style={[styles.chip, pairTo === code && styles.chipOn]}
-                  onPress={() => setAgainst(code)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      pairTo === code && styles.chipTextOn,
-                    ]}
-                  >
-                    {code}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-          <Text style={styles.rateLine}>
-            {t('fx.rateLine', {
-              from: focused,
-              rate: formatRate(rate),
-              to: pairTo,
-            })}
-          </Text>
-          <View style={styles.chips}>
-            {WINDOWS.map((w) => (
-              <Pressable
-                key={w.days}
-                style={[styles.chip, windowDays === w.days && styles.chipOn]}
-                onPress={() => setWindowDays(w.days)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    windowDays === w.days && styles.chipTextOn,
-                  ]}
-                >
-                  {t(w.labelKey)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <SeriesLineChart
-            points={charted.map((p) => ({ date: p.date, value: p.rate }))}
-            formatValue={formatRate}
-          />
-          <ResultRow
-            label={t('fx.change')}
-            value={`${stats.changeFraction >= 0 ? '+' : ''}${(stats.changeFraction * 100).toFixed(1)}%`}
-            tone={stats.changeFraction >= 0 ? 'positive' : 'negative'}
-          />
-          <ResultRow
-            label={t('fx.high')}
-            value={`${formatRate(stats.high?.rate ?? 0)} · ${stats.high?.date ?? ''}`}
-          />
-          <ResultRow
-            label={t('fx.low')}
-            value={`${formatRate(stats.low?.rate ?? 0)} · ${stats.low?.date ?? ''}`}
-          />
-          <ResultRow
-            label={t('fx.average')}
-            value={formatRate(stats.averageRate)}
-            tone="muted"
-          />
-          <ResultRow
-            label={t('fx.versusAverage')}
-            value={`${rate >= stats.averageRate ? '+' : ''}${(((rate - stats.averageRate) / (stats.averageRate || 1)) * 100).toFixed(1)}%`}
-            tone={rate >= stats.averageRate ? 'positive' : 'negative'}
-            hint={t('fx.versusAverageHint')}
-          />
-        </Card>
-      ) : (
-        <Text style={styles.muted}>{t('fx.noRateYet')}</Text>
-      )}
 
       <GuideSection heading={t('fx.sourceHeading')} body={t('fx.sourceBody')} />
 
@@ -312,22 +226,41 @@ export function ExchangeInsightsScreen() {
         visible={adding}
         transparent
         animationType="slide"
-        onRequestClose={() => setAdding(false)}
+        onRequestClose={closeAdding}
       >
         <BottomSheet
           title={t('fx.addCurrencyTitle')}
-          onClose={() => setAdding(false)}
+          onClose={closeAdding}
+          listHeight={360}
+          stickyContent={
+            <TextInput
+              style={styles.search}
+              placeholder={t('fx.searchPlaceholder')}
+              placeholderTextColor={colors.textMuted}
+              keyboardAppearance="dark"
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (!matches[0]) return;
+                add(matches[0]);
+                closeAdding();
+              }}
+            />
+          }
         >
           {available.length === 0 ? (
             <Text style={styles.muted}>{t('fx.allAdded')}</Text>
           ) : (
-            available.map((code) => (
+            matches.map((code) => (
               <DropdownOption
                 key={code}
                 label={`${currencyFlag(code)}  ${code} · ${t(currencyNameKey(code))}`}
                 onPress={() => {
                   add(code);
-                  setAdding(false);
+                  closeAdding();
                 }}
               />
             ))
@@ -339,53 +272,76 @@ export function ExchangeInsightsScreen() {
 }
 
 const styles = StyleSheet.create({
-  cardHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  head: { paddingHorizontal: spacing.xs },
+  board: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md,
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  link: { fontSize: 13, fontWeight: '700', color: colors.accent },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 12,
+    gap: spacing.md,
+    minHeight: 92,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
-  // The row being typed into is the only lit one — the caret is the
-  // highlight, since there is no system keyboard here to own the focus.
-  rowFocused: { backgroundColor: colors.tint },
-  flag: { fontSize: 24 },
-  code: { fontSize: 17, fontWeight: '600', color: colors.text },
-  codeFocused: { color: colors.accent },
-  editName: { flex: 1, fontSize: 13, color: colors.textMuted },
+  rowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  // A lift, not a colour: the caret already says which row takes the keys.
+  rowFocused: { backgroundColor: '#2A2A2D' },
+  flag: { fontSize: 38 },
+  code: { fontSize: 22, fontWeight: '400', color: colors.text, letterSpacing: 0.5 },
   valueColumn: { flex: 1, alignItems: 'flex-end' },
-  amount: { fontSize: 24, fontWeight: '600', color: colors.text },
-  amountFocused: { color: colors.accent },
-  name: { fontSize: 11, color: colors.textMuted },
-  arrow: { fontSize: 16, color: colors.textMuted, paddingHorizontal: spacing.xs },
-  arrowOff: { opacity: 0.3 },
+  amountLine: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  amount: {
+    fontSize: 32,
+    fontWeight: '300',
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
+  },
+  caret: {
+    width: 2,
+    height: 32,
+    borderRadius: 1,
+    backgroundColor: colors.accent,
+  },
+  name: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+  addRow: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  addRowPressed: { backgroundColor: '#2A2A2D' },
+  addText: { fontSize: 15, fontWeight: '600', color: colors.accent },
+  editKeys: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+  },
+  arrow: { fontSize: 18, color: colors.textMuted, paddingHorizontal: spacing.xs },
+  off: { opacity: 0.3 },
   removeKey: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.negative,
     paddingHorizontal: spacing.xs,
   },
-  pad: { marginBottom: spacing.md },
-  rateLine: { fontSize: 13, color: colors.textMuted },
+  pad: { marginBottom: spacing.lg },
+  search: {
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   muted: { fontSize: 12, color: colors.textMuted },
   error: { fontSize: 12, color: colors.negative },
-  chips: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  chipLabel: { fontSize: 12, color: colors.textMuted },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: spacing.md,
-  },
-  chipOn: { borderColor: colors.accent },
-  chipText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
-  chipTextOn: { color: colors.accent },
 });

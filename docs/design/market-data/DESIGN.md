@@ -17,7 +17,7 @@ information the user would put in a search box anyway.
 - **Source**: ECB daily reference rates via `api.frankfurter.app`. No key, no
   account, https, one request returns five years.
 - **Cache**: `app_settings` keys `fx_latest:EUR` (today's whole table) and
-  `fx_series:<from>:<to>` (the charted pair), each refreshed at most once a
+  `fx_series:<from>:<to>` (Cost of Living's pair), each refreshed at most once a
   day, written after the page has already rendered from cache. Quoting the
   table against the euro — the ECB's own base — means one request covers
   every currency on the page and every one added later: a cross rate is a
@@ -25,8 +25,10 @@ information the user would put in a search box anyway.
 - **Page**: a list of currencies, not a From and a To. Tap one to type into
   it on the app's own calculator pad and the rest restate the same money;
   the list is reorderable, removable, and remembered (`fx_currencies`).
-  Under it, the focused pair over 1M/1Y/5Y with high, low, average and
-  today-against-average — the question a converter cannot answer.
+  Until a key is pressed (or the amount is 0), tapping a row sets it to 100
+  of that currency. A "＋ Add currency" row closes the list and opens a searchable picker;
+  the pad's bottom-right key toggles Edit. No trend chart (the series
+  fetch stays for Cost of Living).
 - Mid-market rates are labelled as such: a bank's rate will be worse, and that
   gap is the fee.
 

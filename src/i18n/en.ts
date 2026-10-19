@@ -1092,13 +1092,20 @@ export const en = {
   'review.allClear': 'Nothing is flagged.',
 
   'budget.spentThisMonth': 'Spent This Month',
-  'budget.unassigned': 'Unassigned: {amount}',
+  'budget.unassignedBannerPositive':
+    '⚠ {amount} unassigned — give it a job',
+  'budget.unassignedBannerNegative':
+    '⚠ {amount} over-assigned — move some out',
   'budget.breakdownCash': 'Cash',
   'budget.breakdownEnvelopes': 'Assigned, not yet spent',
   'budget.breakdownAhead': '…of which assigned to future months',
   'budget.breakdownUnassigned': 'Unassigned',
   'budget.breakdownNote':
     'The cash you have now, minus what your categories still hold — future months included. It’s the same figure whichever month you’re viewing, because money assigned to next month is already spoken for.',
+  'budget.breakdownAdvicePositive':
+    'To clear it, assign it to categories, or transfer it to another account: savings, or an early loan or mortgage payment.',
+  'budget.breakdownAdviceNegative':
+    'To clear it, lower what’s assigned to a category, or transfer money in from savings.',
   'budget.breakdownCardWarning':
     '{amount} of this is credit card spending you haven’t paid off yet. It’s already spent from your categories, so that much isn’t really free even though it looks like cash.',
   'budget.avgLabel': '12 Months Avg',

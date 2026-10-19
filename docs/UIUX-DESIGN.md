@@ -362,7 +362,7 @@ Reference: real YNAB's screenshots — reuse the interaction patterns that carry
    🍎 Groceries      ▇▇▇▇▇▁▁▁    $84 left
       Spent $316 of $400
 ```
-- Unassigned cash is secondary to spent-this-month, colour-coded, never the sole big number.
+- Unassigned cash is a red banner at the top, above the month picker, shown only while non-zero: urges assigning (positive) or moving money out of a category (negative). Never the big number.
 - Category groups collapse on a tap of the group header (one rotated chevron glyph, not two different characters).
 - Category row: optional emoji + name, availability badge (green funded / amber partial / red overspent), thin spent-vs-assigned bar, one-line caption naming both numbers.
 - Tapping a category opens the assign popup with the amount already focused — no second tap into the field.

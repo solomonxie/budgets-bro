@@ -272,62 +272,26 @@ export function BudgetScreen() {
         viewportHeight.current = e.nativeEvent.layout.height;
       }}
     >
-      <MonthNav
-        label={formatMonthLabel(month, localeTag(language))}
-        onPrevious={() => setMonth(previousMonth(month))}
-        onNext={() => setMonth(nextMonth(month))}
-        month={month}
-        onSelect={setMonth}
-      />
-      <View style={styles.summaryCard}>
-        <View>
-          <Text style={styles.summaryLabel}>{t('budget.spentThisMonth')}</Text>
-          <Text style={styles.summaryValue}>
-            {formatMoney(totalSpentCents)}
+      {/* Cash held *today* against every month's assignments, so it reads
+          the same whichever month is on screen. Tap for the arithmetic. */}
+      {unassignedCents !== 0 ? (
+        <Pressable
+          style={styles.unassignedBanner}
+          onPress={() => setBreakdownOpen((v) => !v)}
+        >
+          <Text style={styles.unassignedBannerText}>
+            {t(
+              unassignedCents > 0
+                ? 'budget.unassignedBannerPositive'
+                : 'budget.unassignedBannerNegative',
+              { amount: formatMoney(Math.abs(unassignedCents)) },
+            )}
           </Text>
-          {/* Tappable: this is cash you hold *today* against every month's
-              assignments, so it reads the same whichever month is on screen
-              — which is not what the word sounds like next to a month
-              picker. The arithmetic under it is the only way to tell. */}
-          <Pressable onPress={() => setBreakdownOpen((v) => !v)} hitSlop={6}>
-            <Text
-              style={[
-                styles.unassignedHint,
-                {
-                  color:
-                    unassignedCents < 0
-                      ? colors.negative
-                      : unassignedCents > 0
-                        ? colors.positive
-                        : colors.textMuted,
-                },
-              ]}
-            >
-              {t('budget.unassigned', { amount: formatMoney(unassignedCents) })}
-              {breakdownOpen ? ' ▴' : ' ▾'}
-            </Text>
-          </Pressable>
-        </View>
-        {avgMonthlySpentCents != null ? (
-          <View style={styles.compareBlock}>
-            <Text style={styles.compareLabel}>{t('budget.avgLabel')}</Text>
-            <Text style={styles.compareValue}>
-              {formatMoney(avgMonthlySpentCents)}
-            </Text>
-            {avgMonthlySpentCents > 0 ? (
-              <Text style={styles.compareDelta}>
-                {t('budget.reached', {
-                  percent: Math.round(
-                    (totalSpentCents / avgMonthlySpentCents) * 100,
-                  ),
-                })}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
+          <Text style={styles.unassignedBannerArrow}>›</Text>
+        </Pressable>
+      ) : null}
 
-      {breakdownOpen && breakdown != null ? (
+      {breakdownOpen && unassignedCents !== 0 && breakdown != null ? (
         <View style={styles.breakdownCard}>
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>
@@ -364,6 +328,13 @@ export function BudgetScreen() {
             </Text>
           </View>
           <Text style={styles.breakdownNote}>{t('budget.breakdownNote')}</Text>
+          <Text style={styles.breakdownAdvice}>
+            {t(
+              unassignedCents > 0
+                ? 'budget.breakdownAdvicePositive'
+                : 'budget.breakdownAdviceNegative',
+            )}
+          </Text>
           {breakdown.cardDebtCents > 0 ? (
             <Text style={styles.breakdownWarning}>
               {t('budget.breakdownCardWarning', {
@@ -373,6 +344,39 @@ export function BudgetScreen() {
           ) : null}
         </View>
       ) : null}
+
+      <MonthNav
+        label={formatMonthLabel(month, localeTag(language))}
+        onPrevious={() => setMonth(previousMonth(month))}
+        onNext={() => setMonth(nextMonth(month))}
+        month={month}
+        onSelect={setMonth}
+      />
+      <View style={styles.summaryCard}>
+        <View>
+          <Text style={styles.summaryLabel}>{t('budget.spentThisMonth')}</Text>
+          <Text style={styles.summaryValue}>
+            {formatMoney(totalSpentCents)}
+          </Text>
+        </View>
+        {avgMonthlySpentCents != null ? (
+          <View style={styles.compareBlock}>
+            <Text style={styles.compareLabel}>{t('budget.avgLabel')}</Text>
+            <Text style={styles.compareValue}>
+              {formatMoney(avgMonthlySpentCents)}
+            </Text>
+            {avgMonthlySpentCents > 0 ? (
+              <Text style={styles.compareDelta}>
+                {t('budget.reached', {
+                  percent: Math.round(
+                    (totalSpentCents / avgMonthlySpentCents) * 100,
+                  ),
+                })}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
 
       {/* Under the hero, so the month and its numbers lead the page. */}
       <View style={styles.banners}>
@@ -621,10 +625,13 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 2,
   },
+  breakdownAdvice: {
+    fontSize: 12,
+    color: colors.negative,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
   breakdownWarning: { fontSize: 12, color: colors.negative, lineHeight: 17 },
-  // Sized to match summaryLabel/summaryValue/unassignedHint line for line,
-  // so the two halves' three rows land at the same height instead of the
-  // right half reading visually shorter.
   compareLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -657,7 +664,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: colors.text,
   },
-  unassignedHint: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+  // Same look as FlaggedBanner and the quarterly review banner, in red.
+  unassignedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.negativeTint,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  unassignedBannerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.negative,
+  },
+  unassignedBannerArrow: { fontSize: 18, color: colors.negative },
   banners: { marginTop: spacing.sm },
   pendingBanner: {
     flexDirection: 'row',

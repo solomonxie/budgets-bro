@@ -1066,13 +1066,18 @@ export const zh: Record<keyof typeof en, string> = {
   'review.allClear': '没有被标记的交易。',
 
   'budget.spentThisMonth': '本月支出',
-  'budget.unassigned': '未分配：{amount}',
+  'budget.unassignedBannerPositive': '⚠ {amount} 未分配——请分配出去',
+  'budget.unassignedBannerNegative': '⚠ 多分配了 {amount}——请从分类挪出',
   'budget.breakdownCash': '现金',
   'budget.breakdownEnvelopes': '已分配未支出',
   'budget.breakdownAhead': '……其中分配给未来月份',
   'budget.breakdownUnassigned': '未分配',
   'budget.breakdownNote':
     '你现在的现金，减去各分类里还没花的钱（含未来月份）。无论查看哪个月，这个数字都一样，因为分配给下个月的钱已经有了归属。',
+  'budget.breakdownAdvicePositive':
+    '处理方法：分配到各分类，或转到其他账户——存进储蓄，或提前还贷款、房贷。',
+  'budget.breakdownAdviceNegative':
+    '处理方法：调低某个分类的分配额，或从储蓄转入资金。',
   'budget.breakdownCardWarning':
     '其中 {amount} 是尚未还的信用卡消费。它已经从分类中花掉了，所以这部分虽然看着像现金，其实并不可用。',
   'budget.avgLabel': '12 个月平均',

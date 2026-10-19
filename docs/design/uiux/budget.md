@@ -5,12 +5,15 @@
 ```
  ⚙︎    Budget                                 History
  ┌──────────────────────────────────────────────────┐
+ │ ⚠ $120.40 unassigned — give it a job          › │ ← red, only while ≠ 0;
+ └──────────────────────────────────────────────────┘   tap for the arithmetic
+ ‹      September 2026      ›          ← label is tappable too (month picker)
+ ┌──────────────────────────────────────────────────┐
  │ SPENT THIS MONTH            12 MONTHS AVG        │
  │ $2,431.90                   $2,180.00            │
- │ Unassigned: $120.40         112% reached         │ ← colour-coded, and
- │ ⚑ 2 scheduled pending approval               ›   │   never the big number
+ │                             112% reached         │
  └──────────────────────────────────────────────────┘
- ‹      September 2026      ›          ← label is tappable too (month picker)
+ │ ⚑ 2 scheduled pending approval               ›   │
  ⌄ Everyday Expenses                      $1,204.00   ⋯
    🛒 Groceries              ▇▇▇▇▇▇▁▁▁▁       $84 left
       Spent $316 of $400

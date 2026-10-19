@@ -11,7 +11,7 @@
  ┌──────────────────────────────────────────────────┐
  │ SPENT THIS MONTH            12 MONTHS AVG        │
  │ $2,431.90                   $2,180.00            │
- │                             112% reached         │
+ │ Assigned $2,600             112% reached         │ ← red ≥100%, amber ≥80%
  └──────────────────────────────────────────────────┘
  │ ⚑ 2 scheduled pending approval               ›   │
  ⌄ Everyday Expenses                      $1,204.00   ⋯

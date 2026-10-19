@@ -72,9 +72,15 @@ export function BudgetScreen() {
   const dataVersion = useAppStore((s) => s.dataVersion);
   const { groups, itemsByGroup, unassignedCents, breakdown, setAssigned } =
     useBudget(month);
-  const totalSpentCents = Object.values(itemsByGroup)
-    .flat()
-    .reduce((sum, item) => sum + Math.max(0, -item.activityThisMonthCents), 0);
+  const allItems = Object.values(itemsByGroup).flat();
+  const totalSpentCents = allItems.reduce(
+    (sum, item) => sum + Math.max(0, -item.activityThisMonthCents),
+    0,
+  );
+  const totalAssignedCents = allItems.reduce(
+    (sum, item) => sum + item.assignedThisMonthCents,
+    0,
+  );
   const { pending, approve } = usePendingScheduledTransactions();
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
 
@@ -118,6 +124,10 @@ export function BudgetScreen() {
       );
     })();
   }, [month, boardId, dataVersion]);
+
+  const reachedPercent = avgMonthlySpentCents
+    ? Math.round((totalSpentCents / avgMonthlySpentCents) * 100)
+    : 0;
 
   const scrollRef = useRef<ScrollView>(null);
   // Where each group sits in the scroll content, and where each row sits in
@@ -358,6 +368,11 @@ export function BudgetScreen() {
           <Text style={styles.summaryValue}>
             {formatMoney(totalSpentCents)}
           </Text>
+          <Text style={styles.summarySub}>
+            {t('budget.assignedThisMonth', {
+              amount: formatMoney(totalAssignedCents),
+            })}
+          </Text>
         </View>
         {avgMonthlySpentCents != null ? (
           <View style={styles.compareBlock}>
@@ -366,12 +381,13 @@ export function BudgetScreen() {
               {formatMoney(avgMonthlySpentCents)}
             </Text>
             {avgMonthlySpentCents > 0 ? (
-              <Text style={styles.compareDelta}>
-                {t('budget.reached', {
-                  percent: Math.round(
-                    (totalSpentCents / avgMonthlySpentCents) * 100,
-                  ),
-                })}
+              <Text
+                style={[
+                  styles.compareDelta,
+                  { color: reachedColor(reachedPercent) },
+                ]}
+              >
+                {t('budget.reached', { percent: reachedPercent })}
               </Text>
             ) : null}
           </View>
@@ -588,6 +604,12 @@ export function BudgetScreen() {
   );
 }
 
+function reachedColor(percent: number): string {
+  if (percent >= 100) return colors.negative;
+  if (percent >= 80) return colors.amber;
+  return colors.textMuted;
+}
+
 const styles = StyleSheet.create({
   summaryCard: {
     flexDirection: 'row',
@@ -657,6 +679,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: colors.textMuted,
+  },
+  // Matches compareDelta, so both halves end on the same line.
+  summarySub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginTop: 4,
   },
   summaryValue: {
     fontSize: 30,

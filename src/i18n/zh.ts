@@ -1066,6 +1066,7 @@ export const zh: Record<keyof typeof en, string> = {
   'review.allClear': '没有被标记的交易。',
 
   'budget.spentThisMonth': '本月支出',
+  'budget.assignedThisMonth': '已分配 {amount}',
   'budget.unassignedBannerPositive': '⚠ {amount} 未分配——请分配出去',
   'budget.unassignedBannerNegative': '⚠ 多分配了 {amount}——请从分类挪出',
   'budget.breakdownCash': '现金',

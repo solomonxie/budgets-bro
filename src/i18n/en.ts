@@ -1092,6 +1092,7 @@ export const en = {
   'review.allClear': 'Nothing is flagged.',
 
   'budget.spentThisMonth': 'Spent This Month',
+  'budget.assignedThisMonth': 'Assigned {amount}',
   'budget.unassignedBannerPositive':
     '⚠ {amount} unassigned — give it a job',
   'budget.unassignedBannerNegative':

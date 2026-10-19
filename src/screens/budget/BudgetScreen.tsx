@@ -284,7 +284,7 @@ export function BudgetScreen() {
               unassignedCents > 0
                 ? 'budget.unassignedBannerPositive'
                 : 'budget.unassignedBannerNegative',
-              { amount: formatMoney(Math.abs(unassignedCents)) },
+              { amount: formatMoneyExact(Math.abs(unassignedCents)) },
             )}
           </Text>
           <Text style={styles.unassignedBannerArrow}>›</Text>

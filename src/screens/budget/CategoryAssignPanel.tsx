@@ -9,7 +9,7 @@ import {
   amountFromCents,
   formatAmountExpression,
 } from '../../domain/amountExpression';
-import { formatMoney } from '../../domain/money';
+import { formatMoney, formatMoneyExact } from '../../domain/money';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -96,7 +96,7 @@ export function CategoryAssignPanel({
     if (cents > initialCents && cents > availableCents) {
       setError(
         t('assignedAmountModal.exceedsError', {
-          amount: formatMoney(cents - availableCents),
+          amount: formatMoneyExact(cents - availableCents),
         }),
       );
       return;
@@ -126,7 +126,9 @@ export function CategoryAssignPanel({
       ) : null}
       <Text style={styles.hint}>
         {t('assignedAmountModal.unassignedHint', {
-          unassigned: formatMoney(unassignedCents),
+          // To the cent: rounded, $124.87 reads as $125 and typing that
+          // fails with "$0 more than you have".
+          unassigned: formatMoneyExact(unassignedCents),
           lastMonth: formatMoney(lastMonthAssignedCents),
         })}
       </Text>

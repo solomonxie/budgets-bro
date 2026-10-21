@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { GuideSection } from '../../components/ui/GuideSection';
@@ -544,18 +544,6 @@ export function TaxInsightsScreen() {
           </View>
         ) : null}
 
-        <Pressable
-          style={styles.aiButton}
-          onPress={() =>
-            Alert.alert(
-              t('taxInsights.aiSummaryTitle'),
-              t('taxInsights.aiSummaryMessage'),
-            )
-          }
-        >
-          <Text style={styles.aiButtonText}>{t('taxInsights.askAi')}</Text>
-        </Pressable>
-
         <FinanceToolList hub="tax" />
 
         <Modal
@@ -717,13 +705,4 @@ const styles = StyleSheet.create({
   linkText: { fontSize: 13, fontWeight: '700', color: colors.accent },
   formRowActive: { color: colors.text },
   formRowInactive: { color: colors.textMuted },
-  aiButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    borderStyle: 'dashed',
-  },
-  aiButtonText: { color: colors.accent, fontWeight: '700' },
 });

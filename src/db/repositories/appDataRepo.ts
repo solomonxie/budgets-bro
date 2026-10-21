@@ -14,7 +14,6 @@ export async function wipeAppData(
     for (const { id } of boards) for (const sql of DELETE_BOARD_CASCADE) await db.runAsync(sql, id);
     await db.runAsync('DELETE FROM houses');
     await db.runAsync('DELETE FROM community_prices');
-    await db.runAsync('DELETE FROM ai_requests');
     const placeholders = keepSettings.map(() => '?').join(', ') || "''";
     await db.runAsync(`DELETE FROM app_settings WHERE key NOT IN (${placeholders})`, ...keepSettings);
     freshBoardId = (await db.runAsync('INSERT INTO boards (name) VALUES (?)', freshBoardName)).lastInsertRowId;

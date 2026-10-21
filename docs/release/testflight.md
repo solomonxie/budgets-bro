@@ -19,9 +19,9 @@ Worth trying first:
 • Payee and Income Trends, House Hunting, Cost of Living (Insights)
 • History (Settings) — every change recorded, a whole import undone in one tap
 
-Also in this beta: zero-based budgeting, multi-currency, 13+ calculators, iCloud Drive / S3 backup, CSV export, Face ID lock, English and Simplified Chinese, optional AI with your own API key.
+Also in this beta: zero-based budgeting, multi-currency, 13+ calculators, iCloud Drive / S3 backup, CSV export, Face ID lock, English and Simplified Chinese.
 
-Your data never leaves your phone unless you turn on a backup or an AI connection yourself.
+Your data never leaves your phone unless you turn on a backup yourself.
 ```
 
 Feedback Email: `you@example.com`

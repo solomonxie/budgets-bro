@@ -180,24 +180,3 @@ export function matchKnownNames(items: ReceiptItem[], known: string[]): ReceiptI
   const byKey = new Map(known.map((name) => [name.trim().toLowerCase(), name]));
   return items.map((i) => ({ ...i, name: byKey.get(i.name.toLowerCase()) ?? i.name }));
 }
-
-// The AI's answer: JSON, possibly wrapped in prose or a code fence.
-export function receiptFromAiReply(reply: string): Receipt | null {
-  const start = reply.indexOf('{');
-  const end = reply.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    const data = JSON.parse(reply.slice(start, end + 1));
-    if (!Array.isArray(data.items)) return null;
-    const items = data.items
-      .map((i: { name?: unknown; price?: unknown }) => ({
-        name: typeof i.name === 'string' ? tidyItemName(i.name) : '',
-        priceCents: typeof i.price === 'number' ? Math.round(i.price * 100) : NaN,
-      }))
-      .filter((i: ReceiptItem) => i.name !== '' && Number.isFinite(i.priceCents) && i.priceCents >= 0);
-    const total = typeof data.total === 'number' ? Math.round(data.total * 100) : null;
-    return { items, totalCents: total };
-  } catch {
-    return null;
-  }
-}

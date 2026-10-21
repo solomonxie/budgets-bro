@@ -81,27 +81,6 @@ export const en = {
   'settings.languageHeading': 'Language',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
-  'settings.aiKeysHeading': 'AI Connections',
-  'aiInfo.title': 'Using your own AI',
-  'aiInfo.what':
-    'AI Analysis reads your budget and answers questions in plain words — where the money went, whether a month looks unusual, what a plan could look like. It only runs when you ask.',
-  'aiInfo.ownAccount':
-    'There’s no AI built into this app and no subscription. Sign up with an AI provider, copy the key they give you, and paste it here. The app then talks to that provider directly from this iPhone.',
-  'aiInfo.whereToRegister':
-    'Pick a provider below and the link takes you to the page where you get a key.',
-  'aiInfo.cost':
-    'You pay the provider directly for what you use — usually a fraction of a cent per question, and every charge shows in their dashboard. Nothing is billed through this app.',
-  'aiInfo.privacy':
-    'Your key is kept in this iPhone’s Keychain and never included in a backup. A question sends only the figures needed to answer it; with Privacy Mode on, amounts are rounded and category names hidden first. Nothing is sent until you tap the button.',
-  'settings.aiKeysHint':
-    'Connect your own AI account to use AI Analysis. With more than one, the next takes over when one runs out. Tap a connection to see exactly what it sent.',
-  'settings.aiKeyRequestCount': 'Questions sent: {count}',
-  'settings.addAiKeyLink': '+ Connect an AI',
-  'settings.deleteAiKeyConfirmTitle': 'Disconnect this AI?',
-  'settings.deleteAiKeyConfirmMessage':
-    'AI Analysis stops using it right away. Your account with the provider isn’t affected.',
-  'settings.aiKeyStrategySequential': 'Sequential',
-  'settings.aiKeyStrategyRoundRobin': 'Round robin',
   'settings.s3AccessKeyLabel': 'Access Key ID',
   'settings.s3SecretKeyLabel': 'Secret Access Key',
   'settings.s3BucketLabel': 'Bucket',
@@ -126,19 +105,6 @@ export const en = {
   's3ConfigModal.draftsHint':
     'Earlier attempts — tap one to fill the form, ✕ to remove it.',
 
-  'aiKeyModal.title': 'Connect an AI',
-  'aiKeyModal.vendorLabel': 'Provider',
-  'aiKeyModal.keyLabel': 'Access key',
-  'aiKeyModal.getKeyHint': "Don't have a {vendor} account yet?",
-  'aiKeyModal.getKeyLink': 'Get one →',
-  'aiKeyModal.missingEndpoint': 'Enter the server address and model.',
-  'aiKeyModal.customName': 'Name',
-  'aiKeyModal.customEndpoint': 'Server address',
-  'aiKeyModal.customModel': 'Model',
-  'aiKeyModal.customHint': 'Any server that speaks the OpenAI chat completions API — a base URL ending in /v1 or the full /chat/completions address.',
-  'aiKeyModal.missingKey': 'Paste your access key.',
-  'aiKeyModal.testing': 'Checking the connection…',
-  'aiKeyModal.testFailed': 'Couldn’t connect: {error}',
   's3Browser.title': 'Browse Bucket',
   's3Browser.up': '..',
   's3Browser.empty': 'Nothing here yet.',
@@ -151,19 +117,6 @@ export const en = {
     'Accounts: {accounts} · Categories: {categories} · Transactions: {transactions}',
   'backupSummary.span': 'Transactions from {from} to {to}',
   's3Browser.restoreNotFound': 'That file is no longer in the bucket.',
-  'aiHistory.hint':
-    'Everything this key has sent, exactly as it went out. Only the last 50 requests are kept, on this iPhone only — never in a backup.',
-  'aiHistory.empty': 'This key hasn’t sent anything yet.',
-  'aiHistory.ok': 'Answered',
-  'aiHistory.failed': 'Failed',
-  'aiHistory.system': 'System',
-  'aiHistory.prompt': 'Prompt',
-  'aiHistory.response': 'Response',
-  'aiHistory.error': 'Error',
-  'aiHistory.clear': 'Clear History',
-  'aiHistory.clearConfirmTitle': 'Clear this key’s history?',
-  'aiHistory.clearConfirmMessage':
-    'The prompts and replies saved on this iPhone are deleted. The request count stays.',
   'backup.heading': 'Backup',
   'backup.hint':
     'Turn on a place below and every board is copied there once a day whenever something changed, while the app is open. After a reinstall, the first screen finds your boards in iCloud Drive and brings them back. API keys never leave this iPhone, backups included.',
@@ -189,7 +142,7 @@ export const en = {
   'backup.infoDestination':
     'Each board is backed up as a full copy, zipped on this iPhone and sent straight to storage you own: your iCloud Drive, or your S3 bucket with your own keys. Nothing passes through us.',
   'backup.infoSecrets':
-    'Keys are never backed up. Your AI and S3 keys stay in this iPhone’s Keychain, marked as this-device-only, so iOS never copies them to a backup or a new phone. A backup holds only your board: accounts, categories, budgets, payees and transactions.',
+    'Keys are never backed up. Your S3 keys stay in this iPhone’s Keychain, marked as this-device-only, so iOS never copies them to a backup or a new phone. A backup holds only your board: accounts, categories, budgets, payees and transactions.',
   'backup.infoFullCopy':
     'Every backup is the whole board, not just the changes since last time, so the newest file is complete on its own.',
   'backup.infoRestore':
@@ -436,7 +389,7 @@ export const en = {
   'settings.removeAllData': 'Remove all app data',
   'settings.removeAllDataConfirmTitle': 'Remove all app data?',
   'settings.removeAllDataConfirmMessage':
-    'Deletes every board, setting (except language and the iCloud Drive switch), saved AI and S3 key and local backup on this iPhone. First, every board is backed up to Files (On My iPhone → Budgets Bro → Backups), and to iCloud Drive and S3 if they’re on. That backup isn’t deleted, and neither are backups already in iCloud Drive or S3.',
+    'Deletes every board, setting (except language and the iCloud Drive switch), saved S3 key and local backup on this iPhone. First, every board is backed up to Files (On My iPhone → Budgets Bro → Backups), and to iCloud Drive and S3 if they’re on. That backup isn’t deleted, and neither are backups already in iCloud Drive or S3.',
   'settings.removeAllDataConfirm': 'Remove',
   'settings.removeAllDataCompleteTitle': 'App data removed',
   'settings.removeAllDataCompleteMessage':
@@ -810,32 +763,6 @@ export const en = {
     'Based on the scheduled payment and what you owe now. To try extra payments, use the payoff calculators.',
   'loanDetailsCard.summary': '{rate}% · {payment}/mo',
 
-  'aiAnalysis.title': 'AI Insights',
-  'aiAnalysis.noKeyHint':
-    'Connect an AI in Settings to run an analysis of your budget.',
-  'aiAnalysis.openSettings': 'Open Settings',
-  'aiAnalysis.kindSpending': 'Spending',
-  'aiAnalysis.kindVariance': 'Variance',
-  'aiAnalysis.kindForecast': 'Forecast',
-  'aiAnalysis.kindHealth': 'Health',
-  'aiAnalysis.kindComparison': 'Comparison',
-  'aiAnalysis.profileHeading': 'About You (optional)',
-  'aiAnalysis.profileHint':
-    'Used only by the Health and Comparison reports below. Saved on this iPhone and sent only with those two. Leave any field blank to skip it.',
-  'aiAnalysis.cityLabel': 'City',
-  'aiAnalysis.countryLabel': 'Country',
-  'aiAnalysis.ageLabel': 'Age',
-  'aiAnalysis.familySizeLabel': 'Family size',
-  'aiAnalysis.privacyModeLabel': 'Privacy Mode',
-  'aiAnalysis.privacyModeHint':
-    'Rounds every amount to the nearest $10 and replaces category names with generic labels (“Category 1”) before anything is sent. Turn it off to let the AI use your real category names.',
-  'aiAnalysis.runButton': 'Run Analysis',
-  'aiAnalysis.errorInvalidKey':
-    'The AI provider rejected your key. Check it in Settings.',
-  'aiAnalysis.errorRateLimited': 'Too many requests. Try again in a moment.',
-  'aiAnalysis.errorNetwork':
-    'Couldn’t reach the AI provider. Check your connection.',
-  'aiAnalysis.errorUnknown': 'Something went wrong running the analysis.',
 
   'calculators.title': 'Mortgage / Loan Calculator',
   'calculators.loanAmountLabel': 'Loan Amount',
@@ -997,9 +924,6 @@ export const en = {
   'taxInsights.formDonationReceipts': 'Charitable donation receipts',
   'taxInsights.formRrsp': 'RRSP contribution receipt (first 60 days)',
   'taxInsights.formTP1': 'TP1 — Revenu Québec provincial return',
-  'taxInsights.askAi': 'Ask AI to summarize →',
-  'taxInsights.aiSummaryTitle': 'AI summary',
-  'taxInsights.aiSummaryMessage': 'AI summary is coming in a future update.',
 
   'transactions.spendingByMonth': 'Spending by month',
   'transactions.searchPlaceholder': 'Search transactions',
@@ -1285,14 +1209,6 @@ export const en = {
   'costOfLiving.cityHeading': 'City',
   'costOfLiving.city': 'City',
   'costOfLiving.fromTable': 'Estimates as of {date}.',
-  'costOfLiving.fromAi': 'Asked {model} on {date}.',
-  'costOfLiving.askAi': 'Ask AI for newer figures →',
-  'costOfLiving.asking': 'Asking…',
-  'costOfLiving.useTable': 'Use the built-in figures',
-  'costOfLiving.askFailed':
-    'The AI didn’t return usable figures. Showing the built-in ones.',
-  'costOfLiving.needsAiKey':
-    'Connect an AI in Settings to ask for newer figures.',
   'costOfLiving.needsRate':
     'Open Exchange Rates once and these will convert to {currency} automatically.',
   'costOfLiving.compareHeading': 'You vs this city (last {months} months)',
@@ -1311,7 +1227,7 @@ export const en = {
     'Two questions on one page: what would life cost somewhere else, and how does what I spend compare to what a place costs? The second is the useful one — moving cities is rare, but finding out you spend twice the local normal on eating out is useful this month.',
   'costOfLiving.sourceHeading': 'How accurate is this',
   'costOfLiving.sourceBody':
-    'The city figures are estimates, not measurements. The built-in table is compiled from published rent and price surveys and carries the date it was compiled; the AI button asks the model you connected for newer figures, which are only as current as that model’s training — no one can put a date on that. Both are labelled with where they came from. Your own figures are exact: your transactions, averaged over six months, in the categories you mapped. Nothing about your spending is sent when you ask the AI — the question contains a city name and a currency, nothing else.',
+    'The city figures are estimates, not measurements: the built-in table is compiled from published rent and price surveys and carries the date it was compiled. Your own figures are exact: your transactions, averaged over six months, in the categories you mapped.',
   'insights.exchangeInsights': 'Exchange Rates',
   'fx.addCurrency': '＋ Add currency',
   'fx.addCurrencyTitle': 'Add a currency',
@@ -1542,7 +1458,6 @@ export const en = {
   'receiptScan.reading': 'Reading…',
   'receiptScan.camera': 'Scan Receipt',
   'receiptScan.library': 'Choose Photo',
-  'receiptScan.useAi': 'Name items with AI (sends the receipt text, not the photo)',
   'receiptScan.nothingFound': 'No prices found on that receipt.',
   'receiptScan.failed': 'Couldn’t read the receipt',
   'spend.memoSection': 'Memo',

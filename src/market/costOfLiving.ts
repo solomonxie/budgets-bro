@@ -3,12 +3,8 @@
 //
 // There is no free keyless cost-of-living API: Numbeo's is paid per call and
 // its terms forbid scraping it, Teleport's is gone. So the page ships with a
-// compiled table, clearly dated and clearly labelled an estimate, and offers
-// one button to ask the user's own AI connection for a newer read of one
-// city. That answer is as current as the model's training, which nobody can
-// pin to a date — so it is stored with the model's name and the day it was
-// asked, and says so on screen. Neither number is a source of truth; the
-// only exact figures on this page are the user's own.
+// compiled table, clearly dated and clearly labelled an estimate. The only
+// exact figures on this page are the user's own.
 
 export const COST_OF_LIVING_AS_OF = '2025-06';
 
@@ -89,16 +85,6 @@ export const CITIES: CityCosts[] = [
 
 export function cityById(id: string): CityCosts | null {
   return CITIES.find((c) => c.id === id) ?? null;
-}
-
-/** An AI-refreshed figure set, kept beside the shipped one rather than over it. */
-export interface CityCostsUpdate {
-  cityId: string;
-  currency: string;
-  monthly: Record<CostBucket, number>;
-  /** Which model answered, and the day it was asked — not the day it knows. */
-  model: string;
-  askedOn: string;
 }
 
 export interface BucketComparison {

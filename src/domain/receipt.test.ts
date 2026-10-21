@@ -1,7 +1,6 @@
 import {
   matchKnownNames,
   parseReceipt,
-  receiptFromAiReply,
   receiptRows,
   tidyItemName,
 } from './receipt';
@@ -116,17 +115,5 @@ describe('matchKnownNames', () => {
     expect(matchKnownNames([{ name: 'Homo Milk', priceCents: 611 }], ['homo milk'])).toEqual([
       { name: 'homo milk', priceCents: 611 },
     ]);
-  });
-});
-
-describe('receiptFromAiReply', () => {
-  it('reads JSON inside a code fence', () => {
-    expect(
-      receiptFromAiReply('```json\n{"items":[{"name":"Milk","price":6.11}],"total":6.11}\n```'),
-    ).toEqual({ items: [{ name: 'Milk', priceCents: 611 }], totalCents: 611 });
-  });
-
-  it('returns null for prose', () => {
-    expect(receiptFromAiReply('Sorry, I cannot read that.')).toBeNull();
   });
 });

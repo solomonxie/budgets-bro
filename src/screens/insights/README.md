@@ -16,7 +16,7 @@ InsightsScreen.tsx
 ├───────────────────────────────┤
 │ UTILITIES list (Baby Steps,     │──→ inline; row tap navigates to:
 │  Mortgage / Loan / Investment /  │    BabyStepsScreen.tsx (below)
-│  Tax Insights, AI Insights)      │    ../finance-tools/MortgageInsightsScreen.tsx
+│  Tax Insights)                   │    ../finance-tools/MortgageInsightsScreen.tsx
 │                                  │    ../finance-tools/LoanInsightsScreen.tsx
 │                                  │    ../finance-tools/InvestmentInsightsScreen.tsx
 │                                  │    ../tax/TaxInsightsScreen.tsx

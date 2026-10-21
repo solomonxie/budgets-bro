@@ -19,9 +19,8 @@ export function formatMoney(cents: number, opts?: MoneyFormatOptions): string {
   return sign + (opts?.symbol ?? '$') + str;
 }
 
-// Every cent, for the places a figure is data rather than something being
-// read off a screen — the AI prompt's context block, where rounding would
-// hand the model a different number than the ledger holds.
+// Every cent, for the places rounding would mislead: a category at −40¢ is
+// overspent, and an amount to type has to match what the ledger holds.
 export function formatMoneyExact(cents: number, opts?: MoneyFormatOptions): string {
   const sign = cents < 0 ? '-' : '';
   const abs = Math.abs(cents) / 100;

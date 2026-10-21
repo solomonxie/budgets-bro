@@ -1,7 +1,5 @@
 import * as Keychain from 'react-native-keychain';
 
-const AI_API_KEY = 'ai_api_key';
-
 // Device-only, never in a backup: the default Keychain accessibility
 // (WHEN_UNLOCKED) rides along in iCloud/iTunes device backups and migrates
 // to a new device on restore. THIS_DEVICE_ONLY opts out of both — these are
@@ -30,18 +28,6 @@ async function clear(service: string): Promise<void> {
 }
 
 export const secureStore = {
-  // Legacy single-key slot — pre-dates multi-provider AI Keys (see
-  // ai/aiKeys.ts). Only read once, to migrate into the new per-key slots.
-  getAiApiKey: () => read(AI_API_KEY),
-  setAiApiKey: (value: string) => write(AI_API_KEY, value),
-  clearAiApiKey: () => clear(AI_API_KEY),
-
-  // Keyed by the AI key's own id — same "several side by side" shape as
-  // the S3 credentials below.
-  getAiKeySecret: (id: string) => read(`ai_api_key_${id}`),
-  setAiKeySecret: (id: string, value: string) => write(`ai_api_key_${id}`, value),
-  clearAiKeySecret: (id: string) => clear(`ai_api_key_${id}`),
-
   // Keyed by configId — one app install can hold several S3 buckets'
   // worth of credentials side by side (see sync/s3Provider.ts).
   getS3Credentials: async (configId: string) => {

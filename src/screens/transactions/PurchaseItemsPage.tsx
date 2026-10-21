@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
@@ -7,16 +7,12 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
-import { listUsableAiKeys } from '../../ai/aiKeys';
-import { getDb } from '../../db/client';
-import * as settingsRepo from '../../db/repositories/settingsRepo';
 import {
   formatPurchaseItems,
   parsePurchaseItems,
@@ -31,7 +27,6 @@ import { spacing } from '../../theme/spacing';
 // keyboard. A few rows is all it ever holds, so 40% of the screen, riding
 // up above the keyboard, rather than a whole page. Scan fills it from a
 // receipt instead, adding to what is already listed.
-const USE_AI_SETTING = 'receiptScan.useAi';
 
 export function PurchaseItemsPage({
   value,
@@ -48,37 +43,18 @@ export function PurchaseItemsPage({
   onScannedTotal?: (cents: number) => void;
   onClose: () => void;
 }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { height } = useWindowDimensions();
   // Focus waits for the sheet to finish sliding in: a field focused inside
   // a Modal that isn't shown yet gets no keyboard.
   const [shown, setShown] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
-  const [hasAiKey, setHasAiKey] = useState(false);
-  const [useAi, setUseAi] = useState(false);
   const [reading, setReading] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const db = await getDb();
-      setHasAiKey((await listUsableAiKeys(db)).length > 0);
-      setUseAi((await settingsRepo.getSetting(db, USE_AI_SETTING)) === '1');
-    })();
-  }, []);
-
-  const toggleAi = async (next: boolean) => {
-    setUseAi(next);
-    await settingsRepo.setSetting(await getDb(), USE_AI_SETTING, next ? '1' : '0');
-  };
 
   const scan = (source: 'camera' | 'library') => {
     setReading(true);
-    scanReceipt(source, {
-      useAi: hasAiKey && useAi,
-      knownNames: nameOptions,
-      language,
-    })
+    scanReceipt(source, { knownNames: nameOptions })
       .then((receipt) => {
         if (!receipt) return;
         if (receipt.items.length === 0) {
@@ -150,12 +126,6 @@ export function PurchaseItemsPage({
           </View>
           <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled">
             <View ref={contentRef} style={styles.content}>
-              {hasAiKey ? (
-                <View style={styles.aiRow}>
-                  <Text style={styles.aiLabel}>{t('receiptScan.useAi')}</Text>
-                  <Switch value={useAi} onValueChange={toggleAi} />
-                </View>
-              ) : null}
               <PurchaseItemsField
                 value={value}
                 onChange={onChange}
@@ -191,12 +161,5 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   headerBtn: { fontSize: 16, fontWeight: '600', color: colors.accent },
-  aiRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: spacing.sm,
-  },
-  aiLabel: { flex: 1, fontSize: 14, color: colors.textMuted, marginRight: spacing.sm },
   content: { padding: spacing.md, paddingTop: 0 },
 });

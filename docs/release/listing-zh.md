@@ -2,7 +2,7 @@
 
 App Store Connect → App Information → language dropdown (top right) → **Add Chinese (Simplified)**. Then switch both App Information and the `1.0` page to it and paste the fields below.
 
-No price wording in name, subtitle, or promotional text (Guideline 2.3.7). Name only China-licensed AI vendors (see [listing.md](listing.md)).
+No price wording in name, subtitle, or promotional text (Guideline 2.3.7).
 
 ## App Information
 
@@ -65,9 +65,6 @@ Budgets Bro 不只是记账预算。它每季度把你所有的固定扣费拿�
 • 可选备份到你自己的 iCloud 云盘或 S3 存储桶
 • 以普通文件或 CSV 导出；可导入 Register CSV 导出文件
 • 面容 ID、触控 ID 或密码锁定
-
-可选 AI
-使用你自己的 DeepSeek、通义千问、Kimi、智谱 GLM 或文心的 API 密钥，就自己的数据提问。默认关闭。
 
 无广告，无统计分析，无内购推销。
 ```

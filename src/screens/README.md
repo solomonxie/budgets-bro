@@ -9,4 +9,3 @@ One folder per tab or feature area. Each screen reads and writes through `../db/
 - `tax/` — Tax Insights (year-to-date, non-authoritative estimate)
 - `calculators/` — ad-hoc mortgage/loan calculators
 - `settings/` — app settings, backup config, board management
-- `ai/` — AI analysis (bring your own API key)

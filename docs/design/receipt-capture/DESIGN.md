@@ -11,8 +11,8 @@ that price is too high for one feature.
 - Share a photo **into** the app (Photos → Share → Budgets Bro), and get
   transactions out of it. One image handed over, nothing else reachable.
 - Zero new permissions: no photo library, no camera.
-- The photo itself never leaves the device — text recognition is on-device;
-  only the recognized text goes to the user's own AI key.
+- Nothing leaves the device — text recognition and parsing are both
+  on-device (`domain/receipt.ts`). No AI.
 - Results land on the **Flagged Transactions** page as unconfirmed rows, never silently in
   the ledger.
 - Receipt line items land in a real field, not a prose note, so they can be
@@ -25,9 +25,8 @@ that price is too high for one feature.
 - **Not a line-item ledger.** One receipt is one transaction (its total).
   Splitting a receipt into per-item rows would double-count tax and subtotals
   and make Review unusable.
-- **Not AI acting on data.** The model proposes; the user confirms on Review.
-  The "analysis only, read-only" non-goal holds because nothing is final until
-  a human taps Confirm.
+- **Not automatic.** The parse proposes; nothing is final until a human taps
+  Confirm on Review.
 - **Not multi-currency.** A foreign receipt records its number as printed and
   names the currency in the memo. `domain/money.ts` has no conversion.
 - **Not camera capture.** Take the photo in Photos, share it here.
@@ -62,8 +61,7 @@ Photos ─Share─▶ ReceiptShare.appex ─▶ app group container
                                                ▼
    Linking url / AppState active ─▶ useReceiptInbox drain ─▶ receipts/importReceipt.ts
         ├─ ReceiptInbox.recognizeText(id)          Vision, on device
-        ├─ runWithAiKeys(db, buildReceiptMessages)  existing multi-key path
-        ├─ parseReceiptReply(reply)                 pure, unit-tested
+        ├─ parseReceipt(receiptRows(texts))         pure, unit-tested (domain/receipt.ts)
         └─ insertReceiptTransaction(…)              needs_confirm=1, purchase_items="…"
                                                ▼
                     Flagged Transactions page → "Receipt" card → Confirm
@@ -76,9 +74,9 @@ modules/receipt-inbox/         bridge module, same shape as modules/icloud-drive
   ios/ReceiptInboxStore.swift    queue + Vision; compiled into BOTH targets
   ios/ReceiptInbox{Module.swift,.m,.podspec}
   index.ts                       null when absent, base64 across the bridge
-src/receipts/importReceipt.ts  orchestrator: OCR → AI → parse → insert
+src/receipts/importReceipt.ts  orchestrator: OCR → parse → insert
 src/hooks/useReceiptInbox.ts   Linking + AppState → drain
-src/domain/receiptParse.ts     pure: JSON repair ladder, coercion, memo, import id
+src/domain/receipt.ts          pure: Vision pieces → rows → items + total
 src/domain/purchaseItems.ts    pure: the key-value string format
 src/domain/trackedPrices.ts pure: aggregation for the Insights page
 ```
@@ -123,19 +121,15 @@ Provenance rides for free on `import_id`, the same natural-key trick
 `import/ynabImportId.ts` uses: `receipt:<sha256[0..16]>:<index>`, the sha taken
 of the image bytes in the extension. Insert is `ON CONFLICT DO **NOTHING**`,
 deliberately not `importTransaction`'s `DO UPDATE` — re-sharing a photo you
-already corrected must not let a second model run clobber your edits. A
+already corrected must not let a second parse clobber your edits. A
 re-encoded copy of the same receipt hashes differently and inserts, but the
 existing `duplicate` reason then catches it, so the two dedupe layers cover
 each other.
 
 ## Privacy
-Receipt text is more identifying than anything AI Analysis sends today: shop,
-street address, card last-4, item names. AI Analysis has a Privacy Mode; this
-has `redactReceiptText` (card-number runs next to VISA/CARD/XXXX stripped
-before the text leaves the device) as a floor, and wants a one-time
-confirmation the first time the feature runs. Every call still lands in
-`ai_requests` and is readable verbatim in `AiKeyHistoryModal` — which also
-makes prompt tuning possible.
+Receipt text is identifying — shop, street address, card last-4, item names —
+so it never leaves the device: Vision reads it, `domain/receipt.ts` parses it,
+the image is discarded. No AI step, no network call.
 
 ## Risks
 - **Silent extension failure.** A wrong entitlement or a missing
@@ -143,10 +137,6 @@ makes prompt tuning possible.
   `buildImplicitDependencies` resolves *linked* products; an extension is
   *embedded*, so it needs an explicit dependency or the build succeeds with an
   empty `PlugIns/`. Check with `pluginkit -mAvv | grep -i budgets`.
-- **JSON quality varies by vendor.** `llama-3.1-8b-instant` malforms far more
-  often than `gpt-4o-mini`, and round-robin key rotation means consecutive
-  receipts hit different vendors. The repair ladder plus one stricter retry is
-  the mitigation; a capability preference in key ordering is the follow-up.
 - **Signing.** A second bundle plus an app group means new profiles;
   `-allowProvisioningUpdates` normally mints them, but the first such build
   often needs one pass through the Xcode GUI for the Apple ID session.
@@ -154,11 +144,5 @@ makes prompt tuning possible.
   end at the same queue, so both are safe; pick one after seeing it on device.
 
 ## Later
-- Sending the **image** to a vision model: `ChatMessage.content` widened to
-  content parts, three wire formats across seven clients, a `supportsImages`
-  map (deepseek-chat has no vision at all) so round-robin can't hand an image
-  to a text model, and image redaction in `recordAiRequest` before 50 retained
-  rows per key become tens of megabytes. The parse and Review halves are
-  unchanged either way, so it stays a drop-in upgrade.
 - `RecognizeDocumentsRequest` (iOS 26+) behind the same `recognizeText`.
 - Splitting one receipt into per-item transactions from the Review card.

@@ -13,7 +13,7 @@ Budgets Bro is a zero-based budget that stays entirely on the iPhone: every doll
 Individuals and households who budget manually and do not want to give a company their bank login or financial data: people who already use or have tried envelope budgeting, paying down debt, or saving for a home, and who want the planning tools of a subscription budgeting service without an account, a server, or a bank connection. It is localized in English and Simplified Chinese, with calculators for Canadian and Chinese mortgage rules.
 
 **3. Gap it fills**
-Established zero-based budgeting apps require an account, a subscription, and usually a bank connection, and they stop at the budget itself. Budgets Bro is different in two ways: (a) everything is local — no account, no server, no analytics, data never leaves the device unless the user turns on their own iCloud Drive or S3 backup; (b) it adds decision tools that do not exist in those apps: the quarterly keep-or-cancel review of detected recurring payments, per-item price tracking, cash runway, and loan health against income.
+Established zero-based budgeting apps require an account, a subscription, and usually a bank connection, and they stop at the budget itself. Budgets Bro is different in two ways: (a) everything is local — no account, no server, no analytics, no AI, data never leaves the device unless the user turns on their own iCloud Drive or S3 backup; (b) it adds decision tools that do not exist in those apps: the quarterly keep-or-cancel review of detected recurring payments, per-item price tracking, cash runway, and loan health against income.
 
 **4. Beta testing**
 So far, testing has been my own daily use with my real household budget on my iPhone since early September 2026, across 360+ revisions; examples of changes made in that time are a faster spend entry form (a Next button that steps through payee then category), past budget months closing at zero with leftovers carried into the current month, and a guided account setup on first launch. I have now opened an external TestFlight group with a public link (build 202610161743) to collect feedback from other users, and will apply it before the next build.
@@ -32,6 +32,9 @@ No template or app generation service. Only standard open-source frameworks: Rea
 
 **9. Created for a client?**
 No. It is my own concept and product, built and published by me under my own account; no third party provided content, concept, or branding.
+
+**Changes in this build**
+All AI features have been removed: no AI analysis, no AI provider or API-key settings, no AI receipt reading. The app makes no requests to any AI service in any region, including mainland China. Receipt scanning reads text on the device with Apple's Vision framework.
 
 Thank you,
 Solomon Xie

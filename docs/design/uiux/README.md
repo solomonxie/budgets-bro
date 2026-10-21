@@ -19,16 +19,15 @@ primary · `[ x ]` secondary · `( x )` text link · `›` pushes · `⌄` colla
     │  ⌄ groups   its own tab    │ Net Worth     │ breakdown + trends
     │  category ▸ press and     │ account ▸     ├─▶ BabySteps
     │  [AssignedAmount]         │ AccountDetail ├─▶ TaxInsights
-    │  ( History ) ─▶ Transactions              ├─▶ Mortgage / Loan /
-    │                     │ row ▸ AddTransaction│    Investment Insights
-    ▼                     ▼                     └─▶ AiAnalysis
+    │  ( History ) ─▶ Transactions              └─▶ Mortgage / Loan /
+    │                     │ row ▸ AddTransaction     Investment Insights
+    ▼                     ▼
  AddTransactionScreen (a page pushed over the tabs)
     └─ [MonthPicker] [Repeat] [SearchableDropdown] pickers
 
  ⚙︎ ─▶ SettingsScreen  (Boards · Payees · Appearance · Language ·
-                        AI Keys · Backup · Data · About)
+                        Backup · Data · About)
         ├─▶ [S3ConfigModal] ─▶ [S3BrowserModal]
-        ├─▶ [AiKeyModal] [AiKeyHistoryModal]
         └─▶ Import YNAB / Import backup / Export  ─▶ [OS file picker]
  [brackets] = modal or bottom sheet
 ```
@@ -41,6 +40,6 @@ primary · `[ x ]` secondary · `( x )` text link · `›` pushes · `⌄` colla
 | `spend.md` | add/edit transaction, number pad, repeat builder |
 | `transactions.md` | list, filters, search, multi-select |
 | `accounts.md` | accounts list, net worth, account detail, account modal |
-| `insights.md` | insights, baby steps, tax, finance tools, AI analysis |
+| `insights.md` | insights, baby steps, tax, finance tools |
 | `settings.md` | settings sections, S3, backup, data |
 | `components.md` | rows, cards, pickers, chips, toasts |

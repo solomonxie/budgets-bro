@@ -11,7 +11,7 @@ const BIOMETRIC_MARKER = 'unlocked';
 // The passcode is stored as typed, not hashed. Hashing four digits is
 // theatre — ten thousand candidates fall in milliseconds — so the thing
 // actually protecting it is where it lives: a device-only Keychain entry,
-// encrypted by iOS, excluded from every backup (same options as the AI/S3
+// encrypted by iOS, excluded from every backup (same options as the S3
 // credentials next door in secureStore.ts).
 const OPTIONS = {
   accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,

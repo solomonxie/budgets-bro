@@ -3,6 +3,8 @@
 Proposals only; nothing applied. Source: `src/i18n/en.ts`, `src/i18n/zh.ts` (1,350 keys), hardcoded literals in `src/`.
 Judged against: `AGENTS.md`, `DESIGN.md`, `UIUX-DESIGN.md` (Languages → Copy), `design/uiux/*.md`.
 
+> AI features removed 2026-10-21: every `ai*`/`aiInfo`/`aiKeyModal`/`aiAnalysis` row, `taxInsights.askAi`, `costOfLiving.askFailed`/`needsAiKey`, the AI parts of `settings.privacyBody`/`backup.infoSecrets`/`costOfLiving.sourceBody`, and the `src/ai/*` literals are dropped.
+
 ## Rules
 
 - **Sentence case** for every button, title, heading, menu item, tab and label. Today the app is split roughly half Title Case, half sentence case (`+ Add Account` vs `+ Add item`, `Clear History` vs `Select all`), so neither is the house style yet. Sentence case wins because it reads calmer and matches most hints. Keep capitals for proper nouns and product names: YNAB, iCloud Drive, S3, Face ID, Budgets Bro, Baby Steps (Ramsey's term). Section headings are uppercased by style, so their source case doesn't matter there, but fix it anyway so zh/en source stays consistent.

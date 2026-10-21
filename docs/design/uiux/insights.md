@@ -1,7 +1,7 @@
 # Insights
 
 `src/screens/insights/InsightsScreen.tsx` — on-device only. Needs no key and
-sends nothing off-device; the AI feature is a separate row at the bottom.
+sends nothing off-device.
 
 ```
  ⚙︎    Insights
@@ -40,7 +40,6 @@ sends nothing off-device; the AI feature is a separate row at the bottom.
  Loan Insights                                     ›
  Investment Insights                               ›
  Tax Insights                                      ›
- AI Insights                                       ›
 ```
 
 ## Baby Steps  `insights/BabyStepsScreen.tsx`
@@ -191,26 +190,6 @@ name-based rules: rent and the like are left to the user's Ignore.
  │ bracket, each built from linked accounts and     │
  │ categories                                       │
  └──────────────────────────────────────────────────┘
-```
-
-## AI Insights  `ai/AiAnalysisScreen.tsx`
-
-```
- ‹           AI Insights
- no key   Add an AI key in Settings to run an analysis.
-          ( Open Settings )
- [ SPENDING | Variance | Forecast | Health | Comparison ]
- ┌ ABOUT YOU (OPTIONAL) ────────────────────────────┐
- │ City        …          Country     …             │
- │ Age         …          Family size …             │
- │ Privacy Mode                                ─●   │
- │ <what is and isn't sent>                         │
- └──────────────────────────────────────────────────┘
-        [[ Run Analysis ]]        ⟳
- ⊗ That key was rejected — check it in Settings.
- ⊗ Rate limited — try again in a minute.
- ⊗ Couldn't reach OpenAI — check your connection.
- ⊗ Something went wrong running the analysis.
 ```
 
 ## Finance tools  `screens/finance-tools/`

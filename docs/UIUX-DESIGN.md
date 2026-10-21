@@ -335,16 +335,6 @@ Browse (tap a connection) — one level at a time, the same screen pushing itsel
 - Skip the sync queue entirely for single-blob backup (one zip up, one zip down); it's only meaningful when sync is per-file jobs.
 
 
-### AI Intelligence
-
-- Vendor from a real dropdown of every supported vendor, not a hardcoded segmented control. Masked key-format hint under the field, plus a link out to that vendor's own key-creation page.
-- Validate by making one real request at save time — no separate "Test Connection" button.
-- Keys as a reorderable list (↑/↓), each row showing vendor + running request count, delete in the row's own menu.
-- Fallback strategy as an accent text control on the section heading row (`Sequential ▾` / `Round Robin ▾`), shown next to the feature it affects, only once there are 2+ keys.
-- Disclose under the field what leaves the device, when, to whom — and that the key itself never does, including in backups.
-- Expensive analysis is opt-in per run, never automatic.
-
-
 ## Core UI — the screens
 
 Reference: real YNAB's screenshots — reuse the interaction patterns that carry the core budgeting workflow; goal-tracking and cosmetic extras stay out.
@@ -374,6 +364,6 @@ Reference: real YNAB's screenshots — reuse the interaction patterns that carry
 
 **Accounts screen** — Net Worth card on top, then groups by kind (Cash / Savings / Tracking / Loan / Asset / Credit) with subtotals and extra spacing between groups. A loan/mortgage balance is always negative — what is still owed — and its detail page labels it "Remaining Principal", not "Balance". Row: name (one line, truncated) + balance, red when negative. Account detail carries a computed balance trend for cash/savings/credit (credit cards overlay monthly spend, or a paid-off card reads flat), a manual value-history chart for asset/tracking, loan details and the amortization tool inline in the balance box — not as separate cards.
 
-**Insights** — on-device only, distinct from the AI analysis feature; needs no key and sends nothing off-device. Month picker; spending breakdown with the same number scale as Budget's; all-time category trend as a horizontally scrollable stacked area chart of the top 5 categories with a dashed 12-month-average baseline. Baby Steps and Tax Insights link real accounts/categories, falling back to a manual "Mark Done" pill when nothing is linked yet. **Tracked Prices** ranks every priced purchase item on the board by how often it was bought; a row expands in place into a price-over-time line with a dashed average benchmark and the list of every purchase (date, price, same-day count) — tap one to open that transaction. Exact cents here, not the app's usual whole dollars: the question is whether an $8.40 bottle is now $9.20.
+**Insights** — on-device only; needs no key and sends nothing off-device. Month picker; spending breakdown with the same number scale as Budget's; all-time category trend as a horizontally scrollable stacked area chart of the top 5 categories with a dashed 12-month-average baseline. Baby Steps and Tax Insights link real accounts/categories, falling back to a manual "Mark Done" pill when nothing is linked yet. **Tracked Prices** ranks every priced purchase item on the board by how often it was bought; a row expands in place into a price-over-time line with a dashed average benchmark and the list of every purchase (date, price, same-day count) — tap one to open that transaction. Exact cents here, not the app's usual whole dollars: the question is whether an $8.40 bottle is now $9.20.
 
-**Settings** — sections in order: Payees, AI Keys, S3, Local Backup, Data. Each section: uppercase muted heading, one-paragraph hint, bordered group of rows, centered accent add-link. Per-connection sync controls live in the bucket's own browser menu (see Cloud Bucket Backup above), not in a section of their own.
+**Settings** — sections in order: Payees, S3, Local Backup, Data. Each section: uppercase muted heading, one-paragraph hint, bordered group of rows, centered accent add-link. Per-connection sync controls live in the bucket's own browser menu (see Cloud Bucket Backup above), not in a section of their own.

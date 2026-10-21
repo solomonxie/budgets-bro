@@ -45,8 +45,7 @@ type UtilityScreen =
   | 'PaymentReview'
   | 'ExchangeInsights'
   | 'CostOfLiving'
-  | 'Housing'
-  | 'AiAnalysis';
+  | 'Housing';
 type UtilityRow = { label: string; screen: UtilityScreen };
 
 // Validated categorical palette (dataviz skill), dark-surface steps — fixed
@@ -72,7 +71,6 @@ export function InsightsScreen() {
     { label: t('insights.exchangeInsights'), screen: 'ExchangeInsights' },
     { label: t('insights.costOfLiving'), screen: 'CostOfLiving' },
     { label: t('insights.housing'), screen: 'Housing' },
-    { label: t('aiAnalysis.title'), screen: 'AiAnalysis' },
   ];
   const navigation = useNavigation<Nav>();
   const [month, setMonth] = useState(currentMonth());

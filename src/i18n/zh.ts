@@ -82,27 +82,6 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.languageHeading': '语言',
   'settings.languageEnglish': 'English',
   'settings.languageChinese': '简体中文',
-  'settings.aiKeysHeading': 'AI 连接',
-  'aiInfo.title': '使用你自己的 AI',
-  'aiInfo.what':
-    'AI 分析会读取你的预算，用大白话回答问题：钱去了哪、这个月是否反常、接下来怎么安排。只有你主动发起时才会运行。',
-  'aiInfo.ownAccount':
-    '应用不内置 AI，也没有订阅。到 AI 服务商注册，把他们给你的密钥粘贴到这里，应用就会从这台 iPhone 直接和该服务商通信。',
-  'aiInfo.whereToRegister':
-    '在下方选择服务商，链接会打开获取密钥的页面。',
-  'aiInfo.cost':
-    '费用直接付给服务商，通常每次提问不到一分钱，每笔费用都能在他们的后台查到。本应用不收任何费用。',
-  'aiInfo.privacy':
-    '密钥保存在这台 iPhone 的钥匙串中，不会进入备份。每次提问只发送回答所需的数字；开启「隐私模式」后，还会先把金额取整、隐藏分类名称。你点按按钮之前，不会发送任何内容。',
-  'settings.aiKeysHint':
-    '连接你自己的 AI 账户即可使用 AI 分析。有多个时，一个用完会自动换下一个。点按某个连接可查看它发送过的内容。',
-  'settings.aiKeyRequestCount': '已提问 {count} 次',
-  'settings.addAiKeyLink': '+ 连接一个 AI',
-  'settings.deleteAiKeyConfirmTitle': '断开这个 AI？',
-  'settings.deleteAiKeyConfirmMessage':
-    'AI 分析会立即停止使用它。你在该服务商的账户不受影响。',
-  'settings.aiKeyStrategySequential': '顺序使用',
-  'settings.aiKeyStrategyRoundRobin': '轮询使用',
   'settings.s3AccessKeyLabel': 'Access Key ID',
   'settings.s3SecretKeyLabel': 'Secret Access Key',
   'settings.s3BucketLabel': '存储桶（Bucket）',
@@ -126,19 +105,6 @@ export const zh: Record<keyof typeof en, string> = {
   's3ConfigModal.draftsHeading': '草稿',
   's3ConfigModal.draftsHint': '之前的尝试——点按填入，✕ 删除。',
 
-  'aiKeyModal.title': '添加 AI 密钥',
-  'aiKeyModal.vendorLabel': '服务商',
-  'aiKeyModal.keyLabel': 'API 密钥',
-  'aiKeyModal.getKeyHint': '还没有 {vendor} 密钥？',
-  'aiKeyModal.getKeyLink': '去获取 →',
-  'aiKeyModal.missingEndpoint': '请填写服务器地址和模型。',
-  'aiKeyModal.customName': '名称',
-  'aiKeyModal.customEndpoint': '服务器地址',
-  'aiKeyModal.customModel': '模型',
-  'aiKeyModal.customHint': '任何兼容 OpenAI chat completions 接口的服务——填以 /v1 结尾的基础地址，或完整的 /chat/completions 地址。',
-  'aiKeyModal.missingKey': '请输入密钥。',
-  'aiKeyModal.testing': '正在测试密钥……',
-  'aiKeyModal.testFailed': '无法连接：{error}',
   's3Browser.title': '浏览存储桶',
   's3Browser.up': '..',
   's3Browser.empty': '这里还没有内容。',
@@ -150,19 +116,6 @@ export const zh: Record<keyof typeof en, string> = {
   'backupSummary.counts': '账户：{accounts} · 分类：{categories} · 交易：{transactions}',
   'backupSummary.span': '交易从 {from} 到 {to}',
   's3Browser.restoreNotFound': '该文件已不在存储桶中。',
-  'aiHistory.hint':
-    '这个密钥发出的全部内容，原样保存。只保留最近 50 条，只存在本机，不进入备份。',
-  'aiHistory.empty': '这个密钥还没有发出过请求。',
-  'aiHistory.ok': '已回复',
-  'aiHistory.failed': '失败',
-  'aiHistory.system': '系统提示',
-  'aiHistory.prompt': '提示词',
-  'aiHistory.response': '回复',
-  'aiHistory.error': '错误',
-  'aiHistory.clear': '清空历史',
-  'aiHistory.clearConfirmTitle': '清空该密钥的历史？',
-  'aiHistory.clearConfirmMessage':
-    '存在本机的提示词和回复会被删除，请求次数不受影响。',
   'backup.heading': '备份',
   'backup.hint':
     '打开下面任意一个，只要有变动，每个账本每天都会复制一份到那里（在应用打开时进行）。重装应用后，首屏会在 iCloud 云盘里找到你的账本并一键恢复。API 密钥不会离开本机，也不会进入备份。',
@@ -187,7 +140,7 @@ export const zh: Record<keyof typeof en, string> = {
   'backup.infoDestination':
     '每个账本都会完整备份，在本机打包后直接存到你自己的地方：你的 iCloud 云盘，或用你自己密钥的 S3 存储桶。不经过我们。',
   'backup.infoSecrets':
-    '密钥从不进入备份。AI 和 S3 密钥只存在本机钥匙串中，标记为仅限本机，iOS 不会把它们放进备份或迁移到新手机。备份只包含账本内容：账户、分类、预算、收款方和交易。',
+    '密钥从不进入备份。S3 密钥只存在本机钥匙串中，标记为仅限本机，iOS 不会把它们放进备份或迁移到新手机。备份只包含账本内容：账户、分类、预算、收款方和交易。',
   'backup.infoFullCopy':
     '每次备份都是完整的账本，而不是上次之后的改动，所以最新的那个文件本身就是完整的。',
   'backup.infoRestore':
@@ -431,7 +384,7 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.removeAllData': '删除所有应用数据',
   'settings.removeAllDataConfirmTitle': '删除所有应用数据？',
   'settings.removeAllDataConfirmMessage':
-    '将删除本机所有账本、设置（语言和 iCloud 云盘开关除外）、已保存的 AI 和 S3 密钥以及本地备份。删除前会先把所有账本备份到「文件」（我的 iPhone → Budgets Bro → Backups），如已开启 iCloud 云盘和 S3，也会一并备份。这份备份不会被删除，iCloud 云盘和 S3 中已有的备份也不受影响。',
+    '将删除本机所有账本、设置（语言和 iCloud 云盘开关除外）、已保存的 S3 密钥以及本地备份。删除前会先把所有账本备份到「文件」（我的 iPhone → Budgets Bro → Backups），如已开启 iCloud 云盘和 S3，也会一并备份。这份备份不会被删除，iCloud 云盘和 S3 中已有的备份也不受影响。',
   'settings.removeAllDataConfirm': '删除',
   'settings.removeAllDataCompleteTitle': '应用数据已删除',
   'settings.removeAllDataCompleteMessage': '本机数据已清除，现在是一个空账本。',
@@ -797,29 +750,6 @@ export const zh: Record<keyof typeof en, string> = {
     '依据月供和当前欠款计算。想试算多还，请用还清计算器。',
   'loanDetailsCard.summary': '{rate}% · 每月 {payment}',
 
-  'aiAnalysis.title': 'AI 洞察',
-  'aiAnalysis.noKeyHint': '请先在设置中连接一个 AI，才能分析你的预算。',
-  'aiAnalysis.openSettings': '打开设置',
-  'aiAnalysis.kindSpending': '支出',
-  'aiAnalysis.kindVariance': '差异',
-  'aiAnalysis.kindForecast': '预测',
-  'aiAnalysis.kindHealth': '财务健康',
-  'aiAnalysis.kindComparison': '对比',
-  'aiAnalysis.profileHeading': '关于你（可选）',
-  'aiAnalysis.profileHint':
-    '仅用于下方的「财务健康」和「对比」报告。保存在本机，只随这两项发送。任何一项都可留空。',
-  'aiAnalysis.cityLabel': '城市',
-  'aiAnalysis.countryLabel': '国家',
-  'aiAnalysis.ageLabel': '年龄',
-  'aiAnalysis.familySizeLabel': '家庭人数',
-  'aiAnalysis.privacyModeLabel': '隐私模式',
-  'aiAnalysis.privacyModeHint':
-    '发送前把每个金额取整到 $10，并把分类名称换成通用标签（「分类 1」）。关闭后 AI 会使用你的真实分类名。',
-  'aiAnalysis.runButton': '开始分析',
-  'aiAnalysis.errorInvalidKey': 'AI 服务商拒绝了你的密钥，请在设置中检查。',
-  'aiAnalysis.errorRateLimited': '请求太频繁，请稍后再试。',
-  'aiAnalysis.errorNetwork': '无法连接 AI 服务商，请检查网络。',
-  'aiAnalysis.errorUnknown': '运行分析时出错。',
 
   'calculators.title': '房贷／贷款计算器',
   'calculators.loanAmountLabel': '贷款金额',
@@ -974,9 +904,6 @@ export const zh: Record<keyof typeof en, string> = {
   'taxInsights.formDonationReceipts': '慈善捐赠收据',
   'taxInsights.formRrsp': 'RRSP 供款收据（前 60 天内）',
   'taxInsights.formTP1': 'TP1 — 魁北克省税表',
-  'taxInsights.askAi': '让 AI 生成摘要 →',
-  'taxInsights.aiSummaryTitle': 'AI 摘要',
-  'taxInsights.aiSummaryMessage': 'AI 摘要将在后续版本推出。',
 
   'transactions.spendingByMonth': '每月支出',
   'transactions.searchPlaceholder': '搜索交易',
@@ -1257,12 +1184,6 @@ export const zh: Record<keyof typeof en, string> = {
   'costOfLiving.cityHeading': '城市',
   'costOfLiving.city': '城市',
   'costOfLiving.fromTable': '估算数据，截至 {date}。',
-  'costOfLiving.fromAi': '于 {date} 询问了 {model}。',
-  'costOfLiving.askAi': '向 AI 询问更新的数据 →',
-  'costOfLiving.asking': '正在询问…',
-  'costOfLiving.useTable': '使用内置数据',
-  'costOfLiving.askFailed': 'AI 没有返回可用的数据，仍显示内置数据。',
-  'costOfLiving.needsAiKey': '请先在设置中连接一个 AI，才能获取更新的数据。',
   'costOfLiving.needsRate':
     '打开一次「汇率」页面，这里就会自动换算成 {currency}。',
   'costOfLiving.compareHeading': '你（近 {months} 个月）与这座城市对比',
@@ -1281,7 +1202,7 @@ export const zh: Record<keyof typeof en, string> = {
     '一页回答两个问题：换个地方生活要花多少，以及我的花费和当地一般水平相比如何。后者更有用——搬城市很少见，但发现自己外食花费是当地两倍，这个月就用得上。',
   'costOfLiving.sourceHeading': '这些数字有多准',
   'costOfLiving.sourceBody':
-    '城市数据是估算，不是实测。内置表格根据公开的租金和物价调查整理，并标注整理日期；AI 按钮会向你连接的模型询问更新的数据，但它只和模型的训练数据一样新，没人能给出确切日期。两者都会标明来源。你自己的数字是准确的：来自你近六个月的交易，按你对应的分类平均。询问 AI 时不会发送任何关于你支出的内容，问题里只有城市名和货币。',
+    '城市数据是估算，不是实测：内置表格根据公开的租金和物价调查整理，并标注整理日期。你自己的数字是准确的：来自你近六个月的交易，按你对应的分类平均。',
   'insights.exchangeInsights': '汇率',
   'fx.addCurrency': '＋ 添加货币',
   'fx.addCurrencyTitle': '添加货币',
@@ -1511,7 +1432,6 @@ export const zh: Record<keyof typeof en, string> = {
   'receiptScan.reading': '识别中…',
   'receiptScan.camera': '扫描小票',
   'receiptScan.library': '选择照片',
-  'receiptScan.useAi': '用 AI 命名商品（只发送小票文字，不发照片）',
   'receiptScan.nothingFound': '这张小票上没有识别到价格。',
   'receiptScan.failed': '无法识别小票',
   'spend.memoSection': '备注',

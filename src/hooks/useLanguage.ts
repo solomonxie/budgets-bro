@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { getDb } from '../db/client';
 import * as settingsRepo from '../db/repositories/settingsRepo';
 import { useAppStore } from '../state/useAppStore';
-import { isChinaStorefront } from '../ai/storefront';
+import { isChinaStorefront } from '../platform/storefront';
 import type { Language } from '../i18n';
 
 export const LANGUAGE_KEY = 'language_preference';

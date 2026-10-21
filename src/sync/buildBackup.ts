@@ -19,10 +19,9 @@ const TABLES = [
 ] as const;
 
 // Deliberately not backed up: app_settings holds cloud credentials and sync
-// bookkeeping that belong to this install rather than to the board, and
-// ai_requests holds prompts and responses that should not leave the device
-// in a file the user might share. income_detail_history is dead (migration
-// 028) and carries nothing anything reads.
+// bookkeeping that belong to this install rather than to the board.
+// income_detail_history is dead (migration 028) and carries nothing
+// anything reads.
 
 // These hang off an account rather than a board, which is why they were
 // missing from backups entirely: a house's value log, a loan's principal

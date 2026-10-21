@@ -18,7 +18,6 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../../db/client', () => ({
   getDb: async () => ({ getFirstAsync: async () => null }),
 }));
-jest.mock('../../ai/aiKeys', () => ({ listUsableAiKeys: async () => [] }));
 jest.mock('./scanReceipt', () => ({ scanReceipt: jest.fn() }));
 jest.mock('../../hooks/useAccounts', () => ({
   useAccounts: () => ({

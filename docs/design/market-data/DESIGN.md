@@ -37,17 +37,11 @@ information the user would put in a search box anyway.
 ## Cost of living (shipped)
 No free keyless API exists: Numbeo's is paid per call and its terms forbid
 scraping, Teleport's is dead. So the page carries two kinds of number and
-never confuses them.
+never confuses them: the shipped estimate and the user's own exact figure.
 
 - **Shipped table** — 17 cities, eight monthly buckets, each in the city's own
   currency, compiled from published rent/price surveys and stamped with the
   date it was compiled (`market/costOfLiving.ts`).
-- **"Ask AI for a newer read"** — one button, using the AI connection the user
-  already has. The reply must parse as a bare JSON object or it is discarded;
-  what survives is stored *beside* the shipped figures with the model's name
-  and the day it was asked. Its freshness ends at that model's training
-  cutoff, which nobody can pin down and the user cannot specify — the page
-  says so rather than implying a date. One tap, one city; nothing automatic.
 - **The exact half is the user's own**: six-month average spending in the
   categories they map to each bucket, from their own ledger.
 - **Conversion** reuses the Exchange page's cached ECB rates — no second
@@ -55,8 +49,8 @@ never confuses them.
 - **Shape**: a scatter, city cost across against your spending up, with a
   parity diagonal. Distance from the line is the finding; paired bars would
   have buried it.
-- The AI request contains a city name and a currency. Nothing about the user's
-  money is in it.
+- No request for city figures at all: the table ships with the app, updated
+  by a release, not a fetch.
 
 ## Housing — prices and a shortlist (shipped)
 Two halves, and only one of them needs the internet.

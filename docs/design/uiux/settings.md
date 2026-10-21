@@ -24,12 +24,6 @@ link.
  [ DARK | Light ]          ← Light carries its own hint
  LANGUAGE
  [ ENGLISH | 简体中文 ]      ← each written in its own language
- AI KEYS
- <hint>                                    Sequential ▾
- OpenAI                                  ⌃ ⌄ ⋯
- 42 requests sent                            ›   → key history
-                  ( + Add AI Key )
- ⋯ ▸ Delete !  ⇒ Delete this key?
  BACKUP
  Each switch backs this board up automatically, every time it changes.
  iCloud also brings the board back by itself if you reinstall the app.
@@ -105,14 +99,6 @@ a settings section of their own.
  📄 board-personal.json                     12 KB
  empty   Nothing here yet.
  ⋯ ▸ Sync Now · Delete Connection !
-```
-
-## AI key history  `components/ui/AiKeyHistoryModal.tsx`
-
-```
- Sep 17, 2026 09:02   gpt-4o-mini   1,204 → 88 tokens   $0.004
-   ▾ prompt and reply behind the tap
- failures are kept, with the vendor's own words
 ```
 
 ## Data — import and export

@@ -6,9 +6,8 @@ import { ACTIVE_BOARD_KEY, FIRST_RUN_DONE_KEY } from '../hooks/useBoards';
 import { LANGUAGE_KEY } from '../hooks/useLanguage';
 
 const DEMO_SEEDED_KEY = 'demo_seeded';
-// Carried into the demo database so AI and language work the same there.
-// AI key secrets live in the Keychain, shared by id; only the list is copied.
-const CARRIED_KEYS = ['ai_keys', 'ai_key_strategy', LANGUAGE_KEY];
+// Carried into the demo database so language works the same there.
+const CARRIED_KEYS = [LANGUAGE_KEY];
 
 export async function enterDemoMode(): Promise<void> {
   const real = await getDb();

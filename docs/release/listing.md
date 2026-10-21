@@ -83,7 +83,7 @@ Fallback, Xcode GUI: open `ios/BudgetsBro.xcworkspace` → destination **Any iOS
 
 - Typical: 24–48 h. Status: Waiting for Review → In Review → Pending Developer Release.
 - Rejection → **Resolution Center**: reply there, or fix, bump nothing but re-run `npm run release:ios` (new build number is automatic), attach the new build, resubmit.
-- Likely questions: AI feature (notes explain it's optional/BYO key), iCloud backup (optional).
+- Likely questions: iCloud backup (optional).
 
 ### Guideline 2.1 "Information Needed" (new developer accounts)
 
@@ -95,7 +95,7 @@ Recording (the build Apple reviews, on the iPhone, current iOS):
 1. iPhone Settings → Control Center → add **Screen Recording**. Turn on Do Not Disturb.
 2. Fresh install from TestFlight → **Try with sample data** (keeps your real numbers out). Swipe the app away.
 3. Start recording, then launch the app from the Home Screen.
-4. ~2 minutes, distinct features first: Insights → Quarterly Review (decide one bill) → Tracked Prices (one item's trend) → Runway card → Accounts → a loan → Health / stress test → Insights → House Hunting → Budget (assign an amount) → Spend (payee, category, one item, Save) → Settings (History, app lock, AI Connections needing the user's own key).
+4. ~2 minutes, distinct features first: Insights → Quarterly Review (decide one bill) → Tracked Prices (one item's trend) → Runway card → Accounts → a loan → Health / stress test → Insights → House Hunting → Budget (assign an amount) → Spend (payee, category, one item, Save) → Settings (History, app lock, backups).
 5. Stop. Photos → trim → share the video.
 
 Reply: `App Review` in App Store Connect → the message → **Reply**, attach the video (or a link, e.g. an unlisted YouTube/iCloud link, if it's too large), paste:
@@ -107,6 +107,9 @@ Hello, thank you for the review. Answers below, and the same text is now in the 
 
 [paste the App Review Notes block from PURPOSE AND AUDIENCE to the end]
 ```
+
+### AI removed (2026-10-21)
+Settles the 2026-09-30 rejection (ChatGPT offered on the China storefront) for good: every AI feature is gone, in every region. The App Review Notes open with CHANGES IN THIS BUILD saying so; keep that block for the first submission after the removal, then drop it.
 
 ### Guideline 4.3(a) Spam (2026-10)
 
@@ -125,7 +128,7 @@ Hello, thank you for the review. We've resubmitted build <BUILD> with updated me
 4. Loan health (Accounts → mortgage account): every loan measured against take-home pay, with a mortgage rate stress test.
 5. House Hunting (Insights → House Hunting): a shortlist filled in while viewing a house, compared side by side against local benchmark prices.
 6. Full history (Settings → History): every change to every row is recorded, and a whole import can be undone in one tap.
-7. Fully on-device: no account, no server, no bank connection, no analytics.
+7. Fully on-device: no account, no server, no bank connection, no analytics, no AI.
 
 To see all of them: on first launch tap "Try with sample data". The attached recording walks through each one.
 
@@ -238,9 +241,6 @@ YOUR DATA
 • Export as plain files or CSV; import a Register CSV export
 • Face ID, Touch ID or passcode lock
 
-OPTIONAL AI
-Bring your own API key from OpenAI, Anthropic, Google, Mistral, Groq, DeepSeek or xAI and ask questions about your own numbers. Off until you turn it on.
-
 No ads, no analytics, no upsell.
 ```
 
@@ -254,6 +254,9 @@ App Review Notes (also the Guideline 2.1 answers Apple asked to keep here):
 
 ```
 No account or login. On first launch tap "Try with sample data": every screen fills with a sample household, kept apart from real data. Settings (top-left icon) → Demo Mode turns it off.
+
+CHANGES IN THIS BUILD
+All AI features have been removed: no AI analysis, no AI provider or API-key settings, no AI receipt reading. The app makes no requests to any AI service, in any region including mainland China. Receipt scanning reads text on the device with Apple's Vision framework.
 
 WHAT IS DISTINCT (with sample data on)
 - Quarterly Review (Insights → Quarterly Review): recurring payments detected from the user's own spending (same payee + exact amount), each decided once a quarter: keep, find an alternative, switch billing period, cancel and refund. Decisions become to-dos, never automatic changes.
@@ -274,17 +277,15 @@ HOW TO USE THE MAIN FEATURES (with Demo Mode on)
 - Spend tab: enter an amount, pick a payee, category and account, Save.
 - Accounts tab: balances, net worth; tap an account for its transactions and balance trend.
 - Insights tab: spending breakdown, trends, Baby Steps plan, payee and price trends, mortgage/loan/investment calculators.
-- Settings (top-left icon): budgets, language (English/Chinese), app lock (Face ID/passcode), export/import, backups, AI connections, remove all app data.
+- Settings (top-left icon): budgets, language (English/Chinese), app lock (Face ID/passcode), export/import, backups, remove all app data.
 
 OPTIONAL FEATURES (off by default; the app is fully usable without them)
-- AI analysis (Settings → AI Connections): the user pastes their own API key from a provider they choose. We provide no key and receive nothing.
 - Backup to the user's own iCloud Drive or their own Amazon S3 bucket (Settings → Data).
 
 EXTERNAL SERVICES
 - Frankfurter (api.frankfurter.app): public European Central Bank exchange rates, used for multi-currency totals. No personal data is sent.
-- Only if the user adds their own key: OpenAI, Anthropic, Google Gemini, Mistral, Groq, DeepSeek, xAI, Qwen, Kimi, GLM, ERNIE or an OpenAI-compatible server the user enters, called directly from the device. On the China storefront only DeepSeek, Qwen, Kimi, GLM and ERNIE are offered; the others are not shown.
 - Only if the user turns it on: Apple iCloud Drive, or Amazon S3 with the user's own credentials.
-No analytics, advertising, crash reporting, authentication or payment services. We run no server.
+No AI, analytics, advertising, crash reporting, authentication or payment services. We run no server.
 
 REGIONAL DIFFERENCES
 The app works the same in every region. It is available in English and Simplified Chinese. A few calculators model specific rules — Canadian home purchase and mortgage rules, a Chinese mortgage prepayment calculator, and Canadian tax-year insights — and are simply options in the list elsewhere.
@@ -343,7 +344,7 @@ Still true only while there's no analytics/crash SDK — re-check before each su
 grep -rniE "analytics|firebase|sentry|amplitude|mixpanel|posthog|bugsnag" package.json ios/Podfile.lock
 ```
 
-Data only leaves the device to destinations the user configures (their iCloud, S3, AI provider); you never receive it, so it isn't "collected".
+Data only leaves the device to destinations the user configures (their iCloud, S3); you never receive it, so it isn't "collected".
 
 ### `App Store → Trust & Safety → App Accessibility`
 

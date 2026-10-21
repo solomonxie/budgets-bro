@@ -12,8 +12,6 @@ TaxInsightsScreen.tsx
 │ (extra income, deductions)      │    ../../components/ui/TextField.tsx
 ├───────────────────────────────┤
 │ Estimated taxable income card   │──→ inline
-├───────────────────────────────┤
-│ Ask AI button                   │──→ inline (Alert stub)
 └───────────────────────────────┘
 ```
 

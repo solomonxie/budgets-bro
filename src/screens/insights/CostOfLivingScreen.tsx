@@ -26,7 +26,6 @@ import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { spacing } from '../../theme/spacing';
 
 const HOME_CURRENCY = 'CAD';
 
@@ -46,7 +45,7 @@ export function CostOfLivingScreen() {
   const [pickingBucket, setPickingBucket] = useState<CostBucket | null>(null);
   const { categories } = useCategories();
   const cityName = t(cityNameKey(cityId));
-  const city = useCityCosts(cityId, cityName);
+  const city = useCityCosts(cityId);
   const { mapping, monthlyByBucket, windowMonths, toggleCategory } =
     useBucketSpending();
 
@@ -106,34 +105,8 @@ export function CostOfLivingScreen() {
             )}
           </DropdownField>
           <Text style={styles.muted}>
-            {city.fromAi
-              ? t('costOfLiving.fromAi', {
-                  model: city.model ?? 'AI',
-                  date: city.asOf,
-                })
-              : t('costOfLiving.fromTable', { date: COST_OF_LIVING_AS_OF })}
+            {t('costOfLiving.fromTable', { date: COST_OF_LIVING_AS_OF })}
           </Text>
-          <View style={styles.actions}>
-            {city.hasAiKey ? (
-              <Pressable onPress={city.askAi} disabled={city.asking} hitSlop={8}>
-                <Text style={styles.link}>
-                  {city.asking
-                    ? t('costOfLiving.asking')
-                    : t('costOfLiving.askAi')}
-                </Text>
-              </Pressable>
-            ) : (
-              <Text style={styles.muted}>{t('costOfLiving.needsAiKey')}</Text>
-            )}
-            {city.fromAi ? (
-              <Pressable onPress={city.clearUpdate} hitSlop={8}>
-                <Text style={styles.muted}>{t('costOfLiving.useTable')}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          {city.error ? (
-            <Text style={styles.error}>{t('costOfLiving.askFailed')}</Text>
-          ) : null}
           {needsConversion && rate === 0 ? (
             <Text style={styles.muted}>
               {t('costOfLiving.needsRate', { currency: city.currency })}
@@ -247,8 +220,6 @@ export const ALL_BUCKETS = COST_BUCKETS;
 
 const styles = StyleSheet.create({
   muted: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
-  error: { fontSize: 12, color: colors.negative },
   link: { fontSize: 13, fontWeight: '700', color: colors.accent },
-  actions: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   bucketRow: { gap: 2 },
 });

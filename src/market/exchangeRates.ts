@@ -4,7 +4,7 @@
 // request returns a whole five-year series.
 //
 // This is the only outbound request the app makes that isn't the user's own
-// AI provider or their own cloud storage — and it carries nothing but two
+// cloud storage — and it carries nothing but two
 // currency codes and a date range. Nothing about the user's money is in it,
 // and nothing comes back but public rates.
 

@@ -1,14 +1,13 @@
 # Budgets Bro MVP — Design Doc
 
 ## Problem
-Existing YNAB-style budgeting apps are subscription-based, cloud-backend-dependent, and require trusting a third party with financial data. There's no free, privacy-first alternative that does zero-based/envelope budgeting well, includes basic financial calculators, and offers AI-assisted analysis without routing data through a vendor-run server.
+Existing YNAB-style budgeting apps are subscription-based, cloud-backend-dependent, and require trusting a third party with financial data. There's no free, privacy-first alternative that does zero-based/envelope budgeting well and includes basic financial calculators, without routing data through a vendor-run server.
 
 ## Goals
 - Free iOS app, lean YNAB-style envelope budgeting (accounts, categories, budgets, transactions, transfers).
 - One-time import of a user's existing YNAB data, so switching costs nothing.
-- Two native, on-device reports (spending breakdown, income vs. spending trend) — no AI or network call required for either.
+- Two native, on-device reports (spending breakdown, income vs. spending trend) — no network call required for either.
 - Self-contained financial calculators module (mortgage, loan/interest, amortization).
-- AI analysis using the user's own API key, called directly from device to provider.
 - Receipt capture: a photo shared in from Photos becomes transactions to review — on-device OCR, no photo-library permission ([`design/receipt-capture/DESIGN.md`](design/receipt-capture/DESIGN.md)).
 - SQLite as the single on-device source of truth; iCloud and S3 as optional backup targets.
 - Zero backend servers operated by Budgets Bro — client-only app, for both cost and privacy.
@@ -23,7 +22,7 @@ Existing YNAB-style budgeting apps are subscription-based, cloud-backend-depende
 - CSV import (possible post-MVP; manual entry only for MVP)
 - Multi-currency (single currency assumed)
 - Advanced reporting/BI beyond the two native reports described below (spending breakdown, income vs spending)
-- AI taking actions on data (analysis/insights only, read-only against the AI provider)
+- AI features of any kind — the app makes no AI calls (removed 2026-10-21; receipt OCR is on-device Vision, not AI)
 - Category goals/targets (funding targets, "needed by" dates) — real YNAB feature, deferred post-MVP: meaningful added complexity (goal types, progress math) that isn't required for basic envelope budgeting
 - Receipt photo attachment on transactions — deferred post-MVP (needs local image storage/size management). Reading a receipt shared into the app is a separate thing and is designed in [`design/receipt-capture/DESIGN.md`](design/receipt-capture/DESIGN.md): the photo is parsed on-device and discarded, never stored.
 - Transaction flags (arbitrary color tags) — deferred post-MVP, cosmetic-only
@@ -38,7 +37,7 @@ Envelope/zero-based budgeting, YNAB-style. Transfers are linked transaction pair
 - `categories` (id, group_id, name, icon nullable, sort_order, archived_at) — `icon` is a single emoji, shown next to the name in lists (matches the visual identity pattern real YNAB uses; optional, defaults to none)
 - `budget_entries` (id, category_id, month `YYYY-MM`, assigned_cents) — one row per category per month
 - `payees` (id, name)
-- `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, purchase_items nullable, amount_cents signed, date, cleared, is_interest, transfer_account_id nullable, import_id nullable unique, created_at, updated_at) — `import_id` is the dedupe key for YNAB data import (below); `is_interest` flags interest income on savings-type accounts so it can be broken out separately in reports/AI analysis instead of blending into generic income; `purchase_items` is a short `key=value, key=value` string naming what was bought (typed by hand, or filled from a shared receipt) — one column rather than a child table because it is only ever read whole, and it is what Insights' Tracked Prices page aggregates (see `src/domain/purchaseItems.ts`)
+- `transactions` (id, account_id, category_id nullable, payee_id nullable, memo, purchase_items nullable, amount_cents signed, date, cleared, is_interest, transfer_account_id nullable, import_id nullable unique, created_at, updated_at) — `import_id` is the dedupe key for YNAB data import (below); `is_interest` flags interest income on savings-type accounts so it can be broken out separately in reports instead of blending into generic income; `purchase_items` is a short `key=value, key=value` string naming what was bought (typed by hand, or filled from a shared receipt) — one column rather than a child table because it is only ever read whole, and it is what Insights' Tracked Prices page aggregates (see `src/domain/purchaseItems.ts`)
 
 **Derived (computed, not stored):**
 - Category balance(month) = cumulative assigned(≤ month) + cumulative activity(≤ month). Assigning to a *future* month pre-funds it.
@@ -118,7 +117,7 @@ See [UIUX-DESIGN.md](UIUX-DESIGN.md) — screen-by-screen UI/UX spec plus the co
 ## App lock (shipped)
 Off by default; Settings → App Lock offers Off · 4-digit passcode · Face ID (labelled Touch ID, or refused outright, per what the phone has enrolled).
 
-- **Where the secrets live**: the Keychain, `WHEN_UNLOCKED_THIS_DEVICE_ONLY` — same boundary as the AI/S3 credentials, so no backup or export path can carry the passcode (see Secrets vs. backups). The mode itself is an `app_settings` row, not a secret.
+- **Where the secrets live**: the Keychain, `WHEN_UNLOCKED_THIS_DEVICE_ONLY` — same boundary as the S3 credentials, so no backup or export path can carry the passcode (see Secrets vs. backups). The mode itself is an `app_settings` row, not a secret.
 - **The passcode is stored as typed, not hashed.** Four digits is ten thousand candidates; a hash of it is decoration. What protects it is iOS's encryption of the Keychain entry.
 - **Biometrics can't lock anyone out**: written under `BIOMETRY_ANY_OR_DEVICE_PASSCODE`, so a face that won't scan falls back to the iPhone's own passcode. There is no app-side recovery for a forgotten *app* passcode by design — reinstalling is the way out, and it takes the data with it.
 - **Locked vs. covered**: locked asks for proof (on cold start, and after 60 seconds away — a lock that challenges every ten-second glance gets switched off, which protects nothing). Covered merely hides the ledger whenever the app isn't frontmost, which is also what iOS photographs for the app switcher.
@@ -151,27 +150,13 @@ Self-contained pure-function module, no DB/React dependency (`src/finance-tools/
 - Simple/compound interest calculator
 - Extra-payment payoff acceleration calculator
 
-## AI analysis feature
-**What it analyzes:** spending-by-category trends, budget variance (assigned vs actual), simple forward projections, natural-language Q&A over the user's own data.
-
-**Flow:**
-1. User enters an API key (Anthropic/OpenAI) in Settings → stored via `expo-secure-store` (iOS Keychain).
-2. User taps "Analyze" → app builds a payload from local SQLite (aggregated category totals by default; raw transactions only in opt-in "detailed mode").
-3. App calls the provider's REST API directly from the device — no Budgets Bro server in the path.
-4. Response renders in-app; nothing is persisted or transmitted to Budgets Bro infrastructure (there is none).
-
-**Privacy tradeoff:** invoking analysis sends financial data to a third-party AI provider chosen by the user. Default mode sends aggregated totals only; detailed mode (explicit opt-in) sends raw payee/memo/amount data. Because the user supplies their own key, usage/cost is auditable in that provider's dashboard — but data still leaves the device to that provider. This must be surfaced in the UI, not just documented here.
-
-**Settings disclosure (light, shown right under each key field):**
-- OpenAI: "Used by AI Analysis. Sent straight from this device to OpenAI when you run an analysis — never stored or seen by us. The key itself never leaves this device, including in backups."
-- AWS S3: "Used only for backups you trigger. The key itself never leaves this device, including in backups — only your board's money data goes to S3, and only when you back up."
-
 ## Secrets vs. backups — never mixed
-The AI API key and S3 credentials are provider credentials, not money data, and must never appear in any backup, on-device or off:
-- **Storage boundary**: both live only in `expo-secure-store` (Keychain/Keystore), never in the SQLite DB (`app_settings` holds only theme/active-board, nothing secret) — so no backup or export path that reads the DB can ever touch them.
+S3 credentials are provider credentials, not money data, and must never appear in any backup, on-device or off:
+- **Storage boundary**: they live only in `expo-secure-store` (Keychain/Keystore), never in the SQLite DB (`app_settings` holds only theme/active-board, nothing secret) — so no backup or export path that reads the DB can ever touch them.
 - **Keychain accessibility (iOS)**: written with `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, which iOS excludes from iCloud/iTunes device backups and never migrates to a new device.
 - **Auto Backup (Android)**: `android.allowBackup` is `false` — no OS-level backup path exists for this app at all, implicit or otherwise; money data only leaves the device via the explicit backup flows below.
 - **App's own export/backup** (`exportBoardZip`, iCloud/S3 backup): dumps only board-scoped SQLite tables (accounts, categories, budget entries, payees, transactions) — never touches secureStore, so a restored backup can never carry a key.
+- **Settings disclosure** (under the S3 key field): "Used only for backups you trigger. The key itself never leaves this device, including in backups — only your board's money data goes to S3, and only when you back up."
 
 ## Size and speed budget
 Lightweight and instant is a requirement, not a nice-to-have — see
@@ -248,8 +233,7 @@ Runtime shape:
 | State management | Zustand | Most state is SQLite queries + light UI state; Redux/React Query is overkill |
 | Data layer | Repository functions (`src/db/repositories`) | Isolates SQL, testable independent of UI |
 | Styling | RN `StyleSheet` + design-tokens file | Avoids Tailwind/NativeWind weight for MVP |
-| Secure storage | expo-secure-store | Keychain-backed, for AI API key + S3 credentials |
-| AI calls | Direct `fetch` to provider REST endpoints | Avoids heavy SDKs, keeps payload (aggregate/detailed) under app's control |
+| Secure storage | expo-secure-store | Keychain-backed, for S3 credentials + app passcode |
 | S3 signing | own `sync/sigv4.ts` over own `sync/sha256.ts` | AWS's own signer cost 341 KB of bundle for four calls; the replacement is checked against its output in `sigv4.test.ts` |
 | Testing | Jest (`jest-expo`) | Unit tests for calculators & budget math only |
 | Build/submit | Local `xcodebuild` + `devicectl`; EAS only for over-the-air/TestFlight | Everyday path is a Release build straight onto the phone (`npm run ios`) |
@@ -292,4 +276,4 @@ or supports.
 - iCloud container entitlement under Expo config plugins + EAS build needs a spike to confirm it doesn't force a bare-workflow eject.
 - ~~aws4fetch relies on WebCrypto~~ — settled: signing is pure JS over `sync/sha256.ts`, so nothing depends on WebCrypto under Hermes.
 - Cutting bank-linking, CSV import, and multi-currency may feel too lean for some users — explicitly deferred to post-MVP roadmap.
-- App Store privacy label must disclose that transaction data can be sent to a user-chosen AI provider and to user-chosen iCloud/S3 backup targets.
+- App Store privacy label must disclose that transaction data can be sent to user-chosen iCloud/S3 backup targets.

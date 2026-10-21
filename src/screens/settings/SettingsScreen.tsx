@@ -24,19 +24,6 @@ import { PasscodeEntry } from '../../components/ui/PasscodeEntry';
 import { CardModal } from '../../components/ui/CardModal';
 import { getDb } from '../../db/client';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
-import {
-  listAiKeys,
-  listUsableAiKeys,
-  addAiKey,
-  removeAiKey,
-  moveAiKey,
-  getAiKeyStrategy,
-  setAiKeyStrategy,
-  aiKeyName,
-} from '../../ai/aiKeys';
-import type { AiKeyMeta, AiVendor, AiKeyStrategy, CustomEndpoint } from '../../ai/aiKeys';
-import { AiKeyForm } from '../../components/ui/AiKeyForm';
-import { AiKeyHistoryModal } from '../../components/ui/AiKeyHistoryModal';
 import { ResultToast } from '../../components/ui/ResultToast';
 import type { AppExportImportResult } from '../../import/appExportImporter';
 import { enterDemoMode, leaveDemoMode } from '../../demo/demoMode';
@@ -45,7 +32,6 @@ import { useT, LANGUAGES } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
-import { InfoButton } from '../../components/ui/InfoButton';
 import { CollapsibleText } from '../../components/ui/CollapsibleText';
 import { DataSafetyRow } from './DataSafetyRow';
 import * as boardsRepo from '../../db/repositories/boardsRepo';
@@ -101,11 +87,6 @@ export function SettingsScreen() {
     first: string | null;
   } | null>(null);
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
-  const [aiKeys, setAiKeys] = useState<AiKeyMeta[]>([]);
-  const [addingAiKey, setAddingAiKey] = useState(false);
-  const [aiKeyHistory, setAiKeyHistory] = useState<AiKeyMeta | null>(null);
-  const [aiKeyStrategy, setAiKeyStrategyState] =
-    useState<AiKeyStrategy>('sequential');
   // What the last restore brought in, shown once and then gone: the numbers
   // are worth confirming the moment they land and worth nothing afterwards.
   const [restoreResult, setRestoreResult] =
@@ -118,8 +99,6 @@ export function SettingsScreen() {
       const db = await getDb();
       const savedTheme = await settingsRepo.getSetting(db, THEME_KEY);
       if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
-      setAiKeys(await listUsableAiKeys(db));
-      setAiKeyStrategyState(await getAiKeyStrategy(db));
       setBiometry(await biometryName());
     })();
   }, [demoMode]);
@@ -173,44 +152,6 @@ export function SettingsScreen() {
     setTheme(next);
     const db = await getDb();
     await settingsRepo.setSetting(db, THEME_KEY, next);
-  };
-
-  const addAiKeyRow = async (vendor: AiVendor, secret: string, custom?: CustomEndpoint) => {
-    const db = await getDb();
-    await addAiKey(db, vendor, secret, custom);
-    setAiKeys(await listUsableAiKeys(db));
-    setAddingAiKey(false);
-  };
-
-  const confirmRemoveAiKey = (key: AiKeyMeta) => {
-    Alert.alert(
-      t('settings.deleteAiKeyConfirmTitle'),
-      t('settings.deleteAiKeyConfirmMessage'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const db = await getDb();
-            await removeAiKey(db, key.id);
-            setAiKeys(await listUsableAiKeys(db));
-          },
-        },
-      ],
-    );
-  };
-
-  const moveAiKeyRow = async (id: string, direction: -1 | 1) => {
-    const db = await getDb();
-    await moveAiKey(db, id, direction);
-    setAiKeys(await listUsableAiKeys(db));
-  };
-
-  const selectAiKeyStrategy = async (strategy: AiKeyStrategy) => {
-    setAiKeyStrategyState(strategy);
-    const db = await getDb();
-    await setAiKeyStrategy(db, strategy);
   };
 
   // Every restore lands as a brand-new board and switches to it — see
@@ -293,9 +234,8 @@ export function SettingsScreen() {
       const db = await getDb();
       // From the database, not the screen's list, which can lag an import.
       const allBoards = await boardsRepo.listBoards(db);
-      // Read before the wipe: all three lists live in app_settings.
-      const [savedAiKeys, s3Configs, s3Drafts] = await Promise.all([
-        listAiKeys(db),
+      // Read before the wipe: both lists live in app_settings.
+      const [s3Configs, s3Drafts] = await Promise.all([
         listS3Configs(db),
         listS3Drafts(db),
       ]);
@@ -324,10 +264,8 @@ export function SettingsScreen() {
       // After the data is gone, each on its own: one keychain hiccup must not
       // leave the rest behind.
       await Promise.allSettled([
-        ...savedAiKeys.map((key) => secureStore.clearAiKeySecret(key.id)),
         ...s3Configs.map((config) => secureStore.clearS3Credentials(config.id)),
         ...s3Drafts.map((draft) => secureStore.clearS3Credentials(draft.id)),
-        secureStore.clearAiApiKey(),
         clearLockSecrets(),
         deleteAllLocalBackups({ keepPreDeletion: true }),
         deleteAllSnapshots(),
@@ -337,7 +275,6 @@ export function SettingsScreen() {
       useAppStore.getState().setLockMode('none');
       useAppStore.getState().rememberTransactionAccounts(null);
       setTheme('dark');
-      setAiKeys([]);
       bumpDataVersion();
       Alert.alert(
         t('settings.removeAllDataCompleteTitle'),
@@ -591,127 +528,6 @@ export function SettingsScreen() {
           <Text style={styles.sectionHint}>{t('settings.lockHint')}</Text>
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeadingRow}>
-            <View style={styles.headingWithInfo}>
-              <Text style={styles.sectionHeading}>
-                {t('settings.aiKeysHeading')}
-              </Text>
-              <InfoButton
-                title={t('aiInfo.title')}
-                paragraphs={[
-                  t('aiInfo.what'),
-                  t('aiInfo.ownAccount'),
-                  t('aiInfo.whereToRegister'),
-                  t('aiInfo.cost'),
-                  t('aiInfo.privacy'),
-                ]}
-                closeLabel={t('common.done')}
-              />
-            </View>
-            {/* Only meaningful once there's more than one key to fall back to. */}
-            {aiKeys.length > 1 ? (
-              <Pressable
-                onPress={() =>
-                  selectAiKeyStrategy(
-                    aiKeyStrategy === 'sequential'
-                      ? 'round_robin'
-                      : 'sequential',
-                  )
-                }
-              >
-                <Text style={styles.strategyLinkText}>
-                  {aiKeyStrategy === 'sequential'
-                    ? t('settings.aiKeyStrategySequential')
-                    : t('settings.aiKeyStrategyRoundRobin')}{' '}
-                  ▾
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <Text style={styles.sectionHint}>{t('settings.aiKeysHint')}</Text>
-          {aiKeys.length > 0 ? (
-            <View style={styles.group}>
-              {aiKeys.map((key, i) => (
-                <View
-                  key={key.id}
-                  style={[styles.row, i > 0 && styles.rowDivider]}
-                >
-                  <Pressable
-                    style={styles.rowMain}
-                    onPress={() => setAiKeyHistory(key)}
-                  >
-                    <Text style={styles.rowTitle}>
-                      {aiKeyName(key)}
-                    </Text>
-                    <Text style={styles.rowValue}>
-                      {t('settings.aiKeyRequestCount', {
-                        count: key.requestCount,
-                      })}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    hitSlop={8}
-                    disabled={i === 0}
-                    onPress={() => moveAiKeyRow(key.id, -1)}
-                  >
-                    <Text
-                      style={[
-                        styles.reorderArrow,
-                        i === 0 && styles.reorderArrowDisabled,
-                      ]}
-                    >
-                      ↑
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    hitSlop={8}
-                    disabled={i === aiKeys.length - 1}
-                    onPress={() => moveAiKeyRow(key.id, 1)}
-                  >
-                    <Text
-                      style={[
-                        styles.reorderArrow,
-                        i === aiKeys.length - 1 && styles.reorderArrowDisabled,
-                      ]}
-                    >
-                      ↓
-                    </Text>
-                  </Pressable>
-                  <RowMenuButton
-                    items={[
-                      {
-                        label: t('common.delete'),
-                        destructive: true,
-                        onPress: () => confirmRemoveAiKey(key),
-                      },
-                    ]}
-                  />
-                </View>
-              ))}
-            </View>
-          ) : null}
-          {addingAiKey ? (
-            <AiKeyForm
-              onSaved={addAiKeyRow}
-              onCancel={() => setAddingAiKey(false)}
-            />
-          ) : (
-            <Pressable
-              style={styles.addLink}
-              onPress={() => setAddingAiKey(true)}
-            >
-              <Text style={styles.addLinkText}>
-                {t('settings.addAiKeyLink')}
-              </Text>
-            </Pressable>
-          )}
-          <AiKeyHistoryModal
-            aiKey={aiKeyHistory}
-            onClose={() => setAiKeyHistory(null)}
-          />
-        </View>
-
         <BackupSection key={dbKey} boardId={boardId} boardName={boardName} />
 
         <DataSection
@@ -855,17 +671,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.textMuted,
   },
-  headingWithInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  sectionHeadingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  strategyLinkText: { fontSize: 12, fontWeight: '700', color: colors.accent },
   demoModeGroup: { marginBottom: spacing.lg },
   rowHint: { color: colors.textMuted, fontSize: 12 },
   removeAllDataLink: { alignSelf: 'center', paddingVertical: spacing.sm, marginBottom: spacing.lg },
@@ -901,12 +706,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowMain: { flex: 1, gap: 2 },
-  reorderArrow: {
-    fontSize: 16,
-    color: colors.textMuted,
-    paddingHorizontal: spacing.xs,
-  },
-  reorderArrowDisabled: { opacity: 0.3 },
   radio: {
     width: 16,
     height: 16,

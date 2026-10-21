@@ -44,7 +44,6 @@ export type InsightsStackParamList = {
   // account sheet uses.
   HouseDetail: { houseId?: number } | undefined;
   HouseCompare: { houseIds: number[] };
-  AiAnalysis: undefined;
   // One route for every calculator — see screens/finance-tools/registry.ts.
   FinanceTool: { tool: FinanceToolId };
 };

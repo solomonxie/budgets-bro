@@ -2,14 +2,13 @@
 
 > 🚧 Work in progress.
 
-Free, privacy-first, YNAB-style budgeting for iOS. Envelope budgeting, common financial calculators, and optional AI analysis — no backend, no subscription.
+Free, privacy-first, YNAB-style budgeting for iOS. Envelope budgeting and common financial calculators — no backend, no subscription.
 
 See [`docs/DESIGN.md`](docs/DESIGN.md) for the design doc and [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for the implementation plan.
 
 ## Core
 - YNAB-style envelope/zero-based budgeting
 - Financial tools: mortgage / interest / payment calculators
-- AI analysis (bring your own API key)
 
 ## Storage
 - Local (SQLite): single source of truth
@@ -19,7 +18,7 @@ See [`docs/DESIGN.md`](docs/DESIGN.md) for the design doc and [`docs/IMPLEMENTAT
 ## Privacy
 - iCloud: the user's own account and storage quota; nothing passes through a server of ours
 - S3: provisioned by user, grant app access
-- AI: user's own API key, usage auditable in the provider's own dashboard
+- No AI: nothing is sent to an AI provider
 
 ## Development
 Expo SDK (React Native, TypeScript) built and run as a **native app only** — no

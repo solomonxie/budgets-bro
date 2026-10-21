@@ -1,3 +1,5 @@
+AI features removed 2026-10-21: receipts parse on-device only (`domain/receipt.ts`); AI tasks below dropped.
+
 ## Phase 1: Purchase items
 A transaction field in its own right — typed in by hand to track a price over
 time, or filled by a receipt import later. Ships and is useful on its own,
@@ -30,11 +32,11 @@ native work, testable by flipping the flag by hand.
 - [ ] T3.5 Verify `hooks/useReviewCount.ts` needs no change (it counts through `reviewReasons`) — depends: T3.3
 
 ## Phase 4: Reading a receipt
-Pure JS, no device needed. The repair ladder is where the risk lives.
+Pure JS, no device needed.
 
-- [ ] T4.1 `ai/prompts.ts` — `buildReceiptMessages(ocrText, { today, categoryNames })` asking for one JSON object, one transaction per receipt, a category from the board's real names or null; plus `redactReceiptText` — depends: none
-- [ ] T4.2 `domain/receiptParse.ts` (+ test) — `extractJsonObject` repair ladder (plain → fences → first/last brace → brace-balance ignoring strings → trailing commas), coercion that never trusts the shape, `receiptPurchaseItems`, `receiptMemo`, `receiptImportId` — depends: T1.2, T4.1
-- [ ] T4.3 `receipts/importReceipt.ts` — OCR → redact → `runWithAiKeys` → parse → resolve account/payee/category → `insertReceiptTransaction` — depends: T3.2, T4.2, T5.3
+- [ ] ~~T4.1 `ai/prompts.ts` — `buildReceiptMessages(ocrText, { today, categoryNames })` asking for one JSON object, one transaction per receipt, a category from the board's real names or null; plus `redactReceiptText`~~ — dropped (no AI)
+- [ ] ~~T4.2 `domain/receiptParse.ts` (+ test) — `extractJsonObject` repair ladder (plain → fences → first/last brace → brace-balance ignoring strings → trailing commas), coercion that never trusts the shape, `receiptPurchaseItems`, `receiptMemo`, `receiptImportId`~~ — dropped (no AI reply to repair); on-device `parseReceipt` in `domain/receipt.ts` instead
+- [ ] T4.3 `receipts/importReceipt.ts` — OCR → `parseReceipt(receiptRows(texts))` → memo + `receipt:<sha>:<index>` import id → resolve account/payee/category → `insertReceiptTransaction` — depends: T3.2, T5.3
 
 ## Phase 5: The iOS share-in path
 - [ ] T5.1 Probe: `CFBundleDocumentTypes` (`public.image`) in `Info.plist`, share one photo from Photos, record whether the app appears. Keep the entry either way for Files/Mail — depends: none
@@ -51,4 +53,4 @@ Pure JS, no device needed. The repair ladder is where the risk lives.
 - [ ] T6.5 Settings row "Receipt inbox — N waiting" with a Clear, so a stuck item is recoverable without a reinstall — depends: T5.3
 
 ## Phase 7: Docs
-- [ ] T7.1 Fold the built reality back into this folder, `docs/DESIGN.md` (schema line, AI section), `docs/UIUX-DESIGN.md` and the root `README.md` — above all the share-sheet probe's result — depends: T5.5
+- [ ] T7.1 Fold the built reality back into this folder, `docs/DESIGN.md` (schema line), `docs/UIUX-DESIGN.md` and the root `README.md` — above all the share-sheet probe's result — depends: T5.5

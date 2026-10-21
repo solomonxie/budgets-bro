@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { InsightsScreen } from '../screens/insights/InsightsScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
-import { AiAnalysisScreen } from '../screens/ai/AiAnalysisScreen';
 import { MortgageInsightsScreen } from '../screens/finance-tools/MortgageInsightsScreen';
 import { LoanInsightsScreen } from '../screens/finance-tools/LoanInsightsScreen';
 import { InvestmentInsightsScreen } from '../screens/finance-tools/InvestmentInsightsScreen';
@@ -96,7 +95,6 @@ export function InsightsStackNavigator() {
         component={FinanceToolScreen}
         options={({ route }) => ({ title: t(financeTool(route.params.tool).titleKey) })}
       />
-      <Stack.Screen name="AiAnalysis" component={AiAnalysisScreen} options={{ title: t('aiAnalysis.title') }} />
     </Stack.Navigator>
   );
 }

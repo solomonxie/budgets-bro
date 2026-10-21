@@ -13,7 +13,7 @@ SettingsModal.tsx
 SettingsScreen.tsx
 ┌───────────────────────────────┐
 │ PRIVACY BY DESIGN (static card) │──→ inline; offline-first, no publisher
-│                                  │    server, data only to storage/AI the
+│                                  │    server, data only to storage the
 │                                  │    user owns. First thing on the page —
 │                                  │    BACKUP's ⓘ and BANK SYNC restate it
 │                                  │    in detail where it's acted on.
@@ -28,13 +28,6 @@ SettingsScreen.tsx
 │                                  │    ../../components/ui/PasscodeEntry.tsx
 │                                  │    twice inside a CardModal; the gate
 │                                  │    itself is ../lock/LockScreen.tsx
-├───────────────────────────────┤
-│ AI CONNECTIONS  ⓘ               │──→ inline; rows reorder, ⓘ explains
-│  (rows, + Connect an AI)        │    bring-your-own-account and where to
-│                                  │    register. The add form unfolds in
-│                                  │    place: ../../components/ui/AiKeyForm.tsx
-│                                  │    (was AiKeyModal, a bottom sheet that
-│                                  │    covered the list it added to)
 ├───────────────────────────────┤
 │ BACKUP                          │──→ ./BackupSection.tsx
 ├───────────────────────────────┤

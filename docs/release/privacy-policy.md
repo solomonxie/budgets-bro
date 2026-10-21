@@ -1,6 +1,6 @@
 # Privacy Policy — Budgets Bro
 
-_Last updated: 2026-09-22_
+_Last updated: 2026-10-21_
 
 Budgets Bro does not collect, transmit, or store your personal data on any server we control. We operate no server.
 
@@ -11,11 +11,12 @@ Your accounts, transactions, budgets, categories, payees, and settings are kept 
 - **iCloud backup** — a backup file is written to your own iCloud Drive folder, in your Apple account and your storage quota. We have no access to it.
 - **S3 backup** — a backup file is written to a bucket you provision with credentials you supply. We have no access to it.
 - **Export / import** — files you create and place wherever you choose.
-- **AI analysis** — off by default. If you enable it and supply your own API key, the parts of your budget needed to answer your question are sent to the provider you selected (for example OpenAI, Anthropic, Google, DeepSeek, Qwen, Kimi, or a server you enter) under your own account with them. Their privacy policy governs that data. Your key is stored on the device and never sent to us.
-- **Exchange rates** — the app fetches public currency rates from a public rate API. No personal data is included in that request.
+- **Exchange rates** — the app fetches public European Central Bank rates from Frankfurter (api.frankfurter.app). No personal data is included in that request.
+
+The app has no AI features and sends nothing to any AI service.
 
 ## Security
-Your API keys and app passcode are stored in the iOS Keychain, device-only. The app can be locked with Face ID, Touch ID, or a passcode. Network requests use HTTPS.
+Your S3 credentials and app passcode are stored in the iOS Keychain, device-only. The app can be locked with Face ID, Touch ID, or a passcode. Network requests use HTTPS.
 
 ## Analytics and advertising
 None. No analytics SDK, no crash reporting, no advertising identifiers, no tracking across apps or websites.

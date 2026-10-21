@@ -30,13 +30,16 @@ export interface MonthAmount {
 //
 // Longer than fits scrolls sideways and opens at the newest month, the same
 // as the category trend. `selectedMonth` is what the headline reads when no
-// finger is on the chart — the month a list is filtered to.
+// finger is on the chart — the month a list is filtered to. With
+// `onPickMonth`, tapping a bar picks that month and tapping it again clears.
 export function MonthlyBarChart({
   series,
   selectedMonth = null,
+  onPickMonth,
 }: {
   series: MonthAmount[];
   selectedMonth?: string | null;
+  onPickMonth?: (month: string | null) => void;
 }) {
   const { t, language } = useI18n();
   const { width: windowWidth } = useWindowDimensions();
@@ -49,6 +52,14 @@ export function MonthlyBarChart({
     count: series.length,
     chartWidth,
     onSelect: setIndex,
+    onTap: onPickMonth
+      ? (i) => {
+          const month = series[i]?.month;
+          if (!month) return;
+          setIndex(null);
+          onPickMonth(month === selectedMonth ? null : month);
+        }
+      : undefined,
   });
   // Each month against its own recent past, not a whole-history average —
   // the series starts at the first payment, so no padding months drag it.

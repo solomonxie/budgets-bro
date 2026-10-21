@@ -25,10 +25,13 @@ export function useChartScrub({
   count,
   chartWidth,
   onSelect,
+  onTap,
 }: {
   count: number;
   chartWidth: number;
   onSelect: (index: number | null) => void;
+  // A plain tap, as opposed to a hold-and-slide read.
+  onTap?: (index: number) => void;
 }) {
   const [scrollEnabled, setScrollEnabled] = useState(true);
   // Only ever touched inside the handlers below, never during render.
@@ -86,7 +89,9 @@ export function useChartScrub({
         const tapped = !state.current.scrubbing && !moved(e);
         const x = e.nativeEvent.locationX;
         endGesture();
-        if (tapped) onSelect(indexAt(x));
+        if (!tapped) return;
+        onSelect(indexAt(x));
+        onTap?.(indexAt(x));
       },
       onResponderTerminate: endGesture,
     },

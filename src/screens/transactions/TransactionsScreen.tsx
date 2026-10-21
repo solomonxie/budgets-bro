@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -12,11 +12,6 @@ import { FlaggedBanner } from '../../components/ui/FlaggedBanner';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
-import {
-  DropdownField,
-  DropdownGroupLabel,
-  DropdownOption,
-} from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
@@ -26,16 +21,11 @@ import * as transactionsRepo from '../../db/repositories/transactionsRepo';
 import { useAppStore } from '../../state/useAppStore';
 import { TransactionSubLabel } from '../../components/ui/TransactionSubLabel';
 import { formatMoneyExact } from '../../domain/money';
-import {
-  lastNMonths,
-  monthsBetween,
-  formatMonthLabel,
-  currentMonth,
-} from '../../domain/month';
+import { monthsBetween, currentMonth } from '../../domain/month';
 import { isSpendingAccountType } from '../../domain/accountKind';
 import { MonthlyBarChart } from '../../components/ui/MonthlyBarChart';
 import type { MonthAmount } from '../../components/ui/MonthlyBarChart';
-import { useI18n, localeTag } from '../../i18n';
+import { useI18n } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import type { TransactionWithLabels } from '../../domain/types';
@@ -56,8 +46,6 @@ interface DateGroup {
   date: string;
   items: TransactionWithLabels[];
 }
-
-const MONTH_FILTER_OPTIONS = lastNMonths(currentMonth(), 12).reverse();
 
 // Money that left a spending account for something other than another of
 // your own accounts, per month from the first such month to this one.
@@ -82,10 +70,10 @@ function monthlySpending(rows: TransactionWithLabels[]): MonthAmount[] {
 }
 
 export function TransactionsScreen() {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const route = useRoute<Route>();
   const { transactions, refresh } = useTransactions();
-  const { groups, categories } = useCategories();
+  const { categories } = useCategories();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const navigation = useNavigation<RootNav>();
@@ -98,8 +86,6 @@ export function TransactionsScreen() {
     null,
   );
   const [monthFilter, setMonthFilter] = useState<string | null>(null);
-  // undefined = all rows; null = rows with no payee.
-  const [payeeFilter, setPayeeFilter] = useState<number | null | undefined>();
   const {
     selectMode,
     selectedIds,
@@ -112,25 +98,10 @@ export function TransactionsScreen() {
 
   // Arriving from the Budget screen's "Details" button or Insights presets filters.
   useEffect(() => {
-    if (route.params?.categoryId != null)
-      setCategoryFilter(route.params.categoryId);
-    if (route.params?.categoryIds != null)
-      setOtherCategoryIds(route.params.categoryIds);
-    if (route.params?.month != null) setMonthFilter(route.params.month);
+    setCategoryFilter(route.params?.categoryId ?? null);
+    setOtherCategoryIds(route.params?.categoryIds ?? null);
+    setMonthFilter(route.params?.month ?? null);
   }, [route.params]);
-
-  // Payees in this board's history, most used first.
-  const payeeOptions = useMemo(() => {
-    const byId = new Map<number | null, { name: string; count: number }>();
-    for (const txn of transactions) {
-      const entry = byId.get(txn.payeeId);
-      if (entry) entry.count++;
-      else byId.set(txn.payeeId, { name: txn.payeeName ?? '', count: 1 });
-    }
-    return [...byId]
-      .map(([id, { name, count }]) => ({ id, name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [transactions]);
 
   // Every filter but the month: the chart above the list needs the months on
   // either side of the one picked.
@@ -143,7 +114,6 @@ export function TransactionsScreen() {
       } else if (categoryFilter != null && t.categoryId !== categoryFilter) {
         return false;
       }
-      if (payeeFilter !== undefined && t.payeeId !== payeeFilter) return false;
       if (
         q &&
         !(t.payeeName ?? '').toLowerCase().includes(q) &&
@@ -152,7 +122,7 @@ export function TransactionsScreen() {
         return false;
       return true;
     });
-  }, [transactions, query, categoryFilter, otherCategoryIds, payeeFilter]);
+  }, [transactions, query, categoryFilter, otherCategoryIds]);
 
   const filtered = useMemo(
     () =>
@@ -199,25 +169,18 @@ export function TransactionsScreen() {
     refresh();
   };
 
-  const categoryFilterLabel =
+  // The category is fixed by how the list was opened, so the title says
+  // which one instead of a picker.
+  const categoryName =
     otherCategoryIds != null
       ? t('transactions.allOthers')
-      : categoryFilter == null
-        ? ''
-        : (() => {
-            const c = categories.find((cat) => cat.id === categoryFilter);
-            return c ? `${c.icon ? c.icon + ' ' : ''}${c.name}` : '';
-          })();
-  const monthFilterLabel =
-    monthFilter == null
-      ? ''
-      : formatMonthLabel(monthFilter, localeTag(language));
-  const payeeLabel = (id: number | null) =>
-    id == null
-      ? t('common.noPayee')
-      : (payeeOptions.find((p) => p.id === id)?.name ?? '');
-  const payeeFilterLabel =
-    payeeFilter === undefined ? '' : payeeLabel(payeeFilter);
+      : (categories.find((cat) => cat.id === categoryFilter)?.name ??
+        t('transactions.titleAll'));
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('transactions.title', { name: categoryName }),
+    });
+  }, [navigation, categoryName, t]);
 
   return (
     <ScreenContainer>
@@ -230,6 +193,7 @@ export function TransactionsScreen() {
           <MonthlyBarChart
             series={spendingByMonth}
             selectedMonth={monthFilter}
+            onPickMonth={setMonthFilter}
           />
         </View>
       ) : null}
@@ -247,122 +211,6 @@ export function TransactionsScreen() {
             {selectMode ? t('common.done') : t('transactions.select')}
           </Text>
         </Pressable>
-      </View>
-      <View style={styles.filterRow}>
-        <View style={styles.filterField}>
-          <DropdownField
-            compact
-            link
-            label={t('common.category')}
-            valueLabel={categoryFilterLabel}
-            placeholder={t('transactions.allCategories')}
-          >
-            {(close) => (
-              <>
-                <DropdownOption
-                  label={t('transactions.allCategories')}
-                  selected={categoryFilter == null && otherCategoryIds == null}
-                  onPress={() => {
-                    setCategoryFilter(null);
-                    setOtherCategoryIds(null);
-                    close();
-                  }}
-                />
-                {groups.map((group) => {
-                  const groupCategories = categories.filter(
-                    (c) => c.groupId === group.id,
-                  );
-                  if (groupCategories.length === 0) return null;
-                  return (
-                    <View key={group.id}>
-                      <DropdownGroupLabel label={group.name} />
-                      {groupCategories.map((c) => (
-                        <DropdownOption
-                          key={c.id}
-                          label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                          selected={
-                            otherCategoryIds == null && categoryFilter === c.id
-                          }
-                          onPress={() => {
-                            setCategoryFilter(c.id);
-                            setOtherCategoryIds(null);
-                            close();
-                          }}
-                        />
-                      ))}
-                    </View>
-                  );
-                })}
-              </>
-            )}
-          </DropdownField>
-        </View>
-        <View style={styles.filterField}>
-          <DropdownField
-            compact
-            link
-            label={t('common.month')}
-            valueLabel={monthFilterLabel}
-            placeholder={t('transactions.allMonths')}
-          >
-            {(close) => (
-              <>
-                <DropdownOption
-                  label={t('transactions.allMonths')}
-                  selected={monthFilter == null}
-                  onPress={() => {
-                    setMonthFilter(null);
-                    close();
-                  }}
-                />
-                {MONTH_FILTER_OPTIONS.map((m) => (
-                  <DropdownOption
-                    key={m}
-                    label={formatMonthLabel(m, localeTag(language))}
-                    selected={monthFilter === m}
-                    onPress={() => {
-                      setMonthFilter(m);
-                      close();
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </DropdownField>
-        </View>
-        <View style={styles.filterField}>
-          <DropdownField
-            compact
-            link
-            label={t('common.payee')}
-            valueLabel={payeeFilterLabel}
-            placeholder={t('accountDetail.allPayees')}
-          >
-            {(close) => (
-              <>
-                <DropdownOption
-                  label={t('accountDetail.allPayees')}
-                  selected={payeeFilter === undefined}
-                  onPress={() => {
-                    setPayeeFilter(undefined);
-                    close();
-                  }}
-                />
-                {payeeOptions.map((p) => (
-                  <DropdownOption
-                    key={p.id ?? 'none'}
-                    label={payeeLabel(p.id)}
-                    selected={payeeFilter === p.id}
-                    onPress={() => {
-                      setPayeeFilter(p.id);
-                      close();
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </DropdownField>
-        </View>
       </View>
       <FlatList
         style={{ flex: 1 }}
@@ -467,8 +315,6 @@ const styles = StyleSheet.create({
   selectLink: { color: colors.accent, fontWeight: '600' },
   // Links, not fields — they sit next to each other and take the width
   // of their own text rather than splitting the row in half.
-  filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  filterField: { flexShrink: 1 },
   // A day is the unit this list is read in, so it gets real air around it —
   // but it is a divider, not content: muted and a size under the payee names
   // it separates, so the eye lands on the transactions first and uses the

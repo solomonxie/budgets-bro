@@ -195,7 +195,6 @@ export function BudgetScreen() {
     if (!editingItem) return;
     navigation.navigate('Transactions', {
       categoryId: editingItem.category.id,
-      month,
     });
     setEditingItem(null);
   };

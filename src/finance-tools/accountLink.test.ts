@@ -62,9 +62,9 @@ describe('accountValueFor', () => {
 });
 
 describe('linkedValueToFieldText', () => {
-  it('renders cents as dollars', () => {
+  it('renders cents as whole dollars', () => {
     expect(linkedValueToFieldText('balance', 41_230_000)).toBe('412300');
-    expect(linkedValueToFieldText('monthlyPayment', 179865)).toBe('1798.65');
+    expect(linkedValueToFieldText('monthlyPayment', 179865)).toBe('1799');
   });
 
   it('renders basis points as a percentage figure', () => {

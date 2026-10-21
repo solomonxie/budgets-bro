@@ -82,7 +82,7 @@ export function RentVsBuyScreen() {
           label={t('financeTools.monthlyRent')}
           value={rent.text}
           onChangeText={rent.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
@@ -98,14 +98,14 @@ export function RentVsBuyScreen() {
           label={t('financeTools.homePrice')}
           value={price.text}
           onChangeText={price.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('financeTools.downPayment')}
           value={down.text}
           onChangeText={down.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
@@ -149,7 +149,7 @@ export function RentVsBuyScreen() {
           label={t('financeTools.hoaMonthly')}
           value={hoa.text}
           onChangeText={hoa.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField

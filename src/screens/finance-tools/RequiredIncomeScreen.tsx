@@ -66,7 +66,7 @@ export function RequiredIncomeScreen() {
           label={t('requiredIncome.mortgageAmount')}
           value={mortgage.text}
           onChangeText={mortgage.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
@@ -86,27 +86,27 @@ export function RequiredIncomeScreen() {
           label={t('canadaPurchase.propertyTaxMonthly')}
           value={propertyTax.text}
           onChangeText={propertyTax.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('canadaPurchase.heat')}
           value={heat.text}
           onChangeText={heat.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
         />
         <TextField
           label={t('canadaPurchase.condoFees')}
           value={condoFees.text}
           onChangeText={condoFees.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('requiredIncome.otherDebts')}
           value={otherDebts.text}
           onChangeText={otherDebts.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
       </Card>

@@ -108,7 +108,7 @@ export function InvestmentScreen() {
             label={t('financeTools.targetBalance')}
             value={target.text}
             onChangeText={target.set}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         ) : null}
@@ -117,7 +117,7 @@ export function InvestmentScreen() {
             label={t('financeTools.startingAmount')}
             value={starting.text}
             onChangeText={starting.set}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         ) : null}
@@ -126,7 +126,7 @@ export function InvestmentScreen() {
             label={t('financeTools.contribution')}
             value={contribution.text}
             onChangeText={contribution.set}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         ) : null}

@@ -117,14 +117,14 @@ export function PayoffScreen({ accountFilter }: { accountFilter: (account: Accou
               label={t('loanDetailsCard.extraPaymentLabel')}
               value={extraMonthly.text}
               onChangeText={extraMonthly.set}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               placeholder={t('common.amountPlaceholder')}
             />
             <TextField
               label={t('financeTools.extraYearly')}
               value={extraYearly.text}
               onChangeText={extraYearly.set}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               placeholder={t('common.amountPlaceholder')}
             />
             {extraYearly.cents > 0 ? (
@@ -134,7 +134,7 @@ export function PayoffScreen({ accountFilter }: { accountFilter: (account: Accou
               label={t('financeTools.oneTimePayment')}
               value={oneTime.text}
               onChangeText={oneTime.set}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               placeholder={t('common.amountPlaceholder')}
             />
             {oneTime.cents > 0 ? (

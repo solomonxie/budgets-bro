@@ -68,7 +68,7 @@ export function AmortizationScreen() {
           label={t('loanDetailsCard.extraPaymentLabel')}
           value={extra.text}
           onChangeText={extra.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <DateField label={t('financeTools.firstPaymentDate')} value={startDate} onChange={setStartDate} />

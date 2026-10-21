@@ -67,6 +67,7 @@ export function linkedValueToFieldText(quantity: LinkableQuantity, value: number
     case 'remainingTermMonths':
       return String(value);
     default:
-      return String(value / 100);
+      // Whole dollars: cents are noise in a calculator's inputs.
+      return String(Math.round(value / 100));
   }
 }

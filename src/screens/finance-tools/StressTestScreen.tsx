@@ -99,7 +99,7 @@ export function StressTestScreen() {
           label={t('calcStressTest.takeHome')}
           value={income.text}
           onChangeText={income.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
       </Card>

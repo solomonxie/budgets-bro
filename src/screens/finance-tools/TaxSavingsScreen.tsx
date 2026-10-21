@@ -75,7 +75,7 @@ export function TaxSavingsScreen() {
           label={t('financeTools.deductionAmount')}
           value={deduction.text}
           onChangeText={deduction.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <ChipRow
@@ -99,7 +99,7 @@ export function TaxSavingsScreen() {
             label={t('financeTools.taxableIncome')}
             value={taxableIncome.text}
             onChangeText={taxableIncome.set}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         )}
@@ -115,7 +115,7 @@ export function TaxSavingsScreen() {
                   label={t('financeTools.bracketUpTo')}
                   value={row.upTo}
                   onChangeText={(text) => setRow(i, { upTo: text })}
-                  keyboardType="decimal-pad"
+                  keyboardType="number-pad"
                   placeholder={t('financeTools.bracketTopBand')}
                 />
               </View>

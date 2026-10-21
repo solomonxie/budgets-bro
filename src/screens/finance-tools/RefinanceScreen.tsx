@@ -96,7 +96,7 @@ export function RefinanceScreen() {
           label={t('financeTools.closingCosts')}
           value={closingCosts.text}
           onChangeText={closingCosts.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <ChipRow

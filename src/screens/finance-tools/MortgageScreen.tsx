@@ -98,14 +98,14 @@ export function MortgageScreen() {
           label={t('financeTools.insuranceAnnual')}
           value={insurance.text}
           onChangeText={insurance.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('financeTools.hoaMonthly')}
           value={hoa.text}
           onChangeText={hoa.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
       </Card>

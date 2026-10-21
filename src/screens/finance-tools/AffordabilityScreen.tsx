@@ -83,14 +83,14 @@ export function AffordabilityScreen() {
               label={t('financeTools.annualIncome')}
               value={income.text}
               onChangeText={income.set}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               placeholder={t('common.amountPlaceholder')}
             />
             <TextField
               label={t('financeTools.monthlyDebtPayments')}
               value={monthlyDebt.text}
               onChangeText={monthlyDebt.set}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               placeholder={t('common.amountPlaceholder')}
             />
             <ChipRow
@@ -107,7 +107,7 @@ export function AffordabilityScreen() {
             label={t('financeTools.monthlyBudget')}
             value={budget.text}
             onChangeText={budget.set}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         )}
@@ -146,7 +146,7 @@ export function AffordabilityScreen() {
           label={t('financeTools.hoaMonthly')}
           value={hoa.text}
           onChangeText={hoa.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
       </Card>

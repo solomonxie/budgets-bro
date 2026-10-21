@@ -39,21 +39,21 @@ export function DebtToIncomeScreen() {
           label={t('financeTools.grossMonthlyIncome')}
           value={monthlyIncome.text}
           onChangeText={monthlyIncome.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('financeTools.housingPayment')}
           value={housing.text}
           onChangeText={housing.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('financeTools.otherDebtPayments')}
           value={otherDebt.text}
           onChangeText={otherDebt.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
       </Card>

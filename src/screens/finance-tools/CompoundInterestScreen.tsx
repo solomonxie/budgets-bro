@@ -58,7 +58,7 @@ export function CompoundInterestScreen() {
           label={t('financeTools.startingAmount')}
           value={principal.text}
           onChangeText={principal.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField label={t('calculators.interestRateLabel')} value={rate.text} onChangeText={rate.set} keyboardType="decimal-pad" />

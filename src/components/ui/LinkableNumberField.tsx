@@ -80,7 +80,7 @@ export function LinkableNumberField({
         editable={linked == null}
         placeholderTextColor={colors.textMuted}
         keyboardAppearance="dark"
-        keyboardType="decimal-pad"
+        keyboardType={quantity === 'rateBps' ? 'decimal-pad' : 'number-pad'}
         {...props}
       />
       {linked != null && pulled == null ? <Text style={styles.hint}>{t('financeTools.accountMissingValue')}</Text> : null}

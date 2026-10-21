@@ -70,14 +70,14 @@ export function AmortizationCalculator({
         <>
           <View style={styles.card}>
             <Text style={styles.title}>{t('amortizationSchedule.inputsTitle')}</Text>
-            <TextField label={t('calculators.loanAmountLabel')} value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" />
+            <TextField label={t('calculators.loanAmountLabel')} value={principal} onChangeText={setPrincipal} keyboardType="number-pad" />
             <TextField label={t('calculators.interestRateLabel')} value={rate} onChangeText={setRate} keyboardType="decimal-pad" />
             <TextField label={t('common.termMonthsLabel')} value={termMonths} onChangeText={setTermMonths} keyboardType="number-pad" />
             <TextField
               label={t('loanDetailsCard.extraPaymentLabel')}
               value={extraPayment}
               onChangeText={setExtraPayment}
-              keyboardType="decimal-pad"
+              keyboardType="number-pad"
               placeholder={t('common.amountPlaceholder')}
             />
           </View>

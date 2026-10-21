@@ -62,21 +62,21 @@ export function AutoLoanScreen() {
           label={t('financeTools.vehiclePrice')}
           value={price.text}
           onChangeText={price.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('financeTools.downPayment')}
           value={down.text}
           onChangeText={down.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('financeTools.tradeInValue')}
           value={tradeInValue.text}
           onChangeText={tradeInValue.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         {tradeInValue.cents > 0 ? (
@@ -84,7 +84,7 @@ export function AutoLoanScreen() {
             label={t('financeTools.tradeInOwed')}
             value={tradeInOwed.text}
             onChangeText={tradeInOwed.set}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             placeholder={t('common.amountPlaceholder')}
           />
         ) : null}
@@ -109,7 +109,7 @@ export function AutoLoanScreen() {
           label={t('financeTools.feesLabel')}
           value={fees.text}
           onChangeText={fees.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField

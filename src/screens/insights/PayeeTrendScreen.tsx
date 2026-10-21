@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { GuideSection } from '../../components/ui/GuideSection';
@@ -10,6 +10,9 @@ import type { PayeeSummary } from '../../domain/payeeTrend';
 import { formatMoney } from '../../domain/money';
 import { useT } from '../../i18n';
 import type { TranslationKey } from '../../i18n';
+import { getDb } from '../../db/client';
+import * as settingsRepo from '../../db/repositories/settingsRepo';
+import { useAppStore } from '../../state/useAppStore';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -50,16 +53,47 @@ function PayeeRanking({ flow }: { flow: PayeeFlow }) {
       `${COPY_PREFIX[flow]}.${key.slice('payeeTrend.'.length) as SharedCopyKey}`,
       vars,
     );
-  const { payees, unnamedCents, totalCents, months, history, loading } =
-    usePayeeTrend(flow);
+  const {
+    payees: allPayees,
+    unnamedCents,
+    totalCents: allTotalCents,
+    months,
+    history,
+    loading,
+  } = usePayeeTrend(flow);
   const [openId, setOpenId] = useState<number | null>(null);
+  const { hiddenIds, hide, unhide } = useHiddenPayees(flow);
 
   if (loading) return <ScreenContainer />;
+
+  const hidden = allPayees.filter((p) => hiddenIds.includes(p.payeeId));
+  const payees = allPayees.filter((p) => !hiddenIds.includes(p.payeeId));
+  const totalCents =
+    allTotalCents - hidden.reduce((sum, p) => sum + p.totalCents, 0);
+  const hiddenRow =
+    hidden.length > 0 ? (
+      <View style={styles.hiddenRow}>
+        <Text style={styles.hint}>{t('payeeTrend.hiddenLabel')}</Text>
+        {hidden.map((p) => (
+          <Pressable
+            key={p.payeeId}
+            style={styles.hiddenChip}
+            onPress={() => unhide(p.payeeId)}
+            hitSlop={4}
+          >
+            <Text style={styles.hiddenChipText} numberOfLines={1}>
+              ↺ {p.name}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    ) : null;
 
   if (payees.length === 0)
     return (
       <ScreenContainer>
         <Text style={styles.hint}>{t('payeeTrend.empty')}</Text>
+        {hiddenRow}
       </ScreenContainer>
     );
 
@@ -131,9 +165,15 @@ function PayeeRanking({ flow }: { flow: PayeeFlow }) {
         <Text style={styles.hint}>
           {t('payeeTrend.window', { months: months.length })}
         </Text>
+        {hiddenRow}
 
         <View style={styles.topCard}>
-          <Text style={styles.topLabel}>{t('payeeTrend.topPayee')}</Text>
+          <View style={styles.topHead}>
+            <Text style={styles.topLabel}>{t('payeeTrend.topPayee')}</Text>
+            <Pressable onPress={() => hide(top.payeeId)} hitSlop={8}>
+              <Text style={styles.hideLink}>{t('payeeTrend.hide')}</Text>
+            </Pressable>
+          </View>
           <Text style={styles.topName} numberOfLines={1}>
             {top.name}
           </Text>
@@ -195,7 +235,52 @@ function PayeeRanking({ flow }: { flow: PayeeFlow }) {
   );
 }
 
+// Payees left out of the ranking — rent, say, which dwarfs everything and
+// isn't a choice made weekly. Per board and per page, kept across visits.
+function useHiddenPayees(flow: PayeeFlow) {
+  const boardId = useAppStore((s) => s.currentBoardId);
+  const key = `payee_trend_hidden:${flow}:${boardId}`;
+  const [hiddenIds, setHiddenIds] = useState<number[]>([]);
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      setHiddenIds(await settingsRepo.getJsonSetting<number[]>(db, key, []));
+    })();
+  }, [key]);
+  const save = async (next: number[]) => {
+    setHiddenIds(next);
+    const db = await getDb();
+    await settingsRepo.setJsonSetting(db, key, next);
+  };
+  return {
+    hiddenIds,
+    hide: (id: number) => save([...hiddenIds, id]),
+    unhide: (id: number) => save(hiddenIds.filter((x) => x !== id)),
+  };
+}
+
 const styles = StyleSheet.create({
+  topHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hideLink: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  hiddenRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  hiddenChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    maxWidth: 200,
+  },
+  hiddenChipText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
   content: { paddingBottom: spacing.xl, gap: spacing.sm },
   hint: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
   topCard: {

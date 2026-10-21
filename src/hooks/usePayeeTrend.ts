@@ -12,6 +12,8 @@ import { useAppStore } from '../state/useAppStore';
 // a weekly habit, and short enough that every number on the page adds up to
 // the same period. Open a payee, though, and you get its whole history:
 // once you are looking at one of them, "since when" is the question.
+// Income is the exception: pay is few, regular payments, so the whole
+// history since the first one is the story, not just this year's slice.
 export const PAYEE_WINDOW_MONTHS = 12;
 
 export type PayeeFlow = 'spending' | 'income';
@@ -44,10 +46,14 @@ export function usePayeeTrend(flow: PayeeFlow = 'spending') {
 
   // A board with three months of history gets a three-month window, not
   // nine empty bars in front of it.
-  const windowMonths = useMemo(
-    () => allMonths.slice(-PAYEE_WINDOW_MONTHS),
-    [allMonths],
-  );
+  const windowMonths = useMemo(() => {
+    if (flow === 'spending') return allMonths.slice(-PAYEE_WINDOW_MONTHS);
+    const first = points.reduce<string | null>(
+      (min, p) => (min == null || p.month < min ? p.month : min),
+      null,
+    );
+    return first ? allMonths.filter((m) => m >= first) : allMonths;
+  }, [allMonths, points, flow]);
   const insights = useMemo(
     () => summarizePayees(points, windowMonths),
     [points, windowMonths],

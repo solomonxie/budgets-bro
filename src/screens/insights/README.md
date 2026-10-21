@@ -58,7 +58,7 @@ PayeeTrendScreen.tsx
 ```
 
 IncomeTrendScreen (same file) is this page for inflows — who pays you;
-usePayeeTrend('income') swaps the query and the copy prefix, nothing else.
+usePayeeTrend('income') swaps the query and the copy prefix, and widens the window from 12 months to everything since the first income.
 
 TrackedPricesScreen.tsx is the same layout, per item instead of per
 payee: most-bought item in the top card with its price trend already open,

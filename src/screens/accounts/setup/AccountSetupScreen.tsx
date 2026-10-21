@@ -211,6 +211,14 @@ export function AccountSetupScreen() {
           <Text style={styles.subtitle}>
             {t(subKey)}
           </Text>
+          {/* Said once, up front: the list here is for thinking about money,
+              not a mirror of every statement. */}
+          {step === 'country' ? (
+            <View style={styles.tip}>
+              <Text style={styles.tipTitle}>{t('accountSetup.tipTitle')}</Text>
+              <Text style={styles.tipBody}>{t('accountSetup.tipBody')}</Text>
+            </View>
+          ) : null}
 
           {step === 'review' ? (
             <SetupReview
@@ -324,6 +332,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   options: { gap: spacing.sm },
+  tip: {
+    backgroundColor: colors.tint,
+    borderRadius: 14,
+    padding: spacing.md,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  tipTitle: { fontSize: 14, fontWeight: '700', color: colors.accent },
+  tipBody: { fontSize: 13, color: colors.text, lineHeight: 19 },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

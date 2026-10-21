@@ -127,6 +127,7 @@ Off by default; Settings → App Lock offers Off · 4-digit passcode · Face ID 
 Permanent, not deferred, and said in the app itself — Settings → Bank Sync carries this in one card, because it is the feature everyone asks for and a blank space doesn't answer them.
 
 - **Automation takes away the part that does the work.** Typing a transaction costs five seconds and buys one moment of noticing what was just spent. That moment is the product. A feed that files everything leaves a tidy ledger nobody read and a budget nobody decided — the awareness, not the bookkeeping, is what changes behaviour.
+- **It gets the record wrong in ways that are hard to untangle.** One Amazon charge can be several orders, each its own payee and category; a refund lands weeks later as a lump that matches none of them. Correcting a feed's guesses costs more than entering it right once, and the misses quietly skew the budget.
 - **It costs privacy quietly.** A bank feed runs through an aggregator holding the user's bank login on a third-party server: one more company with standing access to every account they own. Zero backend (above) is not compatible with that, and no amount of care on our side would be.
 - **Bulk entry is a different question and is supported**: the YNAB import, and eventually a generic bank-CSV mapping import (Backlog). A file the user chose to export and hand over is theirs to check; a standing connection isn't.
 

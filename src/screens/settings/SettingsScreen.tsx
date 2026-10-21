@@ -739,6 +739,9 @@ export function SettingsScreen() {
                   {t('settings.bankAwareness')}
                 </Text>
                 <Text style={styles.statementParagraph}>
+                  {t('settings.bankMessy')}
+                </Text>
+                <Text style={styles.statementParagraph}>
                   {t('settings.bankPrivacy')}
                 </Text>
                 <Text style={styles.statementParagraph}>

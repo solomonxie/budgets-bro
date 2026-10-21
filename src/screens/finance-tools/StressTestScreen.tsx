@@ -26,10 +26,10 @@ const TONE: Record<DebtHealthLevel, ResultTone> = {
 // at renewals 1–3 points higher.
 export function StressTestScreen() {
   const t = useT();
-  const balance = useCalcField();
-  const rate = useCalcField();
-  const remainingMonths = useCalcField();
-  const income = useCalcField();
+  const balance = useCalcField('', 'balance');
+  const rate = useCalcField('', 'rate');
+  const remainingMonths = useCalcField('', 'remainingMonths');
+  const income = useCalcField('', 'income');
 
   const isMortgage = (type: string) => type === 'mortgage';
   const ready =

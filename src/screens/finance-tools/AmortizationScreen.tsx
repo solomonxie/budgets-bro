@@ -18,10 +18,10 @@ import { useT } from '../../i18n';
 // derived from the three fields, which is what makes this the "what if" one.
 export function AmortizationScreen() {
   const t = useT();
-  const principal = useCalcField();
-  const rate = useCalcField();
-  const years = useCalcField('30');
-  const extra = useCalcField();
+  const principal = useCalcField('', 'principal');
+  const rate = useCalcField('', 'rate');
+  const years = useCalcField('30', 'years');
+  const extra = useCalcField('', 'extra');
   const [startDate, setStartDate] = useState(currentDateISO());
 
   const termMonths = monthsFromYears(years);

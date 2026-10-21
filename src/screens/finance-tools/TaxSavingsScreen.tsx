@@ -32,9 +32,9 @@ const NEW_ROW: BracketRow = { upTo: '', rate: '' };
 export function TaxSavingsScreen() {
   const t = useT();
   const [basis, setBasis] = useState<Basis>('flatRate');
-  const deduction = useCalcField();
-  const marginalRate = useCalcField();
-  const taxableIncome = useCalcField();
+  const deduction = useCalcField('', 'deduction');
+  const marginalRate = useCalcField('', 'marginalRate');
+  const taxableIncome = useCalcField('', 'taxableIncome');
   const [rows, setRows] = useState<BracketRow[]>([NEW_ROW, NEW_ROW, NEW_ROW]);
 
   const setRow = (index: number, patch: Partial<BracketRow>) =>

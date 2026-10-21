@@ -23,14 +23,14 @@ type Mode = 'extra' | 'biweekly';
 // differs, so a second copy would drift for no gain.
 export function PayoffScreen({ accountFilter }: { accountFilter: (account: AccountWithBalance) => boolean }) {
   const t = useT();
-  const balance = useCalcField();
-  const rate = useCalcField();
-  const payment = useCalcField();
+  const balance = useCalcField('', 'balance');
+  const rate = useCalcField('', 'rate');
+  const payment = useCalcField('', 'payment');
   const [mode, setMode] = useState<Mode>('extra');
-  const extraMonthly = useCalcField();
-  const extraYearly = useCalcField();
+  const extraMonthly = useCalcField('', 'extraMonthly');
+  const extraYearly = useCalcField('', 'extraYearly');
   const [extraYearlyDate, setExtraYearlyDate] = useState(currentDateISO());
-  const oneTime = useCalcField();
+  const oneTime = useCalcField('', 'oneTime');
   const [oneTimeDate, setOneTimeDate] = useState(addMonths(currentDateISO(), 1));
 
   const today = currentDateISO();

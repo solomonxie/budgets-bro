@@ -20,13 +20,13 @@ import { useT } from '../../i18n';
 // are on screen rather than buried in the result.
 export function RequiredIncomeScreen() {
   const t = useT();
-  const mortgage = useCalcField();
-  const rate = useCalcField();
-  const years = useCalcField('25');
-  const propertyTax = useCalcField();
-  const heat = useCalcField('100');
-  const condoFees = useCalcField();
-  const otherDebts = useCalcField();
+  const mortgage = useCalcField('', 'mortgage');
+  const rate = useCalcField('', 'rate');
+  const years = useCalcField('25', 'years');
+  const propertyTax = useCalcField('', 'propertyTax');
+  const heat = useCalcField('100', 'heat');
+  const condoFees = useCalcField('', 'condoFees');
+  const otherDebts = useCalcField('', 'otherDebts');
 
   const amortizationMonths = monthsFromYears(years);
   const ready = mortgage.cents > 0 && rate.bps > 0 && amortizationMonths > 0;

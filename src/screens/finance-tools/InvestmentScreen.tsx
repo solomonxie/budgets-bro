@@ -49,13 +49,13 @@ const TIMINGS: { value: ContributionTiming; labelKey: TranslationKey }[] = [
 export function InvestmentScreen() {
   const t = useT();
   const [solveFor, setSolveFor] = useState<SolveFor>('end');
-  const starting = useCalcField();
-  const contribution = useCalcField();
+  const starting = useCalcField('', 'starting');
+  const contribution = useCalcField('', 'contribution');
   const [timing, setTiming] = useState<ContributionTiming>('endOfMonth');
-  const years = useCalcField('20');
-  const annualReturn = useCalcField('7');
+  const years = useCalcField('20', 'years');
+  const annualReturn = useCalcField('7', 'annualReturn');
   const [compound, setCompound] = useState<CompoundFrequency>('annually');
-  const target = useCalcField();
+  const target = useCalcField('', 'target');
 
   const input: InvestmentInput = useMemo(
     () => ({

@@ -19,14 +19,14 @@ type DownUnit = 'percent' | 'amount';
 // principal and interest, because the escrow line is what surprises people.
 export function MortgageScreen() {
   const t = useT();
-  const price = useCalcField();
-  const down = useCalcField();
+  const price = useCalcField('', 'price');
+  const down = useCalcField('', 'down');
   const [downUnit, setDownUnit] = useState<DownUnit>('percent');
-  const rate = useCalcField();
-  const years = useCalcField('30');
-  const propertyTax = useCalcField();
-  const insurance = useCalcField();
-  const hoa = useCalcField();
+  const rate = useCalcField('', 'rate');
+  const years = useCalcField('30', 'years');
+  const propertyTax = useCalcField('', 'propertyTax');
+  const insurance = useCalcField('', 'insurance');
+  const hoa = useCalcField('', 'hoa');
 
   const termMonths = monthsFromYears(years);
   const ready = price.cents > 0 && termMonths > 0;

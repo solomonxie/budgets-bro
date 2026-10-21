@@ -13,9 +13,9 @@ import { useT } from '../../i18n';
 // the answer turns into no.
 export function DebtToIncomeScreen() {
   const t = useT();
-  const monthlyIncome = useCalcField();
-  const housing = useCalcField();
-  const otherDebt = useCalcField();
+  const monthlyIncome = useCalcField('', 'monthlyIncome');
+  const housing = useCalcField('', 'housing');
+  const otherDebt = useCalcField('', 'otherDebt');
 
   const ready = monthlyIncome.cents > 0;
   const ratios = useMemo(

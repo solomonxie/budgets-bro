@@ -31,19 +31,19 @@ function amountCentsOf(field: CalcField, unit: AmountUnit): number {
 
 export function ChinaPrepaymentScreen() {
   const t = useT();
-  const principal = useCalcField();
+  const principal = useCalcField('', 'principal');
   const [principalUnit, setPrincipalUnit] = useState<AmountUnit>('wan');
-  const rate = useCalcField();
-  const termYears = useCalcField('30');
+  const rate = useCalcField('', 'rate');
+  const termYears = useCalcField('30', 'termYears');
   const [method, setMethod] = useState<RepaymentMethod>('equalInstallment');
   const [startDate, setStartDate] = useState(currentDateISO());
 
   const [kind, setKind] = useState<PrepaymentKind>('partial');
-  const amount = useCalcField();
+  const amount = useCalcField('', 'amount');
   const [amountUnit, setAmountUnit] = useState<AmountUnit>('wan');
   const [prepayDate, setPrepayDate] = useState(currentDateISO());
   const [plan, setPlan] = useState<AdjustmentPlan>('shortenTerm');
-  const newRate = useCalcField();
+  const newRate = useCalcField('', 'newRate');
 
   const principalCents = amountCentsOf(principal, principalUnit);
   const amountCents = amountCentsOf(amount, amountUnit);

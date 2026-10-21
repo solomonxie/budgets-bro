@@ -28,9 +28,9 @@ const FREQUENCIES: { value: CompoundFrequency; labelKey: TranslationKey }[] = [
 // are exactly what makes that screen the wrong place to answer this.
 export function CompoundInterestScreen() {
   const t = useT();
-  const principal = useCalcField();
-  const rate = useCalcField('5');
-  const years = useCalcField('10');
+  const principal = useCalcField('', 'principal');
+  const rate = useCalcField('5', 'rate');
+  const years = useCalcField('10', 'years');
   const [compound, setCompound] = useState<CompoundFrequency>('annually');
 
   const ready = principal.cents > 0 && years.number > 0;

@@ -6,6 +6,7 @@ import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from './../../components/ui/ExpandingField';
+import { CalcFormFooter } from './calcForm';
 
 // Shared frame for every calculator: inputs, then results, then whatever
 // table the tool has. The tail spacer clears the tab bar, which these screens
@@ -16,6 +17,7 @@ export function CalcScreen({ children }: { children: ReactNode }) {
       {/* Every calculator's pickers unfold in the row's own space, same as
           the spend form — see components/ui/ExpandingField. */}
       <ExpandingFieldGroup>{children}</ExpandingFieldGroup>
+      <CalcFormFooter />
       <View style={styles.tail} />
     </ScreenContainer>
   );

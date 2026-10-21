@@ -27,16 +27,16 @@ export function AffordabilityScreen() {
   const t = useT();
   const [basis, setBasis] = useState<Basis>('income');
   const [ruleName, setRuleName] = useState<RuleName>('conventional');
-  const income = useCalcField();
-  const monthlyDebt = useCalcField();
-  const budget = useCalcField();
-  const down = useCalcField('20');
+  const income = useCalcField('', 'income');
+  const monthlyDebt = useCalcField('', 'monthlyDebt');
+  const budget = useCalcField('', 'budget');
+  const down = useCalcField('20', 'down');
   const [downUnit, setDownUnit] = useState<DownUnit>('percent');
-  const rate = useCalcField();
-  const years = useCalcField('30');
-  const propertyTax = useCalcField('1.2');
-  const insurance = useCalcField('0.5');
-  const hoa = useCalcField();
+  const rate = useCalcField('', 'rate');
+  const years = useCalcField('30', 'years');
+  const propertyTax = useCalcField('1.2', 'propertyTax');
+  const insurance = useCalcField('0.5', 'insurance');
+  const hoa = useCalcField('', 'hoa');
 
   const termMonths = monthsFromYears(years);
   const ready = termMonths > 0 && rate.filled && (basis === 'income' ? income.cents > 0 : budget.cents > 0);

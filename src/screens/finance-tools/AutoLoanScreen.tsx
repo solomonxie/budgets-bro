@@ -19,15 +19,15 @@ type TaxBasis = 'afterTradeIn' | 'fullPrice';
 // and a trade-in that can be worth less than it still owes.
 export function AutoLoanScreen() {
   const t = useT();
-  const price = useCalcField();
-  const down = useCalcField();
-  const tradeInValue = useCalcField();
-  const tradeInOwed = useCalcField();
+  const price = useCalcField('', 'price');
+  const down = useCalcField('', 'down');
+  const tradeInValue = useCalcField('', 'tradeInValue');
+  const tradeInOwed = useCalcField('', 'tradeInOwed');
   const [taxBasis, setTaxBasis] = useState<TaxBasis>('afterTradeIn');
-  const salesTax = useCalcField();
-  const fees = useCalcField();
-  const rate = useCalcField();
-  const months = useCalcField('60');
+  const salesTax = useCalcField('', 'salesTax');
+  const fees = useCalcField('', 'fees');
+  const rate = useCalcField('', 'rate');
+  const months = useCalcField('60', 'months');
 
   const ready = price.cents > 0 && months.int > 0;
 

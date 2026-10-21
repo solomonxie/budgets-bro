@@ -19,12 +19,12 @@ type CostHandling = 'payUpFront' | 'rollIn';
 // again.
 export function RefinanceScreen() {
   const t = useT();
-  const balance = useCalcField();
-  const currentRate = useCalcField();
-  const remainingMonths = useCalcField();
-  const newRate = useCalcField();
-  const newYears = useCalcField('30');
-  const closingCosts = useCalcField();
+  const balance = useCalcField('', 'balance');
+  const currentRate = useCalcField('', 'currentRate');
+  const remainingMonths = useCalcField('', 'remainingMonths');
+  const newRate = useCalcField('', 'newRate');
+  const newYears = useCalcField('30', 'newYears');
+  const closingCosts = useCalcField('', 'closingCosts');
   const [costHandling, setCostHandling] = useState<CostHandling>('payUpFront');
 
   const debtFilter = (type: string) => type === 'mortgage' || type === 'loan';

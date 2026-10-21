@@ -14,21 +14,21 @@ import { useT } from '../../i18n';
 // buried, and the verdict is always stated as "on these assumptions".
 export function RentVsBuyScreen() {
   const t = useT();
-  const rent = useCalcField();
-  const rentGrowth = useCalcField('3');
-  const price = useCalcField();
-  const down = useCalcField();
-  const rate = useCalcField();
-  const years = useCalcField('30');
-  const horizon = useCalcField('10');
-  const closing = useCalcField('3');
-  const propertyTax = useCalcField('1.2');
-  const insurance = useCalcField('0.5');
-  const maintenance = useCalcField('1');
-  const hoa = useCalcField();
-  const appreciation = useCalcField('3');
-  const sellingCost = useCalcField('6');
-  const investmentReturn = useCalcField('7');
+  const rent = useCalcField('', 'rent');
+  const rentGrowth = useCalcField('3', 'rentGrowth');
+  const price = useCalcField('', 'price');
+  const down = useCalcField('', 'down');
+  const rate = useCalcField('', 'rate');
+  const years = useCalcField('30', 'years');
+  const horizon = useCalcField('10', 'horizon');
+  const closing = useCalcField('3', 'closing');
+  const propertyTax = useCalcField('1.2', 'propertyTax');
+  const insurance = useCalcField('0.5', 'insurance');
+  const maintenance = useCalcField('1', 'maintenance');
+  const hoa = useCalcField('', 'hoa');
+  const appreciation = useCalcField('3', 'appreciation');
+  const sellingCost = useCalcField('6', 'sellingCost');
+  const investmentReturn = useCalcField('7', 'investmentReturn');
 
   const ready = rent.cents > 0 && price.cents > 0 && horizon.int > 0;
 

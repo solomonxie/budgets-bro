@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { parseMoneyToCents } from '../../domain/money';
+import { useCalcForm } from './calcForm';
 
 // Every calculator field is the same shape: raw text the user typed (or that
 // LinkableNumberField pulled off an account), plus whichever reading of it
@@ -20,13 +21,23 @@ export interface CalcField {
   filled: boolean;
 }
 
-export function useCalcField(initial = ''): CalcField {
-  const [text, setText] = useState(initial);
+// With a `key`, inside a tool's CalcFormProvider, the text is remembered
+// between visits (see calcForm).
+export function useCalcField(initial = '', key?: string): CalcField {
+  const form = useCalcForm();
+  const [localText, setLocalText] = useState(initial);
+  const remembered = key != null && form != null;
+  const text = remembered ? (form.values[key] ?? initial) : localText;
+  const formSet = form?.set;
   const [linkedAccountId, setLinkedAccountId] = useState<number | null>(null);
 
   // Stable so LinkableNumberField's prefill effect doesn't see a new
   // callback on every render of the screen around it.
-  const set = useCallback((next: string) => setText(next), []);
+  const set = useCallback(
+    (next: string) =>
+      remembered && formSet ? formSet(key!, next) : setLocalText(next),
+    [remembered, formSet, key],
+  );
   const link = useCallback((accountId: number | null) => setLinkedAccountId(accountId), []);
 
   const number = Number.parseFloat(text.replace(/[,\s$¥￥€£%]/g, ''));

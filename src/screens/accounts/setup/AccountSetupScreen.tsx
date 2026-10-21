@@ -58,7 +58,7 @@ export function AccountSetupScreen() {
   const advanceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const [index, setIndex] = useState(() =>
-    Math.max(0, STEPS.indexOf(route.params?.step ?? 'country')),
+    Math.max(0, STEPS.indexOf(route.params?.step ?? 'home')),
   );
   const [answers, setAnswers] = useState<SetupAnswers>(() =>
     defaultAnswers(
@@ -213,7 +213,7 @@ export function AccountSetupScreen() {
           </Text>
           {/* Said once, up front: the list here is for thinking about money,
               not a mirror of every statement. */}
-          {step === 'country' ? (
+          {index === 0 ? (
             <View style={styles.tip}>
               <Text style={styles.tipTitle}>{t('accountSetup.tipTitle')}</Text>
               <Text style={styles.tipBody}>{t('accountSetup.tipBody')}</Text>

@@ -47,7 +47,6 @@ export interface SuggestedAccount {
   trackingKind?: TrackingKind;
 }
 
-export const SETUP_COUNTRIES: SetupCountry[] = ['us', 'ca', 'uk', 'cn', 'other'];
 export const SETUP_HOUSING: SetupHousing[] = ['rent', 'mortgage', 'owned', 'family'];
 export const SAVINGS_OPTIONS: SavingsOption[] = ['emergency', 'goal'];
 export const LOAN_OPTIONS: LoanOption[] = ['car', 'student', 'personal', 'line_of_credit'];
@@ -55,7 +54,8 @@ export const ABROAD_OPTIONS: AbroadOption[] = ['property', 'mortgage', 'bank'];
 export const OTHER_OPTIONS: OtherOption[] = ['car', 'giving'];
 export const MAX_CREDIT_CARDS = 4;
 
-// Device locale tag ("en-CA", "zh-Hans-CN") to the country asked about first.
+// Device locale tag ("en-CA", "zh-Hans-CN") to the country whose account
+// names and savings plans setup offers.
 export function countryFromLocale(tag: string | undefined): SetupCountry | null {
   const region = tag?.split(/[-_]/).find((part, i) => i > 0 && /^[A-Z]{2}$/.test(part));
   if (region === 'US') return 'us';

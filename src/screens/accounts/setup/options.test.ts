@@ -20,7 +20,7 @@ describe('setup options', () => {
   });
 
   it('gives every option a glyph and a label', () => {
-    for (const step of ['country', 'home', 'daily', 'cards', 'saving', 'loans', 'else'] as const) {
+    for (const step of ['home', 'daily', 'cards', 'saving', 'loans', 'else'] as const) {
       for (const o of stepOptions(step, 'cn')) {
         expect(o.glyph).toBeTruthy();
         expect(o.label).toBeTruthy();

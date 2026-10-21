@@ -26,7 +26,7 @@ const ROUTES: Record<string, () => void> = {
   insights: insights('InsightsHome'),
   payee: insights('PayeeTrend'),
   settings: () => screenshotNav.navigate('Settings'),
-  'setup-country': () => screenshotNav.navigate('AccountSetup'),
+  'setup-home': () => screenshotNav.navigate('AccountSetup'),
   'setup-saving': () => screenshotNav.navigate('AccountSetup', { step: 'saving' }),
   'setup-else': () => screenshotNav.navigate('AccountSetup', { step: 'else' }),
   'setup-review': () => screenshotNav.navigate('AccountSetup', { step: 'review' }),

@@ -4,7 +4,6 @@ import {
   LOAN_OPTIONS,
   OTHER_OPTIONS,
   SAVINGS_OPTIONS,
-  SETUP_COUNTRIES,
   SETUP_HOUSING,
   dailyOptions,
   investOptions,
@@ -20,12 +19,13 @@ export interface SetupOption {
   sub?: TranslationKey;
 }
 
-export type SingleStep = 'country' | 'home' | 'cards';
+export type SingleStep = 'home' | 'cards';
 export type MultiStep = 'daily' | 'saving' | 'loans' | 'else';
 export type SetupStep = SingleStep | MultiStep | 'review';
 
+// No country question: the device's region picks account names and the
+// savings plans offered (see AccountSetupScreen).
 export const STEPS: SetupStep[] = [
-  'country',
   'home',
   'daily',
   'cards',
@@ -36,7 +36,6 @@ export const STEPS: SetupStep[] = [
 ];
 
 export const STEP_TITLE: Record<SetupStep, [TranslationKey, TranslationKey]> = {
-  country: ['accountSetup.step.country', 'accountSetup.step.country.sub'],
   home: ['accountSetup.step.home', 'accountSetup.step.home.sub'],
   daily: ['accountSetup.step.daily', 'accountSetup.step.daily.sub'],
   cards: ['accountSetup.step.cards', 'accountSetup.step.cards.sub'],
@@ -47,15 +46,10 @@ export const STEP_TITLE: Record<SetupStep, [TranslationKey, TranslationKey]> = {
 };
 
 export function isSingle(step: SetupStep): step is SingleStep {
-  return step === 'country' || step === 'home' || step === 'cards';
+  return step === 'home' || step === 'cards';
 }
 
 const GLYPH: Record<string, string> = {
-  'country:us': '🇺🇸',
-  'country:ca': '🇨🇦',
-  'country:uk': '🇬🇧',
-  'country:cn': '🇨🇳',
-  'country:other': '🌍',
   'housing:rent': '🔑',
   'housing:mortgage': '🏡',
   'housing:owned': '🏠',
@@ -130,8 +124,6 @@ export function stepOptions(
   country: SetupCountry,
 ): SetupOption[] {
   switch (step) {
-    case 'country':
-      return SETUP_COUNTRIES.map((c) => option('country', c));
     case 'home':
       return SETUP_HOUSING.map((h) => option('housing', h));
     case 'cards':
@@ -164,7 +156,6 @@ type ListField = 'daily' | 'savings' | 'invest' | 'loans' | 'abroad' | 'other';
 
 export function isPicked(answers: SetupAnswers, key: string): boolean {
   const [list, value] = key.split(':');
-  if (list === 'country') return answers.country === value;
   if (list === 'housing') return answers.housing === value;
   if (list === 'cards') return answers.creditCards === Number(value);
   return (answers[list as ListField] as string[]).includes(value);
@@ -172,7 +163,6 @@ export function isPicked(answers: SetupAnswers, key: string): boolean {
 
 export function pick(answers: SetupAnswers, key: string): SetupAnswers {
   const [list, value] = key.split(':');
-  if (list === 'country') return { ...answers, country: value as SetupCountry };
   if (list === 'housing')
     return { ...answers, housing: value as SetupAnswers['housing'] };
   if (list === 'cards') return { ...answers, creditCards: Number(value) };

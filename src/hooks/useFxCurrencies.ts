@@ -9,8 +9,10 @@ interface FxSelection {
   focused: string;
 }
 
+const LEGACY_DEFAULT = 'CAD,USD,CNY';
+
 const DEFAULT: FxSelection = {
-  codes: ['CAD', 'USD', 'CNY'],
+  codes: ['CAD', 'USD', 'CNY', 'EUR', 'JPY'],
   focused: 'CAD',
 };
 
@@ -32,7 +34,9 @@ export function useFxCurrencies() {
         KEY,
         DEFAULT,
       );
-      if (saved.codes.length > 0) setSelection(saved);
+      // The old three-currency default, never touched: take the new one.
+      const untouched = saved.codes.join() === LEGACY_DEFAULT;
+      if (saved.codes.length > 0 && !untouched) setSelection(saved);
       setReady(true);
     })();
   }, []);

@@ -5,9 +5,13 @@ import {
   formatAmountExpression,
   pressAmountKey,
 } from './amountExpression';
+import type { AmountScale } from './amountExpression';
 
-function type(keys: string) {
-  return [...keys].reduce(pressAmountKey, EMPTY_AMOUNT);
+function type(keys: string, scale: AmountScale = 1) {
+  return [...keys].reduce(
+    (expr, key) => pressAmountKey(expr, key, scale),
+    EMPTY_AMOUNT,
+  );
 }
 
 describe('amountExpression', () => {
@@ -75,5 +79,22 @@ describe('amountExpression', () => {
 
   it('clears everything on C', () => {
     expect(type('5500+3600C')).toEqual(EMPTY_AMOUNT);
+  });
+});
+
+describe('whole units (scale 100)', () => {
+  it('reads digits as whole units', () => {
+    expect(amountCents(type('100', 100), 100)).toBe(10000);
+    expect(formatAmountExpression(type('1234', 100), '', 100)).toBe('1,234');
+  });
+
+  it('multiplies and evaluates in units', () => {
+    const expr = type('55×3=', 100);
+    expect(amountCents(expr, 100)).toBe(16500);
+    expect(expr.digits).toBe('165');
+  });
+
+  it('hands the banked side back as units on ⌫', () => {
+    expect(type('120+⌫', 100).digits).toBe('120');
   });
 });

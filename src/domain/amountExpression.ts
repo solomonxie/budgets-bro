@@ -22,6 +22,11 @@ const MAX_CENTS = 10 ** MAX_DIGITS - 1;
 
 const OPERATORS: AmountOperator[] = ['+', '−', '×', '÷'];
 
+// How many cents one typed digit-unit is worth: 1 reads "4444" as $44.44,
+// 100 reads it as 4,444 whole units (the exchange page, where decimals are
+// noise).
+export type AmountScale = 1 | 100;
+
 export function isAmountOperator(key: string): key is AmountOperator {
   return (OPERATORS as string[]).includes(key);
 }
@@ -31,8 +36,13 @@ export function amountFromCents(cents: number): AmountExpression {
   return { ...EMPTY_AMOUNT, digits: abs ? String(abs) : '' };
 }
 
-function digitsToCents(digits: string): number {
-  return digits ? parseInt(digits, 10) : 0;
+function digitsToCents(digits: string, scale: AmountScale = 1): number {
+  return digits ? parseInt(digits, 10) * scale : 0;
+}
+
+function centsToDigits(cents: number, scale: AmountScale): string {
+  const units = Math.round(cents / scale);
+  return units ? String(units) : '';
 }
 
 // × and ÷ read the right side as the plain number you typed, not as a sum of
@@ -65,12 +75,15 @@ function clamp(cents: number): number {
   return Math.min(Math.max(0, cents), MAX_CENTS);
 }
 
-export function amountCents(expr: AmountExpression): number {
+export function amountCents(
+  expr: AmountExpression,
+  scale: AmountScale = 1,
+): number {
   if (expr.leftCents == null || expr.operator == null)
-    return digitsToCents(expr.digits);
+    return digitsToCents(expr.digits, scale);
   if (!expr.digits) return expr.leftCents;
   return clamp(
-    apply(expr.leftCents, expr.operator, digitsToCents(expr.digits)),
+    apply(expr.leftCents, expr.operator, digitsToCents(expr.digits, scale)),
   );
 }
 
@@ -81,6 +94,7 @@ export function isEmptyAmount(expr: AmountExpression): boolean {
 export function pressAmountKey(
   expr: AmountExpression,
   key: AmountKey,
+  scale: AmountScale = 1,
 ): AmountExpression {
   if (key === 'C') return EMPTY_AMOUNT;
 
@@ -91,14 +105,17 @@ export function pressAmountKey(
     if (expr.operator != null)
       return {
         ...EMPTY_AMOUNT,
-        digits: expr.leftCents ? String(expr.leftCents) : '',
+        digits: expr.leftCents ? centsToDigits(expr.leftCents, scale) : '',
       };
     return { ...EMPTY_AMOUNT, digits: '' };
   }
 
   if (key === '=') {
     if (expr.operator == null) return expr;
-    return { ...EMPTY_AMOUNT, digits: String(amountCents(expr)) };
+    return {
+      ...EMPTY_AMOUNT,
+      digits: centsToDigits(amountCents(expr, scale), scale),
+    };
   }
 
   if (isAmountOperator(key)) {
@@ -106,17 +123,22 @@ export function pressAmountKey(
     // An operator typed straight after another just replaces it.
     if (!expr.digits && expr.leftCents != null)
       return { ...expr, operator: key };
-    return { leftCents: amountCents(expr), operator: key, digits: '' };
+    return { leftCents: amountCents(expr, scale), operator: key, digits: '' };
   }
 
   if (!/^\d$/.test(key) || expr.digits.length >= MAX_DIGITS) return expr;
   return { ...expr, digits: (expr.digits + key).replace(/^0+(?=\d)/, '') };
 }
 
-function formatCents(cents: number, symbol: string): string {
+function formatCents(
+  cents: number,
+  symbol: string,
+  scale: AmountScale = 1,
+): string {
+  const decimals = scale === 1 ? 2 : 0;
   return `${symbol}${(cents / 100).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   })}`;
 }
 
@@ -128,8 +150,11 @@ function formatCents(cents: number, symbol: string): string {
 export function formatAmountExpression(
   expr: AmountExpression,
   symbol = '$',
+  scale: AmountScale = 1,
 ): string {
-  const right = expr.digits ? formatCents(digitsToCents(expr.digits), symbol) : '';
+  const right = expr.digits
+    ? formatCents(digitsToCents(expr.digits, scale), symbol, scale)
+    : '';
   if (expr.leftCents == null || expr.operator == null) return right;
-  return `${formatCents(expr.leftCents, symbol)} ${expr.operator} ${right}`.trimEnd();
+  return `${formatCents(expr.leftCents, symbol, scale)} ${expr.operator} ${right}`.trimEnd();
 }

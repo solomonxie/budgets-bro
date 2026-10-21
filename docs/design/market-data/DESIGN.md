@@ -24,10 +24,12 @@ information the user would put in a search box anyway.
   division, not another fetch.
 - **Page**: a list of currencies, not a From and a To. Tap one to type into
   it on the app's own calculator pad and the rest restate the same money;
-  the list is reorderable, removable, and remembered (`fx_currencies`).
+  the list is reorderable, removable, and remembered (`fx_currencies`);
+  defaults to CAD, USD, CNY, EUR, JPY. Five rows and the full pad fit one
+  screen without scrolling.
   Until a key is pressed (or the amount is 0), tapping a row sets it to 100
-  of that currency. A "＋ Add currency" row closes the list and opens a searchable picker;
-  the pad's bottom-right key toggles Edit. No trend chart (the series
+  of that currency. "＋ Add currency" beside the rates date opens a searchable picker;
+  Edit sits beside it; the pad's big key is a two-row =. No trend chart (the series
   fetch stays for Cost of Living).
 - Mid-market rates are labelled as such: a bank's rate will be worse, and that
   gap is the fee.

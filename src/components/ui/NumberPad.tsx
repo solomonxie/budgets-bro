@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   AmountExpression,
   AmountKey,
+  AmountScale,
   isAmountOperator,
   pressAmountKey,
 } from '../../domain/amountExpression';
@@ -34,6 +35,12 @@ interface NumberPadProps {
   // into the operator column, which is two-fifths as wide.
   bottomLeft?: { label: string; onPress: () => void };
   bottomRight?: { label: string; onPress: () => void };
+  // A converter has nothing to save: the big key is = itself, two rows tall.
+  equalsAsSubmit?: boolean;
+  // Shorter keys and lighter glyphs, for a page where the pad shares the
+  // screen with content rather than finishing a form.
+  compact?: boolean;
+  scale?: AmountScale;
 }
 
 // Part of the page, in the normal flow with everything else — not popped
@@ -47,6 +54,9 @@ export function NumberPad({
   onSubmit,
   bottomLeft,
   bottomRight,
+  equalsAsSubmit,
+  compact = false,
+  scale = 1,
 }: NumberPadProps) {
   // Taps faster than the form re-renders would each start from the same
   // stale `value` and overwrite one another; this tracks every press.
@@ -55,7 +65,7 @@ export function NumberPad({
     latest.current = value;
   }, [value]);
   const press = (key: AmountKey) => {
-    latest.current = pressAmountKey(latest.current, key);
+    latest.current = pressAmountKey(latest.current, key, scale);
     onChange(latest.current);
   };
   // 0 sits under 8, phone-keypad style, with ⌫ to its right — unless that
@@ -68,16 +78,27 @@ export function NumberPad({
   ];
   // Alone in its row, = gives Save a few points of its height: a short bar
   // over a slightly taller Save, where the thumb ends up.
-  const lastOps: AmountKey[] = bottomRight ? ['=', '⌫'] : ['='];
+  const lastOps: AmountKey[] = equalsAsSubmit
+    ? []
+    : bottomRight
+      ? ['=', '⌫']
+      : ['='];
 
   const renderKey = (key: AmountKey, short = false) => {
-    if (key === BLANK) return <View key={key} style={styles.key} />;
+    if (key === BLANK)
+      return (
+        <View key={key} style={[styles.key, compact && styles.keyCompact]} />
+      );
     if (key === LEFT || key === RIGHT) {
       const action = key === LEFT ? bottomLeft! : bottomRight!;
       return (
         <Pressable
           key={key}
-          style={({ pressed }) => [styles.key, styles.spaced, pressed && styles.keyPressed]}
+          style={({ pressed }) => [
+            styles.key,
+            styles.spaced,
+            pressed && styles.keyPressed,
+          ]}
           hitSlop={GAP / 2}
           onPress={action.onPress}
         >
@@ -95,12 +116,22 @@ export function NumberPad({
           style={({ pressed }) => [
             styles.spaced,
             styles.submitKey,
-            pressed && styles.submitKeyPressed,
+            equalsAsSubmit && styles.equalsKey,
+            pressed &&
+              (equalsAsSubmit
+                ? styles.equalsKeyPressed
+                : styles.submitKeyPressed),
           ]}
-          onPress={onSubmit}
+          onPress={equalsAsSubmit ? () => press('=') : onSubmit}
         >
-          <Text style={styles.submitKeyText} numberOfLines={1}>
-            {submitLabel}
+          <Text
+            style={[
+              styles.submitKeyText,
+              equalsAsSubmit && styles.equalsKeyText,
+            ]}
+            numberOfLines={1}
+          >
+            {equalsAsSubmit ? '=' : submitLabel}
           </Text>
         </Pressable>
       );
@@ -109,6 +140,7 @@ export function NumberPad({
         key={key}
         label={key}
         short={short}
+        compact={compact}
         onTap={() => press(key)}
         // No C key — holding backspace wipes the whole amount, which is the
         // only time anyone reached for it.
@@ -133,11 +165,18 @@ export function NumberPad({
         <View style={styles.row}>
           {(['−', '+'] as const).map((k) => renderKey(k))}
         </View>
-        <View style={[styles.row, lastOps.length === 1 && styles.shortRow]}>
-          {lastOps.map((k) => renderKey(k, lastOps.length === 1))}
-        </View>
+        {lastOps.length > 0 ? (
+          <View style={[styles.row, lastOps.length === 1 && styles.shortRow]}>
+            {lastOps.map((k) => renderKey(k, lastOps.length === 1))}
+          </View>
+        ) : null}
         <View
-          style={[styles.submitRow, lastOps.length === 1 && styles.tallSubmit]}
+          style={[
+            styles.submitRow,
+            lastOps.length === 1 && styles.tallSubmit,
+            equalsAsSubmit &&
+              (compact ? styles.doubleSubmitCompact : styles.doubleSubmit),
+          ]}
         >
           {renderKey(SUBMIT)}
         </View>
@@ -152,11 +191,13 @@ export function NumberPad({
 function TapKey({
   label,
   short,
+  compact,
   onTap,
   onHold,
 }: {
   label: AmountKey;
   short: boolean;
+  compact: boolean;
   onTap: () => void;
   onHold?: () => void;
 }) {
@@ -204,12 +245,20 @@ function TapKey({
       onAccessibilityTap={onTap}
     >
       <View
-        style={[styles.key, short && styles.shortKey, pressed && styles.keyPressed]}
+        style={[
+          styles.key,
+          compact && styles.keyCompact,
+          short && styles.shortKey,
+          pressed && styles.keyPressed,
+        ]}
       >
         <Text
           style={[
             styles.keyText,
-            (isAmountOperator(label) || label === '=') && styles.keyTextOperator,
+            (isAmountOperator(label) || label === '=') &&
+              styles.keyTextOperator,
+            compact && styles.keyTextCompact,
+            compact && isAmountOperator(label) && styles.keyTextOperatorCompact,
             label === '⌫' && styles.keyTextMuted,
             short && styles.keyTextShort,
           ]}
@@ -223,6 +272,7 @@ function TapKey({
 
 const GAP = 6;
 const KEY_HEIGHT = 54;
+const COMPACT_KEY_HEIGHT = 48;
 const SAVE_HEIGHT = 58;
 
 const styles = StyleSheet.create({
@@ -235,6 +285,8 @@ const styles = StyleSheet.create({
   shortRow: { flex: 1 },
   submitRow: { flexDirection: 'row', height: KEY_HEIGHT + GAP },
   tallSubmit: { height: SAVE_HEIGHT + GAP },
+  doubleSubmit: { height: 2 * (KEY_HEIGHT + GAP) },
+  doubleSubmitCompact: { height: 2 * (COMPACT_KEY_HEIGHT + GAP) },
   cell: { flex: 1, padding: GAP / 2 },
   shortCell: { height: '100%' },
   spaced: { flex: 1, margin: GAP / 2 },
@@ -249,6 +301,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
   },
+  keyCompact: { height: COMPACT_KEY_HEIGHT, borderRadius: 12 },
   shortKey: { height: '100%' },
   keyPressed: { backgroundColor: colors.surface },
   keyText: { fontSize: 40, fontWeight: '500', color: colors.text },
@@ -264,6 +317,13 @@ const styles = StyleSheet.create({
   },
   submitKeyPressed: { opacity: 0.85 },
   submitKeyText: { fontSize: 19, fontWeight: '700', color: '#fff' },
+  // A glyph like its neighbours, not a block: the result key, not a commit
+  // button. It only lights up under the thumb.
+  equalsKey: { backgroundColor: 'transparent', borderRadius: 12 },
+  equalsKeyPressed: { backgroundColor: colors.surface },
+  equalsKeyText: { fontSize: 34, fontWeight: '500', color: colors.accent },
+  keyTextCompact: { fontSize: 32, fontWeight: '400' },
+  keyTextOperatorCompact: { fontSize: 26, fontWeight: '500' },
   // No box of their own: they are keys of the same grid as the digits, and
   // outlining them made two odd little buttons floating in a row of plain
   // glyphs. Both stay muted — Save is the one thing down here that should

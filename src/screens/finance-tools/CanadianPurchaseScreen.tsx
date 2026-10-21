@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { ResultRow } from '../../components/ui/ResultRow';
 import { TextField } from '../../components/ui/TextField';
@@ -62,24 +62,24 @@ const DEFAULT_OTHER_CLOSING_CENTS = 250_000;
 // second number is the one that sinks a deal, and it is never on a listing.
 export function CanadianPurchaseScreen() {
   const t = useT();
-  const price = useCalcField();
-  const down = useCalcField();
+  const price = useCalcField('', 'price');
+  const down = useCalcField('', 'down');
   const [downUnit, setDownUnit] = useState<DownUnit>('percent');
-  const rate = useCalcField();
-  const years = useCalcField('25');
-  const termYears = useCalcField('5');
+  const rate = useCalcField('', 'rate');
+  const years = useCalcField('25', 'years');
+  const termYears = useCalcField('5', 'termYears');
   const [frequency, setFrequency] = useState<PaymentFrequency>('monthly');
   const [compounding, setCompounding] = useState<Compounding>('semiAnnual');
   const [province, setProvince] = useState('BC');
   const [toronto, setToronto] = useState(false);
   const [firstTimeBuyer, setFirstTimeBuyer] = useState(false);
 
-  const propertyTax = useCalcField();
-  const condoFees = useCalcField();
-  const heat = useCalcField();
-  const otherExpenses = useCalcField();
-  const rentalIncome = useCalcField();
-  const otherClosing = useCalcField();
+  const propertyTaxRate = useCalcField('', 'propertyTaxRate');
+  const condoFees = useCalcField('', 'condoFees');
+  const heat = useCalcField('', 'heat');
+  const otherExpenses = useCalcField('', 'otherExpenses');
+  const rentalIncome = useCalcField('', 'rentalIncome');
+  const otherClosing = useCalcField('', 'otherClosing');
 
   const amortizationMonths = monthsFromYears(years);
   const ready = price.cents > 0 && amortizationMonths > 0;
@@ -121,9 +121,13 @@ export function CanadianPurchaseScreen() {
   // spread over twelve. An accelerated payment is not cheaper per month —
   // that is the point of it.
   const monthlyPaymentCents = Math.round(plan.annualOutlayCents / 12);
+  // Asked as a yearly % of the price, the way cities set it.
+  const propertyTaxCents = Math.round(
+    (price.cents * propertyTaxRate.bps) / 10000 / 12,
+  );
   const monthlyTotalCents =
     monthlyPaymentCents +
-    propertyTax.cents +
+    propertyTaxCents +
     condoFees.cents +
     heat.cents +
     otherExpenses.cents -
@@ -162,14 +166,22 @@ export function CanadianPurchaseScreen() {
 
   return (
     <CalcScreen>
+      <View style={styles.hero}>
+        <Text style={styles.heroLabel}>{t('financeTools.homePrice')}</Text>
+        <View style={styles.heroRow}>
+          <Text style={styles.heroSymbol}>$</Text>
+          <TextInput
+            style={styles.heroInput}
+            value={price.text}
+            onChangeText={(text) => price.set(withThousands(text))}
+            keyboardType="number-pad"
+            keyboardAppearance="dark"
+            placeholder="800,000"
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+      </View>
       <Card title={t('financeTools.inputs')}>
-        <TextField
-          label={t('financeTools.homePrice')}
-          value={price.text}
-          onChangeText={price.set}
-          keyboardType="decimal-pad"
-          placeholder={t('common.amountPlaceholder')}
-        />
         <UnitAmountField
           label={t('financeTools.downPayment')}
           value={down.text}
@@ -306,45 +318,62 @@ export function CanadianPurchaseScreen() {
 
       <Card title={t('canadaPurchase.monthlyCostsHeading')}>
         <TextField
-          label={t('canadaPurchase.propertyTaxMonthly')}
-          value={propertyTax.text}
-          onChangeText={propertyTax.set}
+          label={t('canadaPurchase.propertyTaxRate')}
+          value={propertyTaxRate.text}
+          onChangeText={propertyTaxRate.set}
+          hint={
+            propertyTaxCents > 0
+              ? t('canadaPurchase.propertyTaxHintPrice', {
+                  amount: formatMoney(propertyTaxCents),
+                })
+              : t('canadaPurchase.propertyTaxHint')
+          }
           keyboardType="decimal-pad"
-          placeholder={t('common.amountPlaceholder')}
+          placeholder="0.7"
         />
         <TextField
           label={t('canadaPurchase.condoFees')}
           value={condoFees.text}
           onChangeText={condoFees.set}
-          keyboardType="decimal-pad"
+          hint={t('canadaPurchase.condoFeesHint')}
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('canadaPurchase.heat')}
           value={heat.text}
           onChangeText={heat.set}
-          keyboardType="decimal-pad"
+          hint={t('canadaPurchase.heatHint')}
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('canadaPurchase.otherExpenses')}
           value={otherExpenses.text}
           onChangeText={otherExpenses.set}
-          keyboardType="decimal-pad"
+          hint={
+            price.cents > 0
+              ? t('canadaPurchase.otherExpensesHintPrice', {
+                  amount: formatMoney(Math.round((price.cents * 0.01) / 12)),
+                })
+              : t('canadaPurchase.otherExpensesHint')
+          }
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('canadaPurchase.rentalIncome')}
           value={rentalIncome.text}
           onChangeText={rentalIncome.set}
-          keyboardType="decimal-pad"
+          hint={t('canadaPurchase.rentalIncomeHint')}
+          keyboardType="number-pad"
           placeholder={t('common.amountPlaceholder')}
         />
         <TextField
           label={t('canadaPurchase.otherClosingCosts')}
           value={otherClosing.text}
           onChangeText={otherClosing.set}
-          keyboardType="decimal-pad"
+          keyboardType="number-pad"
           placeholder={(DEFAULT_OTHER_CLOSING_CENTS / 100).toFixed(0)}
         />
       </Card>
@@ -501,7 +530,35 @@ function Toggle({
   );
 }
 
+// "800000" → "800,000" as it is typed; the field parses separators back out.
+function withThousands(text: string): string {
+  const digits = text.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return digits ? Number(digits).toLocaleString('en-US') : '';
+}
+
 const styles = StyleSheet.create({
+  hero: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  heroLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+  },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  heroSymbol: { fontSize: 32, fontWeight: '700', color: colors.textMuted },
+  heroInput: {
+    flex: 1,
+    fontSize: 34,
+    fontWeight: '700',
+    color: colors.text,
+    paddingVertical: spacing.xs,
+  },
   link: { fontSize: 13, fontWeight: '700', color: colors.accent },
   toggles: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   toggle: {

@@ -1601,10 +1601,25 @@ export const en = {
   'canadaPurchase.heat': 'Heat (monthly)',
   'canadaPurchase.otherExpenses': 'Other expenses (monthly)',
   'canadaPurchase.rentalIncome': 'Rental income (monthly)',
+  'canadaPurchase.propertyTaxRate': 'Property tax (% of price a year)',
   'canadaPurchase.otherClosingCosts': 'Legal, inspection, title',
   'canadaPurchase.totalMonthlyCost': 'Total monthly cost',
   'canadaPurchase.paymentEach': 'Payment ({frequency})',
   'canadaPurchase.paymentPerMonthEquivalent': 'Per month',
+  'canadaPurchase.propertyTaxHint':
+    'Typically 0.3–1.1% a year, depending on the city.',
+  'canadaPurchase.propertyTaxHintPrice':
+    'About {amount} a month at this rate. Typically 0.3–1.1% a year by city.',
+  'canadaPurchase.condoFeesHint':
+    'Condos often run $0.60–$0.90 per sq ft a month (about $400–$700 for 700 sq ft). $0 for a freehold house.',
+  'canadaPurchase.heatHint':
+    'Lenders usually assume about $100–$150 a month.',
+  'canadaPurchase.otherExpensesHint':
+    'Insurance (about $30/mo for a condo, $100+ for a house) plus upkeep, often about 1% of a house’s price a year.',
+  'canadaPurchase.otherExpensesHintPrice':
+    'Insurance (about $30/mo for a condo, $100+ for a house) plus upkeep — about 1% of the price a year is {amount}/mo.',
+  'canadaPurchase.rentalIncomeHint':
+    'A suite or unit you rent out. Lenders usually count only 50–100% of it.',
   'canadaPurchase.mortgageAmount': 'Mortgage',
   'canadaPurchase.insurancePremium': 'CMHC premium ({rate}%)',
   'canadaPurchase.premiumFinancedHint':

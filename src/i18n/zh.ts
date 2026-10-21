@@ -1569,10 +1569,25 @@ export const zh: Record<keyof typeof en, string> = {
   'canadaPurchase.heat': '取暖费（每月）',
   'canadaPurchase.otherExpenses': '其他开支（每月）',
   'canadaPurchase.rentalIncome': '租金收入（每月）',
+  'canadaPurchase.propertyTaxRate': '房产税（房价的年百分比）',
   'canadaPurchase.otherClosingCosts': '律师费、验房、产权保险',
   'canadaPurchase.totalMonthlyCost': '每月总支出',
   'canadaPurchase.paymentEach': '每期还款（{frequency}）',
   'canadaPurchase.paymentPerMonthEquivalent': '折合每月',
+  'canadaPurchase.propertyTaxHint':
+    '通常为每年 0.3%–1.1%，因城市而异。',
+  'canadaPurchase.propertyTaxHintPrice':
+    '按此税率约每月 {amount}。通常为每年 0.3%–1.1%，因城市而异。',
+  'canadaPurchase.condoFeesHint':
+    '公寓通常每月每平方英尺 $0.60–$0.90（700 平方英尺约 $400–$700）。独立产权房为 $0。',
+  'canadaPurchase.heatHint':
+    '贷款机构通常按每月约 $100–$150 估算。',
+  'canadaPurchase.otherExpensesHint':
+    '保险（公寓约每月 $30，独立屋 $100 以上）加维护，独立屋每年通常约为房价的 1%。',
+  'canadaPurchase.otherExpensesHintPrice':
+    '保险（公寓约每月 $30，独立屋 $100 以上）加维护——每年按房价 1% 约为每月 {amount}。',
+  'canadaPurchase.rentalIncomeHint':
+    '出租的套间或单元。贷款机构通常只计其 50%–100%。',
   'canadaPurchase.mortgageAmount': '贷款金额',
   'canadaPurchase.insurancePremium': 'CMHC 保费（{rate}%）',
   'canadaPurchase.premiumFinancedHint': '计入贷款本金，无需在过户时支付。',

@@ -1,4 +1,4 @@
-import { PropsWithChildren, RefObject } from 'react';
+import { PropsWithChildren, ReactNode, RefObject } from 'react';
 import { LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
@@ -21,6 +21,8 @@ interface ScreenContainerProps extends PropsWithChildren {
   onScrollViewLayout?: (event: LayoutChangeEvent) => void;
   // Off while a finger is dragging something that lives in the scroll.
   scrollEnabled?: boolean;
+  // Pinned above the scroll — a figure that should stay in sight.
+  header?: ReactNode;
 }
 
 export function ScreenContainer({
@@ -30,12 +32,14 @@ export function ScreenContainer({
   scrollRef,
   onScrollViewLayout,
   scrollEnabled = true,
+  header,
 }: ScreenContainerProps) {
   return (
     <SafeAreaView
       style={styles.safeArea}
       edges={modal ? ['bottom', 'left', 'right'] : ['left', 'right']}
     >
+      {header}
       {scroll ? (
         <ScrollView
           ref={scrollRef}

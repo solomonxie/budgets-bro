@@ -23,15 +23,17 @@ export type AccountsStackParamList = {
   // The account's own calculators (AccountToolsSection), same route as
   // Insights'.
   FinanceTool: { tool: FinanceToolId };
+  MortgageInsights: MortgageParams;
 };
+
+// Opened from a house: a new plan at its price.
+export type MortgageParams = { priceCents?: number; name?: string } | undefined;
 
 export type InsightsStackParamList = {
   InsightsHome: undefined;
   Transactions: TransactionsFilterParams;
   BabySteps: undefined;
-  MortgageInsights: undefined;
-  LoanInsights: undefined;
-  InvestmentInsights: undefined;
+  MortgageInsights: MortgageParams;
   TaxInsights: undefined;
   TrackedPrices: undefined;
   PayeeTrend: undefined;

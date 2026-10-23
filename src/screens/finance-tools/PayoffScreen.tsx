@@ -210,10 +210,6 @@ export function PayoffScreen({ accountFilter }: { accountFilter: (account: Accou
   );
 }
 
-export function MortgagePayoffScreen() {
-  return <PayoffScreen accountFilter={(a) => a.account.type === 'mortgage'} />;
-}
-
 export function LoanPayoffScreen() {
   return <PayoffScreen accountFilter={(a) => a.account.type === 'loan' || a.account.type === 'credit_card'} />;
 }

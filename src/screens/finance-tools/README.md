@@ -6,14 +6,42 @@ FinanceToolList.tsx         the TOOLS rows on a hub, rendered from the registry
 FinanceToolScreen.tsx       one route for all of them; falls back to StubScreen
                             if a `Screen` is ever null again
 
-MortgageInsightsScreen.tsx  ┐ hub = your real accounts for that domain,
-LoanInsightsScreen.tsx      ├ then <FinanceToolList hub="…" />
-InvestmentInsightsScreen.tsx┘
-../tax/TaxInsightsScreen    the fourth hub — ledger-derived, tools appended
+MortgageInsightsScreen.tsx  the Mortgage page: every mortgage question on one
+                            page (see below), not a hub
+../tax/TaxInsightsScreen    the one remaining hub — ledger-derived, tools appended
 ```
 
-Reached from Insights' Utilities section, one row per hub. Adding a tool is one
-entry in `registry.ts` plus its screen.
+Loan, investment and tax tools are reached from an account's Calculators
+section (and tax from Tax Insights). Adding a tool is one entry in
+`registry.ts` plus its screen.
+
+## Mortgage page
+
+```
+MortgageInsightsScreen.tsx  simulation tabs: each real mortgage (from the
+                            account, can't be deleted; hold → duplicate as a
+                            simulation) + any number of what-ifs, each its
+                            own saved calc form
+mortgage/profiles.ts        the simulation list and which tab is open
+mortgage/MortgagePlanView   pinned monthly-cost bar; inputs (fold to one line
+                            once filled; rate ±chips; inline warnings) →
+                            live summary (+ Share) → sections: schedule,
+                            renewal, closing, qualifying, rent vs buy /
+                            refinance with break penalty (real mortgages)
+mortgage/ScheduleSection    by calendar year, past months greyed, next
+                            payment marked; planned-extras list; tap a month
+                            to pay extra once or every month from there
+mortgage/BalanceChart       balance over time, scheduled vs with extras (svg)
+mortgage/useHeldHistory     a real mortgage's rate changes, usual payment
+                            (median of 6 months) and paying account — 3
+                            small queries, only on its tab
+mortgage/scheduleExtras     planned extras → scheduled payments to approve
+```
+
+Math: `src/finance-tools/mortgagePlan.ts` on top of `canadianMortgage.ts`.
+Extras are saved on calendar months (`YYYY-MM`) so they don't drift. A real
+mortgage uses the payment actually made when the ledger has one, its rate
+history for past months, and renews at last rate change + term length.
 
 Math lives in `src/finance-tools/` (pure, no DB/React, unit-tested) — same
 split as the folder name pairing suggests.
@@ -21,13 +49,7 @@ split as the folder name pairing suggests.
 ## The calculators
 
 ```
-mortgage       MortgageScreen          hub: mortgage
-payoff         PayoffScreen            mortgage + loan (one component, two entries)
-affordability  AffordabilityScreen     mortgage
-prepay (CN)    ChinaPrepaymentScreen   mortgage
-refinance      RefinanceScreen         mortgage
-rent vs buy    RentVsBuyScreen         mortgage
-stress test    StressTestScreen        mortgage
+payoff         PayoffScreen            loan
 amortization   AmortizationScreen      loan
 auto loan      AutoLoanScreen          loan
 debt-to-income DebtToIncomeScreen      loan

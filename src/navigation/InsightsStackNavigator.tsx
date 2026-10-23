@@ -2,8 +2,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { InsightsScreen } from '../screens/insights/InsightsScreen';
 import { TransactionsScreen } from '../screens/transactions/TransactionsScreen';
 import { MortgageInsightsScreen } from '../screens/finance-tools/MortgageInsightsScreen';
-import { LoanInsightsScreen } from '../screens/finance-tools/LoanInsightsScreen';
-import { InvestmentInsightsScreen } from '../screens/finance-tools/InvestmentInsightsScreen';
 import { FinanceToolScreen } from '../screens/finance-tools/FinanceToolScreen';
 import { financeTool } from '../screens/finance-tools/registry';
 import { BabyStepsScreen } from '../screens/insights/BabyStepsScreen';
@@ -38,12 +36,6 @@ export function InsightsStackNavigator() {
       <Stack.Screen name="Transactions" component={TransactionsScreen} options={{ title: t('nav.transactions') }} />
       <Stack.Screen name="BabySteps" component={BabyStepsScreen} options={{ title: t('insights.babySteps') }} />
       <Stack.Screen name="MortgageInsights" component={MortgageInsightsScreen} options={{ title: t('insights.mortgageInsights') }} />
-      <Stack.Screen name="LoanInsights" component={LoanInsightsScreen} options={{ title: t('insights.loanInsights') }} />
-      <Stack.Screen
-        name="InvestmentInsights"
-        component={InvestmentInsightsScreen}
-        options={{ title: t('insights.investmentInsights') }}
-      />
       <Stack.Screen name="TaxInsights" component={TaxInsightsScreen} options={{ title: t('insights.taxInsights') }} />
       <Stack.Screen
         name="TrackedPrices"

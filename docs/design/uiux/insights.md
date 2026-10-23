@@ -36,9 +36,7 @@ sends nothing off-device.
  Quarterly Review (QBR)                       2 ›
  Flagged Transactions                            3 ›
  Baby Steps                                        ›
- Mortgage Insights                                 ›
- Loan Insights                                     ›
- Investment Insights                               ›
+ Mortgage                                          ›
  Tax Insights                                      ›
 ```
 
@@ -192,23 +190,39 @@ name-based rules: rent and the like are left to the user's Ignore.
  └──────────────────────────────────────────────────┘
 ```
 
-## Finance tools  `screens/finance-tools/`
+## Mortgage  `finance-tools/MortgageInsightsScreen.tsx`
 
-A registry of calculators, each the same shape: inputs at the top, a result
-block, and a schedule table where one applies.
+Every mortgage question on one page. Fill the inputs once; everything below is
+live. Each simulation tab saves as it's typed; Delete this simulation sits at the very bottom, greyed out for a real mortgage.
 
 ```
  ‹          Mortgage
- Principal · Rate · Term (months) · Extra payment
- ┌──────────────────────────────────────────────────┐
- │ Monthly payment                       $1,204.10  │  ResultRow ×N
- │ Total interest                       $184,210.55 │
+ (🏠 Dachang) (Sim 1) (House on Elm) (＋ New)   ← real mortgages first,
+ HOME PRICE                                             can't be deleted;
+ $ 800,000                                              hold one to rename,   
+ ┌ The mortgage ────────────────────────────────────┐   copy or delete
+ │ Down payment  [20] [% | $]   $160,000 down. Use… │
+ │ Rate 4.5 · Years 25 · Term 5                     │
+ │ (Fixed) (Variable) · Monthly ▾ · BC ▾ · (1st)    │
  └──────────────────────────────────────────────────┘
- ┌ SCHEDULE ────────────────────────────────────────┐
- │ #   Payment   Interest  Principal   Balance      │
- │ 1   1,204.10   640.10     564.00  127,369.00     │
+ ┌ Monthly costs ┐ ┌ You (optional) ┐
+ ┌──────────────────────────────────────────────────┐  accent border
+ │ Total monthly cost                       $4,236  │
+ │ Payment · Mortgage $640,000 · Payoff · Interest  │
+ │ ──────────────────────────────────────────────── │
+ │ Cash to close                          $176,500  │
+ │ Income needed to qualify               $149,340  │
+ │ Most you qualify for                   $812,000  │
  └──────────────────────────────────────────────────┘
- Tools: Affordability · Amortization · Auto Loan · Calc · China
- Prepayment · Compound Interest · Debt-to-Income · Investment ·
- Mortgage · Payoff · Refinance · Rent vs Buy · Tax Savings
+ Payment schedule                   25 yrs 0 mo ›   each opens in place;
+                                                    year rows → month rows;
+ End of the 5-year term                $551,820 ›   tap a month: lump sum
+ Cash to close                         $176,500 ›
+ Qualifying                            $149,340 ›
+ Rent instead?           Buying wins from year 7 ›  (Refinance on a real one)
+ ( Reset ) + History
+ [ Delete this simulation ]   greyed out on a real mortgage
 ```
+
+Loan, investment and tax calculators stay as single tools, reached from an
+account's Calculators section (tax also from Tax Insights).

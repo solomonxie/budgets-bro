@@ -7,8 +7,6 @@ export * from './payoff';
 export * from './refinance';
 export * from './autoLoan';
 export * from './rentVsBuy';
-export * from './equalPrincipal';
-export * from './chinaPrepayment';
 export * from './affordability';
 export * from './investment';
 export * from './taxSavings';

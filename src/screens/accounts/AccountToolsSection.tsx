@@ -15,16 +15,6 @@ type Nav = NativeStackNavigationProp<AccountsStackParamList>;
 // The Insights calculators that are about this kind of account, a tap away
 // from the account itself.
 const TOOLS_BY_TYPE: Partial<Record<AccountType, FinanceToolId[]>> = {
-  mortgage: [
-    'stressTest',
-    'debtToIncome',
-    'requiredIncome',
-    'mortgagePayoff',
-    'refinance',
-    'chinaPrepayment',
-    'amortization',
-    'mortgage',
-  ],
   loan: ['loanPayoff', 'amortization', 'autoLoan', 'debtToIncome'],
   credit_card: ['loanPayoff', 'debtToIncome'],
   savings: ['compoundInterest'],
@@ -43,7 +33,10 @@ export function AccountToolsSection({ type }: { type: AccountType }) {
   const navigation = useNavigation<Nav>();
   const [expanded, setExpanded] = useState(false);
   const tools = accountTools(type);
-  if (tools.length === 0) return null;
+  // A mortgage has one page for every question about it, where this
+  // account is already a plan.
+  const mortgage = type === 'mortgage';
+  if (tools.length === 0 && !mortgage) return null;
 
   return (
     <View style={styles.card}>
@@ -51,6 +44,15 @@ export function AccountToolsSection({ type }: { type: AccountType }) {
         <Text style={styles.label}>{t('accountDetail.calculators')}</Text>
         <Text style={styles.chevron}>{expanded ? '▾' : '›'}</Text>
       </Pressable>
+      {expanded && mortgage ? (
+        <Pressable style={styles.row} onPress={() => navigation.navigate('MortgageInsights')}>
+          <View style={styles.rowText}>
+            <Text style={styles.title}>{t('insights.mortgageInsights')}</Text>
+            <Text style={styles.subtitle}>{t('mortgagePlan.accountLinkSubtitle')}</Text>
+          </View>
+          <Text style={styles.arrow}>›</Text>
+        </Pressable>
+      ) : null}
       {expanded
         ? tools.map((id) => {
             const tool = financeTool(id);

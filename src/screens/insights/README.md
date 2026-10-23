@@ -15,12 +15,9 @@ InsightsScreen.tsx
 │ Runway card (months cash lasts)  │──→ ./RunwayCard.tsx → useRunway → domain/runway
 ├───────────────────────────────┤
 │ UTILITIES list (Baby Steps,     │──→ inline; row tap navigates to:
-│  Mortgage / Loan / Investment /  │    BabyStepsScreen.tsx (below)
-│  Tax Insights)                   │    ../finance-tools/MortgageInsightsScreen.tsx
-│                                  │    ../finance-tools/LoanInsightsScreen.tsx
-│                                  │    ../finance-tools/InvestmentInsightsScreen.tsx
+│  Mortgage, Tax Insights)         │    BabyStepsScreen.tsx (below)
+│                                  │    ../finance-tools/MortgageInsightsScreen.tsx
 │                                  │    ../tax/TaxInsightsScreen.tsx
-│                                  │    ../ai/AiAnalysisScreen.tsx
 └───────────────────────────────┘
 
 BabyStepsScreen.tsx

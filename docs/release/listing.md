@@ -230,10 +230,10 @@ BUDGETING
 • Baby Steps, each with a 12-month pace
 
 CALCULATORS
-• Mortgage, refinance, affordability, rent vs. buy, stress test
-• Amortization, auto loan, payoff, debt-to-income, required income
+• One mortgage page: buy or hold, every answer from one set of inputs — monthly cost, cash to close, income needed, payment schedule with extra payments, renewal, refinance, rent vs. buy
+• Amortization, auto loan, payoff, debt-to-income
 • Compound interest, investment growth, tax savings
-• Canadian purchase and mortgage rules; China mortgage prepayment
+• Canadian purchase and mortgage rules
 
 YOUR DATA
 • A local database on the device; works with the network off
@@ -288,7 +288,7 @@ EXTERNAL SERVICES
 No AI, analytics, advertising, crash reporting, authentication or payment services. We run no server.
 
 REGIONAL DIFFERENCES
-The app works the same in every region. It is available in English and Simplified Chinese. A few calculators model specific rules — Canadian home purchase and mortgage rules, a Chinese mortgage prepayment calculator, and Canadian tax-year insights — and are simply options in the list elsewhere.
+The app works the same in every region. It is available in English and Simplified Chinese. A few calculators model specific rules — Canadian home purchase and mortgage rules and Canadian tax-year insights — and are simply options in the list elsewhere.
 
 REGULATION
 Budgets Bro is a personal record-keeping and planning tool. It does not move money, hold funds, lend, process payments, connect to banks or give investment advice; calculator results are estimates for planning. No third-party protected material is included.

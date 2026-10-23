@@ -36,8 +36,6 @@ type Nav = NativeStackNavigationProp<InsightsStackParamList, 'InsightsHome'>;
 type UtilityScreen =
   | 'BabySteps'
   | 'MortgageInsights'
-  | 'LoanInsights'
-  | 'InvestmentInsights'
   | 'TaxInsights'
   | 'TrackedPrices'
   | 'PayeeTrend'
@@ -65,8 +63,6 @@ export function InsightsScreen() {
     { label: t('insights.trackedPrices'), screen: 'TrackedPrices' },
     { label: t('insights.paymentReview'), screen: 'PaymentReview' },
     { label: t('insights.mortgageInsights'), screen: 'MortgageInsights' },
-    { label: t('insights.loanInsights'), screen: 'LoanInsights' },
-    { label: t('insights.investmentInsights'), screen: 'InvestmentInsights' },
     { label: t('insights.taxInsights'), screen: 'TaxInsights' },
     { label: t('insights.exchangeInsights'), screen: 'ExchangeInsights' },
     { label: t('insights.costOfLiving'), screen: 'CostOfLiving' },

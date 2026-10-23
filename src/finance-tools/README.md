@@ -6,9 +6,12 @@ basis points. Every file has a colocated `.test.ts`; screens live in
 
 ```
 amortization.ts     level-payment schedule + payoff months  ← the primitive
-equalPrincipal.ts   等额本金 declining-payment schedule
 payoff.ts           extra payments, biweekly, before/after comparison
-chinaPrepayment.ts  提前还贷 — depends on both schedules above
+canadianMortgage.ts semi-annual compounding, insurance, transfer tax, GDS/TDS
+mortgagePlan.ts     the Mortgage page: one plan → costs, closing, schedule
+                    with lump sums, renewal shocks, qualifying, max price
+refinance.ts        break-even of a rate switch
+rentVsBuy.ts        renter vs buyer net worth by year
 affordability.ts    max house price + DTI            ┐ circular in price/rate,
 investment.ts       future value + 4 solvers         ┘ both use solve.ts
 taxSavings.ts       progressive brackets, deduction savings
@@ -20,7 +23,7 @@ accountLink.ts      which figure a real account can supply a calculator field
 
 Reference figures each module is tested against come from the calculators the
 user supplied — calculator.net (mortgage, amortization, payoff, affordability,
-investment) and fangdailixi.com (提前还贷). Where a result diverges from the
+investment). Where a result diverges from the
 reference on purpose, the reason is in the file.
 
 No tax rates are shipped for any country or year. `taxSavings.ts` computes on a

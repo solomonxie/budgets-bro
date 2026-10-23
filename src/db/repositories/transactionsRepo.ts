@@ -11,6 +11,8 @@ import {
   LAST_CATEGORY_FOR_PAYEE,
   LAST_CASH_ACCOUNT_USED,
   SELECT_PURCHASE_ITEMS,
+  LOAN_PAYMENTS_BY_MONTH,
+  LOAN_PAYING_ACCOUNT,
 } from '../../../databases/queries/transactions';
 
 function mapRow(row: TransactionJoinRow): TransactionWithLabels {
@@ -619,4 +621,29 @@ export async function setCategoryForTransactions(
     categoryId,
     ...ids,
   );
+}
+
+/** A loan's payment totals per month since `sinceDate`, newest first. */
+export async function loanPaymentsByMonth(
+  db: SQLiteDatabase,
+  accountId: number,
+  sinceDate: string,
+): Promise<{ month: string; cents: number }[]> {
+  return db.getAllAsync<{ month: string; cents: number }>(
+    LOAN_PAYMENTS_BY_MONTH,
+    accountId,
+    sinceDate,
+    currentDateISO(),
+  );
+}
+
+export async function loanPayingAccountId(
+  db: SQLiteDatabase,
+  accountId: number,
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ account_id: number }>(
+    LOAN_PAYING_ACCOUNT,
+    accountId,
+  );
+  return row?.account_id ?? null;
 }

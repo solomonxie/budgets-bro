@@ -5,6 +5,7 @@ import { ClosedAccountsScreen } from '../screens/accounts/ClosedAccountsScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
 import { useT } from '../i18n';
 import { FinanceToolScreen } from '../screens/finance-tools/FinanceToolScreen';
+import { MortgageInsightsScreen } from '../screens/finance-tools/MortgageInsightsScreen';
 import { financeTool } from '../screens/finance-tools/registry';
 import type { AccountsStackParamList } from './types';
 
@@ -21,6 +22,7 @@ export function AccountsStackNavigator() {
       />
       <Stack.Screen name="AccountDetail" component={AccountDetailScreen} options={{ title: '' }} />
       <Stack.Screen name="ClosedAccounts" component={ClosedAccountsScreen} options={{ title: t('accounts.closedAccounts') }} />
+      <Stack.Screen name="MortgageInsights" component={MortgageInsightsScreen} options={{ title: t('insights.mortgageInsights') }} />
       <Stack.Screen
         name="FinanceTool"
         component={FinanceToolScreen}

@@ -50,3 +50,25 @@ export const LAST_CATEGORY_FOR_PAYEE = `
   LIMIT 1
 `;
 
+
+// A loan's payments by month: the legs posted into it from another account,
+// grouped in SQL so only one row per month comes back. Rides
+// idx_transactions_account.
+export const LOAN_PAYMENTS_BY_MONTH = `
+  SELECT substr(date, 1, 7) AS month, SUM(amount_cents) AS cents
+  FROM transactions
+  WHERE account_id = ? AND amount_cents > 0 AND transfer_account_id IS NOT NULL
+    AND is_interest = 0 AND date >= ? AND date <= ?
+  GROUP BY month
+  ORDER BY month DESC
+`;
+
+// Which account usually pays a loan — the one behind most of its payments.
+export const LOAN_PAYING_ACCOUNT = `
+  SELECT transfer_account_id AS account_id
+  FROM transactions
+  WHERE account_id = ? AND amount_cents > 0 AND transfer_account_id IS NOT NULL
+  GROUP BY transfer_account_id
+  ORDER BY COUNT(*) DESC
+  LIMIT 1
+`;

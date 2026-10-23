@@ -271,7 +271,10 @@ export function HouseDetailScreen() {
           <Pressable
             hitSlop={8}
             onPress={() =>
-              navigation.navigate('FinanceTool', { tool: 'canadaPurchase' })
+              navigation.navigate('MortgageInsights', {
+                priceCents: draft.askingPriceCents ?? undefined,
+                name: draft.name || undefined,
+              })
             }
           >
             <Text style={styles.link}>{t('housing.openCalculator')}</Text>

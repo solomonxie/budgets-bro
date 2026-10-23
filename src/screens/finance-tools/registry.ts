@@ -1,31 +1,14 @@
 import type { ComponentType } from 'react';
 import type { TranslationKey } from '../../i18n';
-import { MortgageScreen } from './MortgageScreen';
-import { CanadianPurchaseScreen } from './CanadianPurchaseScreen';
-import { RequiredIncomeScreen } from './RequiredIncomeScreen';
-import { MortgagePayoffScreen, LoanPayoffScreen } from './PayoffScreen';
-import { AffordabilityScreen } from './AffordabilityScreen';
-import { ChinaPrepaymentScreen } from './ChinaPrepaymentScreen';
-import { RefinanceScreen } from './RefinanceScreen';
-import { RentVsBuyScreen } from './RentVsBuyScreen';
+import { LoanPayoffScreen } from './PayoffScreen';
 import { AmortizationScreen } from './AmortizationScreen';
 import { AutoLoanScreen } from './AutoLoanScreen';
 import { DebtToIncomeScreen } from './DebtToIncomeScreen';
 import { InvestmentScreen } from './InvestmentScreen';
 import { CompoundInterestScreen } from './CompoundInterestScreen';
 import { TaxSavingsScreen } from './TaxSavingsScreen';
-import { StressTestScreen } from './StressTestScreen';
 
 export type FinanceToolId =
-  | 'canadaPurchase'
-  | 'requiredIncome'
-  | 'mortgage'
-  | 'mortgagePayoff'
-  | 'houseAffordability'
-  | 'chinaPrepayment'
-  | 'refinance'
-  | 'rentVsBuy'
-  | 'stressTest'
   | 'amortization'
   | 'autoLoan'
   | 'debtToIncome'
@@ -34,7 +17,7 @@ export type FinanceToolId =
   | 'compoundInterest'
   | 'taxSavings';
 
-export type FinanceToolHub = 'mortgage' | 'loan' | 'invest' | 'tax';
+export type FinanceToolHub = 'loan' | 'invest' | 'tax';
 
 export interface FinanceToolEntry {
   id: FinanceToolId;
@@ -49,16 +32,6 @@ export interface FinanceToolEntry {
 // Single source of truth for both the router and the hub lists: adding a tool
 // is one entry here, shipping it is swapping `Screen` off null.
 export const FINANCE_TOOLS: FinanceToolEntry[] = [
-  { id: 'canadaPurchase', hub: 'mortgage', titleKey: 'calcCanadaPurchase.title', subtitleKey: 'calcCanadaPurchase.subtitle', Screen: CanadianPurchaseScreen },
-  { id: 'requiredIncome', hub: 'mortgage', titleKey: 'calcRequiredIncome.title', subtitleKey: 'calcRequiredIncome.subtitle', Screen: RequiredIncomeScreen },
-  { id: 'mortgage', hub: 'mortgage', titleKey: 'calcMortgage.title', subtitleKey: 'calcMortgage.subtitle', Screen: MortgageScreen },
-  { id: 'mortgagePayoff', hub: 'mortgage', titleKey: 'calcPayoff.title', subtitleKey: 'calcPayoff.subtitle', Screen: MortgagePayoffScreen },
-  { id: 'houseAffordability', hub: 'mortgage', titleKey: 'calcAffordability.title', subtitleKey: 'calcAffordability.subtitle', Screen: AffordabilityScreen },
-  { id: 'chinaPrepayment', hub: 'mortgage', titleKey: 'calcPrepay.title', subtitleKey: 'calcPrepay.subtitle', Screen: ChinaPrepaymentScreen },
-  { id: 'refinance', hub: 'mortgage', titleKey: 'calcRefinance.title', subtitleKey: 'calcRefinance.subtitle', Screen: RefinanceScreen },
-  { id: 'stressTest', hub: 'mortgage', titleKey: 'calcStressTest.title', subtitleKey: 'calcStressTest.subtitle', Screen: StressTestScreen },
-  { id: 'rentVsBuy', hub: 'mortgage', titleKey: 'calcRentVsBuy.title', subtitleKey: 'calcRentVsBuy.subtitle', Screen: RentVsBuyScreen },
-
   { id: 'amortization', hub: 'loan', titleKey: 'calcAmortization.title', subtitleKey: 'calcAmortization.subtitle', Screen: AmortizationScreen },
   { id: 'loanPayoff', hub: 'loan', titleKey: 'calcLoanPayoff.title', subtitleKey: 'calcLoanPayoff.subtitle', Screen: LoanPayoffScreen },
   { id: 'autoLoan', hub: 'loan', titleKey: 'calcAutoLoan.title', subtitleKey: 'calcAutoLoan.subtitle', Screen: AutoLoanScreen },

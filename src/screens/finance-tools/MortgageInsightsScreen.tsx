@@ -1,76 +1,315 @@
-import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { useEffect, useMemo, useRef } from 'react';
+import {
+  ActionSheetIOS,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
-import { Card } from '../../components/ui/Card';
-import { ResultRow } from '../../components/ui/ResultRow';
-import { FinanceToolList } from './FinanceToolList';
-import { addMonths, monthlyPaymentCents, remainingMonthsToPayoff } from '../../finance-tools/amortization';
-import { currentDateISO } from '../../domain/month';
-import { formatMoney, formatPercent } from '../../domain/money';
+import { CalcFormProvider } from './calcForm';
+import { MortgagePlanView } from './mortgage/MortgagePlanView';
+import type { HeldMortgage } from './mortgage/MortgagePlanView';
+import {
+  accountProfileId,
+  formKey,
+  useSimulationProfiles,
+} from './mortgage/profiles';
+import { getDb } from '../../db/client';
+import { paymentPlan } from '../../finance-tools/canadianMortgage';
+import type { Compounding } from '../../finance-tools/canadianMortgage';
+import { monthlySchedule } from '../../finance-tools/mortgagePlan';
+import * as settingsRepo from '../../db/repositories/settingsRepo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useAccountValues } from '../../hooks/useAccountValues';
 import { useCurrentRates } from '../../hooks/useCurrentRates';
 import { useT } from '../../i18n';
-import type { AccountWithBalance } from '../../db/repositories/accountsRepo';
+import type { InsightsStackParamList } from '../../navigation/types';
+import { colors } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
 
-// Your real mortgages first, the what-if calculators under them. The summary
-// card is skipped entirely when there's no mortgage on the board — an empty
-// "you have no mortgage" card is noise on a page that's still useful.
+// The first plan picks up whatever was typed into the Home purchase tool
+// this page replaced. A down payment over 100 was always dollars.
+async function legacyPurchaseInputs(): Promise<Record<string, string> | null> {
+  const db = await getDb();
+  const old = await settingsRepo.getJsonSetting<Record<string, string> | null>(
+    db,
+    'calc_form:canadaPurchase',
+    null,
+  );
+  if (!old) return null;
+  const down = Number((old.down ?? '').replace(/[^\d.]/g, ''));
+  return { ...old, '@downUnit': down > 100 ? 'amount' : 'percent' };
+}
+
+// Every mortgage question on one page. Plans are tabs along the top: each
+// real mortgage account is one (filled from the account, never deleted),
+// then any number of what-ifs, each saving as it's typed.
 export function MortgageInsightsScreen() {
+  const t = useT();
+  const route =
+    useRoute<RouteProp<InsightsStackParamList, 'MortgageInsights'>>();
   const { accounts } = useAccounts();
   const { ratesByAccountId } = useCurrentRates();
   const { valuesByAccountId } = useAccountValues();
-  const mortgages = accounts.filter((a) => a.account.type === 'mortgage' && a.account.archivedAt == null);
+  const sims = useSimulationProfiles((n) => t('mortgagePlan.planName', { n }));
+
+  const held = useMemo(
+    () =>
+      accounts
+        .filter(
+          (a) => a.account.type === 'mortgage' && a.account.archivedAt == null,
+        )
+        .map<HeldMortgage & { id: string }>((entry) => ({
+          id: accountProfileId(entry.account.id),
+          entry,
+          rateBps: ratesByAccountId.get(entry.account.id) ?? null,
+          homeValueCents:
+            valuesByAccountId.get(entry.account.id) ??
+            entry.account.originalHousePriceCents,
+        })),
+    [accounts, ratesByAccountId, valuesByAccountId],
+  );
+
+  // Opened from a house on the shortlist: a new plan at that price.
+  const startedFrom = useRef<number | null>(null);
+  const priceParam = route.params?.priceCents;
+  useEffect(() => {
+    if (
+      !sims.profiles ||
+      priceParam == null ||
+      startedFrom.current === priceParam
+    )
+      return;
+    startedFrom.current = priceParam;
+    sims.add({
+      values: { price: Math.round(priceParam / 100).toLocaleString('en-US') },
+      name: route.params?.name,
+    });
+  }, [sims, priceParam, route.params?.name]);
+
+  if (!sims.profiles) return null;
+
+  const tabs = [
+    ...held.map((h) => ({ id: h.id, name: h.entry.account.name, held: h })),
+    ...sims.profiles.map((p) => ({ id: p.id, name: p.name, held: undefined })),
+  ];
+  const active = tabs.find((tab) => tab.id === sims.activeId) ?? tabs[0];
+  const firstSimId = sims.profiles[0]?.id;
+
+  const confirmRemove = (id: string, name: string) =>
+    Alert.alert(
+      t('mortgagePlan.deleteTitle', { name }),
+      t('mortgagePlan.deleteBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => sims.remove(id),
+        },
+      ],
+    );
+  const canDelete = sims.profiles.length > 1;
+
+  // A real mortgage as a what-if: the home at its value, what's owed as
+  // the loan, the same rate and extras — then change anything.
+  const duplicateHeld = async (h: HeldMortgage & { id: string }) => {
+    const db = await getDb();
+    const saved = await settingsRepo.getJsonSetting<Record<string, string>>(
+      db,
+      `calc_form:${formKey(h.id)}`,
+      {},
+    );
+    const owed = Math.max(0, -h.entry.balanceCents);
+    const rateBps = h.rateBps ?? Math.round(Number(saved.rate ?? '0') * 100);
+    const compounding = (saved['@compounding'] ?? 'semiAnnual') as Compounding;
+    const account = h.entry.account;
+    const payment =
+      account.originalPrincipalCents != null && account.termMonths != null
+        ? paymentPlan(
+            account.originalPrincipalCents,
+            rateBps,
+            account.termMonths,
+            'monthly',
+            compounding,
+          ).paymentCents
+        : paymentPlan(owed, rateBps, 300, 'monthly', compounding).paymentCents;
+    const months =
+      monthlySchedule(owed, rateBps, compounding, payment).length || 300;
+    const priceCents = h.homeValueCents ?? Math.round(owed / 0.8);
+    const dollars = (cents: number) =>
+      Math.round(cents / 100).toLocaleString('en-US');
+    sims.add({
+      name: t('mortgagePlan.copyOf', { name: account.name }),
+      values: {
+        ...saved,
+        price: dollars(priceCents),
+        '@downUnit': 'amount',
+        down: dollars(Math.max(0, priceCents - owed)),
+        rate: String(rateBps / 100),
+        years: String(Math.max(1, Math.round(months / 12))),
+      },
+    });
+  };
+
+  const manageHeld = (h: HeldMortgage & { id: string }) => {
+    const options = [
+      t('mortgagePlan.duplicateAsSimulation'),
+      t('common.cancel'),
+    ];
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: h.entry.account.name, options, cancelButtonIndex: 1 },
+      (i) => {
+        if (i === 0) duplicateHeld(h);
+      },
+    );
+  };
+
+  const manage = (id: string, name: string) => {
+    const rename = () =>
+      Alert.prompt(
+        t('common.rename'),
+        undefined,
+        (text) => text?.trim() && sims.rename(id, text.trim()),
+        'plain-text',
+        name,
+      );
+    const options = [
+      t('common.rename'),
+      t('mortgagePlan.duplicate'),
+      ...(canDelete ? [t('common.delete')] : []),
+      t('common.cancel'),
+    ];
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: name,
+        options,
+        cancelButtonIndex: options.length - 1,
+        destructiveButtonIndex: canDelete ? 2 : undefined,
+      },
+      (i) => {
+        if (i === 0) rename();
+        else if (i === 1)
+          sims.add({
+            copyFromFormKey: formKey(id),
+            name: t('mortgagePlan.copyOf', { name }),
+          });
+        else if (canDelete && i === 2) confirmRemove(id, name);
+      },
+    );
+  };
 
   return (
-    <ScreenContainer scroll>
-      <ExperimentalBanner />
-      {mortgages.map((m) => (
-        <MortgageSummary
-          key={m.account.id}
-          entry={m}
-          rateBps={ratesByAccountId.get(m.account.id) ?? null}
-          houseValueCents={valuesByAccountId.get(m.account.id) ?? m.account.originalHousePriceCents}
-        />
-      ))}
-      <FinanceToolList hub="mortgage" />
-    </ScreenContainer>
+    <CalcFormProvider
+      key={active.id}
+      toolId={formKey(active.id)}
+      seed={active.id === firstSimId ? legacyPurchaseInputs : undefined}
+    >
+      <MortgagePlanView
+        held={active.held}
+        top={
+          <>
+            <ExperimentalBanner />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabs}
+            >
+              {tabs.map((tab) => {
+                const on = tab.id === active.id;
+                return (
+                  <Pressable
+                    key={tab.id}
+                    style={[styles.tab, on && styles.tabOn]}
+                    onPress={() => sims.open(tab.id)}
+                    onLongPress={() =>
+                      tab.held ? manageHeld(tab.held) : manage(tab.id, tab.name)
+                    }
+                  >
+                    <Text
+                      style={[styles.tabText, on && styles.tabTextOn]}
+                      numberOfLines={1}
+                    >
+                      {tab.held ? '🏠 ' : ''}
+                      {tab.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable style={styles.tab} onPress={() => sims.add()}>
+                <Text style={styles.addText}>{t('mortgagePlan.newPlan')}</Text>
+              </Pressable>
+            </ScrollView>
+            <Text style={styles.tabHint}>
+              {t(
+                active.held
+                  ? 'mortgagePlan.tabHintHeld'
+                  : 'mortgagePlan.tabHint',
+              )}
+            </Text>
+          </>
+        }
+        footer={
+          <View style={styles.footer}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.delete,
+                pressed && styles.pressed,
+                (active.held || !canDelete) && styles.off,
+              ]}
+              disabled={!!active.held || !canDelete}
+              onPress={() => confirmRemove(active.id, active.name)}
+            >
+              <Text style={styles.deleteText}>
+                {t('mortgagePlan.deleteSimulation')}
+              </Text>
+            </Pressable>
+            {active.held || !canDelete ? (
+              <Text style={styles.tabHint}>
+                {t(
+                  active.held
+                    ? 'mortgagePlan.heldCantDelete'
+                    : 'mortgagePlan.lastCantDelete',
+                )}
+              </Text>
+            ) : null}
+          </View>
+        }
+      />
+    </CalcFormProvider>
   );
 }
 
-function MortgageSummary({
-  entry,
-  rateBps,
-  houseValueCents,
-}: {
-  entry: AccountWithBalance;
-  rateBps: number | null;
-  houseValueCents: number | null;
-}) {
-  const t = useT();
-  const { account, balanceCents } = entry;
-  const owedCents = Math.max(0, -balanceCents);
-
-  // Same projection the account's own Loan Details card makes: scheduled
-  // payment from the original terms, run against today's actual balance.
-  const canProject = rateBps != null && account.termMonths != null && account.originalPrincipalCents != null;
-  const paymentCents = canProject ? monthlyPaymentCents(account.originalPrincipalCents!, rateBps!, account.termMonths!) : null;
-  const months = paymentCents != null ? remainingMonthsToPayoff(owedCents, rateBps!, paymentCents) : Infinity;
-  const payoffDate = Number.isFinite(months) ? addMonths(currentDateISO(), months) : null;
-
-  return (
-    <Card title={account.name}>
-      <ResultRow label={t('financeTools.balance')} value={formatMoney(owedCents)} big />
-      {rateBps != null ? <ResultRow label={t('financeTools.rate')} value={formatPercent(rateBps)} /> : null}
-      {payoffDate ? (
-        <ResultRow label={t('financeTools.payoff')} value={t('loanDetailsCard.payoffValue', { date: payoffDate, months })} />
-      ) : null}
-      {houseValueCents != null ? (
-        <ResultRow
-          label={t('financeTools.equity')}
-          value={formatMoney(houseValueCents - owedCents)}
-          tone={houseValueCents - owedCents >= 0 ? 'positive' : 'negative'}
-        />
-      ) : null}
-    </Card>
-  );
-}
+const styles = StyleSheet.create({
+  tabs: { gap: spacing.sm, paddingVertical: spacing.xs },
+  tab: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    maxWidth: 200,
+  },
+  tabOn: { borderColor: colors.accent, backgroundColor: colors.tint },
+  tabText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
+  tabTextOn: { color: colors.accent },
+  addText: { fontSize: 14, fontWeight: '700', color: colors.accent },
+  tabHint: { fontSize: 11, color: colors.textMuted },
+  body: { gap: spacing.sm },
+  footer: { gap: spacing.xs, marginTop: spacing.xl, alignItems: 'center' },
+  delete: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.negative,
+  },
+  deleteText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  pressed: { opacity: 0.8 },
+  off: { backgroundColor: colors.border, opacity: 0.5 },
+});

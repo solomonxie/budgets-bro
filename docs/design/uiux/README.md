@@ -19,8 +19,8 @@ primary · `[ x ]` secondary · `( x )` text link · `›` pushes · `⌄` colla
     │  ⌄ groups   its own tab    │ Net Worth     │ breakdown + trends
     │  category ▸ press and     │ account ▸     ├─▶ BabySteps
     │  [AssignedAmount]         │ AccountDetail ├─▶ TaxInsights
-    │  ( History ) ─▶ Transactions              └─▶ Mortgage / Loan /
-    │                     │ row ▸ AddTransaction     Investment Insights
+    │  ( History ) ─▶ Transactions              └─▶ Mortgage
+    │                     │ row ▸ AddTransaction
     ▼                     ▼
  AddTransactionScreen (a page pushed over the tabs)
     └─ [MonthPicker] [Repeat] [SearchableDropdown] pickers

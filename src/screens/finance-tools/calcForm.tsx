@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getDb } from '../../db/client';
@@ -26,6 +32,24 @@ interface CalcFormApi {
 
 const CalcFormContext = createContext<CalcFormApi | null>(null);
 
+// A remembered choice — a unit, a province, a toggle — kept with the typed
+// fields so a form comes back exactly as it was left.
+export function useCalcChoice<T extends string>(
+  key: string,
+  initial: T,
+): [T, (next: T) => void] {
+  const form = useContext(CalcFormContext);
+  const [local, setLocal] = useState<T>(initial);
+  const value = form
+    ? ((form.values[`@${key}`] as T | undefined) ?? initial)
+    : local;
+  const set = useCallback(
+    (next: T) => (form ? form.set(`@${key}`, next) : setLocal(next)),
+    [form, key],
+  );
+  return [value, set];
+}
+
 export function useCalcForm(): CalcFormApi | null {
   return useContext(CalcFormContext);
 }
@@ -34,8 +58,13 @@ const sameValues = (a: Values, b: Values) =>
   JSON.stringify(Object.entries(a).sort()) ===
   JSON.stringify(Object.entries(b).sort());
 
+// Keys starting with "@" hold choices (a unit, a province) rather than typed
+// text: kept with the inputs, but they don't make a form "filled in".
+const typedEntries = (values: Values) =>
+  Object.entries(values).filter(([key]) => !key.startsWith('@'));
+
 const isBlank = (values: Values) =>
-  Object.values(values).every((text) => text.trim() === '');
+  typedEntries(values).every(([, text]) => text.trim() === '');
 
 // What each calculator was last filled with, so leaving and coming back
 // doesn't mean typing a house price again. Reset files the current inputs
@@ -44,9 +73,12 @@ const isBlank = (values: Values) =>
 // backups.
 export function CalcFormProvider({
   toolId,
+  seed,
   children,
 }: {
   toolId: string;
+  /** Fills a never-used form, e.g. from a tool this one replaced. */
+  seed?: () => Promise<Values | null>;
   children: ReactNode;
 }) {
   const valuesKey = `calc_form:${toolId}`;
@@ -57,9 +89,18 @@ export function CalcFormProvider({
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      setHistory(await settingsRepo.getJsonSetting<Snapshot[]>(db, historyKey, []));
-      setValues(await settingsRepo.getJsonSetting<Values>(db, valuesKey, {}));
+      setHistory(
+        await settingsRepo.getJsonSetting<Snapshot[]>(db, historyKey, []),
+      );
+      const saved = await settingsRepo.getJsonSetting<Values | null>(
+        db,
+        valuesKey,
+        null,
+      );
+      setValues(saved ?? (seed ? ((await seed()) ?? {}) : {}));
     })();
+    // The seed only matters on first load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valuesKey, historyKey]);
 
   useEffect(() => {
@@ -72,7 +113,9 @@ export function CalcFormProvider({
 
   const set = useCallback(
     (key: string, text: string) =>
-      setValues((prev) => (prev?.[key] === text ? prev : { ...prev, [key]: text })),
+      setValues((prev) =>
+        prev?.[key] === text ? prev : { ...prev, [key]: text },
+      ),
     [],
   );
 
@@ -105,7 +148,9 @@ export function CalcFormProvider({
       setValues(snapshot.values);
     },
   };
-  return <CalcFormContext.Provider value={api}>{children}</CalcFormContext.Provider>;
+  return (
+    <CalcFormContext.Provider value={api}>{children}</CalcFormContext.Provider>
+  );
 }
 
 export function CalcFormFooter() {
@@ -117,7 +162,11 @@ export function CalcFormFooter() {
   return (
     <View style={styles.footer}>
       <Pressable
-        style={({ pressed }) => [styles.reset, pressed && styles.pressed, empty && styles.off]}
+        style={({ pressed }) => [
+          styles.reset,
+          pressed && styles.pressed,
+          empty && styles.off,
+        ]}
         onPress={form.reset}
         disabled={empty}
       >
@@ -142,7 +191,8 @@ export function CalcFormFooter() {
                 })}
               </Text>
               <Text style={styles.preview} numberOfLines={1}>
-                {Object.values(snapshot.values)
+                {typedEntries(snapshot.values)
+                  .map(([, text]) => text)
                   .filter((text) => text.trim() !== '')
                   .join(' · ')}
               </Text>

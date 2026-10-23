@@ -37,15 +37,17 @@ AddTransactionScreen.tsx  (root stack route)
 │  hidden for tracking accounts)   │
 │ Date (DateField)                │──→ ../../components/ui/DateField.tsx
 │  ↳ all pickers unfold in place,  │──→ ../../components/ui/ExpandingField.tsx
-│    pushing the pad down          │    (ExpandingFieldGroup wraps the form)
+│    pushing the form down         │    (ExpandingFieldGroup wraps the form)
 │ Memo (card row, one line,       │──→ inline
 │  Return closes it)               │
-│ Items (one row → its own page,  │──→ PurchaseItemsPage.tsx
-│  prices on its number pad;       │    (list: ../../components/ui/PurchaseItemsField.tsx)
+│ Items (unfolds in place; price   │──→ ../../components/ui/PurchaseItemsField.tsx
+│  on the page pad, then name;     │    (scan + pad wiring inline)
+│  empty amount follows the sum;   │
 │  hidden for scheduled)           │
 │ Repeat fields (when scheduled)  │──→ ../../components/ui/RepeatField.tsx
-│ Number pad (0-9, C, ⌫)          │──→ ../../components/ui/NumberPad.tsx
-│ Save button                     │──→ inline
 │ Delete button (editing only)    │──→ inline
+├──────── pinned, no scroll ──────┤
+│ Number pad (amount, or the      │──→ ../../components/ui/NumberPad.tsx
+│  picked item price; Save/Next)  │
 └───────────────────────────────┘
 ```

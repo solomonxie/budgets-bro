@@ -131,26 +131,28 @@ describe('AddTransactionScreen', () => {
     expect(texts(root)).toContain('Amex');
   });
 
-  it('Items is one row that opens its own page', async () => {
+  it('Items unfolds in place, the price first, on the page pad', async () => {
     let root!: ReturnType<typeof create>;
     await act(async () => {
       root = create(<AddTransactionScreen />);
     });
     expect(placeholders(root)).not.toContain('What you bought');
-    expect(root.root.findAllByType(Modal)).toHaveLength(0);
 
     pressRow(root, 'Items');
-    const page = root.root.findByType(Modal);
+    expect(root.root.findAllByType(Modal)).toHaveLength(0);
     const itemRows = () =>
-      page
+      root.root
         .findAllByType(TextInput)
         .filter((i) => i.props.placeholder === 'What you bought');
     expect(itemRows()).toHaveLength(1);
-    act(() => {
-      itemRows()[0].props.onChangeText('Milk');
-    });
-    pressIn(page, '+');
-    expect(itemRows()).toHaveLength(2);
+    // No system keyboard for the price: the pad types it.
+    expect(
+      root.root
+        .findAllByType(TextInput)
+        .some((i) => i.props.placeholder === 'Price'),
+    ).toBe(false);
+    pressIn(root.root, 'Done');
+    expect(itemRows()).toHaveLength(0);
   });
 
   it('past names show without a tap, and one fills the row', async () => {
@@ -159,16 +161,12 @@ describe('AddTransactionScreen', () => {
       root = create(<AddTransactionScreen />);
     });
     pressRow(root, 'Items');
-    const page = root.root.findByType(Modal);
-    pressIn(page, 'Olive oil');
-    const inputs = page.findAllByType(TextInput);
-    expect(
-      inputs.find((i) => i.props.placeholder === 'What you bought')!.props
-        .value,
-    ).toBe('Olive oil');
-    expect(
-      inputs.find((i) => i.props.placeholder === 'Price')!.props.keyboardType,
-    ).toBe('decimal-pad');
+    pressIn(root.root, 'Olive oil');
+    const names = root.root
+      .findAllByType(TextInput)
+      .filter((i) => i.props.placeholder === 'What you bought');
+    expect(names[0].props.value).toBe('Olive oil');
+    expect(names).toHaveLength(2);
   });
 
   it('the memo is one line, and Return closes it', async () => {

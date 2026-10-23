@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActionSheetIOS,
   Alert,
   Keyboard,
   Pressable,
@@ -31,14 +32,19 @@ import { BlinkingCaret } from '../../components/ui/BlinkingCaret';
 import { SearchableDropdownField } from '../../components/ui/SearchableDropdownField';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
-import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
+import {
+  ExpandedPanel,
+  ExpandingFieldGroup,
+  useExpandingField,
+} from '../../components/ui/ExpandingField';
 import {
   isLoanLikeType,
   isSpendingAccountType,
 } from '../../domain/accountKind';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { DateField } from '../../components/ui/DateField';
-import { PurchaseItemsPage } from './PurchaseItemsPage';
+import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
+import { scanReceipt } from './scanReceipt';
 import { useTrackedPrices } from '../../hooks/useTrackedPrices';
 import { RepeatField } from '../../components/ui/RepeatField';
 import { useT } from '../../i18n';
@@ -50,12 +56,23 @@ import {
   isEmptyAmount,
   formatAmountExpression,
 } from '../../domain/amountExpression';
-import { parsePurchaseItems } from '../../domain/purchaseItems';
+import {
+  formatPurchaseItems,
+  itemPriceCents,
+  parsePurchaseItems,
+} from '../../domain/purchaseItems';
+import type { PurchaseItem } from '../../domain/purchaseItems';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { currentDateISO } from '../../domain/month';
 import type { RecurrenceRule } from '../../domain/recurrence';
 import type { RootStackParamList } from '../../navigation/types';
+
+const BLANK_ITEM: PurchaseItem = { key: '', value: '' };
+
+function withBlankRow(items: PurchaseItem[]): PurchaseItem[] {
+  return [...items, BLANK_ITEM];
+}
 
 const DEFAULT_RULE: RecurrenceRule = {
   frequency: 'monthly',
@@ -114,14 +131,29 @@ function AddTransactionForm() {
     id: number;
     name: string;
   } | null>(null);
-  const [purchaseItems, setPurchaseItems] = useState<string | null>(null);
+  // Typed rows, blank ones included; saved sanitized.
+  const [itemRows, setItemRows] = useState<PurchaseItem[]>([BLANK_ITEM]);
   const memoRef = useRef<View>(null);
   const { names: itemNames } = useTrackedPrices();
 
-  const [itemsOpen, setItemsOpen] = useState(false);
-  const itemsSummary = parsePurchaseItems(purchaseItems)
-    .map((item) => item.key)
+  const itemsField = useExpandingField();
+  const itemsOpen = itemsField?.expanded ?? false;
+  const itemsRef = useRef<View>(null);
+  const itemsSummary = itemRows
+    .map((item) => item.key.trim())
+    .filter(Boolean)
     .join(', ');
+  // While a price is picked, the pad types it instead of the amount.
+  const [priceRow, setPriceRow] = useState<number | null>(null);
+  const [priceExpr, setPriceExpr] = useState<AmountExpression>(EMPTY_AMOUNT);
+  const [nameToFocus, setNameToFocus] = useState<{
+    index: number;
+    seq: number;
+  } | null>(null);
+  const [scanning, setScanning] = useState(false);
+  // Opened with no amount yet, the amount is the items' sum — nothing to
+  // type twice — until the amount itself is typed.
+  const amountFollowsItems = useRef(false);
 
   // The memo sits near the bottom of a long form, so the keyboard opens
   // straight over it. Nothing scrolls a focused input into view on its own
@@ -129,6 +161,7 @@ function AddTransactionForm() {
   // overlap. The scroll view's keyboard inset is what gives it
   // room to scroll that far.
   const scrollRef = useRef<ScrollView>(null);
+  const scrollFrameRef = useRef<View>(null);
   const scrollY = useRef(0);
   const rowToReveal = useRef<View | null>(null);
 
@@ -154,6 +187,146 @@ function AddTransactionForm() {
     },
     [revealNode],
   );
+
+  // The pad is pinned under the scroll, so "in view" is above it: scroll a
+  // node just clear of the bottom, or to the top when `toTop`.
+  const revealAbovePad = useCallback((node: View | null, toTop = false) => {
+    const frame = scrollFrameRef.current;
+    if (!node || !frame) return;
+    frame.measureInWindow((_fx, fy, _fw, fh) =>
+      node.measureInWindow((_x, y, _w, h) => {
+        const below = y + h + spacing.md - (fy + fh);
+        const above = fy + spacing.sm - y;
+        const by = toTop
+          ? y - fy - spacing.sm
+          : below > 0
+            ? below
+            : above > 0
+              ? -above
+              : 0;
+        if (by !== 0)
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, scrollY.current + by),
+            animated: true,
+          });
+      }),
+    );
+  }, []);
+
+  const focusPrice = (index: number, rows = itemRows) => {
+    const next = index < rows.length ? rows : [...rows, BLANK_ITEM];
+    if (next !== rows) setItemRows(next);
+    Keyboard.dismiss();
+    setPriceRow(index);
+    setPriceExpr(amountFromCents(itemPriceCents(next[index].value) ?? 0));
+  };
+
+  // Return on a name, a picked chip, or +: on to the next row's price,
+  // reusing a blank last row rather than stacking empty ones.
+  const nextPrice = (index: number, rows = itemRows) => {
+    const last = rows[rows.length - 1];
+    const lastBlank = !last.key.trim() && !last.value;
+    if (index + 1 < rows.length) return focusPrice(index + 1, rows);
+    if (lastBlank) return focusPrice(rows.length - 1, rows);
+    focusPrice(rows.length, rows);
+  };
+
+  const typePrice = (expr: AmountExpression) => {
+    if (priceRow == null) return;
+    setPriceExpr(expr);
+    const cents = amountCents(expr);
+    const rows = itemRows.map((item, i) =>
+      i === priceRow
+        ? { ...item, value: cents ? (cents / 100).toFixed(2) : '' }
+        : item,
+    );
+    setItemRows(rows);
+    if (amountFollowsItems.current) {
+      const sum = rows.reduce(
+        (total, item) => total + (itemPriceCents(item.value) ?? 0),
+        0,
+      );
+      setAmount(sum ? amountFromCents(sum) : EMPTY_AMOUNT);
+    }
+  };
+
+  const typeAmount = (expr: AmountExpression) => {
+    amountFollowsItems.current = false;
+    setAmount(expr);
+  };
+
+  // The pad's Next: a price with no name yet goes to its name; else onward.
+  const padNext = () => {
+    if (priceRow == null) return;
+    if (!itemRows[priceRow]?.key.trim())
+      setNameToFocus({ index: priceRow, seq: Date.now() });
+    else nextPrice(priceRow);
+  };
+
+  const toggleItems = () => {
+    Keyboard.dismiss();
+    if (itemsOpen) {
+      itemsField?.close();
+      return;
+    }
+    itemsField?.toggle();
+    if (isEmptyAmount(amount)) amountFollowsItems.current = true;
+    const last = itemRows[itemRows.length - 1];
+    focusPrice(
+      !last.key.trim() && !last.value ? itemRows.length - 1 : itemRows.length,
+    );
+  };
+
+  // Opened, or the pad moved rows: bring it into view above the pad.
+  useEffect(() => {
+    if (!itemsOpen) {
+      setPriceRow(null);
+      return;
+    }
+    const timer = setTimeout(() => revealAbovePad(itemsRef.current, true), 60);
+    return () => clearTimeout(timer);
+  }, [itemsOpen, revealAbovePad]);
+
+  const scanItems = (source: 'camera' | 'library') => {
+    setScanning(true);
+    scanReceipt(source, { knownNames: itemNames })
+      .then((receipt) => {
+        if (!receipt) return;
+        if (receipt.items.length === 0) {
+          Alert.alert(t('receiptScan.nothingFound'));
+          return;
+        }
+        setItemRows((rows) => [
+          ...rows.filter((item) => item.key.trim() || item.value),
+          ...receipt.items.map((item) => ({
+            key: item.name,
+            value: (item.priceCents / 100).toFixed(2),
+          })),
+          BLANK_ITEM,
+        ]);
+        setPriceRow(null);
+        if (receipt.totalCents && isEmptyAmount(amount))
+          setAmount(amountFromCents(receipt.totalCents));
+      })
+      .catch((e: Error) => Alert.alert(t('receiptScan.failed'), e.message))
+      .finally(() => setScanning(false));
+  };
+
+  const chooseScanSource = () =>
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [
+          t('receiptScan.camera'),
+          t('receiptScan.library'),
+          t('common.cancel'),
+        ],
+        cancelButtonIndex: 2,
+      },
+      (index) => {
+        if (index === 0) scanItems('camera');
+        else if (index === 1) scanItems('library');
+      },
+    );
 
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', (e) => {
@@ -260,7 +433,7 @@ function AddTransactionForm() {
       setCategoryId(txn.categoryId);
       setAccountId(txn.accountId);
       setMemo(txn.memo ?? '');
-      setPurchaseItems(txn.purchaseItems);
+      setItemRows(withBlankRow(parsePurchaseItems(txn.purchaseItems)));
       setDate(txn.date);
     })();
   }, [editingTransactionId]);
@@ -407,7 +580,7 @@ function AddTransactionForm() {
         memo: memo || null,
         amountCents: signedCents,
         date,
-        purchaseItems,
+        purchaseItems: formatPurchaseItems(itemRows),
       };
       if (editingTransactionId != null) {
         await transactionsRepo.updateTransaction(db, boardId, {
@@ -496,17 +669,24 @@ function AddTransactionForm() {
           style={styles.amountRow}
           onPress={() => {
             Keyboard.dismiss();
+            setPriceRow(null);
           }}
         >
           <Text
-            style={[styles.amount, !amountDisplay && styles.amountPlaceholder]}
+            style={[
+              styles.amount,
+              !amountDisplay && styles.amountPlaceholder,
+              priceRow != null && styles.amountIdle,
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.5}
           >
             {amountDisplay || t('spend.amountPlaceholder')}
           </Text>
-          <BlinkingCaret style={styles.amountCaret} resetKey={amount} />
+          {priceRow == null ? (
+            <BlinkingCaret style={styles.amountCaret} resetKey={amount} />
+          ) : null}
         </Pressable>
         {/* Right most of the time, so a line under the amount it moves
             rather than a field competing with the ones that change. */}
@@ -585,247 +765,290 @@ function AddTransactionForm() {
         </View>
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        onScroll={(e) => {
-          scrollY.current = e.nativeEvent.contentOffset.y;
-        }}
-        scrollEventThrottle={16}
-        contentContainerStyle={[
-          styles.scrollContent,
-          // The home indicator sits over the last few points of the screen.
-          // With Delete last on the page, the inset alone left its text
-          // running under the bar; without it, the pad sits right on it.
-          { paddingBottom: insets.bottom + (isEditing ? spacing.lg : 0) },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        // The memo's keyboard is the only thing on this page that floats
-        // over the form — so it goes away the moment you drag, rather than
-        // hanging over the pad and Save button while you scroll past them.
-        keyboardDismissMode="on-drag"
-      >
-        {/* Tapping any blank gap between fields dismisses the memo's
+      <View ref={scrollFrameRef} style={styles.flex}>
+        <ScrollView
+          ref={scrollRef}
+          onScroll={(e) => {
+            scrollY.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: isEditing ? spacing.sm : 0 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          // The memo's keyboard is the only thing on this page that floats
+          // over the form — so it goes away the moment you drag, rather than
+          // hanging over the pad and Save button while you scroll past them.
+          keyboardDismissMode="on-drag"
+        >
+          {/* Tapping any blank gap between fields dismisses the memo's
             keyboard — keyboardShouldPersistTaps="handled" above already lets
             taps on the fields/buttons themselves still register in one tap. */}
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.form}>
-            {/* One card, one row per field — outlined boxes stacked
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.form}>
+              {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
-            <FieldCard large>
-              {payeeReadOnly ? (
-                <FieldRow label={t('common.payee')} value={payee} />
-              ) : (
-                <SearchableDropdownField
-                  compact
-                  row
-                  autoFocusSearch={false}
-                  openSignal={payeeSignal}
-                  label={t('common.payee')}
-                  valueLabel={payee}
-                  placeholder={t(
-                    isLoanAccount
-                      ? 'spend.paidFromPlaceholder'
-                      : 'spend.payeePlaceholder',
-                  )}
-                  searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                  options={payeePickerOptions}
-                  onSelect={(o) => selectPayee(o.label, o.id)}
-                  onEditOption={(o) =>
-                    setRenamingPayee({ id: o.id, name: o.label })
-                  }
-                  onUseText={isLoanAccount ? () => {} : setPayee}
-                />
-              )}
-              {/* An inflow's source is its payee, so it needs no category and
-                  no second field naming where it came from. */}
-              {direction === 'in' ? null : !takesCategory ? (
-                isTransfer &&
-                linkedTarget &&
-                isLoanLikeType(linkedTarget.type) ? (
-                  // The loan's own payment category, set on the loan account
-                  // — shown, not picked (see transactionsRepo).
-                  <FieldRow
-                    label={t('common.category')}
-                    value={(() => {
-                      const c = categories.find(
-                        (cat) => cat.id === presetLoanCategoryId,
-                      );
-                      return c
-                        ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
-                        : t('common.uncategorized');
-                    })()}
+              <FieldCard large>
+                {payeeReadOnly ? (
+                  <FieldRow label={t('common.payee')} value={payee} />
+                ) : (
+                  <SearchableDropdownField
+                    compact
+                    row
+                    autoFocusSearch={false}
+                    openSignal={payeeSignal}
+                    label={t('common.payee')}
+                    valueLabel={payee}
+                    placeholder={t(
+                      isLoanAccount
+                        ? 'spend.paidFromPlaceholder'
+                        : 'spend.payeePlaceholder',
+                    )}
+                    searchPlaceholder={t('spend.payeeSearchPlaceholder')}
+                    options={payeePickerOptions}
+                    onSelect={(o) => selectPayee(o.label, o.id)}
+                    onEditOption={(o) =>
+                      setRenamingPayee({ id: o.id, name: o.label })
+                    }
+                    onUseText={isLoanAccount ? () => {} : setPayee}
                   />
-                ) : null
-              ) : (
-                <DropdownField
-                  compact
-                  row
-                  label={t('common.category')}
-                  openSignal={categorySignal}
-                  valueLabel={
-                    categoryId == null
-                      ? ''
-                      : (() => {
-                          const c = categories.find(
-                            (cat) => cat.id === categoryId,
-                          );
-                          return c
-                            ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
-                            : '';
-                        })()
-                  }
-                >
-                  {(close) => (
-                    <>
-                      <DropdownOption
-                        label={t('common.uncategorized')}
-                        selected={categoryId == null}
-                        onPress={() => {
-                          setCategoryId(null);
-                          close();
-                        }}
-                      />
-                      {groups.map((group) => {
-                        const groupCategories = categories.filter(
-                          (c) => c.groupId === group.id,
+                )}
+                {/* An inflow's source is its payee, so it needs no category and
+                  no second field naming where it came from. */}
+                {direction === 'in' ? null : !takesCategory ? (
+                  isTransfer &&
+                  linkedTarget &&
+                  isLoanLikeType(linkedTarget.type) ? (
+                    // The loan's own payment category, set on the loan account
+                    // — shown, not picked (see transactionsRepo).
+                    <FieldRow
+                      label={t('common.category')}
+                      value={(() => {
+                        const c = categories.find(
+                          (cat) => cat.id === presetLoanCategoryId,
                         );
-                        if (groupCategories.length === 0) return null;
-                        return (
-                          <View key={group.id}>
-                            <DropdownGroupLabel label={group.name} />
-                            {groupCategories.map((c) => (
-                              <DropdownOption
-                                key={c.id}
-                                label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                                selected={categoryId === c.id}
-                                onPress={() => {
-                                  setCategoryId(c.id);
-                                  close();
-                                }}
-                              />
-                            ))}
-                          </View>
-                        );
-                      })}
-                    </>
-                  )}
-                </DropdownField>
-              )}
-              <DateField
-                row
-                label={dateLabel}
-                value={date}
-                onChange={setDate}
-              />
-              {/* Only on a real row: the scheduled-transaction table has no
-                  items column, so a template would drop them silently. */}
-              {isScheduled ? null : (
-                <FieldRow
-                  label={t('purchaseItems.label')}
-                  value={itemsSummary}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    setItemsOpen(true);
-                  }}
-                />
-              )}
-              {/* A row of the card like any other: placeholder alone until
-                  there is a note, then the label above it. One line — Return
-                  finishes the note rather than starting a second line. */}
-              <View ref={memoRef} style={styles.memoRow}>
-                {memo ? (
-                  <Text style={styles.memoLabel}>{t('spend.memoSection')}</Text>
-                ) : null}
-                <TextInput
-                  style={styles.memoInput}
-                  placeholder={t('spend.memoPlaceholder')}
-                  value={memo}
-                  onChangeText={setMemo}
-                  placeholderTextColor={colors.textMuted}
-                  keyboardAppearance="dark"
-                  returnKeyType="done"
-                  submitBehavior="blurAndSubmit"
-                  onFocus={() => {
-                    revealRow(memoRef.current);
-                  }}
-                  onBlur={() => revealRow(null)}
-                />
-              </View>
-            </FieldCard>
-            {isScheduled ? (
-              <>
-                <RepeatField
-                  label={t('addTransactionModal.repeatLabel')}
-                  rule={rule}
-                  onChange={setRule}
-                  startDate={date}
-                />
-                <Pressable
-                  style={styles.checkboxRow}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    setHasEndDate((v) => !v);
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      hasEndDate && styles.checkboxChecked,
-                    ]}
+                        return c
+                          ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                          : t('common.uncategorized');
+                      })()}
+                    />
+                  ) : null
+                ) : (
+                  <DropdownField
+                    compact
+                    row
+                    label={t('common.category')}
+                    openSignal={categorySignal}
+                    valueLabel={
+                      categoryId == null
+                        ? ''
+                        : (() => {
+                            const c = categories.find(
+                              (cat) => cat.id === categoryId,
+                            );
+                            return c
+                              ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                              : '';
+                          })()
+                    }
                   >
-                    {hasEndDate ? (
-                      <Text style={styles.checkboxMark}>✓</Text>
+                    {(close) => (
+                      <>
+                        <DropdownOption
+                          label={t('common.uncategorized')}
+                          selected={categoryId == null}
+                          onPress={() => {
+                            setCategoryId(null);
+                            close();
+                          }}
+                        />
+                        {groups.map((group) => {
+                          const groupCategories = categories.filter(
+                            (c) => c.groupId === group.id,
+                          );
+                          if (groupCategories.length === 0) return null;
+                          return (
+                            <View key={group.id}>
+                              <DropdownGroupLabel label={group.name} />
+                              {groupCategories.map((c) => (
+                                <DropdownOption
+                                  key={c.id}
+                                  label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                                  selected={categoryId === c.id}
+                                  onPress={() => {
+                                    setCategoryId(c.id);
+                                    close();
+                                  }}
+                                />
+                              ))}
+                            </View>
+                          );
+                        })}
+                      </>
+                    )}
+                  </DropdownField>
+                )}
+                <DateField
+                  row
+                  label={dateLabel}
+                  value={date}
+                  onChange={setDate}
+                />
+                {/* Only on a real row: the scheduled-transaction table has no
+                  items column, so a template would drop them silently. */}
+                {isScheduled ? null : (
+                  <View ref={itemsRef}>
+                    <FieldRow
+                      label={t('purchaseItems.label')}
+                      value={itemsSummary}
+                      expanded={itemsOpen}
+                      onPress={toggleItems}
+                    />
+                    {itemsOpen ? (
+                      <ExpandedPanel scroll={false}>
+                        <View style={styles.itemsPanel}>
+                          <Pressable
+                            style={styles.scan}
+                            hitSlop={8}
+                            disabled={scanning}
+                            onPress={chooseScanSource}
+                          >
+                            <Text style={styles.scanText}>
+                              {scanning
+                                ? t('receiptScan.reading')
+                                : t('receiptScan.scan')}
+                            </Text>
+                          </Pressable>
+                          <PurchaseItemsField
+                            rows={itemRows}
+                            onChangeRows={(rows) => {
+                              if (rows.length !== itemRows.length)
+                                setPriceRow(null);
+                              setItemRows(rows);
+                            }}
+                            onRevealPrice={revealAbovePad}
+                            nameOptions={itemNames}
+                            totalCents={amountCents(amount) || undefined}
+                            activePrice={priceRow}
+                            activePriceText={formatAmountExpression(priceExpr)}
+                            onPressPrice={(index) => {
+                              focusPrice(index);
+                            }}
+                            onFocusName={(node) => {
+                              setPriceRow(null);
+                              revealRow(node);
+                            }}
+                            onBlurName={() => revealRow(null)}
+                            onNextPrice={nextPrice}
+                            nameToFocus={nameToFocus}
+                          />
+                        </View>
+                      </ExpandedPanel>
                     ) : null}
                   </View>
-                  <Text style={styles.checkboxLabel}>
-                    {t('addTransactionModal.hasEndDateLabel')}
+                )}
+                {/* A row of the card like any other: placeholder alone until
+                  there is a note, then the label above it. One line — Return
+                  finishes the note rather than starting a second line. */}
+                <View ref={memoRef} style={styles.memoRow}>
+                  {memo ? (
+                    <Text style={styles.memoLabel}>
+                      {t('spend.memoSection')}
+                    </Text>
+                  ) : null}
+                  <TextInput
+                    style={styles.memoInput}
+                    placeholder={t('spend.memoPlaceholder')}
+                    value={memo}
+                    onChangeText={setMemo}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardAppearance="dark"
+                    returnKeyType="done"
+                    submitBehavior="blurAndSubmit"
+                    onFocus={() => {
+                      revealRow(memoRef.current);
+                    }}
+                    onBlur={() => revealRow(null)}
+                  />
+                </View>
+              </FieldCard>
+              {isScheduled ? (
+                <>
+                  <RepeatField
+                    label={t('addTransactionModal.repeatLabel')}
+                    rule={rule}
+                    onChange={setRule}
+                    startDate={date}
+                  />
+                  <Pressable
+                    style={styles.checkboxRow}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setHasEndDate((v) => !v);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        hasEndDate && styles.checkboxChecked,
+                      ]}
+                    >
+                      {hasEndDate ? (
+                        <Text style={styles.checkboxMark}>✓</Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.checkboxLabel}>
+                      {t('addTransactionModal.hasEndDateLabel')}
+                    </Text>
+                  </Pressable>
+                  {hasEndDate ? (
+                    <DateField
+                      label={t('addTransactionModal.endDateLabel')}
+                      value={endDate}
+                      onChange={setEndDate}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+              {isEditing ? (
+                <Pressable style={styles.deleteButton} onPress={remove}>
+                  <Text style={styles.deleteButtonText}>
+                    {t('spend.deleteTransaction')}
                   </Text>
                 </Pressable>
-                {hasEndDate ? (
-                  <DateField
-                    label={t('addTransactionModal.endDateLabel')}
-                    value={endDate}
-                    onChange={setEndDate}
-                  />
-                ) : null}
-              </>
-            ) : null}
-            {/* Pinned to the bottom of the page; spare height opens up above
-                it, between the fields and the pad. */}
-            <View style={styles.padWrap}>
-              <NumberPad
-                value={amount}
-                onChange={setAmount}
-                submitLabel={needsMore ? t('common.next') : t('common.save')}
-                onSubmit={needsMore ? next : save}
-              />
+              ) : null}
             </View>
-            {isEditing ? (
-              <Pressable style={styles.deleteButton} onPress={remove}>
-                <Text style={styles.deleteButtonText}>
-                  {t('spend.deleteTransaction')}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </View>
+      {/* Pinned under the scroll, never moving with it: it is always typing
+          something on screen — the amount, or the picked item price. */}
+      <View style={[styles.padWrap, { paddingBottom: insets.bottom }]}>
+        {priceRow != null ? (
+          <NumberPad
+            value={priceExpr}
+            onChange={typePrice}
+            submitLabel={t('common.next')}
+            onSubmit={padNext}
+            bottomLeft={{
+              label: t('common.done'),
+              onPress: () => itemsField?.close(),
+            }}
+          />
+        ) : (
+          <NumberPad
+            value={amount}
+            onChange={typeAmount}
+            submitLabel={needsMore ? t('common.next') : t('common.save')}
+            onSubmit={needsMore ? next : save}
+          />
+        )}
+      </View>
       {/* Mounted only while renaming: every picker on this page unfolds in
           place, and the form's test asserts no Modal exists until something
           actually asks for one. */}
-      {itemsOpen ? (
-        <PurchaseItemsPage
-          value={purchaseItems}
-          onChange={setPurchaseItems}
-          nameOptions={itemNames}
-          totalCents={amountCents(amount) || undefined}
-          onScannedTotal={(cents) => {
-            if (isEmptyAmount(amount)) setAmount(amountFromCents(cents));
-          }}
-          onClose={() => setItemsOpen(false)}
-        />
-      ) : null}
       {renamingPayee ? (
         <PromptModal
           visible
@@ -888,7 +1111,15 @@ const styles = StyleSheet.create({
   // FieldCard's `grow`: an unfolded picker pushes the pad past the bottom of
   // the screen and the page scrolls to it.
   form: { flexGrow: 1, flexShrink: 0, padding: spacing.md, gap: spacing.sm },
-  padWrap: { marginTop: 'auto', paddingTop: spacing.sm },
+  padWrap: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.background,
+  },
+  amountIdle: { color: colors.textMuted },
+  itemsPanel: { gap: spacing.xs, paddingTop: spacing.xs },
+  scan: { alignSelf: 'flex-end' },
+  scanText: { fontSize: 14, fontWeight: '600', color: colors.accent },
   accountRow: {
     flexDirection: 'row',
     alignItems: 'center',

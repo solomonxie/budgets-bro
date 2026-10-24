@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import {
   Alert,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -11,19 +10,19 @@ import {
 } from 'react-native';
 import { Card } from '../../../components/ui/Card';
 import { ResultRow } from '../../../components/ui/ResultRow';
-import { TextField } from '../../../components/ui/TextField';
-import { UnitAmountField } from '../../../components/ui/UnitAmountField';
 import {
   DropdownField,
   DropdownOption,
 } from '../../../components/ui/DropdownField';
 import { AssumptionNote, CalcScreen } from '../CalcScreen';
 import { useCalcField } from '../useCalcField';
+import type { CalcField } from '../useCalcField';
 import { useCalcChoice, useCalcForm } from '../calcForm';
 import { ScheduleSection } from './ScheduleSection';
 import { BalanceChart } from './BalanceChart';
 import { useHeldHistory } from './useHeldHistory';
 import { addExtrasToScheduled, extrasAsPayments } from './scheduleExtras';
+import { SliderField, steps } from './SliderField';
 import type { Extras } from './ScheduleSection';
 import {
   NO_TRANSFER_TAX_PROVINCES,
@@ -42,7 +41,7 @@ import {
   maxAmortizationMonths,
   monthIndex,
   nextRenewalMonth,
-  scheduleWithRateChanges,
+  pastRowsFromPayments,
   triggerRateBps,
   extrasToCalendar,
   monthAt,
@@ -52,7 +51,6 @@ import {
 } from '../../../finance-tools/mortgagePlan';
 import type { CalendarExtras } from '../../../finance-tools/mortgagePlan';
 import { parseMoneyToCents } from '../../../domain/money';
-import { wholeMonthsBetween } from '../../../finance-tools/paymentSplit';
 import type { Prepayments } from '../../../finance-tools/mortgagePlan';
 import { compareRentVsBuy } from '../../../finance-tools/rentVsBuy';
 import { compareRefinance } from '../../../finance-tools/refinance';
@@ -95,6 +93,15 @@ const FREQUENCIES: { value: PaymentFrequency; labelKey: TranslationKey }[] = [
 
 const DEFAULT_OTHER_CLOSING_CENTS = 250_000;
 
+const RATE_STOPS = steps(0.5, 10, 0.05);
+const DOWN_STOPS = steps(5, 50, 1);
+const INCOME_STOPS = [
+  ...steps(0, 300_000, 5_000),
+  ...steps(325_000, 1_000_000, 25_000),
+];
+const AMORTIZATION_YEARS = [15, 20, 25, 30];
+const TERM_YEARS = [1, 2, 3, 4, 5, 7, 10];
+
 export interface HeldMortgage {
   entry: AccountWithBalance;
   rateBps: number | null;
@@ -135,13 +142,29 @@ export function MortgagePlanView({
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const history = useHeldHistory(held?.entry.account.id ?? null);
   const payoffBy = useCalcField('', 'payoffBy');
-  const [inputsOpen, setInputsOpen] = useState<boolean | null>(null);
   const price = useCalcField('', 'price');
   const down = useCalcField('', 'down');
   const [downUnit, setDownUnit] = useCalcChoice<DownUnit>(
     'downUnit',
     'percent',
   );
+  // The slider works in percent; an amount typed earlier (or "use the
+  // minimum") is shown as the percent it comes to.
+  const downPercentNumber =
+    downUnit === 'percent'
+      ? down.number
+      : price.cents > 0
+        ? Number(((down.cents / price.cents) * 100).toFixed(1))
+        : 0;
+  const downPercent: CalcField = {
+    ...down,
+    text: downUnit === 'percent' ? down.text : String(downPercentNumber),
+    number: downPercentNumber,
+    set: (text) => {
+      setDownUnit('percent');
+      down.set(text);
+    },
+  };
   const rate = useCalcField('', 'rate');
   const years = useCalcField('25', 'years');
   const termYears = useCalcField('5', 'termYears');
@@ -301,37 +324,24 @@ export function MortgagePlanView({
     r.withPrepayments.months !== r.baseline.months ||
     r.withPrepayments.interestCents !== r.baseline.interestCents;
 
-  // Payments already made on a held mortgage, from its original terms, so
-  // the schedule starts where the loan did rather than at today.
+  // Months already paid on a held mortgage, from the payments on record,
+  // so the schedule starts where the ledger does rather than at today.
   const pastRows = useMemo(() => {
-    const account = held?.entry.account;
-    if (!heldFigures || !account?.originationDate) return [];
-    if (account.originalPrincipalCents == null) return [];
-    const elapsed = wholeMonthsBetween(account.originationDate, todayIso());
-    if (elapsed <= 0) return [];
-    const start = account.originationDate;
-    const changes = (history?.rates ?? []).map((r) => ({
-      fromMonth: Math.max(1, wholeMonthsBetween(start, r.effectiveDate) + 1),
-      rateBps: r.rateBps,
-    }));
-    const rates =
-      changes.length === 0 || changes[0].fromMonth > 1
-        ? [
-            {
-              fromMonth: 1,
-              rateBps: changes[0]?.rateBps ?? heldFigures.rateBps,
-            },
-            ...changes,
-          ]
-        : changes;
-    return scheduleWithRateChanges(
-      account.originalPrincipalCents,
-      rates,
+    if (!heldFigures || !history?.firstPaidMonth) return [];
+    const rates = history.rates;
+    return pastRowsFromPayments({
+      owedCents: heldFigures.owed,
+      paidByMonth: history.paidByMonth,
+      fromMonth: history.firstPaidMonth,
+      toMonth: currentMonth(),
+      rateBpsAt: (month) =>
+        rates.filter((r) => r.effectiveDate.slice(0, 7) <= month).pop()
+          ?.rateBps ??
+        rates[0]?.rateBps ??
+        heldFigures.rateBps,
       compounding,
-      heldFigures.contractPayment,
-      elapsed,
-    );
-  }, [held, heldFigures, compounding, history]);
+    });
+  }, [heldFigures, compounding, history]);
 
   const pinned = r.ready ? (
     <View style={styles.pinned}>
@@ -349,23 +359,6 @@ export function MortgagePlanView({
       </Text>
     </View>
   ) : null;
-
-  const share = () => {
-    const lines = [
-      held ? held.entry.account.name : formatMoney(homeValueCents),
-      `${t('canadaPurchase.totalMonthlyCost')}: ${formatMoney(r.monthlyTotalCents)}`,
-      `${t('mortgagePlan.monthlyPayment')}: ${formatMoney(r.monthlyPaymentCents)}`,
-      `${t('canadaPurchase.mortgageAmount')}: ${formatMoney(r.insurance.totalMortgageCents)} @ ${formatPercent(effectiveRate)}`,
-      ...(heldFigures
-        ? []
-        : [
-            `${t('canadaPurchase.cashToClose')}: ${formatMoney(r.closing.totalCents)}`,
-          ]),
-      `${t('canadaPurchase.payoffIn')}: ${yearsMonths(t, r.withPrepayments.months)}`,
-      `${t('canadaPurchase.totalInterest')}: ${formatMoney(r.withPrepayments.interestCents)}`,
-    ];
-    Share.share({ message: lines.join('\n') });
-  };
 
   // Future extras on the real mortgage, as scheduled payments to approve.
   const scheduleExtras = () => {
@@ -480,30 +473,19 @@ export function MortgagePlanView({
         ? 'canadaPurchase.noteBelowMinimum'
         : null;
 
-  // Inputs fold to one line once a saved plan is opened; the results are
-  // what you came back for.
+  // Inputs start folded once a saved plan is opened; the results are what
+  // you came back for. Each box folds on its own title.
   const [foldedAtOpen] = useState(r.ready);
-  const inputsShown = inputsOpen ?? !foldedAtOpen;
-  const foldedSummary = [
-    ...(heldFigures
-      ? []
-      : [
-          formatMoney(homeValueCents),
-          downUnit === 'percent'
-            ? t('mortgagePlan.foldDownPercent', { percent: down.number })
-            : t('mortgagePlan.foldDownAmount', {
-                amount: formatMoney(down.cents),
-              }),
-          formatPercent(rate.bps),
-          t('mortgagePlan.foldYears', { years: years.int }),
-        ]),
-    ...(propertyTaxRate.filled
-      ? [t('mortgagePlan.foldTax', { rate: propertyTaxRate.text })]
-      : []),
-    ...(income.cents > 0
-      ? [t('mortgagePlan.foldIncome', { amount: formatMoney(income.cents) })]
-      : []),
-  ].join(' · ');
+  const loanSummary = [
+    down.filled
+      ? t('mortgagePlan.foldDownPercent', { percent: downPercent.number })
+      : null,
+    rate.filled ? formatPercent(rate.bps) : null,
+    years.int > 0 ? t('mortgagePlan.foldYears', { years: years.int }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const otherMonthlyCents = r.monthlyTotalCents - r.monthlyPaymentCents;
 
   const insured = r.insurance.status === 'insured';
   const amortizationCap = maxAmortizationMonths(insured, firstTime === '1');
@@ -531,10 +513,6 @@ export function MortgagePlanView({
           payoffTarget,
         )
       : null;
-  const bumpRate = (deltaBps: number) => {
-    const next = Math.max(0, rate.bps + deltaBps) / 100;
-    rate.set(String(Number(next.toFixed(2))));
-  };
 
   return (
     <CalcScreen header={pinned} footer={footer}>
@@ -592,38 +570,40 @@ export function MortgagePlanView({
                 }
               />
             ) : (
-              <TextField
+              <SliderField
                 label={t('mortgagePlan.homeValue')}
-                value={withThousands(price.text)}
-                onChangeText={(text) => price.set(withThousands(text))}
-                keyboardType="number-pad"
-                placeholder="800,000"
+                field={price}
+                kind="money"
+                around={10_000}
+                empty={800_000}
               />
             )}
             {held!.rateBps == null ? (
-              <TextField
+              <SliderField
                 label={t('calculators.interestRateLabel')}
-                value={rate.text}
-                onChangeText={rate.set}
-                keyboardType="decimal-pad"
-                placeholder="4.5"
+                field={rate}
+                kind="percent"
+                stops={RATE_STOPS}
+                empty={4.5}
               />
             ) : null}
-            <TextField
-              label={t(
-                renewalMonth
-                  ? 'mortgagePlan.termLengthYears'
-                  : 'mortgagePlan.termLeftYears',
-              )}
-              value={termYears.text}
-              onChangeText={termYears.set}
-              keyboardType="decimal-pad"
-              hint={t(
-                renewalMonth
-                  ? 'mortgagePlan.termLengthHint'
-                  : 'mortgagePlan.termLeftHint',
-              )}
-            />
+            {renewalMonth ? (
+              <YearChoice
+                label={t('mortgagePlan.termLengthYears')}
+                field={termYears}
+                years={TERM_YEARS}
+                hint={t('mortgagePlan.termLengthHint')}
+              />
+            ) : (
+              <SliderField
+                label={t('mortgagePlan.termLeftYears')}
+                field={termYears}
+                kind="number"
+                stops={steps(0, 10, 0.5)}
+                unit={t('mortgagePlan.yearsUnit')}
+                hint={t('mortgagePlan.termLeftHint')}
+              />
+            )}
             <Chips
               options={[
                 { value: 'semiAnnual', label: t('canadaPurchase.rateFixed') },
@@ -652,6 +632,13 @@ export function MortgagePlanView({
                   placeholderTextColor={colors.textMuted}
                 />
               </View>
+              <SliderField
+                label=""
+                field={price}
+                kind="money"
+                around={10_000}
+                empty={800_000}
+              />
               {overQualifying ? (
                 <Text style={styles.warn}>
                   {t('mortgagePlan.overQualifying', {
@@ -661,298 +648,222 @@ export function MortgagePlanView({
               ) : null}
             </View>
 
-            {inputsShown ? (
-              <Card title={t('mortgagePlan.loanHeading')}>
-                <UnitAmountField
-                  label={t('financeTools.downPayment')}
-                  value={
-                    downUnit === 'amount' ? withThousands(down.text) : down.text
-                  }
-                  onChangeText={(text) =>
-                    down.set(downUnit === 'amount' ? withThousands(text) : text)
-                  }
-                  unit={downUnit}
-                  onUnitChange={setDownUnit}
-                  units={[
-                    { value: 'percent', label: '%' },
-                    { value: 'amount', label: '$' },
-                  ]}
-                  placeholder={downUnit === 'percent' ? '20' : '160,000'}
-                />
-                {price.cents > 0 ? (
-                  <Text style={[styles.hint, belowMinimumDown && styles.warn]}>
-                    {t('mortgagePlan.downIs', {
-                      amount: formatMoney(r.downCents),
-                    })}{' '}
-                    <Text
-                      style={styles.link}
-                      onPress={() => {
-                        setDownUnit('amount');
-                        down.set(
-                          withThousands(
-                            String(Math.round(r.minimumDownCents / 100)),
-                          ),
-                        );
-                      }}
-                    >
-                      {t('canadaPurchase.useMinimum', {
-                        amount: formatMoney(r.minimumDownCents),
-                      })}
-                    </Text>
-                  </Text>
-                ) : null}
-                <View style={styles.pair}>
-                  <View style={styles.pairItem}>
-                    <TextField
-                      label={t('calculators.interestRateLabel')}
-                      value={rate.text}
-                      onChangeText={rate.set}
-                      keyboardType="decimal-pad"
-                      placeholder="4.5"
-                    />
-                  </View>
-                  <View style={styles.pairItem}>
-                    <TextField
-                      label={t('mortgagePlan.amortizationShort')}
-                      value={years.text}
-                      onChangeText={years.set}
-                      keyboardType="number-pad"
-                    />
-                  </View>
-                  <View style={styles.pairItem}>
-                    <TextField
-                      label={t('mortgagePlan.termShort')}
-                      value={termYears.text}
-                      onChangeText={termYears.set}
-                      keyboardType="number-pad"
-                    />
-                  </View>
-                </View>
-                {rate.bps > 0 ? (
-                  <View style={styles.rateChips}>
-                    {[-50, -25, 25, 50].map((delta) => (
-                      <Pressable
-                        key={delta}
-                        style={({ pressed }) => [
-                          styles.rateChip,
-                          pressed && styles.foldedPressed,
-                        ]}
-                        onPress={() => bumpRate(delta)}
-                      >
-                        <Text style={styles.rateChipText}>
-                          {delta > 0 ? '+' : '−'}
-                          {(Math.abs(delta) / 100).toFixed(2)}%
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-                {overAmortization ? (
-                  <Text style={styles.warn}>
-                    {t(
-                      insured
-                        ? 'mortgagePlan.amortizationInsured'
-                        : 'mortgagePlan.amortizationMax',
-                      { years: amortizationCap / 12 },
-                    )}
-                  </Text>
-                ) : null}
-                <Chips
-                  options={[
-                    {
-                      value: 'semiAnnual',
-                      label: t('canadaPurchase.rateFixed'),
-                    },
-                    {
-                      value: 'monthly',
-                      label: t('canadaPurchase.rateVariable'),
-                    },
-                  ]}
-                  value={compounding}
-                  onChange={(v) => setCompounding(v as Compounding)}
-                />
-                <DropdownField
-                  compact
-                  label={t('canadaPurchase.paymentFrequency')}
-                  valueLabel={freqLabel}
-                >
-                  {(close) => (
-                    <>
-                      {FREQUENCIES.map((f) => (
-                        <DropdownOption
-                          key={f.value}
-                          label={t(f.labelKey)}
-                          selected={frequency === f.value}
-                          onPress={() => {
-                            setFrequency(f.value);
-                            close();
-                          }}
-                        />
-                      ))}
-                    </>
-                  )}
-                </DropdownField>
-                <DropdownField
-                  compact
-                  label={t('canadaPurchase.province')}
-                  valueLabel={t(`province.${province}` as TranslationKey)}
-                >
-                  {(close) => (
-                    <>
-                      {PROVINCES.map((p) => (
-                        <DropdownOption
-                          key={p}
-                          label={t(`province.${p}` as TranslationKey)}
-                          selected={province === p}
-                          onPress={() => {
-                            setProvince(p);
-                            close();
-                          }}
-                        />
-                      ))}
-                    </>
-                  )}
-                </DropdownField>
-                <View style={styles.toggles}>
-                  <Toggle
-                    label={t('canadaPurchase.firstTimeBuyer')}
-                    on={firstTime === '1'}
-                    onPress={() => setFirstTime(firstTime === '1' ? '0' : '1')}
-                  />
-                  {province === 'ON' ? (
-                    <Toggle
-                      label={t('canadaPurchase.toronto')}
-                      on={toronto === '1'}
-                      onPress={() => setToronto(toronto === '1' ? '0' : '1')}
-                    />
-                  ) : null}
-                </View>
-              </Card>
-            ) : null}
-          </>
-        )}
-
-        {inputsShown ? (
-          <>
-            <Card title={t('canadaPurchase.monthlyCostsHeading')}>
-              <TextField
-                label={t('canadaPurchase.propertyTaxRate')}
-                value={propertyTaxRate.text}
-                onChangeText={propertyTaxRate.set}
-                hint={
-                  r.propertyTaxMonthlyCents > 0
-                    ? t('canadaPurchase.propertyTaxHintPrice', {
-                        amount: formatMoney(r.propertyTaxMonthlyCents),
-                      })
-                    : t('canadaPurchase.propertyTaxHint')
+            <Section
+              title={t('mortgagePlan.loanHeading')}
+              summary={loanSummary}
+              defaultOpen={!foldedAtOpen}
+            >
+              <SliderField
+                label={t('financeTools.downPayment')}
+                field={downPercent}
+                kind="percent"
+                stops={DOWN_STOPS}
+                empty={20}
+                display={
+                  down.filled && price.cents > 0
+                    ? `${downPercent.text}% · ${formatMoney(r.downCents)}`
+                    : undefined
                 }
-                keyboardType="decimal-pad"
-                placeholder="0.7"
               />
-              <View style={styles.pair}>
-                <View style={styles.pairItem}>
-                  <TextField
-                    label={t('mortgagePlan.condoShort')}
-                    value={withThousands(condoFees.text)}
-                    onChangeText={(text) => condoFees.set(withThousands(text))}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                  />
-                </View>
-                <View style={styles.pairItem}>
-                  <TextField
-                    label={t('mortgagePlan.heatShort')}
-                    value={withThousands(heat.text)}
-                    onChangeText={(text) => heat.set(withThousands(text))}
-                    keyboardType="number-pad"
-                    placeholder="100"
-                  />
-                </View>
-              </View>
-              <Text style={styles.hint}>{t('mortgagePlan.condoHeatHint')}</Text>
-              <View style={styles.pair}>
-                <View style={styles.pairItem}>
-                  <TextField
-                    label={t('mortgagePlan.otherShort')}
-                    value={withThousands(otherExpenses.text)}
-                    onChangeText={(text) =>
-                      otherExpenses.set(withThousands(text))
-                    }
-                    keyboardType="number-pad"
-                    placeholder={
-                      homeValueCents > 0
-                        ? withThousands(
-                            String(
-                              Math.round((homeValueCents * 0.01) / 12 / 100),
-                            ),
-                          )
-                        : '0'
-                    }
-                  />
-                </View>
-                <View style={styles.pairItem}>
-                  <TextField
-                    label={t('mortgagePlan.rentalShort')}
-                    value={withThousands(rentalIncome.text)}
-                    onChangeText={(text) =>
-                      rentalIncome.set(withThousands(text))
-                    }
-                    keyboardType="number-pad"
-                    placeholder="0"
-                  />
-                </View>
-              </View>
-              <Text style={styles.hint}>
-                {t('mortgagePlan.otherRentalHint')}
-              </Text>
-            </Card>
-
-            <Card title={t('mortgagePlan.youHeading')}>
-              <View style={styles.pair}>
-                <View style={styles.pairItem}>
-                  <TextField
-                    label={t('mortgagePlan.incomeShort')}
-                    value={withThousands(income.text)}
-                    onChangeText={(text) => income.set(withThousands(text))}
-                    keyboardType="number-pad"
-                    placeholder="150,000"
-                  />
-                </View>
-                <View style={styles.pairItem}>
-                  <TextField
-                    label={t('mortgagePlan.debtsShort')}
-                    value={withThousands(otherDebts.text)}
-                    onChangeText={(text) => otherDebts.set(withThousands(text))}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                  />
-                </View>
-              </View>
-              <Text style={styles.hint}>{t('mortgagePlan.youHint')}</Text>
-            </Card>
-            {r.ready ? (
-              <Pressable
-                style={styles.foldButton}
-                onPress={() => setInputsOpen(false)}
+              {price.cents > 0 ? (
+                <Text style={[styles.hint, belowMinimumDown && styles.warn]}>
+                  <Text
+                    style={styles.link}
+                    onPress={() => {
+                      setDownUnit('amount');
+                      down.set(
+                        withThousands(
+                          String(Math.round(r.minimumDownCents / 100)),
+                        ),
+                      );
+                    }}
+                  >
+                    {t('canadaPurchase.useMinimum', {
+                      amount: formatMoney(r.minimumDownCents),
+                    })}
+                  </Text>
+                </Text>
+              ) : null}
+              <SliderField
+                label={t('calculators.interestRateLabel')}
+                field={rate}
+                kind="percent"
+                stops={RATE_STOPS}
+                empty={4.5}
+              />
+              <YearChoice
+                label={t('calcAmortization.title')}
+                field={years}
+                years={AMORTIZATION_YEARS}
+              />
+              <YearChoice
+                label={t('mortgagePlan.termShort')}
+                field={termYears}
+                years={TERM_YEARS}
+              />
+              {overAmortization ? (
+                <Text style={styles.warn}>
+                  {t(
+                    insured
+                      ? 'mortgagePlan.amortizationInsured'
+                      : 'mortgagePlan.amortizationMax',
+                    { years: amortizationCap / 12 },
+                  )}
+                </Text>
+              ) : null}
+              <Chips
+                options={[
+                  {
+                    value: 'semiAnnual',
+                    label: t('canadaPurchase.rateFixed'),
+                  },
+                  {
+                    value: 'monthly',
+                    label: t('canadaPurchase.rateVariable'),
+                  },
+                ]}
+                value={compounding}
+                onChange={(v) => setCompounding(v as Compounding)}
+              />
+              <DropdownField
+                compact
+                label={t('canadaPurchase.paymentFrequency')}
+                valueLabel={freqLabel}
               >
-                <Text style={styles.link}>{t('mortgagePlan.hideInputs')}</Text>
-              </Pressable>
-            ) : null}
+                {(close) => (
+                  <>
+                    {FREQUENCIES.map((f) => (
+                      <DropdownOption
+                        key={f.value}
+                        label={t(f.labelKey)}
+                        selected={frequency === f.value}
+                        onPress={() => {
+                          setFrequency(f.value);
+                          close();
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+              </DropdownField>
+              <DropdownField
+                compact
+                label={t('canadaPurchase.province')}
+                valueLabel={t(`province.${province}` as TranslationKey)}
+              >
+                {(close) => (
+                  <>
+                    {PROVINCES.map((p) => (
+                      <DropdownOption
+                        key={p}
+                        label={t(`province.${p}` as TranslationKey)}
+                        selected={province === p}
+                        onPress={() => {
+                          setProvince(p);
+                          close();
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+              </DropdownField>
+              <View style={styles.toggles}>
+                <Toggle
+                  label={t('canadaPurchase.firstTimeBuyer')}
+                  on={firstTime === '1'}
+                  onPress={() => setFirstTime(firstTime === '1' ? '0' : '1')}
+                />
+                {province === 'ON' ? (
+                  <Toggle
+                    label={t('canadaPurchase.toronto')}
+                    on={toronto === '1'}
+                    onPress={() => setToronto(toronto === '1' ? '0' : '1')}
+                  />
+                ) : null}
+              </View>
+            </Section>
           </>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [
-              styles.folded,
-              pressed && styles.foldedPressed,
-            ]}
-            onPress={() => setInputsOpen(true)}
-          >
-            <Text style={styles.foldedText} numberOfLines={2}>
-              {foldedSummary || t('mortgagePlan.editInputs')}
-            </Text>
-            <Text style={styles.link}>{t('common.edit')} ›</Text>
-          </Pressable>
         )}
+
+        <Section
+          title={t('canadaPurchase.monthlyCostsHeading')}
+          summary={
+            r.ready
+              ? t('common.perMonth', {
+                  amount: formatMoney(otherMonthlyCents),
+                })
+              : ''
+          }
+          defaultOpen={!foldedAtOpen}
+        >
+          <SliderField
+            label={t('canadaPurchase.propertyTaxRate')}
+            field={propertyTaxRate}
+            kind="percent"
+            stops={steps(0, 2, 0.05)}
+            empty={0.7}
+            hint={
+              r.propertyTaxMonthlyCents > 0
+                ? t('canadaPurchase.propertyTaxHintPrice', {
+                    amount: formatMoney(r.propertyTaxMonthlyCents),
+                  })
+                : t('canadaPurchase.propertyTaxHint')
+            }
+          />
+          <SliderField
+            label={t('mortgagePlan.condoShort')}
+            field={condoFees}
+            kind="money"
+            stops={steps(0, 1500, 25)}
+          />
+          <SliderField
+            label={t('mortgagePlan.heatShort')}
+            field={heat}
+            kind="money"
+            stops={steps(0, 400, 10)}
+            empty={100}
+          />
+          <Text style={styles.hint}>{t('mortgagePlan.condoHeatHint')}</Text>
+          <SliderField
+            label={t('mortgagePlan.otherShort')}
+            field={otherExpenses}
+            kind="money"
+            stops={steps(0, 2000, 25)}
+            empty={
+              homeValueCents > 0
+                ? Math.round((homeValueCents * 0.01) / 12 / 100)
+                : 0
+            }
+          />
+          <SliderField
+            label={t('mortgagePlan.rentalShort')}
+            field={rentalIncome}
+            kind="money"
+            stops={steps(0, 5000, 50)}
+          />
+          <Text style={styles.hint}>{t('mortgagePlan.otherRentalHint')}</Text>
+        </Section>
+
+        <Section
+          title={t('mortgagePlan.youHeading')}
+          summary={income.cents > 0 ? formatMoney(income.cents) : ''}
+          defaultOpen={!foldedAtOpen}
+        >
+          <SliderField
+            label={t('mortgagePlan.incomeShort')}
+            field={income}
+            kind="money"
+            stops={INCOME_STOPS}
+            empty={150_000}
+          />
+          <SliderField
+            label={t('mortgagePlan.debtsShort')}
+            field={otherDebts}
+            kind="money"
+            stops={steps(0, 5000, 50)}
+          />
+          <Text style={styles.hint}>{t('mortgagePlan.youHint')}</Text>
+        </Section>
 
         {/* The answers, live. */}
         <Card style={styles.summary}>
@@ -1058,9 +969,6 @@ export function MortgagePlanView({
               {insuranceNote ? (
                 <AssumptionNote text={t(insuranceNote)} />
               ) : null}
-              <Pressable style={styles.shareButton} onPress={share} hitSlop={8}>
-                <Text style={styles.link}>{t('mortgagePlan.share')}</Text>
-              </Pressable>
             </>
           )}
         </Card>
@@ -1076,7 +984,7 @@ export function MortgagePlanView({
               <BalanceChart
                 startCents={
                   pastRows.length > 0
-                    ? held!.entry.account.originalPrincipalCents!
+                    ? pastRows[0].balanceCents + pastRows[0].principalCents
                     : r.insurance.totalMortgageCents
                 }
                 baseline={[...pastRows, ...r.baselineSchedule]}
@@ -1086,16 +994,21 @@ export function MortgagePlanView({
                 )}
                 todayYears={pastRows.length / 12}
               />
-              <TextField
+              <SliderField
                 label={t('mortgagePlan.payoffBy')}
-                value={payoffBy.text}
-                onChangeText={payoffBy.set}
-                keyboardType="number-pad"
-                placeholder={String(
+                field={payoffBy}
+                kind="number"
+                stops={steps(
+                  Number(firstUpcoming.slice(0, 4)) + 1,
                   Number(firstUpcoming.slice(0, 4)) +
-                    Math.ceil(r.withPrepayments.months / 12) -
-                    5,
+                    Math.max(2, Math.ceil(r.withPrepayments.months / 12)),
+                  1,
                 )}
+                empty={
+                  Number(firstUpcoming.slice(0, 4)) +
+                  Math.ceil(r.withPrepayments.months / 12) -
+                  5
+                }
               />
               {payoffBy.int > 0 ? (
                 payoffExtra != null ? (
@@ -1124,7 +1037,7 @@ export function MortgagePlanView({
               ) : null}
               <Text style={styles.hint}>{t('mortgagePlan.scheduleHint')}</Text>
               {hasPrepayments && held ? (
-                <Pressable style={styles.shareButton} onPress={scheduleExtras}>
+                <Pressable style={styles.actionLink} onPress={scheduleExtras}>
                   <Text style={styles.link}>
                     {t('mortgagePlan.scheduleExtras')}
                   </Text>
@@ -1262,16 +1175,12 @@ export function MortgagePlanView({
                       hint={t('canadaPurchase.premiumTaxHint')}
                     />
                   ) : null}
-                  <TextField
+                  <SliderField
                     label={t('canadaPurchase.otherClosingCosts')}
-                    value={withThousands(otherClosing.text)}
-                    onChangeText={(text) =>
-                      otherClosing.set(withThousands(text))
-                    }
-                    keyboardType="number-pad"
-                    placeholder={withThousands(
-                      String(DEFAULT_OTHER_CLOSING_CENTS / 100),
-                    )}
+                    field={otherClosing}
+                    kind="money"
+                    stops={steps(0, 20_000, 250)}
+                    empty={DEFAULT_OTHER_CLOSING_CENTS / 100}
                   />
                   <AssumptionNote
                     text={t('canadaPurchase.taxesAsOf', {
@@ -1347,96 +1256,97 @@ export function MortgagePlanView({
                         ? t('mortgagePlan.rentBreakEven', {
                             year: rentVsBuy.breakEvenYear,
                           })
-                        : t('mortgagePlan.rentNever')
+                        : t('mortgagePlan.rentNever', { years: horizon.int })
                       : ''
                   }
                 >
-                  <View style={styles.pair}>
-                    <View style={styles.pairItem}>
-                      <TextField
-                        label={t('mortgagePlan.rentShort')}
-                        value={withThousands(rent.text)}
-                        onChangeText={(text) => rent.set(withThousands(text))}
-                        keyboardType="number-pad"
-                        placeholder="3,000"
-                      />
-                    </View>
-                    <View style={styles.pairItem}>
-                      <TextField
-                        label={t('mortgagePlan.horizonShort')}
-                        value={horizon.text}
-                        onChangeText={horizon.set}
-                        keyboardType="number-pad"
-                      />
-                    </View>
-                  </View>
-                  <View style={styles.pair}>
-                    <View style={styles.pairItem}>
-                      <TextField
-                        label={t('mortgagePlan.rentGrowthShort')}
-                        value={rentGrowth.text}
-                        onChangeText={rentGrowth.set}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                    <View style={styles.pairItem}>
-                      <TextField
-                        label={t('mortgagePlan.appreciationShort')}
-                        value={appreciation.text}
-                        onChangeText={appreciation.set}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                    <View style={styles.pairItem}>
-                      <TextField
-                        label={t('mortgagePlan.returnShort')}
-                        value={investReturn.text}
-                        onChangeText={investReturn.set}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                  </View>
+                  <SliderField
+                    label={t('mortgagePlan.rentShort')}
+                    field={rent}
+                    kind="money"
+                    stops={steps(0, 8000, 50)}
+                    empty={3000}
+                  />
+                  <SliderField
+                    label={t('mortgagePlan.horizonShort')}
+                    field={horizon}
+                    kind="number"
+                    stops={steps(1, 30, 1)}
+                    unit={t('mortgagePlan.yearsUnit')}
+                  />
+                  <SliderField
+                    label={t('mortgagePlan.rentGrowthShort')}
+                    field={rentGrowth}
+                    kind="percent"
+                    stops={steps(0, 10, 0.5)}
+                  />
+                  <SliderField
+                    label={t('mortgagePlan.appreciationShort')}
+                    field={appreciation}
+                    kind="percent"
+                    stops={steps(-5, 10, 0.5)}
+                  />
+                  <SliderField
+                    label={t('mortgagePlan.returnShort')}
+                    field={investReturn}
+                    kind="percent"
+                    stops={steps(0, 12, 0.5)}
+                  />
                   {rentVsBuy ? (
                     <>
                       <ResultRow
-                        label={t('financeTools.breakEvenYear')}
+                        label={t('mortgagePlan.rentWhenPaysOff')}
                         value={
                           rentVsBuy.breakEvenYear != null
                             ? t('mortgagePlan.yearN', {
                                 year: rentVsBuy.breakEvenYear,
                               })
-                            : t('mortgagePlan.rentNever')
+                            : t('mortgagePlan.rentNotIn', {
+                                years: horizon.int,
+                              })
                         }
                         big
                       />
                       {(() => {
                         const last = rentVsBuy.rows[rentVsBuy.rows.length - 1];
-                        return last ? (
+                        if (!last) return null;
+                        const buyWins = last.advantageCents >= 0;
+                        return (
                           <>
+                            <Text style={styles.subheading}>
+                              {t('mortgagePlan.rentHaveAfter', {
+                                years: last.year,
+                              })}
+                            </Text>
                             <ResultRow
-                              label={t('financeTools.buyerEquity')}
+                              label={t('mortgagePlan.rentIfBuy')}
                               value={formatMoney(
                                 last.buyerEquityCents +
                                   last.buyerPortfolioCents,
                               )}
+                              hint={t('mortgagePlan.rentIfBuyHint')}
                             />
                             <ResultRow
-                              label={t('financeTools.renterPortfolio')}
+                              label={t('mortgagePlan.rentIfRent')}
                               value={formatMoney(last.renterPortfolioCents)}
+                              hint={t('mortgagePlan.rentIfRentHint')}
                             />
                             <ResultRow
-                              label={t('mortgagePlan.buyingAhead', {
-                                years: last.year,
-                              })}
-                              value={formatMoney(last.advantageCents)}
-                              tone={
-                                last.advantageCents >= 0
-                                  ? 'positive'
-                                  : 'negative'
-                              }
+                              label={t('mortgagePlan.rentBetter')}
+                              value={t(
+                                buyWins
+                                  ? 'mortgagePlan.rentBetterBuy'
+                                  : 'mortgagePlan.rentBetterRent',
+                                {
+                                  amount: formatMoney(
+                                    Math.abs(last.advantageCents),
+                                  ),
+                                },
+                              )}
+                              tone="positive"
                             />
                           </>
-                        ) : null;
+                        );
                       })()}
                       <AssumptionNote text={t('mortgagePlan.rentNote')} />
                     </>
@@ -1454,28 +1364,20 @@ export function MortgagePlanView({
                     : ''
                 }
               >
-                <View style={styles.pair}>
-                  <View style={styles.pairItem}>
-                    <TextField
-                      label={t('financeTools.newRate')}
-                      value={newRate.text}
-                      onChangeText={newRate.set}
-                      keyboardType="decimal-pad"
-                      placeholder="3.9"
-                    />
-                  </View>
-                  <View style={styles.pairItem}>
-                    <TextField
-                      label={t('mortgagePlan.switchCosts')}
-                      value={withThousands(refiCosts.text)}
-                      onChangeText={(text) =>
-                        refiCosts.set(withThousands(text))
-                      }
-                      keyboardType="number-pad"
-                      placeholder="3,000"
-                    />
-                  </View>
-                </View>
+                <SliderField
+                  label={t('financeTools.newRate')}
+                  field={newRate}
+                  kind="percent"
+                  stops={RATE_STOPS}
+                  empty={3.9}
+                />
+                <SliderField
+                  label={t('mortgagePlan.switchCosts')}
+                  field={refiCosts}
+                  kind="money"
+                  stops={steps(0, 10_000, 250)}
+                  empty={3000}
+                />
                 <Text style={styles.hint}>
                   {t('mortgagePlan.switchCostsHint')}
                 </Text>
@@ -1514,7 +1416,7 @@ export function MortgagePlanView({
                       value={
                         refinance.breakEvenMonths != null
                           ? yearsMonths(t, refinance.breakEvenMonths)
-                          : t('mortgagePlan.rentNever')
+                          : t('mortgagePlan.refiNever')
                       }
                     />
                     <ResultRow
@@ -1542,12 +1444,14 @@ function Section({
   title,
   summary,
   children,
+  defaultOpen,
 }: {
   title: string;
   summary: string;
   children: ReactNode;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   return (
     <View style={styles.section}>
       <Pressable style={styles.sectionHead} onPress={() => setOpen((v) => !v)}>
@@ -1581,6 +1485,36 @@ function Chips({
           onPress={() => onChange(o.value)}
         />
       ))}
+    </View>
+  );
+}
+
+function YearChoice({
+  label,
+  field,
+  years,
+  hint,
+}: {
+  label: string;
+  field: CalcField;
+  years: number[];
+  hint?: string;
+}) {
+  const t = useT();
+  return (
+    <View style={styles.choice}>
+      <Text style={styles.choiceLabel}>{label}</Text>
+      <View style={styles.toggles}>
+        {years.map((y) => (
+          <Toggle
+            key={y}
+            label={t('mortgagePlan.foldYears', { years: y })}
+            on={field.number === y}
+            onPress={() => field.set(String(y))}
+          />
+        ))}
+      </View>
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -1648,12 +1582,6 @@ function parseMap<K extends string | number>(json: string): Record<K, number> {
   }
 }
 
-function todayIso(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 // "800000" → "800,000" as it is typed; the field parses separators back out.
 function withThousands(text: string): string {
   const digits = text.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
@@ -1677,28 +1605,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   warn: { fontSize: 12, color: colors.negative },
-  folded: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-  },
-  foldedPressed: { opacity: 0.7 },
-  foldedText: { flex: 1, fontSize: 14, color: colors.text },
-  foldButton: { alignSelf: 'center', paddingVertical: spacing.xs },
-  shareButton: { alignSelf: 'flex-start', paddingTop: spacing.xs },
-  rateChips: { flexDirection: 'row', gap: spacing.xs },
-  rateChip: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  rateChipText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  actionLink: { alignSelf: 'flex-start', paddingTop: spacing.xs },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
@@ -1729,6 +1636,8 @@ const styles = StyleSheet.create({
   pair: { flexDirection: 'row', gap: spacing.sm },
   pairItem: { flex: 1 },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
+  choice: { gap: spacing.xs },
+  choiceLabel: { fontSize: 14, color: colors.textMuted },
   link: { color: colors.accent, fontWeight: '700' },
   subheading: {
     fontSize: 13,

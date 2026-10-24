@@ -35,7 +35,13 @@ export function InsightsStackNavigator() {
       />
       <Stack.Screen name="Transactions" component={TransactionsScreen} options={{ title: t('nav.transactions') }} />
       <Stack.Screen name="BabySteps" component={BabyStepsScreen} options={{ title: t('insights.babySteps') }} />
-      <Stack.Screen name="MortgageInsights" component={MortgageInsightsScreen} options={{ title: t('insights.mortgageInsights') }} />
+      <Stack.Screen
+        name="MortgageInsights"
+        component={MortgageInsightsScreen}
+        // iOS 26+ makes the whole screen a back swipe; the page's sliders
+        // drag sideways, so only the edge goes back here.
+        options={{ title: t('insights.mortgageInsights'), fullScreenGestureEnabled: false }}
+      />
       <Stack.Screen name="TaxInsights" component={TaxInsightsScreen} options={{ title: t('insights.taxInsights') }} />
       <Stack.Screen
         name="TrackedPrices"

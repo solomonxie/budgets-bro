@@ -570,40 +570,46 @@ export function breakPenaltyCents({
 
 // --- A held mortgage's own history -------------------------------------
 
-/**
- * Payments already made, month by month at the rate on file for each month
- * (`rates` sorted by `fromMonth`, 1 = the first payment).
- */
-export function scheduleWithRateChanges(
-  principalCents: number,
-  rates: { fromMonth: number; rateBps: number }[],
-  compounding: Compounding,
-  monthlyPaymentCents: number,
-  months: number,
-): ScheduleRow[] {
+// Months already behind on a real mortgage, from what was actually paid in
+// each, worked backwards from what is owed now: each month's interest is
+// charged on the balance it started with, so the last row ends exactly on
+// today's balance and the schedule ahead carries on from it. A month with
+// nothing recorded shows nothing paid and the interest added on.
+export function pastRowsFromPayments({
+  owedCents,
+  paidByMonth,
+  fromMonth,
+  toMonth,
+  rateBpsAt,
+  compounding,
+}: {
+  owedCents: number;
+  paidByMonth: Record<string, number>;
+  fromMonth: string;
+  toMonth: string;
+  rateBpsAt: (month: string) => number;
+  compounding: Compounding;
+}): ScheduleRow[] {
+  const count = monthIndex(fromMonth, toMonth);
   const rows: ScheduleRow[] = [];
-  let balance = principalCents;
-  const sorted = [...rates].sort((a, b) => a.fromMonth - b.fromMonth);
-  for (let i = 0; i < sorted.length && rows.length < months; i++) {
-    const until = Math.min(
-      months,
-      (sorted[i + 1]?.fromMonth ?? months + 1) - 1,
-    );
-    const count = until - rows.length;
-    if (count <= 0) continue;
-    const segment = monthlySchedule(
-      balance,
-      sorted[i].rateBps,
-      compounding,
-      monthlyPaymentCents,
-      NO_PREPAYMENTS,
-      count,
-    );
-    for (const row of segment) rows.push({ ...row, month: rows.length + 1 });
-    if (segment.length < count) break;
-    balance = rows[rows.length - 1]?.balanceCents ?? balance;
+  let after = owedCents;
+  for (let i = count; i >= 1; i--) {
+    const month = monthAt(fromMonth, i);
+    const rate = periodicRate(rateBpsAt(month), 12, compounding);
+    const paid = paidByMonth[month] ?? 0;
+    const before = Math.round((after + paid) / (1 + rate));
+    const interest = after + paid - before;
+    rows.push({
+      month: i,
+      paymentCents: paid,
+      principalCents: paid - interest,
+      interestCents: interest,
+      extraCents: 0,
+      balanceCents: after,
+    });
+    after = before;
   }
-  return rows;
+  return rows.reverse();
 }
 
 /** The usual monthly payment: the median of recent months' totals. */

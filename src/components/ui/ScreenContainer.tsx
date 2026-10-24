@@ -1,8 +1,9 @@
-import { PropsWithChildren, ReactNode, RefObject } from 'react';
+import { PropsWithChildren, ReactNode, RefObject, useState } from 'react';
 import { LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { ScrollLockContext } from './scrollLock';
 
 interface ScreenContainerProps extends PropsWithChildren {
   scroll?: boolean;
@@ -34,6 +35,7 @@ export function ScreenContainer({
   scrollEnabled = true,
   header,
 }: ScreenContainerProps) {
+  const [locked, setLocked] = useState(false);
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -44,7 +46,7 @@ export function ScreenContainer({
         <ScrollView
           ref={scrollRef}
           onLayout={onScrollViewLayout}
-          scrollEnabled={scrollEnabled}
+          scrollEnabled={scrollEnabled && !locked}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           // Any field near the bottom of a scrolling screen would otherwise
@@ -53,7 +55,9 @@ export function ScreenContainer({
           automaticallyAdjustKeyboardInsets
           keyboardDismissMode="interactive"
         >
-          {children}
+          <ScrollLockContext.Provider value={setLocked}>
+            {children}
+          </ScrollLockContext.Provider>
         </ScrollView>
       ) : (
         <View style={styles.content}>{children}</View>

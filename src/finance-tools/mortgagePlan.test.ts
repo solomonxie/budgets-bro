@@ -5,7 +5,6 @@ import {
   extrasToCalendar,
   monthAt,
   breakPenaltyCents,
-  scheduleWithRateChanges,
   usualPaymentCents,
   nextRenewalMonth,
   extraMonthlyToPayOffBy,
@@ -13,6 +12,7 @@ import {
   maxQualifyingPriceCents,
   monthlySchedule,
   mortgagePlan,
+  pastRowsFromPayments,
 } from './mortgagePlan';
 import type { PlanInput } from './mortgagePlan';
 import { paymentPlan } from './canadianMortgage';
@@ -185,29 +185,6 @@ describe('break penalty', () => {
 });
 
 describe('held history helpers', () => {
-  it('follows rate changes', () => {
-    const one = scheduleWithRateChanges(
-      100_000_00,
-      [{ fromMonth: 1, rateBps: 500 }],
-      'monthly',
-      1_000_00,
-      24,
-    );
-    const two = scheduleWithRateChanges(
-      100_000_00,
-      [
-        { fromMonth: 1, rateBps: 500 },
-        { fromMonth: 13, rateBps: 300 },
-      ],
-      'monthly',
-      1_000_00,
-      24,
-    );
-    expect(one).toHaveLength(24);
-    expect(two[11].balanceCents).toBe(one[11].balanceCents);
-    expect(two[23].balanceCents).toBeLessThan(one[23].balanceCents);
-  });
-
   it('usual payment is the median', () => {
     expect(usualPaymentCents([2000_00, 2100_00, 9000_00])).toBe(2100_00);
     expect(usualPaymentCents([])).toBeNull();
@@ -237,5 +214,32 @@ describe('held history helpers', () => {
     expect(
       extraMonthlyToPayOffBy(400_000_00, 500, 'semiAnnual', payment, 400),
     ).toBeNull();
+  });
+});
+
+describe('pastRowsFromPayments', () => {
+  const rows = pastRowsFromPayments({
+    owedCents: 16_800_000,
+    paidByMonth: { '2026-01': 80_000, '2026-03': 180_000 },
+    fromMonth: '2026-01',
+    toMonth: '2026-04',
+    rateBpsAt: () => 320,
+    compounding: 'semiAnnual',
+  });
+
+  it('ends on what is owed now, a row per month', () => {
+    expect(rows.map((r) => r.month)).toEqual([1, 2, 3, 4]);
+    expect(rows[3].balanceCents).toBe(16_800_000);
+  });
+
+  it('shows what was paid, interest first, and each row follows the last', () => {
+    expect(rows.map((r) => r.paymentCents)).toEqual([80_000, 0, 180_000, 0]);
+    for (const r of rows)
+      expect(r.principalCents + r.interestCents).toBe(r.paymentCents);
+    for (let i = 1; i < rows.length; i++)
+      expect(rows[i].balanceCents).toBe(
+        rows[i - 1].balanceCents - rows[i].principalCents,
+      );
+    expect(rows[1].principalCents).toBeLessThan(0);
   });
 });

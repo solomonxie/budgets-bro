@@ -22,7 +22,12 @@ export function AccountsStackNavigator() {
       />
       <Stack.Screen name="AccountDetail" component={AccountDetailScreen} options={{ title: '' }} />
       <Stack.Screen name="ClosedAccounts" component={ClosedAccountsScreen} options={{ title: t('accounts.closedAccounts') }} />
-      <Stack.Screen name="MortgageInsights" component={MortgageInsightsScreen} options={{ title: t('insights.mortgageInsights') }} />
+      <Stack.Screen
+        name="MortgageInsights"
+        component={MortgageInsightsScreen}
+        // Sliders drag sideways; only the edge goes back (see InsightsStack).
+        options={{ title: t('insights.mortgageInsights'), fullScreenGestureEnabled: false }}
+      />
       <Stack.Screen
         name="FinanceTool"
         component={FinanceToolScreen}

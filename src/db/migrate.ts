@@ -124,11 +124,8 @@ export async function migrate(db: SQLiteDatabase, dbName = 'budgetsbro.db'): Pro
   const target = migrations[migrations.length - 1]?.version ?? currentVersion;
 
   if (target > currentVersion && rewritesExistingData(currentVersion, target)) {
-    // WAL checkpoint first, so the copy has every committed write in the
-    // main file rather than only in the sidecar.
-    await db.execAsync('PRAGMA wal_checkpoint(FULL)');
     try {
-      await takeSnapshot(dbName, currentVersion, target);
+      await takeSnapshot(db, currentVersion, target);
     } catch (e) {
       // A snapshot that fails must not stop the app opening — it is
       // insurance, not a precondition.

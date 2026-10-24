@@ -47,12 +47,9 @@ export function useAutoSnapshot(): void {
         const lastAt = await settingsRepo.getSetting(db, LAST_SNAPSHOT_AT);
         if (lastAt != null && Date.now() - new Date(lastAt).getTime() < SNAPSHOT_INTERVAL_MS) return;
 
-        // Without this the copy can be missing the newest commits, which sit
-        // in the -wal sidecar until a checkpoint folds them in.
-        await db.execAsync('PRAGMA wal_checkpoint(FULL)');
-        takeSnapshot('budgetsbro.db', 0, 0);
+        await takeSnapshot(db, 0, 0);
 
-        // After the checkpoint, so the zips and the .db copy describe the
+        // After the snapshot, so the zips and the .db copy describe the
         // same moment. Every board, not just the open one.
         const boards = await boardsRepo.listBoards(db);
         const names = backupNamesForBoards(boards);

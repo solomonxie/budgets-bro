@@ -193,9 +193,7 @@ export function HistorySection() {
   const snapshotNow = async () => {
     setBusy(true);
     try {
-      const db = await getDb();
-      await db.execAsync('PRAGMA wal_checkpoint(FULL)');
-      takeSnapshot('budgetsbro.db', 0, 0);
+      await takeSnapshot(await getDb(), 0, 0);
       await refresh();
     } finally {
       setBusy(false);

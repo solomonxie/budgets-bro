@@ -1,3 +1,4 @@
+import type { SQLiteDatabase } from './driver';
 import {
   copyPath,
   documentDir,
@@ -11,8 +12,8 @@ import {
 const SQLITE_DIR = joinPath(documentDir, 'SQLite');
 const SNAPSHOT_DIR = joinPath(documentDir, 'db-snapshots');
 // Enough to get back past a bad release without turning the phone into an
-// archive — a fortnight or so once daily ones are in the mix. Oldest first.
-const KEEP = 14;
+// archive. Oldest first.
+const KEEP = 5;
 
 export interface DbSnapshot {
   name: string;
@@ -61,29 +62,20 @@ export async function listSnapshots(): Promise<DbSnapshot[]> {
 // database is crude but has the property that matters: whatever the
 // migration was about to get wrong, this file still has it right.
 //
-// WAL matters here: recent commits may still be in budgetsbro.db-wal rather
-// than the main file, so the sidecars are copied too — a copy of only the
-// main file can be missing the newest writes.
+// VACUUM INTO writes one compacted file with every committed write in it —
+// no -wal/-shm sidecars to copy, and no free pages.
 export async function takeSnapshot(
-  dbName: string,
+  db: SQLiteDatabase,
   fromVersion: number,
   toVersion: number,
 ): Promise<DbSnapshot | null> {
-  const source = joinPath(SQLITE_DIR, dbName);
-  if (!(await pathExists(source))) return null;
-
   const takenAt = new Date().toISOString().replace(/:/g, '_');
-  const base = `v${fromVersion}-to-v${toVersion}-${takenAt}`;
-  const dir = await snapshotDir();
-  await copyPath(source, joinPath(dir, `${base}.db`));
-  for (const suffix of ['-wal', '-shm']) {
-    const sidecar = joinPath(SQLITE_DIR, `${dbName}${suffix}`);
-    if (await pathExists(sidecar))
-      await copyPath(sidecar, joinPath(dir, `${base}.db${suffix}`));
-  }
+  const name = `v${fromVersion}-to-v${toVersion}-${takenAt}.db`;
+  const target = joinPath(await snapshotDir(), name);
+  await db.execAsync(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
 
   await prune();
-  return parse(`${base}.db`);
+  return parse(name);
 }
 
 async function prune(): Promise<void> {

@@ -83,5 +83,5 @@ export async function buildBackupZip(db: SQLiteDatabase, boardId: number, boardN
   zip.file('change_log.json', JSON.stringify(changeLog, null, 2));
   zip.file('manifest.json', JSON.stringify({ boardId, boardName, exportedAt: new Date().toISOString() }, null, 2));
 
-  return zip.generateAsync({ type: 'uint8array' });
+  return zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
 }

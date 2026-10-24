@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -17,10 +24,6 @@ import { useFutureTransactions } from '../../hooks/useFutureTransactions';
 import { useAccountScheduledTransactions } from '../../hooks/useAccountScheduledTransactions';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { DisclosureChevron } from '../../components/ui/DisclosureChevron';
-import {
-  DropdownField,
-  DropdownOption,
-} from '../../components/ui/DropdownField';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
 import { FormSheet } from '../../components/ui/FormSheet';
 import { MoneyField } from '../../components/ui/MoneyField';
@@ -32,6 +35,7 @@ import {
   withRunningBalances,
 } from '../../domain/register';
 import { monthlyBalanceTrend } from '../../domain/balanceTrend';
+import { matchesSearch } from '../../domain/transactionSearch';
 import { monthlyGrowthRate } from '../../domain/monthlyGrowthRate';
 import { buildGrowthSeries } from '../../domain/investmentGrowth';
 import { currentDateISO, formatMonthLabel } from '../../domain/month';
@@ -104,8 +108,7 @@ export function AccountDetailScreen() {
   const [trendExpanded, setTrendExpanded] = useState(true);
   // Typed as what the bank shows: a card's balance as the amount owed.
   const [adjustText, setAdjustText] = useState<string | null>(null);
-  // undefined = all rows; null = rows with no payee.
-  const [payeeFilter, setPayeeFilter] = useState<number | null | undefined>();
+  const [query, setQuery] = useState('');
   const rootNavigation = useNavigation<RootNav>();
   const openEditAccount = useAppStore((s) => s.openEditAccount);
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
@@ -210,30 +213,9 @@ export function AccountDetailScreen() {
   // register backwards from the account's balance, so they have to see every
   // row whether or not it is shown.
   const visibleRows = useMemo(
-    () =>
-      payeeFilter === undefined
-        ? rows
-        : rows.filter((row) => row.payeeId === payeeFilter),
-    [rows, payeeFilter],
+    () => (query.trim() ? rows.filter((row) => matchesSearch(row, query)) : rows),
+    [rows, query],
   );
-  // This account's payees, most used first.
-  const payeeOptions = useMemo(() => {
-    const byId = new Map<number | null, { name: string; count: number }>();
-    for (const txn of transactions) {
-      const entry = byId.get(txn.payeeId);
-      if (entry) entry.count++;
-      else byId.set(txn.payeeId, { name: txn.payeeName ?? '', count: 1 });
-    }
-    return [...byId]
-      .map(([id, { name, count }]) => ({ id, name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [transactions]);
-  const payeeLabel = (id: number | null) =>
-    id == null
-      ? t('common.noPayee')
-      : (payeeOptions.find((p) => p.id === id)?.name ?? '');
-  const payeeFilterLabel =
-    payeeFilter === undefined ? '' : payeeLabel(payeeFilter);
 
   const deleteSelected = async () => {
     const db = await getDb();
@@ -701,47 +683,23 @@ export function AccountDetailScreen() {
               </View>
             ) : null}
             {rows.length > 0 ? (
-              // A section header for the register below, with the filter as
-              // its trailing control — the filter used to hang on its own
-              // between the scheduled card and the first row, touching both
-              // and belonging to neither.
+              // The register's section header, search full width below it.
               <View style={styles.listHeader}>
                 <Text style={styles.listHeaderText}>
                   {t('accountDetail.transactionsHeading', {
                     count: visibleRows.length,
                   })}
                 </Text>
-                <DropdownField
-                  compact
-                  link
-                  label={t('common.payee')}
-                  valueLabel={payeeFilterLabel}
-                  placeholder={t('accountDetail.allPayees')}
-                >
-                  {(close) => (
-                    <>
-                      <DropdownOption
-                        label={t('accountDetail.allPayees')}
-                        selected={payeeFilter === undefined}
-                        onPress={() => {
-                          setPayeeFilter(undefined);
-                          close();
-                        }}
-                      />
-                      {payeeOptions.map((p) => (
-                        <DropdownOption
-                          key={p.id ?? 'none'}
-                          label={payeeLabel(p.id)}
-                          selected={payeeFilter === p.id}
-                          onPress={() => {
-                            setPayeeFilter(p.id);
-                            close();
-                          }}
-                        />
-                      ))}
-                    </>
-                  )}
-                </DropdownField>
+                <TextInput
+                  style={styles.search}
+                  placeholder={t('transactions.searchPlaceholder')}
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholderTextColor={colors.textMuted}
+                  keyboardAppearance="dark"
+                  clearButtonMode="while-editing"
+                  autoCorrect={false}
+                />
               </View>
             ) : null}
           </>
@@ -824,15 +782,22 @@ export function AccountDetailScreen() {
 
 const styles = StyleSheet.create({
   listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     marginTop: spacing.md,
     paddingTop: spacing.sm,
     marginBottom: spacing.xs,
+  },
+  search: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: colors.surface,
+    fontSize: 14,
+    color: colors.text,
   },
   listHeaderText: {
     fontSize: 13,

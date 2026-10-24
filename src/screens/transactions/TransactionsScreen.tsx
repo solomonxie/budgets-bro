@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { matchesSearch } from '../../domain/transactionSearch';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FlaggedBanner } from '../../components/ui/FlaggedBanner';
 import type { RouteProp } from '@react-navigation/native';
@@ -106,7 +107,6 @@ export function TransactionsScreen() {
   // Every filter but the month: the chart above the list needs the months on
   // either side of the one picked.
   const matching = useMemo(() => {
-    const q = query.trim().toLowerCase();
     return transactions.filter((t) => {
       if (otherCategoryIds != null) {
         if (t.categoryId == null || !otherCategoryIds.includes(t.categoryId))
@@ -114,13 +114,7 @@ export function TransactionsScreen() {
       } else if (categoryFilter != null && t.categoryId !== categoryFilter) {
         return false;
       }
-      if (
-        q &&
-        !(t.payeeName ?? '').toLowerCase().includes(q) &&
-        !(t.memo ?? '').toLowerCase().includes(q)
-      )
-        return false;
-      return true;
+      return matchesSearch(t, query);
     });
   }, [transactions, query, categoryFilter, otherCategoryIds]);
 

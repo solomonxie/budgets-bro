@@ -577,7 +577,6 @@ export const en = {
 
   'accountDetail.calculators': 'Calculators',
   'accountDetail.growthRate': 'Growth {rate}/mo · 12-mo avg',
-  'accountDetail.allPayees': 'All Payees',
   'accountDetail.balance': 'Balance',
   'accountDetail.adjustLatestBalance': 'Adjust Latest Balance',
   'accountDetail.amountOwedLabel': 'Amount Owed',

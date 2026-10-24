@@ -569,7 +569,6 @@ export const zh: Record<keyof typeof en, string> = {
 
   'accountDetail.calculators': '计算器',
   'accountDetail.growthRate': '增长 {rate}/月 · 近 12 月平均',
-  'accountDetail.allPayees': '全部收款方',
   'accountDetail.balance': '余额',
   'accountDetail.adjustLatestBalance': '调整最新余额',
   'accountDetail.amountOwedLabel': '欠款金额',

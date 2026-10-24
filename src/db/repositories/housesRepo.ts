@@ -1,11 +1,13 @@
 import type { SQLiteDatabase } from '../../db/driver';
-import type { HouseRow } from '../schema';
+import type { HousePriceRow, HouseRow } from '../schema';
 
 export type HouseStatus =
   | 'watching'
   | 'viewed'
   | 'shortlisted'
   | 'offered'
+  | 'bought'
+  | 'sold'
   | 'rejected';
 
 export const HOUSE_STATUSES: HouseStatus[] = [
@@ -13,8 +15,13 @@ export const HOUSE_STATUSES: HouseStatus[] = [
   'viewed',
   'shortlisted',
   'offered',
+  'bought',
+  'sold',
   'rejected',
 ];
+
+/** Done with: sold to someone else, or ruled out. Folded on the list. */
+export const ARCHIVED_STATUSES: HouseStatus[] = ['sold', 'rejected'];
 
 export interface House {
   id: number;
@@ -53,6 +60,18 @@ export interface House {
   pros: string | null;
   cons: string | null;
   notes: string | null;
+  listedOn: string | null;
+  offerPriceCents: number | null;
+  depositCents: number | null;
+  subjectRemovalDate: string | null;
+  completionDate: string | null;
+  /** `item=ok|concern` pairs; see domain/houseChecklist. */
+  checklist: string | null;
+  maintenanceMonthlyCents: number | null;
+  busDistanceM: number | null;
+  trainDistanceM: number | null;
+  schoolDistanceM: number | null;
+  groceryDistanceM: number | null;
 }
 
 export type HouseInput = Omit<House, 'id'>;
@@ -95,6 +114,17 @@ function mapRow(row: HouseRow): House {
     pros: row.pros,
     cons: row.cons,
     notes: row.notes,
+    listedOn: row.listed_on,
+    offerPriceCents: row.offer_price_cents,
+    depositCents: row.deposit_cents,
+    subjectRemovalDate: row.subject_removal_date,
+    completionDate: row.completion_date,
+    checklist: row.checklist,
+    maintenanceMonthlyCents: row.maintenance_monthly_cents,
+    busDistanceM: row.bus_distance_m,
+    trainDistanceM: row.train_distance_m,
+    schoolDistanceM: row.school_distance_m,
+    groceryDistanceM: row.grocery_distance_m,
   };
 }
 
@@ -136,6 +166,17 @@ const COLUMNS = [
   'pros',
   'cons',
   'notes',
+  'listed_on',
+  'offer_price_cents',
+  'deposit_cents',
+  'subject_removal_date',
+  'completion_date',
+  'checklist',
+  'maintenance_monthly_cents',
+  'bus_distance_m',
+  'train_distance_m',
+  'school_distance_m',
+  'grocery_distance_m',
 ] as const;
 
 function values(input: HouseInput): unknown[] {
@@ -175,6 +216,17 @@ function values(input: HouseInput): unknown[] {
     input.pros,
     input.cons,
     input.notes,
+    input.listedOn,
+    input.offerPriceCents,
+    input.depositCents,
+    input.subjectRemovalDate,
+    input.completionDate,
+    input.checklist,
+    input.maintenanceMonthlyCents,
+    input.busDistanceM,
+    input.trainDistanceM,
+    input.schoolDistanceM,
+    input.groceryDistanceM,
   ];
 }
 
@@ -215,6 +267,17 @@ export function emptyHouse(): HouseInput {
     pros: null,
     cons: null,
     notes: null,
+    listedOn: null,
+    offerPriceCents: null,
+    depositCents: null,
+    subjectRemovalDate: null,
+    completionDate: null,
+    checklist: null,
+    maintenanceMonthlyCents: null,
+    busDistanceM: null,
+    trainDistanceM: null,
+    schoolDistanceM: null,
+    groceryDistanceM: null,
   };
 }
 
@@ -225,11 +288,12 @@ export async function listHouses(
   const rows = await db.getAllAsync<HouseRow>(
     `SELECT * FROM houses WHERE board_id = ?
      ORDER BY CASE status
-       WHEN 'offered' THEN 0
-       WHEN 'shortlisted' THEN 1
-       WHEN 'viewed' THEN 2
-       WHEN 'watching' THEN 3
-       ELSE 4 END,
+       WHEN 'bought' THEN 0
+       WHEN 'offered' THEN 1
+       WHEN 'shortlisted' THEN 2
+       WHEN 'viewed' THEN 3
+       WHEN 'watching' THEN 4
+       ELSE 5 END,
        COALESCE(rating, 0) DESC, name`,
     boardId,
   );
@@ -275,6 +339,72 @@ export async function updateHouse(
   );
 }
 
-export async function deleteHouse(db: SQLiteDatabase, id: number): Promise<void> {
-  await db.runAsync('DELETE FROM houses WHERE id = ?', id);
+export async function deleteHouse(
+  db: SQLiteDatabase,
+  id: number,
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM house_prices WHERE house_id = ?', id);
+    await db.runAsync('DELETE FROM houses WHERE id = ?', id);
+  });
+}
+
+export interface HousePrice {
+  id: number;
+  houseId: number;
+  date: string;
+  priceCents: number;
+}
+
+/** Every asking price on file for the board's houses, oldest first. */
+export async function listHousePrices(
+  db: SQLiteDatabase,
+  boardId: number,
+): Promise<HousePrice[]> {
+  const rows = await db.getAllAsync<HousePriceRow>(
+    `SELECT p.* FROM house_prices p JOIN houses h ON h.id = p.house_id
+     WHERE h.board_id = ? ORDER BY p.house_id, p.date, p.id`,
+    boardId,
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    houseId: r.house_id,
+    date: r.date,
+    priceCents: r.price_cents,
+  }));
+}
+
+// A new asking price is logged once per day: a correction typed the same
+// day replaces that day's entry rather than reading as a price change.
+export async function logHousePrice(
+  db: SQLiteDatabase,
+  houseId: number,
+  date: string,
+  priceCents: number,
+): Promise<void> {
+  const last = await db.getFirstAsync<HousePriceRow>(
+    'SELECT * FROM house_prices WHERE house_id = ? ORDER BY date DESC, id DESC LIMIT 1',
+    houseId,
+  );
+  if (last?.price_cents === priceCents) return;
+  if (last?.date === date)
+    await db.runAsync(
+      'UPDATE house_prices SET price_cents = ? WHERE id = ?',
+      priceCents,
+      last.id,
+    );
+  else
+    await db.runAsync(
+      'INSERT INTO house_prices (house_id, date, price_cents) VALUES (?, ?, ?)',
+      houseId,
+      date,
+      priceCents,
+    );
+}
+
+export async function deleteHousePrice(
+  db: SQLiteDatabase,
+  id: number,
+): Promise<void> {
+  await db.runAsync('DELETE FROM house_prices WHERE id = ?', id);
 }

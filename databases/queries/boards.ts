@@ -6,6 +6,7 @@ export const DELETE_BOARD_CASCADE = [
   'DELETE FROM scheduled_transactions WHERE board_id = ?',
   'DELETE FROM custom_goals WHERE board_id = ?',
   'DELETE FROM payment_decisions WHERE board_id = ?',
+  'DELETE FROM house_prices WHERE house_id IN (SELECT id FROM houses WHERE board_id = ?)',
   'DELETE FROM houses WHERE board_id = ?',
   'DELETE FROM community_prices WHERE board_id = ?',
   // Accounts point back at a category for loan payments; clear that before

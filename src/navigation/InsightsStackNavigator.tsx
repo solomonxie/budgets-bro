@@ -11,7 +11,7 @@ import { IncomeTrendScreen, PayeeTrendScreen } from '../screens/insights/PayeeTr
 import { PaymentReviewScreen } from '../screens/insights/PaymentReviewScreen';
 import { ExchangeInsightsScreen } from '../screens/insights/ExchangeInsightsScreen';
 import { CostOfLivingScreen } from '../screens/insights/CostOfLivingScreen';
-import { HousingInsightsScreen } from '../screens/housing/HousingInsightsScreen';
+import { HomesScreen } from '../screens/housing/HomesScreen';
 import { HouseDetailScreen } from '../screens/housing/HouseDetailScreen';
 import { HouseCompareScreen } from '../screens/housing/HouseCompareScreen';
 import { SettingsButton } from '../components/ui/SettingsButton';
@@ -75,7 +75,7 @@ export function InsightsStackNavigator() {
       />
       <Stack.Screen
         name="Housing"
-        component={HousingInsightsScreen}
+        component={HomesScreen}
         options={{ title: t('insights.housing') }}
       />
       <Stack.Screen

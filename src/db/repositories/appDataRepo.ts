@@ -12,6 +12,7 @@ export async function wipeAppData(
   await db.withTransactionAsync(async () => {
     const boards = await db.getAllAsync<{ id: number }>('SELECT id FROM boards');
     for (const { id } of boards) for (const sql of DELETE_BOARD_CASCADE) await db.runAsync(sql, id);
+    await db.runAsync('DELETE FROM house_prices');
     await db.runAsync('DELETE FROM houses');
     await db.runAsync('DELETE FROM community_prices');
     const placeholders = keepSettings.map(() => '?').join(', ') || "''";

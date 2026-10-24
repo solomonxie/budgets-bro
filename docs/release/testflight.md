@@ -16,7 +16,7 @@ Worth trying first:
 • Tracked Prices (Insights) — what you buy, how often, and whether it's getting dearer
 • Runway (bottom of Insights) — months your cash lasts without income
 • Loan health (Accounts → a loan) — debt against take-home pay, with a mortgage stress test
-• Payee and Income Trends, House Hunting, Cost of Living (Insights)
+• Payee and Income Trends, Homes, Cost of Living (Insights)
 • History (Settings) — every change recorded, a whole import undone in one tap
 
 Also in this beta: zero-based budgeting, multi-currency, 13+ calculators, iCloud Drive / S3 backup, CSV export, Face ID lock, English and Simplified Chinese.

@@ -1,6 +1,8 @@
 import type { HouseInput } from '../repositories/housesRepo';
 import type { CommunityPriceInput } from '../repositories/communityPricesRepo';
 
+import { nextMonth } from '../../domain/month';
+
 const cents = (dollars: number) => Math.round(dollars * 100);
 
 // Upsizing from Maple Street: a shortlist across three communities.
@@ -9,6 +11,17 @@ export function houseListings(months: string[]): Partial<HouseInput>[] {
   return [
     {
       name: 'Craftsman on Napier St',
+      listedOn: recent(2, 1),
+      maintenanceMonthlyCents: cents(450),
+      busDistanceM: 300,
+      trainDistanceM: 2400,
+      schoolDistanceM: 650,
+      groceryDistanceM: 500,
+      checklist: 'roof=ok,foundation=concern,furnace=ok,hotWater=ok,windows=ok',
+      offerPriceCents: cents(1460000),
+      depositCents: cents(75000),
+      subjectRemovalDate: recent(0, 28),
+      completionDate: `${nextMonth(nextMonth(months[months.length - 1]))}-15`,
       address: '2148 Napier St',
       city: 'Burnaby',
       community: 'Burnaby Heights',
@@ -44,6 +57,13 @@ export function houseListings(months: string[]): Partial<HouseInput>[] {
     },
     {
       name: 'Townhouse at The Grove',
+      listedOn: recent(3, 10),
+      maintenanceMonthlyCents: cents(150),
+      busDistanceM: 250,
+      trainDistanceM: 650,
+      schoolDistanceM: 900,
+      groceryDistanceM: 400,
+      checklist: 'roof=ok,furnace=ok,hotWater=ok,moisture=ok',
       address: '37-7488 Southwynde Ave',
       city: 'Burnaby',
       community: 'Edmonds',
@@ -73,6 +93,12 @@ export function houseListings(months: string[]): Partial<HouseInput>[] {
     },
     {
       name: 'Split-level near Como Lake',
+      maintenanceMonthlyCents: cents(600),
+      busDistanceM: 500,
+      trainDistanceM: 3100,
+      schoolDistanceM: 400,
+      groceryDistanceM: 1200,
+      checklist: 'roof=concern,furnace=concern,foundation=ok',
       address: '1021 Gatensbury St',
       city: 'Coquitlam',
       community: 'Central Coquitlam',
@@ -98,6 +124,9 @@ export function houseListings(months: string[]): Partial<HouseInput>[] {
     },
     {
       name: 'Condo at Gilmore Place',
+      busDistanceM: 150,
+      trainDistanceM: 200,
+      groceryDistanceM: 100,
       city: 'Burnaby',
       community: 'Brentwood',
       status: 'watching',

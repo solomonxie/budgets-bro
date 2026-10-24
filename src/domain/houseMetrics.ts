@@ -1,107 +1,119 @@
-import { minimumDownPaymentCents, mortgageInsurance, paymentPlan } from '../finance-tools/canadianMortgage';
-import type { House } from '../db/repositories/housesRepo';
+import type { House, HousePrice } from '../db/repositories/housesRepo';
+import { checklistConcerns } from './houseChecklist';
 
-// What a listing actually means, once the asking price stops being the only
-// number on it. Everything here is derived — nothing is stored — so
-// correcting a rate or a down payment moves every house at once.
-
-export interface HouseAssumptions {
-  annualRateBps: number;
-  amortizationMonths: number;
-  /** Null means "the legal minimum for this price", which is the honest default. */
-  downPaymentPercent: number | null;
-  /** Monthly, on top of strata and tax: heat, power, water, insurance. */
-  utilitiesMonthlyCents: number;
-}
-
-export const DEFAULT_ASSUMPTIONS: HouseAssumptions = {
-  annualRateBps: 450,
-  amortizationMonths: 300,
-  downPaymentPercent: 20,
-  utilitiesMonthlyCents: 25_000,
-};
+// What tells one listing from another, once the asking price stops being the
+// only number on it. Everything here is derived, nothing stored. What it
+// would cost to borrow for is the Mortgage page's question, not this one's:
+// these are the figures that differ between houses whatever the loan.
 
 export interface HouseMetrics {
   priceCents: number | null;
   /** Dollars per square foot, in cents — the only figure that compares two sizes. */
   pricePerSqftCents: number | null;
-  downPaymentCents: number | null;
-  mortgageCents: number | null;
-  insurancePremiumCents: number;
-  paymentMonthlyCents: number | null;
   strataMonthlyCents: number;
   taxMonthlyCents: number;
-  utilitiesMonthlyCents: number;
-  /** Everything it costs to hold, per month. */
-  carryingMonthlyCents: number | null;
+  maintenanceMonthlyCents: number;
+  /** Strata, tax and upkeep a month; null when none is known. */
+  fixedMonthlyCents: number | null;
   /** Asking against assessed: over 1 means priced above assessment. */
   askingOverAssessed: number | null;
   ageYears: number | null;
+  /** Latest asking against the first one on file; null without a change. */
+  priceChangeCents: number | null;
+  priceChangeRatio: number | null;
+  daysOnMarket: number | null;
+  /** Checklist items marked as a concern. */
+  concerns: number;
+  /** Price against its community's latest benchmark; over 1 is above. */
+  overBenchmark: number | null;
+}
+
+function daysBetween(fromIso: string, toIso: string): number {
+  const [fy, fm, fd] = fromIso.split('-').map(Number);
+  const [ty, tm, td] = toIso.split('-').map(Number);
+  return Math.round(
+    (Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000,
+  );
 }
 
 export function houseMetrics(
   house: House,
-  assumptions: HouseAssumptions,
-  thisYear: number,
+  {
+    todayIso,
+    prices = [],
+    benchmarkCents = null,
+  }: {
+    todayIso: string;
+    /** This house's asking prices, oldest first. */
+    prices?: HousePrice[];
+    benchmarkCents?: number | null;
+  },
 ): HouseMetrics {
-  const priceCents = house.askingPriceCents;
+  const priceCents =
+    house.askingPriceCents && house.askingPriceCents > 0
+      ? house.askingPriceCents
+      : null;
   const strataMonthlyCents = house.strataFeeCents ?? 0;
   const taxMonthlyCents = Math.round((house.propertyTaxAnnualCents ?? 0) / 12);
-  const utilitiesMonthlyCents = assumptions.utilitiesMonthlyCents;
-
-  if (!priceCents || priceCents <= 0) {
-    return {
-      priceCents: null,
-      pricePerSqftCents: null,
-      downPaymentCents: null,
-      mortgageCents: null,
-      insurancePremiumCents: 0,
-      paymentMonthlyCents: null,
-      strataMonthlyCents,
-      taxMonthlyCents,
-      utilitiesMonthlyCents,
-      carryingMonthlyCents: null,
-      askingOverAssessed: null,
-      ageYears: house.yearBuilt ? thisYear - house.yearBuilt : null,
-    };
-  }
-
-  const downPaymentCents =
-    assumptions.downPaymentPercent == null
-      ? minimumDownPaymentCents(priceCents)
-      : Math.round((priceCents * assumptions.downPaymentPercent) / 100);
-  const insurance = mortgageInsurance(
-    priceCents,
-    downPaymentCents,
-    assumptions.amortizationMonths,
-  );
-  const plan = paymentPlan(
-    insurance.totalMortgageCents,
-    assumptions.annualRateBps,
-    assumptions.amortizationMonths,
-  );
+  const maintenanceMonthlyCents = house.maintenanceMonthlyCents ?? 0;
+  const anyFixed =
+    house.strataFeeCents != null ||
+    house.propertyTaxAnnualCents != null ||
+    house.maintenanceMonthlyCents != null;
+  const first = prices[0];
+  const changed =
+    first != null && priceCents != null && first.priceCents !== priceCents;
+  const listedOn = house.listedOn ?? first?.date ?? null;
+  const thisYear = Number(todayIso.slice(0, 4));
 
   return {
     priceCents,
     pricePerSqftCents:
-      house.floorAreaSqft && house.floorAreaSqft > 0
+      priceCents != null && house.floorAreaSqft && house.floorAreaSqft > 0
         ? Math.round(priceCents / house.floorAreaSqft)
         : null,
-    downPaymentCents,
-    mortgageCents: insurance.totalMortgageCents,
-    insurancePremiumCents: insurance.premiumCents,
-    paymentMonthlyCents: plan.paymentCents,
     strataMonthlyCents,
     taxMonthlyCents,
-    utilitiesMonthlyCents,
-    carryingMonthlyCents:
-      plan.paymentCents + strataMonthlyCents + taxMonthlyCents + utilitiesMonthlyCents,
+    maintenanceMonthlyCents,
+    fixedMonthlyCents: anyFixed
+      ? strataMonthlyCents + taxMonthlyCents + maintenanceMonthlyCents
+      : null,
     askingOverAssessed:
-      house.assessedValueCents && house.assessedValueCents > 0
+      priceCents != null &&
+      house.assessedValueCents &&
+      house.assessedValueCents > 0
         ? priceCents / house.assessedValueCents
         : null,
     ageYears: house.yearBuilt ? thisYear - house.yearBuilt : null,
+    priceChangeCents: changed ? priceCents! - first!.priceCents : null,
+    priceChangeRatio: changed
+      ? (priceCents! - first!.priceCents) / first!.priceCents
+      : null,
+    daysOnMarket: listedOn
+      ? Math.max(0, daysBetween(listedOn, todayIso))
+      : null,
+    concerns: checklistConcerns(house.checklist),
+    overBenchmark:
+      priceCents != null && benchmarkCents && benchmarkCents > 0
+        ? priceCents / benchmarkCents
+        : null,
   };
+}
+
+/** "400 m", "1.2 km". */
+export function formatDistance(metres: number): string {
+  return metres < 1000
+    ? `${Math.round(metres)} m`
+    : `${(metres / 1000).toFixed(1)} km`;
+}
+
+/** "400", "400 m", "1.2 km", "1,200" → metres; null when blank or unreadable. */
+export function parseDistance(text: string): number | null {
+  const t = text.trim().toLowerCase().replace(/,/g, '');
+  if (!t) return null;
+  const n = Number.parseFloat(t);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(/km/.test(t) ? n * 1000 : n);
 }
 
 export type CompareDirection = 'lowerIsBetter' | 'higherIsBetter' | 'neutral';
@@ -125,7 +137,8 @@ export function markBest(
   direction: CompareDirection,
   values: (number | null)[],
 ): CompareRow {
-  if (direction === 'neutral') return { key, direction, values, bestIndex: null };
+  if (direction === 'neutral')
+    return { key, direction, values, bestIndex: null };
   let bestIndex: number | null = null;
   let bestValue: number | null = null;
   let tied = false;

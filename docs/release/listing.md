@@ -95,7 +95,7 @@ Recording (the build Apple reviews, on the iPhone, current iOS):
 1. iPhone Settings → Control Center → add **Screen Recording**. Turn on Do Not Disturb.
 2. Fresh install from TestFlight → **Try with sample data** (keeps your real numbers out). Swipe the app away.
 3. Start recording, then launch the app from the Home Screen.
-4. ~2 minutes, distinct features first: Insights → Quarterly Review (decide one bill) → Tracked Prices (one item's trend) → Runway card → Accounts → a loan → Health / stress test → Insights → House Hunting → Budget (assign an amount) → Spend (payee, category, one item, Save) → Settings (History, app lock, backups).
+4. ~2 minutes, distinct features first: Insights → Quarterly Review (decide one bill) → Tracked Prices (one item's trend) → Runway card → Accounts → a loan → Health / stress test → Insights → Homes → Budget (assign an amount) → Spend (payee, category, one item, Save) → Settings (History, app lock, backups).
 5. Stop. Photos → trim → share the video.
 
 Reply: `App Review` in App Store Connect → the message → **Reply**, attach the video (or a link, e.g. an unlisted YouTube/iCloud link, if it's too large), paste:
@@ -126,7 +126,7 @@ Hello, thank you for the review. We've resubmitted build <BUILD> with updated me
 2. Tracked Prices (Insights → Tracked Prices): items recorded inside a purchase, with each item's price and purchase frequency over time.
 3. Runway (Insights, bottom card): how many months the user's cash would last without income, month by month.
 4. Loan health (Accounts → mortgage account): every loan measured against take-home pay, with a mortgage rate stress test.
-5. House Hunting (Insights → House Hunting): a shortlist filled in while viewing a house, compared side by side against local benchmark prices.
+5. Homes (Insights → Homes): a shortlist filled in while viewing a house (price, upkeep, distance to bus and train, a condition checklist, offer deadlines), ranked by what matters to you and compared side by side against local benchmark prices.
 6. Full history (Settings → History): every change to every row is recorded, and a whole import can be undone in one tap.
 7. Fully on-device: no account, no server, no bank connection, no analytics, no AI.
 
@@ -155,7 +155,7 @@ Upload in filename order:
 2. `02-prices` — Tracked Prices
 3. `03-payee` — Payee Trend
 4. `04-loan` — mortgage account with Health / stress test
-5. `05-house` — House Hunting
+5. `05-house` — Homes
 6. `06-insights` — Insights
 7. `07-budgets` — Budget
 8. `08-settings` — "no server, no account" copy
@@ -218,7 +218,7 @@ ONLY IN BUDGETS BRO
 • Runway — how many months your cash would last without income, month by month.
 • Loan health — every loan measured against your take-home pay, plus a mortgage stress test at higher rates.
 • Payee and Income Trends — who your money goes to and who pays you, ranked month by month.
-• House Hunting — a shortlist you fill in while viewing a house, compared side by side against local prices.
+• Homes — a shortlist you fill in while viewing a house, ranked by what matters to you and compared side by side against local prices.
 • Cost of Living — what a city costs, next to what you actually spend.
 • Full history — every change to every row is recorded, and a whole import can be undone in one tap.
 • No bank feed, on purpose — you enter each spend yourself, which is how you notice it.
@@ -264,7 +264,7 @@ WHAT IS DISTINCT (with sample data on)
 - Runway (Insights, bottom card): months the user's cash would last without income, month by month.
 - Loan health (Accounts → a loan account → Health): debt measured against take-home pay, with a mortgage stress test.
 - Payee Trend / Income Trend (Insights): who money goes to and comes from, ranked by month.
-- House Hunting (Insights → House Hunting): a viewing shortlist and side-by-side comparison against local prices.
+- Homes (Insights → Homes): a viewing shortlist with upkeep, distances, a checklist and offer deadlines, a weighted score, and side-by-side comparison against local prices.
 - Cost of Living (Insights → Cost of Living): a city's costs next to the user's actual spending.
 - History (Settings → History): every change to every row is recorded, and a whole import can be undone in one tap.
 These run entirely on the device with no bank connection, no account and no server. We are not aware of another budgeting app that combines them.

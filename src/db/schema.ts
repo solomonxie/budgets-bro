@@ -202,8 +202,26 @@ export interface HouseRow {
   pros: string | null;
   cons: string | null;
   notes: string | null;
+  listed_on: string | null;
+  offer_price_cents: number | null;
+  deposit_cents: number | null;
+  subject_removal_date: string | null;
+  completion_date: string | null;
+  checklist: string | null;
+  maintenance_monthly_cents: number | null;
+  bus_distance_m: number | null;
+  train_distance_m: number | null;
+  school_distance_m: number | null;
+  grocery_distance_m: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface HousePriceRow {
+  id: number;
+  house_id: number;
+  date: string;
+  price_cents: number;
 }
 
 export interface CommunityPriceRow {

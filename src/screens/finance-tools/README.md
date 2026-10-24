@@ -19,19 +19,30 @@ section (and tax from Tax Insights). Adding a tool is one entry in
 
 ```
 MortgageInsightsScreen.tsx  simulation tabs: each real mortgage (from the
-                            account, can't be deleted; hold → duplicate as a
+                            account, can't be deleted; ⋯ → duplicate as a
                             simulation) + any number of what-ifs, each its
-                            own saved calc form
+                            own saved calc form; tap the open tab for ⋯
 mortgage/profiles.ts        the simulation list and which tab is open
-mortgage/MortgagePlanView   pinned monthly-cost bar; inputs (fold to one line
-                            once filled; rate ±chips; inline warnings) →
-                            live summary (+ Share) → sections: schedule,
-                            renewal, closing, qualifying, rent vs buy /
-                            refinance with break penalty (real mortgages)
+mortgage/MortgagePlanView   pinned monthly-cost bar; runs the plan (memoized
+                            on its inputs) and lays out the sections below
+mortgage/planInputs         the saved fields the plan is computed from
+mortgage/PurchaseInputs     price + loan terms (fold to one line once filled;
+                            rate ±chips; inline warnings)
+mortgage/HeldCard           a real mortgage: balance, rate, payment, renewal,
+                            trigger rate, equity
+mortgage/heldTerms          a real mortgage's owed / rate / payment, shared
+                            with "duplicate as simulation"
+mortgage/*Section, SummaryCard
+                            live summary, then: monthly costs, income,
+                            schedule, term + renewal, closing, qualifying,
+                            rent vs buy / refinance with break penalty (real
+                            mortgages); each section owns its what-if fields
+mortgage/parts              Section (fold), Chips, YearChoice, Toggle
 mortgage/ScheduleSection    by calendar year, past months greyed, next
                             payment marked; planned-extras list; tap a month
                             to pay extra once or every month from there
 mortgage/BalanceChart       balance over time, scheduled vs with extras (svg)
+mortgage/SliderField        a held thumb locks page scroll and back-swipe
 mortgage/useHeldHistory     a real mortgage's rate changes, usual payment
                             (median of 6 months) and paying account — 3
                             small queries, only on its tab

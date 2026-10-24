@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Line, Path } from 'react-native-svg';
 import { formatMoney } from '../../../domain/money';
@@ -29,7 +29,7 @@ function path(points: number[], max: number, years: number, width: number) {
 
 // What's owed over time: as scheduled, and with the planned extras when
 // there are any. `todayYears` marks where a real mortgage is now.
-export function BalanceChart({
+function BalanceChartView({
   startCents,
   baseline,
   planned,
@@ -118,6 +118,9 @@ export function BalanceChart({
     </View>
   );
 }
+
+// Skips a re-render when a slider elsewhere on the page moves.
+export const BalanceChart = memo(BalanceChartView);
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xs },

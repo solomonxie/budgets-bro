@@ -14,13 +14,14 @@ import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { CalcFormProvider } from './calcForm';
 import { MortgagePlanView } from './mortgage/MortgagePlanView';
 import type { HeldMortgage } from './mortgage/MortgagePlanView';
+import { heldTerms } from './mortgage/heldTerms';
+import { loadHeldHistory } from './mortgage/useHeldHistory';
 import {
   accountProfileId,
   formKey,
   useSimulationProfiles,
 } from './mortgage/profiles';
 import { getDb } from '../../db/client';
-import { paymentPlan } from '../../finance-tools/canadianMortgage';
 import type { Compounding } from '../../finance-tools/canadianMortgage';
 import { monthlySchedule } from '../../finance-tools/mortgagePlan';
 import * as settingsRepo from '../../db/repositories/settingsRepo';
@@ -117,35 +118,32 @@ export function MortgageInsightsScreen() {
   const canDelete = sims.profiles.length > 1;
 
   // A real mortgage as a what-if: the home at its value, what's owed as
-  // the loan, the same rate and extras — then change anything.
+  // the loan, the same rate, payment and extras — then change anything.
   const duplicateHeld = async (h: HeldMortgage & { id: string }) => {
     const db = await getDb();
-    const saved = await settingsRepo.getJsonSetting<Record<string, string>>(
-      db,
-      `calc_form:${formKey(h.id)}`,
-      {},
-    );
-    const owed = Math.max(0, -h.entry.balanceCents);
-    const rateBps = h.rateBps ?? Math.round(Number(saved.rate ?? '0') * 100);
+    const [saved, history] = await Promise.all([
+      settingsRepo.getJsonSetting<Record<string, string>>(
+        db,
+        `calc_form:${formKey(h.id)}`,
+        {},
+      ),
+      loadHeldHistory(h.entry.account.id),
+    ]);
     const compounding = (saved['@compounding'] ?? 'semiAnnual') as Compounding;
-    const account = h.entry.account;
-    const payment =
-      account.originalPrincipalCents != null && account.termMonths != null
-        ? paymentPlan(
-            account.originalPrincipalCents,
-            rateBps,
-            account.termMonths,
-            'monthly',
-            compounding,
-          ).paymentCents
-        : paymentPlan(owed, rateBps, 300, 'monthly', compounding).paymentCents;
-    const months =
-      monthlySchedule(owed, rateBps, compounding, payment).length || 300;
+    const { owed, rateBps, payment } = heldTerms(
+      h.entry,
+      h.rateBps ?? Math.round(Number(saved.rate ?? '0') * 100),
+      compounding,
+      history.usualPaymentCents,
+    );
+    const rows = monthlySchedule(owed, rateBps, compounding, payment);
+    const paysOff = rows.length > 0 && rows[rows.length - 1].balanceCents === 0;
+    const months = paysOff ? rows.length : 300;
     const priceCents = h.homeValueCents ?? Math.round(owed / 0.8);
     const dollars = (cents: number) =>
       Math.round(cents / 100).toLocaleString('en-US');
     sims.add({
-      name: t('mortgagePlan.copyOf', { name: account.name }),
+      name: t('mortgagePlan.copyOf', { name: h.entry.account.name }),
       values: {
         ...saved,
         price: dollars(priceCents),
@@ -222,14 +220,14 @@ export function MortgageInsightsScreen() {
             >
               {tabs.map((tab) => {
                 const on = tab.id === active.id;
+                const menu = () =>
+                  tab.held ? manageHeld(tab.held) : manage(tab.id, tab.name);
                 return (
                   <Pressable
                     key={tab.id}
                     style={[styles.tab, on && styles.tabOn]}
-                    onPress={() => sims.open(tab.id)}
-                    onLongPress={() =>
-                      tab.held ? manageHeld(tab.held) : manage(tab.id, tab.name)
-                    }
+                    onPress={() => (on ? menu() : sims.open(tab.id))}
+                    onLongPress={menu}
                   >
                     <Text
                       style={[styles.tabText, on && styles.tabTextOn]}
@@ -237,6 +235,7 @@ export function MortgageInsightsScreen() {
                     >
                       {tab.held ? '🏠 ' : ''}
                       {tab.name}
+                      {on ? '  ⋯' : ''}
                     </Text>
                   </Pressable>
                 );
@@ -255,30 +254,21 @@ export function MortgageInsightsScreen() {
           </>
         }
         footer={
-          <View style={styles.footer}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.delete,
-                pressed && styles.pressed,
-                (active.held || !canDelete) && styles.off,
-              ]}
-              disabled={!!active.held || !canDelete}
-              onPress={() => confirmRemove(active.id, active.name)}
-            >
-              <Text style={styles.deleteText}>
-                {t('mortgagePlan.deleteSimulation')}
-              </Text>
-            </Pressable>
-            {active.held || !canDelete ? (
-              <Text style={styles.tabHint}>
-                {t(
-                  active.held
-                    ? 'mortgagePlan.heldCantDelete'
-                    : 'mortgagePlan.lastCantDelete',
-                )}
-              </Text>
-            ) : null}
-          </View>
+          active.held || !canDelete ? null : (
+            <View style={styles.footer}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.delete,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => confirmRemove(active.id, active.name)}
+              >
+                <Text style={styles.deleteText}>
+                  {t('mortgagePlan.deleteSimulation')}
+                </Text>
+              </Pressable>
+            </View>
+          )
         }
       />
     </CalcFormProvider>
@@ -300,7 +290,6 @@ const styles = StyleSheet.create({
   tabTextOn: { color: colors.accent },
   addText: { fontSize: 14, fontWeight: '700', color: colors.accent },
   tabHint: { fontSize: 11, color: colors.textMuted },
-  body: { gap: spacing.sm },
   footer: { gap: spacing.xs, marginTop: spacing.xl, alignItems: 'center' },
   delete: {
     alignSelf: 'stretch',
@@ -311,5 +300,4 @@ const styles = StyleSheet.create({
   },
   deleteText: { fontSize: 15, fontWeight: '700', color: colors.text },
   pressed: { opacity: 0.8 },
-  off: { backgroundColor: colors.border, opacity: 0.5 },
 });

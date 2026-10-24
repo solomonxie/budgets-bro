@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatMoney } from '../../../domain/money';
 import {
@@ -71,7 +71,7 @@ function shift(map: Record<number, number>, by: number) {
   return out;
 }
 
-export function ScheduleSection({
+function ScheduleSectionView({
   rows: upcoming,
   pastRows = [],
   firstMonth,
@@ -435,6 +435,9 @@ function withThousands(text: string): string {
   const digits = text.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
   return digits ? Number(digits).toLocaleString('en-US') : '';
 }
+
+// Skips a re-render when a slider elsewhere on the page moves.
+export const ScheduleSection = memo(ScheduleSectionView);
 
 const styles = StyleSheet.create({
   wrap: { gap: 0 },

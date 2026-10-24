@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import type { CalcField } from '../useCalcField';
 import { useScrollLock } from '../../../components/ui/scrollLock';
 import { formatMoney } from '../../../domain/money';
@@ -153,6 +154,12 @@ function Track({
   onDrag: (index: number) => void;
 }) {
   const lockScroll = useScrollLock();
+  const navigation = useNavigation();
+  // A held thumb pins the page: no scroll, and no edge swipe back.
+  const hold = (held: boolean) => {
+    lockScroll(held);
+    navigation.setOptions({ gestureEnabled: !held });
+  };
   // Only ever touched inside the handlers below, never during render.
   const gesture = useRef({ width: 0, left: 0, offset: 0, last: -1 });
   const span = () => Math.max(1, gesture.current.width - THUMB);
@@ -166,7 +173,7 @@ function Track({
       onDrag(i);
     }
   };
-  const end = () => lockScroll(false);
+  const end = () => hold(false);
   // Only a finger that lands on the dot moves it — brushing the bar on the
   // way down the page scrolls as usual. Once held, the page stays still
   // until the finger lifts.
@@ -175,7 +182,7 @@ function Track({
       Math.abs(e.nativeEvent.locationX - thumbX()) <= GRAB,
     onResponderTerminationRequest: () => false,
     onResponderGrant: (e: GestureResponderEvent) => {
-      lockScroll(true);
+      hold(true);
       const g = gesture.current;
       g.left = e.nativeEvent.pageX - e.nativeEvent.locationX;
       g.offset = e.nativeEvent.locationX - thumbX();

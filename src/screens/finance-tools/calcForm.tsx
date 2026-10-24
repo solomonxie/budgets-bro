@@ -43,9 +43,12 @@ export function useCalcChoice<T extends string>(
   const value = form
     ? ((form.values[`@${key}`] as T | undefined) ?? initial)
     : local;
+  // On the provider's stable `set`, not the form object, so a memoized
+  // child isn't handed a new setter on every keystroke.
+  const formSet = form?.set;
   const set = useCallback(
-    (next: T) => (form ? form.set(`@${key}`, next) : setLocal(next)),
-    [form, key],
+    (next: T) => (formSet ? formSet(`@${key}`, next) : setLocal(next)),
+    [formSet, key],
   );
   return [value, set];
 }

@@ -160,6 +160,10 @@ export function monthlySchedule(
   return rows;
 }
 
+function paysOff(rows: ScheduleRow[]): boolean {
+  return rows.length > 0 && rows[rows.length - 1].balanceCents === 0;
+}
+
 function interestOf(rows: ScheduleRow[]): number {
   return rows.reduce((sum, row) => sum + row.interestCents, 0);
 }
@@ -278,10 +282,11 @@ export interface PlanResult {
     totalCents: number;
   };
   schedule: ScheduleRow[];
-  baseline: { months: number; interestCents: number };
+  baseline: { months: number; interestCents: number; paysOff: boolean };
   /** Without any extras. */
   baselineSchedule: ScheduleRow[];
-  withPrepayments: { months: number; interestCents: number };
+  /** `paysOff` false: the payment stops covering the interest. */
+  withPrepayments: { months: number; interestCents: number; paysOff: boolean };
   term: { interestCents: number; principalCents: number; balanceCents: number };
   renewal: RenewalRow[];
   qualifying: {
@@ -296,7 +301,7 @@ export interface PlanResult {
 }
 
 const NO_TAX: TransferTax = { taxCents: 0, rebateCents: 0, netCents: 0 };
-const RENEWAL_SHOCKS_BPS = [0, 100, 200, 300];
+const RENEWAL_SHOCKS_BPS = [-100, 0, 100, 200, 300];
 
 export function mortgagePlan(input: PlanInput): PlanResult {
   const existing = input.existing;
@@ -377,12 +382,17 @@ export function mortgagePlan(input: PlanInput): PlanResult {
 
   const termRows = schedule.slice(0, input.termMonths);
   const termBalance = balanceAfter(schedule, mortgageCents, input.termMonths);
-  const remainingMonths = Math.max(
-    1,
-    input.amortizationMonths - input.termMonths,
-  );
+  const baselinePaysOff = paysOff(baselineRows);
+  // A real mortgage runs as long as its payment takes, not a chosen term.
+  const amortizationMonths =
+    existing && baselinePaysOff
+      ? baselineRows.length
+      : input.amortizationMonths;
+  const remainingMonths = Math.max(1, amortizationMonths - input.termMonths);
   const grossMonthly = input.annualIncomeCents / 12;
-  const renewal = RENEWAL_SHOCKS_BPS.map((shockBps) => {
+  const renewal = RENEWAL_SHOCKS_BPS.filter(
+    (shockBps) => input.rateBps + shockBps > 0,
+  ).map((shockBps) => {
     const rateBps = input.rateBps + shockBps;
     const monthly =
       termBalance > 0
@@ -438,10 +448,12 @@ export function mortgagePlan(input: PlanInput): PlanResult {
     baseline: {
       months: baselineRows.length,
       interestCents: interestOf(baselineRows),
+      paysOff: baselinePaysOff,
     },
     withPrepayments: {
       months: schedule.length,
       interestCents: interestOf(schedule),
+      paysOff: paysOff(schedule),
     },
     term: {
       interestCents: interestOf(termRows),
@@ -455,10 +467,10 @@ export function mortgagePlan(input: PlanInput): PlanResult {
       required: q.required,
       gdsPercent: ratio(q.required.gdsMonthlyCents),
       tdsPercent: ratio(q.required.tdsMonthlyCents),
-      maxPriceCents: maxQualifyingPriceCents(
-        qualifyingInput,
-        input.annualIncomeCents,
-      ),
+      // A real mortgage is past qualifying; no price to search for.
+      maxPriceCents: existing
+        ? null
+        : maxQualifyingPriceCents(qualifyingInput, input.annualIncomeCents),
     },
   };
 }

@@ -114,12 +114,20 @@ describe('mortgagePlan', () => {
     expect(Math.abs(max - base.priceCents)).toBeLessThanOrEqual(2_000_00);
   });
 
-  it('renewal at a higher rate raises the payment', () => {
+  it('renewal at a higher rate raises the payment, a lower one cuts it', () => {
     const r = mortgagePlan(base);
+    const at = (shock: number) =>
+      r.renewal.find((row) => row.shockBps === shock)!.monthlyPaymentCents;
+    expect(r.renewal.map((row) => row.shockBps)).toEqual([
+      -100, 0, 100, 200, 300,
+    ]);
+    expect(at(200)).toBeGreaterThan(at(0));
+    expect(at(-100)).toBeLessThan(at(0));
+  });
+
+  it('drops a renewal rate that would go to zero or below', () => {
+    const r = mortgagePlan({ ...base, rateBps: 80 });
     expect(r.renewal[0].shockBps).toBe(0);
-    expect(r.renewal[2].monthlyPaymentCents).toBeGreaterThan(
-      r.renewal[0].monthlyPaymentCents,
-    );
   });
 });
 
@@ -134,6 +142,17 @@ describe('mortgagePlan for a mortgage already held', () => {
     expect(r.closing.totalCents).toBe(0);
     expect(r.schedule[0].balanceCents).toBeLessThan(400_000_00);
     expect(r.insurance.ltvBps).toBe(4444);
+    expect(r.withPrepayments.paysOff).toBe(true);
+    expect(r.qualifying.maxPriceCents).toBeNull();
+  });
+
+  it('says so when the payment no longer covers the interest', () => {
+    const r = mortgagePlan({
+      ...base,
+      rateBps: 900,
+      existing: { balanceCents: 400_000_00, monthlyPaymentCents: 2_000_00 },
+    });
+    expect(r.withPrepayments.paysOff).toBe(false);
   });
 });
 

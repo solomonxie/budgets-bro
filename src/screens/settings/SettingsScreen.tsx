@@ -273,7 +273,6 @@ export function SettingsScreen() {
 
       await switchBoard(freshBoardId);
       useAppStore.getState().setLockMode('none');
-      useAppStore.getState().rememberTransactionAccounts(null);
       setTheme('dark');
       bumpDataVersion();
       Alert.alert(

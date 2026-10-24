@@ -64,7 +64,11 @@ import {
 import type { PurchaseItem } from '../../domain/purchaseItems';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import { currentDateISO } from '../../domain/month';
+import {
+  currentDateISO,
+  currentMonth,
+  lastNMonths,
+} from '../../domain/month';
 import type { RecurrenceRule } from '../../domain/recurrence';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -107,8 +111,6 @@ function AddTransactionForm() {
   const insets = useSafeAreaInsets();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
-  const lastAccountId = useAppStore((s) => s.lastAccountId);
-  const rememberAccounts = useAppStore((s) => s.rememberTransactionAccounts);
   const { accounts } = useAccounts();
   const { groups, categories } = useCategories();
   const { payees } = usePayees('usage');
@@ -439,43 +441,32 @@ function AddTransactionForm() {
   }, [editingTransactionId]);
 
   useEffect(() => {
-    // A preset (opened from an account page) always wins; otherwise the last
-    // cash account used — the store's copy, or after a cold start the
-    // ledger's.
+    // A preset (opened from an account page) always wins; anywhere else it's
+    // the cash account you spend from most.
     if (editingTransactionId != null || realAccounts.length === 0) return;
-    const isCash = (id: number | null) =>
-      realAccounts.some(
-        (a) => a.account.id === id && a.account.type === 'cash',
-      );
+    if (presetAccountId != null) {
+      setAccountId((prev) => prev ?? presetAccountId);
+      return;
+    }
     const fallback =
       realAccounts.find((a) => a.account.type === 'cash')?.account.id ??
       realAccounts.find((a) => isSpendingAccountType(a.account.type))?.account
         .id ??
       realAccounts[0].account.id;
-    const pick = (id: number | null) =>
-      setAccountId((prev) => presetAccountId ?? prev ?? id ?? fallback);
-    if (presetAccountId != null || isCash(lastAccountId)) {
-      pick(lastAccountId);
-      return;
-    }
     let cancelled = false;
     (async () => {
-      const id = await transactionsRepo.getLastCashAccountId(
+      const id = await transactionsRepo.getMainSpendingAccountId(
         await getDb(),
         boardId,
+        `${lastNMonths(currentMonth(), 3)[0]}-01`,
       );
-      if (!cancelled) pick(isCash(id) ? id : null);
+      const known = realAccounts.some((a) => a.account.id === id);
+      if (!cancelled) setAccountId((prev) => prev ?? (known ? id : fallback));
     })();
     return () => {
       cancelled = true;
     };
-  }, [
-    editingTransactionId,
-    presetAccountId,
-    realAccounts,
-    lastAccountId,
-    boardId,
-  ]);
+  }, [editingTransactionId, presetAccountId, realAccounts, boardId]);
 
   // A schedule belongs to an account, so it's only offered on a new entry
   // opened from that account's page — any type, either direction (a loan's
@@ -591,8 +582,6 @@ function AddTransactionForm() {
         await transactionsRepo.createTransaction(db, boardId, input);
       }
     }
-    // The next spend's default is the last cash account, nothing else.
-    if (selectedAccount?.type === 'cash') rememberAccounts(accountId);
     bumpDataVersion();
     navigation.goBack();
   };

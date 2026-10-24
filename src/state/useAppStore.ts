@@ -28,11 +28,6 @@ interface AppState {
   // existing one — same sheet, same fields, prefilled. `presetAccountId` is
   // only used for "new" (opened from an account page — defaults the account
   // picker to that account instead of the first account in the list).
-  // Add Transaction is a pushed page now, so its form unmounts on every
-  // exit — these carry the "same account as last time" default that used to
-  // survive in the sheet's own state.
-  lastAccountId: number | null;
-  rememberTransactionAccounts: (accountId: number | null) => void;
 
   // Same "one sheet, create or edit" pattern as the transaction modal.
   accountModal: { open: boolean; editingAccountId: number | null };
@@ -69,9 +64,6 @@ export const useAppStore = create<AppState>((set) => ({
 
   currentBoardId: 1,
   setCurrentBoardId: (id) => set({ currentBoardId: id }),
-
-  lastAccountId: null,
-  rememberTransactionAccounts: (accountId) => set({ lastAccountId: accountId }),
 
   accountModal: { open: false, editingAccountId: null },
   openAddAccount: () =>

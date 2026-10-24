@@ -9,7 +9,7 @@ import {
   INSERT_TRANSACTION,
   UPDATE_TRANSACTION,
   LAST_CATEGORY_FOR_PAYEE,
-  LAST_CASH_ACCOUNT_USED,
+  MAIN_SPENDING_ACCOUNT,
   SELECT_PURCHASE_ITEMS,
   LOAN_PAYMENTS_BY_MONTH,
   LOAN_PAYING_ACCOUNT,
@@ -126,13 +126,15 @@ export async function getLastCategoryIdForPayee(
   return row?.category_id ?? null;
 }
 
-export async function getLastCashAccountId(
+export async function getMainSpendingAccountId(
   db: SQLiteDatabase,
   boardId: number,
+  sinceIso: string,
 ): Promise<number | null> {
   const row = await db.getFirstAsync<{ account_id: number }>(
-    LAST_CASH_ACCOUNT_USED,
+    MAIN_SPENDING_ACCOUNT,
     boardId,
+    sinceIso,
   );
   return row?.account_id ?? null;
 }

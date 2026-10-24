@@ -34,12 +34,16 @@ export const SELECT_PURCHASE_ITEMS = `
 `;
 
 // Hand-entered only: an import would otherwise decide the default.
-export const LAST_CASH_ACCOUNT_USED = `
-  SELECT t.account_id FROM transactions t
-  JOIN accounts a ON a.id = t.account_id
+// The cash account most spending is typed against — recent first, then
+// all-time — so one stray entry elsewhere doesn't move the default.
+export const MAIN_SPENDING_ACCOUNT = `
+  SELECT a.id AS account_id FROM accounts a
+  LEFT JOIN transactions t ON t.account_id = a.id
+    AND t.import_id IS NULL AND t.transfer_account_id IS NULL
+    AND t.amount_cents < 0
   WHERE a.board_id = ? AND a.type = 'cash' AND a.archived_at IS NULL
-    AND t.import_id IS NULL
-  ORDER BY t.id DESC
+  GROUP BY a.id
+  ORDER BY SUM(t.date >= ?) DESC, COUNT(t.id) DESC, a.id
   LIMIT 1
 `;
 

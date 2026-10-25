@@ -13,13 +13,12 @@ import { DEFAULT_OTHER_CLOSING_CENTS } from './constants';
 import { parseMap, payoffTime } from './parts';
 import { HeldCard } from './HeldCard';
 import { FREQUENCIES, PurchaseInputs } from './PurchaseInputs';
-import { IncomeSection, MonthlyCostsSection } from './CostAndIncomeSections';
+import { IncomeSection, RunningCosts } from './CostAndIncomeSections';
 import { SummaryCard } from './SummaryCard';
 import { PayoffSection } from './PayoffSection';
 import { TermSection } from './TermSection';
-import { ClosingSection } from './ClosingSection';
-import { QualifySection } from './QualifySection';
 import { RentVsBuySection } from './RentVsBuySection';
+import { QualifyLine } from './QualifyLine';
 import { RefinanceSection } from './RefinanceSection';
 import {
   extrasFromCalendar,
@@ -289,28 +288,66 @@ export function MortgagePlanView({
   // you came back for. Each box folds on its own title.
   const [foldedAtOpen] = useState(r.ready);
 
+  const payoff = (inline: boolean) => (
+    <PayoffSection
+      inline={inline}
+      r={r}
+      pastRows={pastRows}
+      extras={extras}
+      onChangeExtras={setExtras}
+      firstUpcoming={firstUpcoming}
+      rateBps={effectiveRate}
+      compounding={compounding}
+      onScheduleExtras={held ? scheduleExtras : undefined}
+    />
+  );
+
+  const term = (inline: boolean) => (
+    <TermSection
+      inline={inline}
+      r={r}
+      renewalMonth={renewalMonth}
+      termYears={termYears.number}
+    />
+  );
+
   return (
     <CalcScreen header={pinned} footer={footer}>
       {top}
       <View style={styles.body}>
         {held && terms ? (
-          <HeldCard
-            held={held}
-            terms={terms}
-            inputs={inputs}
-            renewalMonth={renewalMonth}
-            triggerBps={triggerBps}
-          />
+          <>
+            <HeldCard
+              held={held}
+              terms={terms}
+              inputs={inputs}
+              renewalMonth={renewalMonth}
+              triggerBps={triggerBps}
+            />
+            <IncomeSection inputs={inputs} defaultOpen={!foldedAtOpen} />
+          </>
         ) : (
-          <PurchaseInputs inputs={inputs} r={r} defaultOpen={!foldedAtOpen} />
+          <>
+            <PurchaseInputs
+              inputs={inputs}
+              r={r}
+              defaultOpen={!foldedAtOpen}
+              extras={
+                <>
+                  {payoff(true)}
+                  {term(true)}
+                  <IncomeSection
+                    inline
+                    inputs={inputs}
+                    title={t('mortgagePlan.qualifyHeading')}
+                  >
+                    <QualifyLine r={r} />
+                  </IncomeSection>
+                </>
+              }
+            />
+          </>
         )}
-        <MonthlyCostsSection
-          r={r}
-          inputs={inputs}
-          homeValueCents={homeValueCents}
-          defaultOpen={!foldedAtOpen}
-        />
-        <IncomeSection inputs={inputs} defaultOpen={!foldedAtOpen} />
         <SummaryCard
           r={r}
           isHeld={terms != null}
@@ -320,24 +357,30 @@ export function MortgagePlanView({
           frequencyIsMonthly={frequency === 'monthly'}
           hasIncome={income.cents > 0}
           homeValueCents={homeValueCents}
+          runningCosts={
+            <RunningCosts
+              r={r}
+              inputs={inputs}
+              homeValueCents={homeValueCents}
+            />
+          }
         />
         {r.ready ? (
           <>
-            <PayoffSection
-              r={r}
-              pastRows={pastRows}
-              extras={extras}
-              onChangeExtras={setExtras}
-              firstUpcoming={firstUpcoming}
-              rateBps={effectiveRate}
-              compounding={compounding}
-              onScheduleExtras={held ? scheduleExtras : undefined}
-            />
-            <TermSection
-              r={r}
-              renewalMonth={renewalMonth}
-              termYears={termYears.number}
-            />
+            {terms ? (
+              <>
+                {payoff(false)}
+                {term(false)}
+              </>
+            ) : (
+              <RentVsBuySection
+                r={r}
+                inputs={inputs}
+                homeValueCents={homeValueCents}
+                rateBps={effectiveRate}
+                amortizationMonths={amortizationMonths}
+              />
+            )}
             {terms ? (
               <RefinanceSection
                 terms={terms}
@@ -347,19 +390,7 @@ export function MortgagePlanView({
                 termMonths={termMonths}
                 fixedRate={fixedRate}
               />
-            ) : (
-              <>
-                <ClosingSection r={r} inputs={inputs} />
-                <QualifySection r={r} />
-                <RentVsBuySection
-                  r={r}
-                  inputs={inputs}
-                  homeValueCents={homeValueCents}
-                  rateBps={effectiveRate}
-                  amortizationMonths={amortizationMonths}
-                />
-              </>
-            )}
+            ) : null}
           </>
         ) : null}
       </View>

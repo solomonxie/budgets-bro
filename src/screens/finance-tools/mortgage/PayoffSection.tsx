@@ -6,7 +6,13 @@ import { BalanceChart } from './BalanceChart';
 import { ScheduleSection } from './ScheduleSection';
 import type { Extras } from './ScheduleSection';
 import { SliderField, steps } from './SliderField';
-import { Section, payoffTime, text, yearsMonths } from './parts';
+import {
+  InlineMore,
+  Section,
+  payoffTime,
+  text,
+  yearsMonths,
+} from './parts';
 import {
   extraMonthlyToPayOffBy,
   monthAt,
@@ -32,6 +38,7 @@ export function PayoffSection({
   rateBps,
   compounding,
   onScheduleExtras,
+  inline,
 }: {
   r: PlanResult;
   pastRows: ScheduleRow[];
@@ -42,6 +49,8 @@ export function PayoffSection({
   compounding: Compounding;
   /** A real mortgage only: turn planned extras into scheduled payments. */
   onScheduleExtras?: () => void;
+  /** Folded into the loan box as a link rather than a card of its own. */
+  inline?: boolean;
 }) {
   const t = useT();
   const payoffBy = useCalcField('', 'payoffBy');
@@ -85,8 +94,9 @@ export function PayoffSection({
     [r.ready, payoffTarget, principalCents, rateBps, compounding, paymentCents],
   );
 
+  const Wrapper = inline ? InlineMore : Section;
   return (
-    <Section
+    <Wrapper
       title={t('mortgagePlan.scheduleHeading')}
       summary={
         r.withPrepayments.paysOff
@@ -173,7 +183,7 @@ export function PayoffSection({
         extras={extras}
         onChangeExtras={onChangeExtras}
       />
-    </Section>
+    </Wrapper>
   );
 }
 

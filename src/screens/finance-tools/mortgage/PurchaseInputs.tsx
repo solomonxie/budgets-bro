@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   DropdownField,
@@ -15,6 +16,7 @@ import {
   withThousands,
 } from './parts';
 import { RATE_STOPS, TERM_YEARS } from './constants';
+import { ClosingCosts } from './ClosingCosts';
 import type { PlanInputs } from './planInputs';
 import { maxAmortizationMonths } from '../../../finance-tools/mortgagePlan';
 import type { PlanResult } from '../../../finance-tools/mortgagePlan';
@@ -62,10 +64,13 @@ export function PurchaseInputs({
   inputs,
   r,
   defaultOpen,
+  extras,
 }: {
   inputs: PlanInputs;
   r: PlanResult;
   defaultOpen: boolean;
+  /** Inline links at the bottom of the loan box. */
+  extras: ReactNode;
 }) {
   const t = useT();
   const {
@@ -283,6 +288,12 @@ export function PurchaseInputs({
             />
           ) : null}
         </View>
+        {r.ready ? (
+          <>
+            <ClosingCosts r={r} inputs={inputs} />
+            {extras}
+          </>
+        ) : null}
       </Section>
     </>
   );

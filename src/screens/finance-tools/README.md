@@ -33,10 +33,13 @@ mortgage/HeldCard           a real mortgage: balance, rate, payment, renewal,
 mortgage/heldTerms          a real mortgage's owed / rate / payment, shared
                             with "duplicate as simulation"
 mortgage/*Section, SummaryCard
-                            live summary, then: monthly costs, income,
-                            schedule, term + renewal, closing, qualifying,
-                            rent vs buy / refinance with break penalty (real
-                            mortgages); each section owns its what-if fields
+                            new purchase: price, the loan (closing costs,
+                            then schedule, term and qualifying links),
+                            summary (running costs fold
+                            under the monthly total), rent or buy.
+                            Real mortgage: income, summary,
+                            schedule, term + renewal, refinance with break
+                            penalty; each section owns its what-if fields
 mortgage/parts              Section (fold), Chips, YearChoice, Toggle
 mortgage/ScheduleSection    by calendar year, past months greyed, next
                             payment marked; planned-extras list; tap a month

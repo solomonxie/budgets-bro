@@ -17,7 +17,16 @@ import { useT } from '../../../i18n';
 const SELLING_COST_BPS = 500;
 
 const RENT_STOPS = steps(0, 8000, 50);
-const HORIZON_STOPS = steps(1, 30, 1);
+const HORIZON_YEARS = 30;
+const MILESTONES = [10, 20, 30];
+
+function interestVsRent(ratio: number) {
+  if (ratio < 0.9)
+    return { hint: 'mortgagePlan.rentInterestBelow', tone: 'positive' } as const;
+  if (ratio <= 1.1)
+    return { hint: 'mortgagePlan.rentInterestNear', tone: 'default' } as const;
+  return { hint: 'mortgagePlan.rentInterestAbove', tone: 'negative' } as const;
+}
 const GROWTH_STOPS = steps(0, 10, 0.5);
 const APPRECIATION_STOPS = steps(-5, 10, 0.5);
 const RETURN_STOPS = steps(0, 12, 0.5);
@@ -49,7 +58,6 @@ export function RentVsBuySection({
   const rentGrowth = useCalcField('3', 'rentGrowth');
   const appreciation = useCalcField('3', 'appreciation');
   const investReturn = useCalcField('5', 'investReturn');
-  const horizon = useCalcField('10', 'horizon');
   const { compounding, propertyTaxRate, otherExpenses, condoFees, heat } =
     inputs;
 
@@ -57,7 +65,7 @@ export function RentVsBuySection({
   const result = useMemo(() => {
     if (rent.cents <= 0 || !r.ready) return null;
     return compareRentVsBuy({
-      years: Math.max(1, horizon.int),
+      years: HORIZON_YEARS,
       monthlyRentCents: rent.cents,
       annualRentGrowthBps: rentGrowth.bps,
       priceCents: homeValueCents,
@@ -84,7 +92,6 @@ export function RentVsBuySection({
     r.ready,
     r.downCents,
     closingCosts,
-    horizon.int,
     rentGrowth.bps,
     homeValueCents,
     rateBps,
@@ -97,7 +104,14 @@ export function RentVsBuySection({
     appreciation.bps,
     investReturn.bps,
   ]);
-  const last = result?.rows[result.rows.length - 1];
+  // Year one's average: the first month alone overstates it slightly.
+  const interestCents = useMemo(() => {
+    const year = r.schedule.slice(0, 12);
+    if (year.length === 0) return 0;
+    return year.reduce((sum, row) => sum + row.interestCents, 0) / year.length;
+  }, [r.schedule]);
+  const ratio = rent.cents > 0 ? interestCents / rent.cents : 0;
+  const vsRent = interestVsRent(ratio);
 
   return (
     <Section
@@ -106,7 +120,7 @@ export function RentVsBuySection({
         result
           ? result.breakEvenYear != null
             ? t('mortgagePlan.rentBreakEven', { year: result.breakEvenYear })
-            : t('mortgagePlan.rentNever', { years: horizon.int })
+            : t('mortgagePlan.rentNever', { years: HORIZON_YEARS })
           : ''
       }
     >
@@ -116,13 +130,6 @@ export function RentVsBuySection({
         kind="money"
         stops={RENT_STOPS}
         empty={3000}
-      />
-      <SliderField
-        label={t('mortgagePlan.horizonShort')}
-        field={horizon}
-        kind="number"
-        stops={HORIZON_STOPS}
-        unit={t('mortgagePlan.yearsUnit')}
       />
       <SliderField
         label={t('mortgagePlan.rentGrowthShort')}
@@ -141,6 +148,16 @@ export function RentVsBuySection({
         field={investReturn}
         kind="percent"
         stops={RETURN_STOPS}
+        hint={
+          result
+            ? t('mortgagePlan.returnHint', {
+                amount: formatMoney(
+                  Math.round((result.upfrontCents * investReturn.bps) / 10000),
+                ),
+                kept: formatMoney(result.upfrontCents),
+              })
+            : undefined
+        }
       />
       {result ? (
         <>
@@ -148,40 +165,38 @@ export function RentVsBuySection({
             label={t('mortgagePlan.rentWhenPaysOff')}
             value={
               result.breakEvenYear != null
-                ? t('mortgagePlan.yearN', { year: result.breakEvenYear })
-                : t('mortgagePlan.rentNotIn', { years: horizon.int })
+                ? t('mortgagePlan.rentWorthFrom', { year: result.breakEvenYear })
+                : t('mortgagePlan.rentNotIn', { years: HORIZON_YEARS })
             }
             big
           />
-          {last ? (
-            <>
-              <Text style={text.subheading}>
-                {t('mortgagePlan.rentHaveAfter', { years: last.year })}
-              </Text>
+          <ResultRow
+            label={t('mortgagePlan.rentInterestShort')}
+            value={t('mortgagePlan.rentInterestRatio', {
+              ratio: ratio.toFixed(1),
+            })}
+            hint={t(vsRent.hint, {
+              amount: formatMoney(Math.round(interestCents)),
+            })}
+            tone={vsRent.tone}
+          />
+          <Text style={text.subheading}>{t('mortgagePlan.rentAfter')}</Text>
+          {MILESTONES.map((years) => {
+            const row = result.rows[years - 1];
+            if (!row) return null;
+            const gain = row.advantageCents >= 0;
+            return (
               <ResultRow
-                label={t('mortgagePlan.rentIfBuy')}
-                value={formatMoney(
-                  last.buyerEquityCents + last.buyerPortfolioCents,
-                )}
-                hint={t('mortgagePlan.rentIfBuyHint')}
-              />
-              <ResultRow
-                label={t('mortgagePlan.rentIfRent')}
-                value={formatMoney(last.renterPortfolioCents)}
-                hint={t('mortgagePlan.rentIfRentHint')}
-              />
-              <ResultRow
-                label={t('mortgagePlan.rentBetter')}
+                key={years}
+                label={t('mortgagePlan.rentAfterYears', { years })}
                 value={t(
-                  last.advantageCents >= 0
-                    ? 'mortgagePlan.rentBetterBuy'
-                    : 'mortgagePlan.rentBetterRent',
-                  { amount: formatMoney(Math.abs(last.advantageCents)) },
+                  gain ? 'mortgagePlan.rentGain' : 'mortgagePlan.rentLose',
+                  { amount: formatMoney(Math.abs(row.advantageCents)) },
                 )}
-                tone="positive"
+                tone={gain ? 'positive' : 'negative'}
               />
-            </>
-          ) : null}
+            );
+          })}
           <AssumptionNote text={t('mortgagePlan.rentNote')} />
         </>
       ) : null}

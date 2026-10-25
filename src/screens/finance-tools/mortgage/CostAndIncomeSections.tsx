@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react';
 import { Text } from 'react-native';
 import { SliderField, steps } from './SliderField';
-import { Section, text } from './parts';
+import { InlineMore, Section, text } from './parts';
 import type { PlanInputs } from './planInputs';
 import type { PlanResult } from '../../../finance-tools/mortgagePlan';
 import { formatMoney } from '../../../domain/money';
@@ -17,22 +18,21 @@ const INCOME_STOPS = [
   ...steps(325_000, 1_000_000, 25_000),
 ];
 
-export function MonthlyCostsSection({
+// Inside the summary card, under the total it adds to.
+export function RunningCosts({
   r,
   inputs,
   homeValueCents,
-  defaultOpen,
 }: {
   r: PlanResult;
   inputs: PlanInputs;
   homeValueCents: number;
-  defaultOpen: boolean;
 }) {
   const t = useT();
   const { propertyTaxRate, condoFees, heat, otherExpenses, rentalIncome } =
     inputs;
   return (
-    <Section
+    <InlineMore
       title={t('canadaPurchase.monthlyCostsHeading')}
       summary={
         r.ready
@@ -41,7 +41,7 @@ export function MonthlyCostsSection({
             })
           : ''
       }
-      defaultOpen={defaultOpen}
+      doneLabel={t('common.save')}
     >
       <SliderField
         label={t('canadaPurchase.propertyTaxRate')}
@@ -89,23 +89,32 @@ export function MonthlyCostsSection({
         stops={RENTAL_STOPS}
       />
       <Text style={text.hint}>{t('mortgagePlan.otherRentalHint')}</Text>
-    </Section>
+    </InlineMore>
   );
 }
 
 export function IncomeSection({
   inputs,
   defaultOpen,
+  title,
+  inline,
+  children,
 }: {
   inputs: PlanInputs;
-  defaultOpen: boolean;
+  defaultOpen?: boolean;
+  title?: string;
+  /** A link inside the loan box rather than a card of its own. */
+  inline?: boolean;
+  children?: ReactNode;
 }) {
   const t = useT();
   const { income, otherDebts } = inputs;
+  const summary = income.cents > 0 ? formatMoney(income.cents) : '';
+  const Wrapper = inline ? InlineMore : Section;
   return (
-    <Section
-      title={t('mortgagePlan.youHeading')}
-      summary={income.cents > 0 ? formatMoney(income.cents) : ''}
+    <Wrapper
+      title={title ?? t('mortgagePlan.youHeading')}
+      summary={inline ? summary || t('mortgagePlan.sectionAdd') : summary}
       defaultOpen={defaultOpen}
     >
       <SliderField
@@ -122,6 +131,7 @@ export function IncomeSection({
         stops={DEBT_STOPS}
       />
       <Text style={text.hint}>{t('mortgagePlan.youHint')}</Text>
-    </Section>
+      {children}
+    </Wrapper>
   );
 }

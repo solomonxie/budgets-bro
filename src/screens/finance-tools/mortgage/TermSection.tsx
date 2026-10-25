@@ -1,6 +1,6 @@
 import { Text } from 'react-native';
 import { ResultRow } from '../../../components/ui/ResultRow';
-import { Section, text } from './parts';
+import { InlineMore, Section, text } from './parts';
 import type { PlanResult } from '../../../finance-tools/mortgagePlan';
 import { formatMonthLabel } from '../../../domain/month';
 import { formatMoney, formatPercent } from '../../../domain/money';
@@ -12,14 +12,17 @@ export function TermSection({
   r,
   renewalMonth,
   termYears,
+  inline,
 }: {
   r: PlanResult;
   renewalMonth: string | null;
   termYears: number;
+  inline?: boolean;
 }) {
   const t = useT();
+  const Wrapper = inline ? InlineMore : Section;
   return (
-    <Section
+    <Wrapper
       title={
         renewalMonth
           ? t('mortgagePlan.renewsHeading', {
@@ -85,6 +88,6 @@ export function TermSection({
           ))}
         </>
       ) : null}
-    </Section>
+    </Wrapper>
   );
 }

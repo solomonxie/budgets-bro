@@ -1,7 +1,8 @@
+import { Text } from 'react-native';
 import { ResultRow } from '../../../components/ui/ResultRow';
 import { AssumptionNote } from '../CalcScreen';
 import { SliderField, steps } from './SliderField';
-import { Section } from './parts';
+import { text } from './parts';
 import { DEFAULT_OTHER_CLOSING_CENTS } from './constants';
 import type { PlanInputs } from './planInputs';
 import {
@@ -14,7 +15,8 @@ import { useT } from '../../../i18n';
 
 const OTHER_CLOSING_STOPS = steps(0, 20_000, 250);
 
-export function ClosingSection({
+// Inside the loan box: the taxes hang on province and first-time buyer.
+export function ClosingCosts({
   r,
   inputs,
 }: {
@@ -24,14 +26,10 @@ export function ClosingSection({
   const t = useT();
   const { closing } = r;
   return (
-    <Section
-      title={t('canadaPurchase.cashToCloseHeading')}
-      summary={formatMoney(closing.totalCents)}
-    >
-      <ResultRow
-        label={t('financeTools.downPayment')}
-        value={formatMoney(r.downCents)}
-      />
+    <>
+      <Text style={text.subheading}>
+        {t('canadaPurchase.closingCostsHeading')}
+      </Text>
       {NO_TRANSFER_TAX_PROVINCES.includes(inputs.province) ? (
         <ResultRow
           label={t('canadaPurchase.transferTax')}
@@ -71,9 +69,14 @@ export function ClosingSection({
         stops={OTHER_CLOSING_STOPS}
         empty={DEFAULT_OTHER_CLOSING_CENTS / 100}
       />
+      <ResultRow
+        label={t('canadaPurchase.cashToClose')}
+        value={formatMoney(closing.totalCents)}
+        hint={t('canadaPurchase.cashToCloseHint')}
+      />
       <AssumptionNote
         text={t('canadaPurchase.taxesAsOf', { date: TRANSFER_TAX_AS_OF })}
       />
-    </Section>
+    </>
   );
 }

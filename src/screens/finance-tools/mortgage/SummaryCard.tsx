@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '../../../components/ui/Card';
 import { ResultRow } from '../../../components/ui/ResultRow';
 import { AssumptionNote } from '../CalcScreen';
 import { payoffTime, text } from './parts';
 import type { PlanResult } from '../../../finance-tools/mortgagePlan';
-import { formatMoney, formatPercent } from '../../../domain/money';
+import { formatMoney } from '../../../domain/money';
 import { useT } from '../../../i18n';
 import type { TranslationKey } from '../../../i18n';
 import { colors } from '../../../theme/colors';
@@ -18,6 +19,7 @@ export function SummaryCard({
   frequencyIsMonthly,
   hasIncome,
   homeValueCents,
+  runningCosts,
 }: {
   r: PlanResult;
   isHeld: boolean;
@@ -25,6 +27,7 @@ export function SummaryCard({
   frequencyIsMonthly: boolean;
   hasIncome: boolean;
   homeValueCents: number;
+  runningCosts: ReactNode;
 }) {
   const t = useT();
   const insuranceNote: TranslationKey | null =
@@ -39,15 +42,16 @@ export function SummaryCard({
 
   return (
     <Card style={styles.summary}>
+      <ResultRow
+        label={t('canadaPurchase.totalMonthlyCost')}
+        value={r.ready ? formatMoney(r.monthlyTotalCents) : '—'}
+        big
+      />
+      {runningCosts}
       {!r.ready ? (
         <Text style={text.hint}>{t('financeTools.enterInputs')}</Text>
       ) : (
         <>
-          <ResultRow
-            label={t('canadaPurchase.totalMonthlyCost')}
-            value={formatMoney(r.monthlyTotalCents)}
-            big
-          />
           {isHeld ? (
             <>
               <ResultRow
@@ -112,19 +116,7 @@ export function SummaryCard({
                 value={formatMoney(r.withPrepayments.interestCents)}
                 tone="negative"
               />
-              <View style={styles.divider} />
-              <ResultRow
-                label={t('canadaPurchase.cashToClose')}
-                value={formatMoney(r.closing.totalCents)}
-                big
-              />
-              <ResultRow
-                label={t('mortgagePlan.incomeNeeded')}
-                value={formatMoney(r.qualifying.required.requiredAnnualCents)}
-                hint={t('mortgagePlan.incomeNeededHint', {
-                  rate: formatPercent(r.qualifying.stressRateBps),
-                })}
-              />
+              {hasIncome ? <View style={styles.divider} /> : null}
               {r.qualifying.maxPriceCents != null ? (
                 <ResultRow
                   label={t('mortgagePlan.maxPrice')}

@@ -73,6 +73,43 @@ export function Section({
   );
 }
 
+// A link that expands its content in place, for detail inside a section.
+export function InlineMore({
+  title,
+  summary,
+  children,
+  doneLabel,
+  defaultOpen,
+}: {
+  title: string;
+  summary: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  /** A button under the content that folds it back. */
+  doneLabel?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <>
+      <Pressable style={styles.inlineHead} onPress={() => setOpen((v) => !v)}>
+        <Text style={text.link}>{title}</Text>
+        <Text style={text.hint} numberOfLines={1}>
+          {summary}
+        </Text>
+        <Text style={[styles.inlineChevron, open && styles.chevronOpen]}>
+          ›
+        </Text>
+      </Pressable>
+      {open ? children : null}
+      {open && doneLabel ? (
+        <Pressable style={styles.doneButton} onPress={() => setOpen(false)}>
+          <Text style={styles.doneText}>{doneLabel}</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+}
+
 export function Chips({
   options,
   value,
@@ -196,6 +233,21 @@ const styles = StyleSheet.create({
   },
   sectionAdd: { color: colors.accent },
   chevron: { fontSize: 20, color: colors.textMuted },
+  inlineHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  doneButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.lg,
+  },
+  doneText: { fontSize: 14, fontWeight: '700', color: colors.background },
+  inlineChevron: { fontSize: 18, color: colors.accent },
   chevronOpen: { transform: [{ rotate: '90deg' }], color: colors.accent },
   sectionBody: {
     paddingHorizontal: spacing.md,

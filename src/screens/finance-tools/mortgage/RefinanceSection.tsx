@@ -7,6 +7,7 @@ import { Section, text, yearsMonths } from './parts';
 import { RATE_STOPS } from './constants';
 import type { HeldTerms } from './heldTerms';
 import { breakPenaltyCents } from '../../../finance-tools/mortgagePlan';
+import { monthlyEquivalentBps } from '../../../finance-tools/canadianMortgage';
 import { compareRefinance } from '../../../finance-tools/refinance';
 import { formatMoney } from '../../../domain/money';
 import { useT } from '../../../i18n';
@@ -26,6 +27,7 @@ export function RefinanceSection({
   termMonths: number;
   fixedRate: boolean;
 }) {
+  const compounding = fixedRate ? 'semiAnnual' : 'monthly';
   const t = useT();
   const newRate = useCalcField('', 'newRate');
   const refiCosts = useCalcField('', 'refiCosts');
@@ -43,9 +45,9 @@ export function RefinanceSection({
       penalty,
       ...compareRefinance({
         balanceCents: terms.owed,
-        currentRateBps: terms.rateBps,
+        currentRateBps: monthlyEquivalentBps(terms.rateBps, compounding),
         currentRemainingMonths: remainingMonths,
-        newRateBps: newRate.bps,
+        newRateBps: monthlyEquivalentBps(newRate.bps, compounding),
         newTermMonths: remainingMonths,
         closingCostsCents: refiCosts.cents + penalty.penaltyCents,
         rollCostsIntoLoan: false,
@@ -58,6 +60,7 @@ export function RefinanceSection({
     refiCosts.cents,
     termMonths,
     fixedRate,
+    compounding,
     remainingMonths,
   ]);
 

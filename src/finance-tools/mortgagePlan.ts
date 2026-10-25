@@ -4,6 +4,11 @@
 // what renewal at a higher rate would do. Canadian rules throughout — see
 // canadianMortgage.ts for the statute behind each figure.
 import {
+  LENDER_HEAT_CENTS,
+  LENDER_PROPERTY_TAX_BPS,
+  MONTREAL_RULES,
+  PREPAYMENT_ALLOWANCE_PERCENT,
+  RENTAL_COUNTED_PERCENT,
   minimumDownPaymentCents,
   mortgageInsurance,
   paymentPlan,
@@ -37,7 +42,8 @@ export interface PlanInput {
   compounding: Compounding;
   province: string;
   firstTimeBuyer: boolean;
-  toronto: boolean;
+  /** Toronto in ON, Montreal in QC: the city's own transfer tax. */
+  inCity: boolean;
   /** Yearly, as a share of the price, the way cities set it. */
   propertyTaxBps: number;
   condoFeesCents: number;
@@ -200,6 +206,7 @@ function qualifyingAt(input: QualifyingInput, priceCents: number) {
     input.amortizationMonths,
   );
   const stressRateBps = stressTestRateBps(input.rateBps);
+  const propertyTaxBps = input.propertyTaxBps || LENDER_PROPERTY_TAX_BPS;
   const stressPaymentCents = paymentPlan(
     insurance.totalMortgageCents,
     stressRateBps,
@@ -208,9 +215,9 @@ function qualifyingAt(input: QualifyingInput, priceCents: number) {
   const required = requiredIncome({
     paymentCents: stressPaymentCents,
     propertyTaxMonthlyCents: Math.round(
-      (priceCents * input.propertyTaxBps) / 10000 / 12,
+      (priceCents * propertyTaxBps) / 10000 / 12,
     ),
-    heatMonthlyCents: input.heatCents,
+    heatMonthlyCents: input.heatCents || LENDER_HEAT_CENTS,
     condoFeeMonthlyCents: input.condoFeesCents,
     otherDebtsMonthlyCents: input.otherDebtsMonthlyCents,
   });
@@ -297,7 +304,17 @@ export interface PlanResult {
     gdsPercent: number | null;
     tdsPercent: number | null;
     maxPriceCents: number | null;
+    /** Lender defaults stood in for a blank heat / property tax. */
+    assumedHeat: boolean;
+    assumedPropertyTax: boolean;
+    /** Yearly rent added to income. */
+    rentalCountedCents: number;
   };
+  /**
+   * The first 12-month stretch (1 = the first year) whose extras pass a
+   * closed mortgage's usual allowance; null when none does.
+   */
+  overAllowance: { year: number; extraCents: number } | null;
 }
 
 const NO_TAX: TransferTax = { taxCents: 0, rebateCents: 0, netCents: 0 };
@@ -346,12 +363,16 @@ export function mortgagePlan(input: PlanInput): PlanResult {
     input.otherMonthlyCents -
     input.rentalIncomeCents;
 
-  const rules = existing ? undefined : TRANSFER_TAX_RULES[input.province];
+  const rules = existing
+    ? undefined
+    : input.inCity && input.province === 'QC'
+      ? MONTREAL_RULES
+      : TRANSFER_TAX_RULES[input.province];
   const provincialTax = rules
     ? transferTax(input.priceCents, rules, input.firstTimeBuyer)
     : NO_TAX;
   const municipalTax =
-    !existing && input.toronto && input.province === 'ON'
+    !existing && input.inCity && input.province === 'ON'
       ? transferTax(input.priceCents, TORONTO_RULES, input.firstTimeBuyer)
       : NO_TAX;
   const premiumTaxCents = premiumSalesTaxCents(
@@ -394,15 +415,19 @@ export function mortgagePlan(input: PlanInput): PlanResult {
     (shockBps) => input.rateBps + shockBps > 0,
   ).map((shockBps) => {
     const rateBps = input.rateBps + shockBps;
+    // Same frequency as today, so an accelerated plan isn't compared
+    // against a plain monthly one.
     const monthly =
       termBalance > 0
-        ? paymentPlan(
-            termBalance,
-            rateBps,
-            remainingMonths,
-            'monthly',
-            input.compounding,
-          ).paymentCents
+        ? Math.round(
+            paymentPlan(
+              termBalance,
+              rateBps,
+              remainingMonths,
+              input.frequency,
+              input.compounding,
+            ).annualOutlayCents / 12,
+          )
         : 0;
     return {
       shockBps,
@@ -424,8 +449,15 @@ export function mortgagePlan(input: PlanInput): PlanResult {
     otherDebtsMonthlyCents: input.otherDebtsMonthlyCents,
   };
   const q = qualifyingAt(qualifyingInput, input.priceCents);
+  const rentalCountedCents = Math.round(
+    (input.rentalIncomeCents * 12 * RENTAL_COUNTED_PERCENT) / 100,
+  );
+  const qualifyingIncome =
+    input.annualIncomeCents > 0
+      ? input.annualIncomeCents + rentalCountedCents
+      : 0;
   const ratio = (monthly: number) =>
-    grossMonthly > 0 ? (monthly / grossMonthly) * 100 : null;
+    qualifyingIncome > 0 ? (monthly / (qualifyingIncome / 12)) * 100 : null;
 
   return {
     ready,
@@ -464,15 +496,43 @@ export function mortgagePlan(input: PlanInput): PlanResult {
     qualifying: {
       stressRateBps: q.stressRateBps,
       stressPaymentCents: q.stressPaymentCents,
-      required: q.required,
+      required: {
+        ...q.required,
+        requiredAnnualCents: Math.max(
+          0,
+          q.required.requiredAnnualCents - rentalCountedCents,
+        ),
+      },
       gdsPercent: ratio(q.required.gdsMonthlyCents),
       tdsPercent: ratio(q.required.tdsMonthlyCents),
-      // A real mortgage is past qualifying; no price to search for.
+      // A real mortgage is past qualifying; no price to search for. The
+      // cash put down stays the same: a pricier home doesn't bring more.
       maxPriceCents: existing
         ? null
-        : maxQualifyingPriceCents(qualifyingInput, input.annualIncomeCents),
+        : maxQualifyingPriceCents(
+            { ...qualifyingInput, down: { unit: 'amount', cents: downCents } },
+            qualifyingIncome,
+          ),
+      assumedHeat: input.heatCents <= 0,
+      assumedPropertyTax: input.propertyTaxBps <= 0,
+      rentalCountedCents: qualifyingIncome > 0 ? rentalCountedCents : 0,
     },
+    overAllowance: overAllowance(schedule, mortgageCents),
   };
+}
+
+function overAllowance(
+  rows: ScheduleRow[],
+  principalCents: number,
+): PlanResult['overAllowance'] {
+  const limit = (principalCents * PREPAYMENT_ALLOWANCE_PERCENT) / 100;
+  for (let start = 0; start < rows.length; start += 12) {
+    const extraCents = rows
+      .slice(start, start + 12)
+      .reduce((sum, row) => sum + row.extraCents, 0);
+    if (extraCents > limit) return { year: start / 12 + 1, extraCents };
+  }
+  return null;
 }
 
 // --- Extras by calendar month ------------------------------------------

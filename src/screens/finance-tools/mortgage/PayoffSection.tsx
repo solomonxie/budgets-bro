@@ -24,6 +24,8 @@ import type {
 } from '../../../finance-tools/mortgagePlan';
 import type { Compounding } from '../../../finance-tools/canadianMortgage';
 import { formatMoney } from '../../../domain/money';
+import { formatMonthLabel } from '../../../domain/month';
+import { PREPAYMENT_ALLOWANCE_PERCENT } from '../../../finance-tools/canadianMortgage';
 import { useT } from '../../../i18n';
 import { spacing } from '../../../theme/spacing';
 
@@ -175,6 +177,17 @@ export function PayoffSection({
             tone="positive"
           />
         </>
+      ) : null}
+      {r.overAllowance ? (
+        <Text style={text.warn}>
+          {t('mortgagePlan.overAllowance', {
+            amount: formatMoney(r.overAllowance.extraCents),
+            month: formatMonthLabel(
+              monthAt(firstUpcoming, (r.overAllowance.year - 1) * 12 + 1),
+            ),
+            percent: PREPAYMENT_ALLOWANCE_PERCENT,
+          })}
+        </Text>
       ) : null}
       <ScheduleSection
         rows={r.schedule}

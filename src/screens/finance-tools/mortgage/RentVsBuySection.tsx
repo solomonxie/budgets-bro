@@ -6,8 +6,7 @@ import { useCalcField } from '../useCalcField';
 import { SliderField, steps } from './SliderField';
 import { Section, text } from './parts';
 import type { PlanInputs } from './planInputs';
-import { periodicRate } from '../../../finance-tools/canadianMortgage';
-import type { Compounding } from '../../../finance-tools/canadianMortgage';
+import { monthlyEquivalentBps } from '../../../finance-tools/canadianMortgage';
 import type { PlanResult } from '../../../finance-tools/mortgagePlan';
 import { compareRentVsBuy } from '../../../finance-tools/rentVsBuy';
 import { formatMoney } from '../../../domain/money';
@@ -30,15 +29,6 @@ function interestVsRent(ratio: number) {
 const GROWTH_STOPS = steps(0, 10, 0.5);
 const APPRECIATION_STOPS = steps(-5, 10, 0.5);
 const RETURN_STOPS = steps(0, 12, 0.5);
-
-// The functions shared with the US-style tools compound monthly; this is the
-// nominal rate that gives the same monthly interest as the Canadian one.
-function monthlyEquivalentBps(
-  rateBps: number,
-  compounding: Compounding,
-): number {
-  return Math.round(periodicRate(rateBps, 12, compounding) * 12 * 10000);
-}
 
 export function RentVsBuySection({
   r,

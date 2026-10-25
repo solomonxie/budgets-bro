@@ -55,6 +55,15 @@ export function periodicRate(
   return Math.pow(1 + annual / 2, 2 / periodsPerYear) - 1;
 }
 
+// The nominal monthly-compounded rate with the same monthly interest, for
+// the shared tools that compound monthly.
+export function monthlyEquivalentBps(
+  rateBps: number,
+  compounding: Compounding,
+): number {
+  return Math.round(periodicRate(rateBps, 12, compounding) * 12 * 10000);
+}
+
 function levelPayment(principalCents: number, rate: number, periods: number): number {
   if (periods <= 0) return principalCents;
   if (rate === 0) return Math.round(principalCents / periods);
@@ -298,8 +307,10 @@ export interface TransferTaxRules {
   brackets: TaxBracket[];
   /** Biggest refund a first-time buyer can get back. */
   firstTimeBuyerMaxRefundCents: number;
-  /** Price above which no first-time-buyer relief applies at all. */
+  /** Price above which full first-time-buyer relief stops. */
   firstTimeBuyerPriceCapCents: number | null;
+  /** Relief shrinks evenly from the cap to nothing at this price. */
+  firstTimeBuyerPhaseOutToCents?: number;
 }
 
 export const TRANSFER_TAX_RULES: Record<string, TransferTaxRules> = {
@@ -314,6 +325,7 @@ export const TRANSFER_TAX_RULES: Record<string, TransferTaxRules> = {
     ],
     firstTimeBuyerMaxRefundCents: 800_000,
     firstTimeBuyerPriceCapCents: 83_500_000,
+    firstTimeBuyerPhaseOutToCents: 86_000_000,
   },
   ON: {
     brackets: [
@@ -324,6 +336,16 @@ export const TRANSFER_TAX_RULES: Record<string, TransferTaxRules> = {
       { upToCents: null, rateBps: 250 },
     ],
     firstTimeBuyerMaxRefundCents: 400_000,
+    firstTimeBuyerPriceCapCents: null,
+  },
+  // The "welcome tax": provincial base tiers, indexed each January.
+  QC: {
+    brackets: [
+      { upToCents: 6_290_000, rateBps: 50 },
+      { upToCents: 31_500_000, rateBps: 100 },
+      { upToCents: null, rateBps: 150 },
+    ],
+    firstTimeBuyerMaxRefundCents: 0,
     firstTimeBuyerPriceCapCents: null,
   },
   MB: {
@@ -354,11 +376,33 @@ export const TRANSFER_TAX_RULES: Record<string, TransferTaxRules> = {
   },
 };
 
-// Toronto charges its own tax on top, on the same brackets as Ontario's,
-// with a first-time-buyer rebate of its own.
+// Toronto charges its own tax on top: Ontario's brackets to $3M, then
+// steeper luxury tiers (from 2026-04).
 export const TORONTO_RULES: TransferTaxRules = {
-  brackets: TRANSFER_TAX_RULES.ON.brackets,
+  brackets: [
+    ...TRANSFER_TAX_RULES.ON.brackets.slice(0, 4),
+    { upToCents: 300_000_000, rateBps: 250 },
+    { upToCents: 400_000_000, rateBps: 440 },
+    { upToCents: 500_000_000, rateBps: 545 },
+    { upToCents: 1_000_000_000, rateBps: 650 },
+    { upToCents: 2_000_000_000, rateBps: 755 },
+    { upToCents: null, rateBps: 860 },
+  ],
   firstTimeBuyerMaxRefundCents: 447_500,
+  firstTimeBuyerPriceCapCents: null,
+};
+
+// Montreal's welcome tax replaces Quebec's base table (2026).
+export const MONTREAL_RULES: TransferTaxRules = {
+  brackets: [
+    ...TRANSFER_TAX_RULES.QC.brackets.slice(0, 2),
+    { upToCents: 55_230_000, rateBps: 150 },
+    { upToCents: 110_470_000, rateBps: 200 },
+    { upToCents: 213_650_000, rateBps: 250 },
+    { upToCents: 311_300_000, rateBps: 350 },
+    { upToCents: null, rateBps: 400 },
+  ],
+  firstTimeBuyerMaxRefundCents: 0,
   firstTimeBuyerPriceCapCents: null,
 };
 
@@ -378,6 +422,14 @@ export function bracketTaxCents(priceCents: number, brackets: TaxBracket[]): num
   return Math.round(tax);
 }
 
+function firstTimeBuyerShare(priceCents: number, rules: TransferTaxRules): number {
+  const cap = rules.firstTimeBuyerPriceCapCents;
+  if (cap == null || priceCents <= cap) return 1;
+  const to = rules.firstTimeBuyerPhaseOutToCents;
+  if (to == null || priceCents >= to) return 0;
+  return (to - priceCents) / (to - cap);
+}
+
 export interface TransferTax {
   taxCents: number;
   rebateCents: number;
@@ -391,12 +443,11 @@ export function transferTax(
   firstTimeBuyer = false,
 ): TransferTax {
   const taxCents = bracketTaxCents(priceCents, rules.brackets);
-  const eligible =
-    firstTimeBuyer &&
-    (rules.firstTimeBuyerPriceCapCents == null ||
-      priceCents <= rules.firstTimeBuyerPriceCapCents);
-  const rebateCents = eligible
-    ? Math.min(taxCents, rules.firstTimeBuyerMaxRefundCents)
+  const rebateCents = firstTimeBuyer
+    ? Math.round(
+        Math.min(taxCents, rules.firstTimeBuyerMaxRefundCents) *
+          firstTimeBuyerShare(priceCents, rules),
+      )
     : 0;
   return { taxCents, rebateCents, netCents: taxCents - rebateCents };
 }
@@ -411,6 +462,13 @@ export function stressTestRateBps(contractRateBps: number): number {
 }
 
 export const GDS_LIMIT_PERCENT = 39;
+/** What lenders count for heat and property tax when none is given. */
+export const LENDER_HEAT_CENTS = 100_00;
+export const LENDER_PROPERTY_TAX_BPS = 70;
+/** Share of a suite's rent lenders add to income. */
+export const RENTAL_COUNTED_PERCENT = 50;
+/** Typical yearly prepayment allowance on a closed mortgage (10–20%). */
+export const PREPAYMENT_ALLOWANCE_PERCENT = 15;
 export const TDS_LIMIT_PERCENT = 44;
 
 export interface QualifyingCosts {

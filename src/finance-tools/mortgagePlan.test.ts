@@ -27,7 +27,7 @@ const base: PlanInput = {
   compounding: 'semiAnnual',
   province: 'BC',
   firstTimeBuyer: false,
-  toronto: false,
+  inCity: false,
   propertyTaxBps: 70,
   condoFeesCents: 0,
   heatCents: 100_00,
@@ -38,6 +38,53 @@ const base: PlanInput = {
   otherDebtsMonthlyCents: 0,
   prepayments: NO_PREPAYMENTS,
 };
+
+describe('broker rules', () => {
+  it('counts lender heat and tax when left blank', () => {
+    const blank = mortgagePlan({ ...base, heatCents: 0, propertyTaxBps: 0 });
+    const filled = mortgagePlan({ ...base, heatCents: 100_00, propertyTaxBps: 70 });
+    expect(blank.qualifying.required.requiredAnnualCents).toBe(
+      filled.qualifying.required.requiredAnnualCents,
+    );
+    expect(blank.qualifying.assumedHeat).toBe(true);
+  });
+
+  it('adds half the rent to income', () => {
+    const r = mortgagePlan({ ...base, rentalIncomeCents: 1_000_00 });
+    const plain = mortgagePlan(base);
+    expect(
+      plain.qualifying.required.requiredAnnualCents -
+        r.qualifying.required.requiredAnnualCents,
+    ).toBe(6_000_00);
+  });
+
+  it('keeps the cash down when searching for the max price', () => {
+    const income = 150_000_00;
+    const r = mortgagePlan({ ...base, annualIncomeCents: income });
+    // $160k down can't carry a home much past $800k at 20%
+    expect(r.qualifying.maxPriceCents!).toBeLessThan(
+      maxQualifyingPriceCents(
+        { ...base, down: { unit: 'percent', percent: 20 } },
+        income,
+      )!,
+    );
+  });
+
+  it('renews an accelerated plan at the same rate for about the same', () => {
+    const r = mortgagePlan({ ...base, frequency: 'acceleratedBiweekly' });
+    const same = r.renewal.find((row) => row.shockBps === 0)!;
+    expect(Math.abs(same.changeCents)).toBeLessThan(r.monthlyPaymentCents * 0.05);
+  });
+
+  it('flags extras past the yearly allowance', () => {
+    const r = mortgagePlan({
+      ...base,
+      prepayments: { ...NO_PREPAYMENTS, lumps: { 18: 120_000_00 } },
+    });
+    expect(r.overAllowance).toEqual({ year: 2, extraCents: 120_000_00 });
+    expect(mortgagePlan(base).overAllowance).toBeNull();
+  });
+});
 
 describe('downPaymentCents', () => {
   it('caps a percentage at the whole price', () => {

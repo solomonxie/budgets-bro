@@ -10,6 +10,7 @@ import {
   termSummary,
   TRANSFER_TAX_RULES,
   TORONTO_RULES,
+  MONTREAL_RULES,
   transferTax,
 } from './canadianMortgage';
 
@@ -149,6 +150,22 @@ describe('transfer tax', () => {
     const provincial = transferTax(70_000_000, TRANSFER_TAX_RULES.ON);
     const municipal = transferTax(70_000_000, TORONTO_RULES);
     expect(municipal.taxCents).toBe(provincial.taxCents);
+  });
+
+  it('charges Toronto’s luxury tiers above $3M', () => {
+    const on = bracketTaxCents(350_000_000, TRANSFER_TAX_RULES.ON.brackets);
+    const city = bracketTaxCents(350_000_000, TORONTO_RULES.brackets);
+    // $500k above $3M at 4.4% instead of 2.5%
+    expect(city - on).toBe(950_000);
+  });
+
+  it('matches Montreal’s own 2026 example', () => {
+    expect(bracketTaxCents(70_000_000, MONTREAL_RULES.brackets)).toBe(934_900);
+  });
+
+  it('phases BC’s first-time relief out between $835k and $860k', () => {
+    const half = transferTax(84_750_000, TRANSFER_TAX_RULES.BC, true);
+    expect(half.rebateCents).toBe(400_000);
   });
 });
 

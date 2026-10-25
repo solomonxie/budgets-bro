@@ -165,7 +165,7 @@ export function MortgagePlanView({
         compounding,
         province,
         firstTimeBuyer: firstTime === '1',
-        toronto: toronto === '1',
+        inCity: toronto === '1',
         propertyTaxBps: propertyTaxRate.bps,
         condoFeesCents: condoFees.cents,
         heatCents: heat.cents,

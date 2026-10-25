@@ -280,9 +280,13 @@ export function PurchaseInputs({
             on={firstTime === '1'}
             onPress={() => setFirstTime(firstTime === '1' ? '0' : '1')}
           />
-          {province === 'ON' ? (
+          {province === 'ON' || province === 'QC' ? (
             <Toggle
-              label={t('canadaPurchase.toronto')}
+              label={t(
+                province === 'ON'
+                  ? 'canadaPurchase.toronto'
+                  : 'canadaPurchase.montreal',
+              )}
               on={toronto === '1'}
               onPress={() => setToronto(toronto === '1' ? '0' : '1')}
             />

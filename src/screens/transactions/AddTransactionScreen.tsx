@@ -136,6 +136,7 @@ function AddTransactionForm() {
   // Typed rows, blank ones included; saved sanitized.
   const [itemRows, setItemRows] = useState<PurchaseItem[]>([BLANK_ITEM]);
   const memoRef = useRef<View>(null);
+  const memoInputRef = useRef<TextInput>(null);
   const { names: itemNames } = useTrackedPrices();
 
   const itemsField = useExpandingField();
@@ -941,13 +942,18 @@ function AddTransactionForm() {
                 {/* A row of the card like any other: placeholder alone until
                   there is a note, then the label above it. One line — Return
                   finishes the note rather than starting a second line. */}
-                <View ref={memoRef} style={styles.memoRow}>
+                <Pressable
+                  ref={memoRef}
+                  style={styles.memoRow}
+                  onPress={() => memoInputRef.current?.focus()}
+                >
                   {memo ? (
                     <Text style={styles.memoLabel}>
                       {t('spend.memoSection')}
                     </Text>
                   ) : null}
                   <TextInput
+                    ref={memoInputRef}
                     style={styles.memoInput}
                     placeholder={t('spend.memoPlaceholder')}
                     value={memo}
@@ -961,7 +967,7 @@ function AddTransactionForm() {
                     }}
                     onBlur={() => revealRow(null)}
                   />
-                </View>
+                </Pressable>
               </FieldCard>
               {isScheduled ? (
                 <>

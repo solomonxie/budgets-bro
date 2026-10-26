@@ -12,7 +12,7 @@ import { FlaggedBanner } from '../../components/ui/FlaggedBanner';
 import { BackupBanner } from '../../components/ui/BackupBanner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProgressBar } from '../../components/ui/ProgressBar';
-import { categoryBarSegments } from '../../domain/budgetMath';
+import { categoryBarSegments, categoryPaceBar } from '../../domain/budgetMath';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
@@ -120,6 +120,23 @@ export function BudgetScreen() {
       setAvgMonthlySpentCents(
         Math.round(
           spentByMonth.reduce((sum, v) => sum + v, 0) / spentByMonth.length,
+        ),
+      );
+    })();
+  }, [month, boardId, dataVersion]);
+
+  // The same trailing window per category, for each bar's average mark.
+  const [avgSpentByCategory, setAvgSpentByCategory] = useState<
+    Record<number, number>
+  >({});
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      setAvgSpentByCategory(
+        await budgetsRepo.averageMonthlySpentByCategory(
+          db,
+          boardId,
+          lastNMonths(previousMonth(month), 12),
         ),
       );
     })();
@@ -481,6 +498,11 @@ export function BudgetScreen() {
                   0,
                   -item.activityThisMonthCents,
                 );
+                const pace = categoryPaceBar(
+                  item.balanceCents,
+                  spentThisMonth,
+                  avgSpentByCategory[item.category.id] ?? 0,
+                );
                 const { spentPercent, remainingPercent } = categoryBarSegments(
                   item.balanceCents,
                   spentThisMonth,
@@ -488,8 +510,16 @@ export function BudgetScreen() {
                 // Overspent has no remainder to show, so it reads as one
                 // red run rather than a split; unbudgeted has nothing at
                 // all and leaves the bare track.
-                const barSegments =
-                  item.status === 'overspent'
+                const barSegments = pace
+                  ? [
+                      { percent: pace.usualPercent, color: colors.positive },
+                      {
+                        percent: pace.overPercent,
+                        color: pace.overRed ? colors.negative : colors.amber,
+                      },
+                      { percent: pace.leftPercent, color: colors.positiveFaded },
+                    ]
+                  : item.status === 'overspent'
                     ? [{ percent: 100, color: statusColors.fg }]
                     : [
                         // What is still in the envelope leads in solid
@@ -534,7 +564,10 @@ export function BudgetScreen() {
                           fg={statusColors.fg}
                         />
                       </View>
-                      <ProgressBar segments={barSegments} />
+                      <ProgressBar
+                        segments={barSegments}
+                        marker={pace?.averagePercent}
+                      />
                       <Text style={styles.caption}>{item.captionText}</Text>
                     </Pressable>
                     {expanded ? (

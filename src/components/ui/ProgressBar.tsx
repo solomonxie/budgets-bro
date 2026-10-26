@@ -13,7 +13,15 @@ export interface ProgressSegment {
 // A budget category uses two: what has been spent and what is still sitting
 // in the envelope, each sized by its real share — so a half-spent category
 // reads half and half rather than as a bar that happens to be halfway along.
-export function ProgressBar({ segments }: { segments: ProgressSegment[] }) {
+// `marker`, a percent along the track, draws a thin tick (a category's
+// usual month).
+export function ProgressBar({
+  segments,
+  marker,
+}: {
+  segments: ProgressSegment[];
+  marker?: number;
+}) {
   return (
     <View style={styles.track}>
       {segments.map((segment, i) => (
@@ -22,6 +30,9 @@ export function ProgressBar({ segments }: { segments: ProgressSegment[] }) {
           style={[styles.fill, { width: `${Math.max(0, Math.min(100, segment.percent))}%`, backgroundColor: segment.color }]}
         />
       ))}
+      {marker != null ? (
+        <View style={[styles.marker, { left: `${Math.max(0, Math.min(100, marker))}%` }]} />
+      ) : null}
     </View>
   );
 }
@@ -36,5 +47,13 @@ const styles = StyleSheet.create({
   },
   fill: {
     height: '100%',
+  },
+  marker: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 2,
+    marginLeft: -1,
+    backgroundColor: colors.text,
   },
 });

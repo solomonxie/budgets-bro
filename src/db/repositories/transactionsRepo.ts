@@ -619,7 +619,8 @@ export async function setCategoryForTransactions(
   if (ids.length === 0) return;
   const placeholders = ids.map(() => '?').join(', ');
   await db.runAsync(
-    `UPDATE transactions SET category_id = ? WHERE id IN (${placeholders})`,
+    // A transfer leg takes no category.
+    `UPDATE transactions SET category_id = ? WHERE id IN (${placeholders}) AND transfer_account_id IS NULL`,
     categoryId,
     ...ids,
   );

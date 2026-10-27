@@ -163,6 +163,18 @@ export function TransactionsScreen() {
     refresh();
   };
 
+  const setCategoryForSelected = async (categoryId: number | null) => {
+    const db = await getDb();
+    await transactionsRepo.setCategoryForTransactions(
+      db,
+      selectedIds,
+      categoryId,
+    );
+    exit();
+    bumpDataVersion();
+    refresh();
+  };
+
   // The category is fixed by how the list was opened, so the title says
   // which one instead of a picker.
   const categoryName =
@@ -272,6 +284,7 @@ export function TransactionsScreen() {
           }
           onToggleAll={() => toggleAll(visibleIds)}
           onSetPayee={setPayeeForSelected}
+          onSetCategory={setCategoryForSelected}
           onDelete={deleteSelected}
           onDone={exit}
         />

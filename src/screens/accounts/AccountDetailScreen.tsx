@@ -213,7 +213,8 @@ export function AccountDetailScreen() {
   // register backwards from the account's balance, so they have to see every
   // row whether or not it is shown.
   const visibleRows = useMemo(
-    () => (query.trim() ? rows.filter((row) => matchesSearch(row, query)) : rows),
+    () =>
+      query.trim() ? rows.filter((row) => matchesSearch(row, query)) : rows,
     [rows, query],
   );
 
@@ -248,6 +249,17 @@ export function AccountDetailScreen() {
       boardId,
       selectedIds,
       payeeName,
+    );
+    exit();
+    bumpDataVersion();
+  };
+
+  const setCategoryForSelected = async (categoryId: number | null) => {
+    const db = await getDb();
+    await transactionsRepo.setCategoryForTransactions(
+      db,
+      selectedIds,
+      categoryId,
     );
     exit();
     bumpDataVersion();
@@ -442,7 +454,9 @@ export function AccountDetailScreen() {
                   mode={isAsset ? 'single' : 'stacked'}
                   refresh={refreshValueHistory}
                   chart={
-                    isAsset ? <BalanceTrendChart points={assetTrend} /> : undefined
+                    isAsset ? (
+                      <BalanceTrendChart points={assetTrend} />
+                    ) : undefined
                   }
                   info={
                     <View style={styles.infoGap}>
@@ -772,6 +786,7 @@ export function AccountDetailScreen() {
           }
           onToggleAll={() => toggleAll(visibleRows.map((r) => r.id))}
           onSetPayee={setPayeeForSelected}
+          onSetCategory={setCategoryForSelected}
           onDelete={deleteSelected}
           onDone={exit}
         />

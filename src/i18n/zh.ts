@@ -911,6 +911,8 @@ export const zh: Record<keyof typeof en, string> = {
   'transactions.selectAll': '全选',
   'transactions.selectNone': '取消全选',
   'transactions.editPayee': '修改收款方',
+  'transactions.editCategory': '修改分类',
+  'transactions.editCategoryTitle': '为 {count} 条流水设置分类',
   'transactions.editPayeeTitle': '为 {count} 条流水设置收款方',
   'transactions.select': '选择',
   'transactions.title': '交易：{name}',

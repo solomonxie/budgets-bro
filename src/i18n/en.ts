@@ -931,6 +931,8 @@ export const en = {
   'transactions.selectAll': 'Select all',
   'transactions.selectNone': 'Select none',
   'transactions.editPayee': 'Edit Payee',
+  'transactions.editCategory': 'Edit Category',
+  'transactions.editCategoryTitle': 'Category for {count} transactions',
   'transactions.editPayeeTitle': 'Payee for {count} transactions',
   'transactions.select': 'Select',
   'transactions.title': 'Transactions: {name}',

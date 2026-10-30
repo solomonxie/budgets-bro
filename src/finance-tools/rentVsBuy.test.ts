@@ -52,6 +52,25 @@ describe('compareRentVsBuy', () => {
     expect(result.rows[29].advantageCents).toBeLessThan(0);
   });
 
+  it('calls it never only when buying is still falling behind', () => {
+    expect(result.losingGround).toBe(true);
+    const longer = compareRentVsBuy({ ...REFERENCE, years: 60 });
+    expect(longer.breakEvenYear).toBeNull();
+    expect(longer.losingGround).toBe(true);
+  });
+
+  it('finds a break-even past 30 years, once the loan is long gone', () => {
+    const late = compareRentVsBuy({
+      ...REFERENCE,
+      years: 60,
+      monthlyRentCents: 150_000,
+      annualInvestmentReturnBps: 400,
+    });
+    expect(late.rows[29].advantageCents).toBeLessThan(0);
+    expect(late.breakEvenYear).toBe(57);
+    expect(late.losingGround).toBe(false);
+  });
+
   it('breaks even early once rent is dear and the house keeps up with the market', () => {
     const buyWins = compareRentVsBuy({
       ...REFERENCE,

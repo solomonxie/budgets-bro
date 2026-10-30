@@ -16,8 +16,12 @@ import { useT } from '../../../i18n';
 const SELLING_COST_BPS = 500;
 
 const RENT_STOPS = steps(0, 8000, 50);
-const HORIZON_YEARS = 30;
+// Well past any amortization, so a loan paid off late still gets its
+// rent-free years counted before the answer is "no".
+const HORIZON_YEARS = 60;
 const MILESTONES = [10, 20, 30];
+// A break-even later than this is too far off to count as a yes.
+const WORTH_IT_YEARS = 10;
 
 function interestVsRent(ratio: number) {
   if (ratio < 0.9)
@@ -29,6 +33,7 @@ function interestVsRent(ratio: number) {
 const GROWTH_STOPS = steps(0, 10, 0.5);
 const APPRECIATION_STOPS = steps(-5, 10, 0.5);
 const RETURN_STOPS = steps(0, 12, 0.5);
+const INFLATION_STOPS = steps(0, 10, 0.5);
 
 export function RentVsBuySection({
   r,
@@ -48,6 +53,7 @@ export function RentVsBuySection({
   const rentGrowth = useCalcField('3', 'rentGrowth');
   const appreciation = useCalcField('3', 'appreciation');
   const investReturn = useCalcField('5', 'investReturn');
+  const inflation = useCalcField('2.5', 'inflation');
   const { compounding, propertyTaxRate, otherExpenses, condoFees, heat } =
     inputs;
 
@@ -110,7 +116,9 @@ export function RentVsBuySection({
         result
           ? result.breakEvenYear != null
             ? t('mortgagePlan.rentBreakEven', { year: result.breakEvenYear })
-            : t('mortgagePlan.rentNever', { years: HORIZON_YEARS })
+            : result.losingGround
+              ? t('mortgagePlan.rentNever')
+              : t('mortgagePlan.rentNotWithin', { years: HORIZON_YEARS })
           : ''
       }
     >
@@ -149,6 +157,13 @@ export function RentVsBuySection({
             : undefined
         }
       />
+      <SliderField
+        label={t('mortgagePlan.inflationShort')}
+        field={inflation}
+        kind="percent"
+        stops={INFLATION_STOPS}
+        hint={t('mortgagePlan.inflationHint')}
+      />
       {result ? (
         <>
           <ResultRow
@@ -156,7 +171,15 @@ export function RentVsBuySection({
             value={
               result.breakEvenYear != null
                 ? t('mortgagePlan.rentWorthFrom', { year: result.breakEvenYear })
-                : t('mortgagePlan.rentNotIn', { years: HORIZON_YEARS })
+                : result.losingGround
+                  ? t('mortgagePlan.rentNeverShort')
+                  : t('mortgagePlan.rentNotIn', { years: HORIZON_YEARS })
+            }
+            tone={
+              result.breakEvenYear != null &&
+              result.breakEvenYear <= WORTH_IT_YEARS
+                ? 'positive'
+                : 'negative'
             }
             big
           />
@@ -174,14 +197,19 @@ export function RentVsBuySection({
           {MILESTONES.map((years) => {
             const row = result.rows[years - 1];
             if (!row) return null;
-            const gain = row.advantageCents >= 0;
+            // Display only: inflation hits both sides alike, so it can't
+            // move the verdict, just what the amount is worth today.
+            const todayCents = Math.round(
+              row.advantageCents / Math.pow(1 + inflation.bps / 10000, years),
+            );
+            const gain = todayCents >= 0;
             return (
               <ResultRow
                 key={years}
                 label={t('mortgagePlan.rentAfterYears', { years })}
                 value={t(
                   gain ? 'mortgagePlan.rentGain' : 'mortgagePlan.rentLose',
-                  { amount: formatMoney(Math.abs(row.advantageCents)) },
+                  { amount: formatMoney(Math.abs(todayCents)) },
                 )}
                 tone={gain ? 'positive' : 'negative'}
               />

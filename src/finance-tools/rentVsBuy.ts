@@ -56,6 +56,9 @@ export interface RentVsBuyResult {
   // First year where buying pulls ahead and stays ahead through the horizon,
   // or null if it never does within `years`.
   breakEvenYear: number | null;
+  // Still behind at the last year and further behind than the year before:
+  // past the payoff the trend only compounds, so this is a "never".
+  losingGround: boolean;
 }
 
 function monthlyRate(annualBps: number): number {
@@ -147,5 +150,9 @@ export function compareRentVsBuy(input: RentVsBuyInput): RentVsBuyResult {
   const lastNegative = rows.reduce((last, row) => (row.advantageCents < 0 ? row.year : last), 0);
   const breakEven = lastNegative < rows.length ? lastNegative + 1 : null;
 
-  return { rows, monthlyPaymentCents: payment, upfrontCents, breakEvenYear: breakEven };
+  const [before, last] = rows.slice(-2);
+  const losingGround =
+    last != null && last.advantageCents < 0 && (before == null || last.advantageCents < before.advantageCents);
+
+  return { rows, monthlyPaymentCents: payment, upfrontCents, breakEvenYear: breakEven, losingGround };
 }

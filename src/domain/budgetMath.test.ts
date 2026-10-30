@@ -1,8 +1,6 @@
 import {
   accountBalanceCents,
-  averageMonthlySpentCents,
   categoryBarSegments,
-  categoryPaceBar,
   categoryBalanceCents,
   categoryCaption,
   categoryFundedCents,
@@ -252,49 +250,5 @@ describe('overspentMonths', () => {
     expect(
       overspentMonths(months(['2026-07', 0, -1_000], ['2026-06', 500, 0])),
     ).toEqual([{ month: '2026-07', shortfallCents: 500 }]);
-  });
-});
-
-describe('averageMonthlySpentCents', () => {
-  const months = ['2026-01', '2026-02', '2026-03', '2026-04'];
-
-  it('averages from the first month with activity', () => {
-    expect(averageMonthlySpentCents({ '2026-03': -3000, '2026-04': -1000 }, months)).toBe(2000);
-  });
-
-  it('counts a quiet month after the first as zero', () => {
-    expect(averageMonthlySpentCents({ '2026-01': -4000, '2026-03': -4000 }, months)).toBe(2000);
-  });
-
-  it('is zero with no history', () => {
-    expect(averageMonthlySpentCents({}, months)).toBe(0);
-  });
-});
-
-describe('categoryPaceBar', () => {
-  it('is null with no average', () => {
-    expect(categoryPaceBar(5000, 1000, 0)).toBeNull();
-  });
-
-  it('is all green under the average', () => {
-    // avg $100 → track $150; spent $60, $40 left.
-    const bar = categoryPaceBar(4000, 6000, 10000)!;
-    expect(bar.usualPercent).toBeCloseTo(40);
-    expect(bar.overPercent).toBe(0);
-    expect(bar.leftPercent).toBeCloseTo(26.67, 1);
-    expect(bar.averagePercent).toBeCloseTo(66.67, 1);
-  });
-
-  it('is amber up to 20% over', () => {
-    const bar = categoryPaceBar(0, 12000, 10000)!;
-    expect(bar.overPercent).toBeGreaterThan(0);
-    expect(bar.overRed).toBe(false);
-  });
-
-  it('is red past 20% over, stretching the track', () => {
-    const bar = categoryPaceBar(-10000, 20000, 10000)!;
-    expect(bar.overRed).toBe(true);
-    expect(bar.usualPercent + bar.overPercent).toBeCloseTo(100);
-    expect(bar.averagePercent).toBeCloseTo(50);
   });
 });

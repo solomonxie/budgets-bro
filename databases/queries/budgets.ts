@@ -42,15 +42,6 @@ export const TOTAL_ACTIVITY_BY_MONTH = `
 // domain/budgetMath.categoryBalanceCents), so covering an overspend means
 // assigning in the month that broke, not in whichever month you happen to
 // be looking at.
-// Per category per month over a range, for each category's trailing-months
-// average (see budgetsRepo.averageMonthlySpentByCategory).
-export const ACTIVITY_BY_CATEGORY_MONTH = `
-  SELECT t.category_id, substr(t.date, 1, 7) as month, SUM(t.amount_cents) as total FROM transactions t
-  JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
-  WHERE t.category_id IS NOT NULL AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.board_id = ?
-  GROUP BY t.category_id, month
-`;
-
 export const MONTHLY_ASSIGNED_BY_CATEGORY = `
   SELECT category_id, month, SUM(assigned_cents) as total FROM budget_entries
   WHERE month <= ? AND board_id = ? GROUP BY category_id, month

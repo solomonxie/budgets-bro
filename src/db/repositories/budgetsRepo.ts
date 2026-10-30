@@ -1,7 +1,6 @@
 import type { SQLiteDatabase } from '../../db/driver';
 import { nextMonth, previousMonth, currentDateISO, currentMonth } from '../../domain/month';
 import {
-  averageMonthlySpentCents,
   categoryBalanceCents,
   closePastMonths,
   unassignedCashCents,
@@ -13,7 +12,6 @@ import {
   CUMULATIVE_ACTIVITY,
   ACTIVITY_THIS_MONTH,
   TOTAL_ACTIVITY_BY_MONTH,
-  ACTIVITY_BY_CATEGORY_MONTH,
   MONTHLY_ASSIGNED_BY_CATEGORY,
   MONTHLY_ACTIVITY_BY_CATEGORY,
   TOTAL_ASSIGNED_THROUGH_MONTH,
@@ -120,33 +118,6 @@ export async function totalActivityByMonth(
   );
   const map: Record<string, number> = {};
   for (const r of rows) map[r.month] = r.total;
-  return map;
-}
-
-// Each category's usual month of spending across `months` (ascending,
-// contiguous), for the budget bar's average mark.
-export async function averageMonthlySpentByCategory(
-  db: SQLiteDatabase,
-  boardId: number,
-  months: string[],
-): Promise<Record<number, number>> {
-  if (months.length === 0) return {};
-  const rows = await db.getAllAsync<{
-    category_id: number;
-    month: string;
-    total: number;
-  }>(
-    ACTIVITY_BY_CATEGORY_MONTH,
-    `${months[0]}-01`,
-    `${nextMonth(months[months.length - 1])}-01`,
-    currentDateISO(),
-    boardId,
-  );
-  const byCategory: Record<number, Record<string, number>> = {};
-  for (const r of rows) (byCategory[r.category_id] ??= {})[r.month] = r.total;
-  const map: Record<number, number> = {};
-  for (const [id, byMonth] of Object.entries(byCategory))
-    map[Number(id)] = averageMonthlySpentCents(byMonth, months);
   return map;
 }
 

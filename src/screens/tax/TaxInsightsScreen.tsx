@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { ExperimentalBanner } from '../../components/ui/ExperimentalBanner';
 import { GuideSection } from '../../components/ui/GuideSection';
-import { FinanceToolList } from '../finance-tools/FinanceToolList';
 import { MoneyField } from '../../components/ui/MoneyField';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { DropdownOption } from '../../components/ui/DropdownField';
@@ -15,15 +14,22 @@ import * as reportsRepo from '../../db/repositories/reportsRepo';
 import * as accountValueHistoryRepo from '../../db/repositories/accountValueHistoryRepo';
 import { accountKind } from '../../domain/accountKind';
 import { formatMoney } from '../../domain/money';
+import type { TrackingKind } from '../../domain/types';
 import { useAppStore } from '../../state/useAppStore';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { ExpandingFieldGroup } from '../../components/ui/ExpandingField';
+import {
+  estimateRefund,
+  FHSA_ANNUAL_LIMIT,
+  forYear,
+  grossFromNet,
+  rrspRoomEstimate,
+  US_401K_LIMIT,
+  US_IRA_LIMIT,
+} from '../../finance-tools/canadaIncomeTax';
 
-// Only jurisdiction with real deadline/forms logic so far — the array
-// shape is what grows when a second country is added.
-const TAX_COUNTRIES = [{ code: 'CA', name: 'Canada' }];
 const CANADA_PROVINCES = [
   { code: 'AB', name: 'Alberta' },
   { code: 'BC', name: 'British Columbia' },
@@ -39,18 +45,68 @@ const CANADA_PROVINCES = [
   { code: 'SK', name: 'Saskatchewan' },
   { code: 'YT', name: 'Yukon' },
 ];
-const INTEREST_CATEGORY_PATTERN = /interest/i;
 const DONATION_CATEGORY_PATTERN = /charit|donat|giving/i;
+// Plans whose contributions come off taxable income.
+type DeductibleKind = 'ca_rrsp' | 'ca_fhsa' | 'us_401k' | 'us_ira';
+const DEDUCTIBLE_KINDS: DeductibleKind[] = [
+  'ca_rrsp',
+  'ca_fhsa',
+  'us_401k',
+  'us_ira',
+];
+// An account left as a general tracking account still counts when its name
+// says what it is.
+const KIND_BY_NAME: [RegExp, DeductibleKind][] = [
+  [/rrsp/i, 'ca_rrsp'],
+  [/fhsa/i, 'ca_fhsa'],
+  [/401\(?k\)?/i, 'us_401k'],
+  [/\bira\b/i, 'us_ira'],
+];
+function deductibleKind(
+  kind: TrackingKind | null,
+  name: string,
+): DeductibleKind | null {
+  if (kind != null && kind !== 'general')
+    return (DEDUCTIBLE_KINDS as string[]).includes(kind)
+      ? (kind as DeductibleKind)
+      : null;
+  if (/roth/i.test(name)) return null;
+  return KIND_BY_NAME.find(([pattern]) => pattern.test(name))?.[1] ?? null;
+}
+// Sheltered: growth inside isn't taxed as it happens.
+const isRegistered = (kind: TrackingKind | null, name: string) =>
+  (kind != null && kind !== 'general') || deductibleKind(kind, name) != null;
 
-const countryKey = (boardId: number) => `taxInsights.country:${boardId}`;
 const provinceKey = (boardId: number) => `taxInsights.province:${boardId}`;
-const interestCategoriesKey = (boardId: number) =>
-  `taxInsights.interestCategoryIds:${boardId}`;
+// The room from your notice of assessment, per plan and tax year. Optional:
+// without it the room is estimated (see autoRoomCents).
+const roomKey = (boardId: number, year: string) =>
+  `taxInsights.contributionRoom:${boardId}:${year}`;
 // Its own setting, deliberately not shared with Baby Steps' Step 7 —
 // picking "which categories mean X" here shouldn't require a trip to a
 // different screen, and the two don't have to agree on what "giving" means.
 const donationCategoriesKey = (boardId: number) =>
   `taxInsights.donationCategoryIds:${boardId}`;
+// Which payees are real income, not a merchant's refund. Unset: all of them.
+const incomePayeesKey = (boardId: number) =>
+  `taxInsights.incomePayeeIds:${boardId}`;
+// The optional "Anything else?" figures, per tax year.
+const extrasKey = (boardId: number, year: string) =>
+  `taxInsights.extras:${boardId}:${year}`;
+interface Extras {
+  grossPay?: string;
+  otherIncome?: string;
+  otherDeductions?: string;
+}
+
+const dollars = (cents: number) => cents / 100;
+const cents = (dollarAmount: number) => Math.round(dollarAmount * 100);
+
+function dayAfter(iso: string): string {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
 
 function toCents(text: string): number {
   const parsed = parseFloat(text);
@@ -94,11 +150,9 @@ function toggleId(ids: number[], id: number): number[] {
   return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
 }
 
-// Rough, local-only estimate from this year's ledger plus a couple of
-// manual inputs — not tax advice. Income by source, interest, tracking-
-// account gains and donations are surfaced automatically from existing
-// data instead of asked for again; only province (and which categories
-// mean "interest") are genuinely ambiguous and need a pick.
+// Rough, local-only estimate from this year's ledger — not tax advice.
+// Everything is derived from data already kept; the only pick is the
+// province, and every typed figure is an optional correction.
 export function TaxInsightsScreen() {
   const t = useT();
   const month = useAppStore((s) => s.currentMonth);
@@ -107,22 +161,23 @@ export function TaxInsightsScreen() {
   const { categories } = useCategories();
   const year = month.slice(0, 4);
 
-  const [ledgerTotals, setLedgerTotals] = useState({
-    incomeCents: 0,
-    spendingCents: 0,
-  });
   const [incomeSources, setIncomeSources] = useState<
     reportsRepo.IncomeSource[]
   >([]);
-  const [country, setCountry] = useState('CA');
+  const [lastYearSources, setLastYearSources] = useState<
+    reportsRepo.IncomeSource[]
+  >([]);
+  const [incomePayeeIds, setIncomePayeeIds] = useState<
+    (number | null)[] | null
+  >(null);
   const [province, setProvince] = useState<string | null>(null);
-  const [interestCategoryIds, setInterestCategoryIds] = useState<number[]>([]);
-  const [interestTotals, setInterestTotals] = useState({
-    incomeCents: 0,
-    expenseCents: 0,
-  });
+  const [interestEarnedCents, setInterestEarnedCents] = useState(0);
   const [donationCategoryIds, setDonationCategoryIds] = useState<number[]>([]);
   const [donationCents, setDonationCents] = useState(0);
+  const [contributions, setContributions] = useState<
+    { accountId: number; name: string; kind: DeductibleKind; cents: number }[]
+  >([]);
+  const [room, setRoom] = useState<Partial<Record<DeductibleKind, string>>>({});
   const [trackingGains, setTrackingGains] = useState<
     {
       accountId: number;
@@ -131,24 +186,26 @@ export function TaxInsightsScreen() {
       sinceDate: string | null;
     }[]
   >([]);
-  const [additionalIncome, setAdditionalIncome] = useState('');
-  const [deductions, setDeductions] = useState('');
+  const [extras, setExtras] = useState<Extras>({});
+  const [extrasOpen, setExtrasOpen] = useState(false);
 
-  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [provincePickerOpen, setProvincePickerOpen] = useState(false);
-  const [interestPickerOpen, setInterestPickerOpen] = useState(false);
   const [donationPickerOpen, setDonationPickerOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      const totals = await reportsRepo.incomeAndSpendingInRange(
-        db,
-        boardId,
-        `${year}-01-01`,
-        `${Number(year) + 1}-01-01`,
+      setLastYearSources(
+        await reportsRepo.incomeByPayeeInRange(
+          db,
+          boardId,
+          `${Number(year) - 1}-01-01`,
+          `${year}-01-01`,
+        ),
       );
-      setLedgerTotals(totals);
+      setExtras(
+        await settingsRepo.getJsonSetting(db, extrasKey(boardId, year), {}),
+      );
       setIncomeSources(
         await reportsRepo.incomeByPayeeInRange(
           db,
@@ -158,28 +215,13 @@ export function TaxInsightsScreen() {
         ),
       );
 
-      setCountry(
-        (await settingsRepo.getSetting(db, countryKey(boardId))) ?? 'CA',
-      );
-      setProvince(await settingsRepo.getSetting(db, provinceKey(boardId)));
-
-      const interestRaw = await settingsRepo.getSetting(
+      const incomeRaw = await settingsRepo.getSetting(
         db,
-        interestCategoriesKey(boardId),
+        incomePayeesKey(boardId),
       );
-      if (interestRaw != null) {
-        setInterestCategoryIds(JSON.parse(interestRaw));
-      } else if (categories.length > 0) {
-        const detected = categories
-          .filter((c) => INTEREST_CATEGORY_PATTERN.test(c.name))
-          .map((c) => c.id);
-        setInterestCategoryIds(detected);
-        await settingsRepo.setJsonSetting(
-          db,
-          interestCategoriesKey(boardId),
-          detected,
-        );
-      }
+      setIncomePayeeIds(incomeRaw != null ? JSON.parse(incomeRaw) : null);
+
+      setProvince(await settingsRepo.getSetting(db, provinceKey(boardId)));
 
       const donationRaw = await settingsRepo.getSetting(
         db,
@@ -205,38 +247,81 @@ export function TaxInsightsScreen() {
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      setInterestTotals(
-        await reportsRepo.categoryIncomeAndExpenseInRange(
+      setInterestEarnedCents(
+        await reportsRepo.estimatedInterestInRange(
           db,
           boardId,
-          interestCategoryIds,
           `${year}-01-01`,
           `${Number(year) + 1}-01-01`,
         ),
       );
     })();
-  }, [boardId, year, interestCategoryIds]);
+  }, [boardId, year]);
 
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      setDonationCents(
-        await reportsRepo.categorySpendingInRange(
+      const givingIds = accounts
+        .filter((a) => a.account.type === 'giving')
+        .map((a) => a.account.id);
+      const [spentCents, setAsideCents] = await Promise.all([
+        reportsRepo.categorySpendingInRange(
           db,
           boardId,
           donationCategoryIds,
           `${year}-01-01`,
           `${Number(year) + 1}-01-01`,
         ),
+        reportsRepo.depositsIntoAccountsInRange(
+          db,
+          boardId,
+          givingIds,
+          `${year}-01-01`,
+          `${Number(year) + 1}-01-01`,
+        ),
+      ]);
+      setDonationCents(spentCents + setAsideCents);
+    })();
+  }, [boardId, year, donationCategoryIds, accounts]);
+
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      const plans = accounts.flatMap((a) => {
+        const kind =
+          a.account.type === 'tracking'
+            ? deductibleKind(a.account.trackingKind, a.account.name)
+            : null;
+        return kind ? [{ ...a, kind }] : [];
+      });
+      setRoom(
+        await settingsRepo.getJsonSetting(db, roomKey(boardId, year), {}),
+      );
+      const deposits = await reportsRepo.depositsByAccountInRange(
+        db,
+        boardId,
+        plans.map((a) => a.account.id),
+        `${year}-01-01`,
+        `${Number(year) + 1}-01-01`,
+      );
+      setContributions(
+        plans.map((a) => ({
+          accountId: a.account.id,
+          name: a.account.name,
+          kind: a.kind,
+          cents: deposits.get(a.account.id) ?? 0,
+        })),
       );
     })();
-  }, [boardId, year, donationCategoryIds]);
+  }, [boardId, year, accounts]);
 
   useEffect(() => {
     (async () => {
       const db = await getDb();
       const trackingAccounts = accounts.filter(
-        (a) => accountKind(a.account.type) === 'Tracking',
+        (a) =>
+          accountKind(a.account.type) === 'Tracking' &&
+          !isRegistered(a.account.trackingKind, a.account.name),
       );
       const yearStart = `${year}-01-01`;
       const results = await Promise.all(
@@ -264,10 +349,23 @@ export function TaxInsightsScreen() {
           const baseline = priorEntry ?? history[0];
           const current = history[history.length - 1];
           const sinceDate = priorEntry ? null : baseline.effectiveDate;
+          // What was paid in between the two readings isn't gain. A reading
+          // already includes that day's deposits (see
+          // ACTIVITY_SINCE_LATEST_VALUE), hence the day-after bounds.
+          const paidIn = await reportsRepo.netFlowByAccountInRange(
+            db,
+            boardId,
+            [a.account.id],
+            dayAfter(baseline.effectiveDate),
+            dayAfter(current.effectiveDate),
+          );
           return {
             accountId: a.account.id,
             name: a.account.name,
-            gainCents: current.valueCents - baseline.valueCents,
+            gainCents:
+              current.valueCents -
+              baseline.valueCents -
+              (paidIn.get(a.account.id) ?? 0),
             sinceDate,
           };
         }),
@@ -276,8 +374,116 @@ export function TaxInsightsScreen() {
     })();
   }, [boardId, year, accounts]);
 
-  const estimatedTaxableIncomeCents =
-    ledgerTotals.incomeCents + toCents(additionalIncome) - toCents(deductions);
+  const isIncome = (payeeId: number | null) =>
+    incomePayeeIds == null || incomePayeeIds.includes(payeeId);
+  const incomeCents = incomeSources
+    .filter((source) => isIncome(source.payeeId))
+    .reduce((sum, source) => sum + source.totalCents, 0);
+  const toggleIncomePayee = (payeeId: number | null) => {
+    const current =
+      incomePayeeIds ?? incomeSources.map((source) => source.payeeId);
+    const next = current.includes(payeeId)
+      ? current.filter((id) => id !== payeeId)
+      : [...current, payeeId];
+    setIncomePayeeIds(next);
+    (async () => {
+      const db = await getDb();
+      await settingsRepo.setJsonSetting(db, incomePayeesKey(boardId), next);
+    })();
+  };
+
+  const yearNumber = Number(year);
+  const taxProvince = province ?? 'ON';
+  // Deposits are take-home pay; the return is on gross. Backed out through
+  // tax, CPP and EI unless the T4 figure was typed in.
+  const grossPayCents = extras.grossPay
+    ? toCents(extras.grossPay)
+    : cents(grossFromNet(dollars(incomeCents), taxProvince, yearNumber));
+  const lastYearGrossCents = useMemo(() => {
+    const net = lastYearSources
+      .filter(
+        (source) =>
+          incomePayeeIds == null || incomePayeeIds.includes(source.payeeId),
+      )
+      .reduce((sum, source) => sum + source.totalCents, 0);
+    return cents(grossFromNet(dollars(net), taxProvince, yearNumber - 1));
+  }, [lastYearSources, incomePayeeIds, taxProvince, yearNumber]);
+
+  // Without a figure from the notice of assessment: RRSP is 18% of last
+  // year's pay up to the cap (no carry-forward, no pension adjustment), the
+  // rest their yearly limits.
+  // Null when there's no last year on file to estimate from.
+  const autoRoomCents = (kind: DeductibleKind): number | null => {
+    switch (kind) {
+      case 'ca_rrsp':
+        return lastYearGrossCents > 0
+          ? cents(rrspRoomEstimate(dollars(lastYearGrossCents), yearNumber))
+          : null;
+      case 'ca_fhsa':
+        return cents(FHSA_ANNUAL_LIMIT);
+      case 'us_401k':
+        return cents(forYear(US_401K_LIMIT, yearNumber));
+      case 'us_ira':
+        return cents(forYear(US_IRA_LIMIT, yearNumber));
+    }
+  };
+
+  // Per plan: what went in, and what of it is deductible. Over the room is
+  // an over-contribution — penalized, not deducted.
+  const plans = DEDUCTIBLE_KINDS.flatMap((kind) => {
+    const accountsOfKind = contributions.filter((c) => c.kind === kind);
+    if (accountsOfKind.length === 0) return [];
+    const paidCents = accountsOfKind.reduce((sum, c) => sum + c.cents, 0);
+    const typed = room[kind] ? toCents(room[kind]!) : null;
+    const roomCents = typed ?? autoRoomCents(kind);
+    return [
+      {
+        kind,
+        accounts: accountsOfKind,
+        paidCents,
+        roomCents,
+        estimated: typed == null,
+        deductibleCents:
+          roomCents == null ? paidCents : Math.min(paidCents, roomCents),
+      },
+    ];
+  });
+  const contributionCents = plans.reduce(
+    (sum, plan) => sum + plan.deductibleCents,
+    0,
+  );
+  const saveRoom = (kind: DeductibleKind, text: string) => {
+    const next = { ...room, [kind]: text };
+    setRoom(next);
+    (async () => {
+      const db = await getDb();
+      await settingsRepo.setJsonSetting(db, roomKey(boardId, year), next);
+    })();
+  };
+  const saveExtra = (key: keyof Extras, text: string) => {
+    const next = { ...extras, [key]: text };
+    setExtras(next);
+    (async () => {
+      const db = await getDb();
+      await settingsRepo.setJsonSetting(db, extrasKey(boardId, year), next);
+    })();
+  };
+
+  // Interest, and anything typed under "Anything else?", had nothing
+  // withheld from it; contributions and other deductions come off.
+  const estimate = estimateRefund({
+    year: yearNumber,
+    province: taxProvince,
+    grossPay: dollars(grossPayCents),
+    untaxedIncome: dollars(
+      interestEarnedCents + toCents(extras.otherIncome ?? ''),
+    ),
+    deductions: dollars(
+      contributionCents + toCents(extras.otherDeductions ?? ''),
+    ),
+    donations: dollars(donationCents),
+  });
+  const refundCents = cents(estimate.refund);
   const totalGainCents = trackingGains.reduce((sum, g) => sum + g.gainCents, 0);
 
   const filingYear = Number(year) + 1;
@@ -288,41 +494,12 @@ export function TaxInsightsScreen() {
     ? (CANADA_PROVINCES.find((p) => p.code === province)?.name ?? province)
     : null;
 
-  const saveCountry = async (code: string) => {
-    setCountry(code);
-    setCountryPickerOpen(false);
-    const db = await getDb();
-    await settingsRepo.setSetting(db, countryKey(boardId), code);
-  };
   const saveProvince = async (code: string) => {
     setProvince(code);
     setProvincePickerOpen(false);
     const db = await getDb();
     await settingsRepo.setSetting(db, provinceKey(boardId), code);
   };
-  const toggleInterestCategory = (id: number) => {
-    const next = toggleId(interestCategoryIds, id);
-    setInterestCategoryIds(next);
-    (async () => {
-      const db = await getDb();
-      await settingsRepo.setJsonSetting(
-        db,
-        interestCategoriesKey(boardId),
-        next,
-      );
-    })();
-  };
-
-  const interestLabel =
-    interestCategoryIds.length === 0
-      ? t('taxInsights.interestCategoriesLabel')
-      : interestCategoryIds.length === 1
-        ? (categories.find((c) => c.id === interestCategoryIds[0])?.name ??
-          t('taxInsights.interestCategoriesLabel'))
-        : t('taxInsights.categoriesCount', {
-            count: interestCategoryIds.length,
-          });
-
   const toggleDonationCategory = (id: number) => {
     const next = toggleId(donationCategoryIds, id);
     setDonationCategoryIds(next);
@@ -358,15 +535,6 @@ export function TaxInsightsScreen() {
           <Text style={styles.title}>{t('taxInsights.title', { year })}</Text>
           <Text style={styles.disclaimer}>{t('taxInsights.disclaimer')}</Text>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>{t('taxInsights.countryLabel')}</Text>
-            <Text
-              style={styles.linkText}
-              onPress={() => setCountryPickerOpen(true)}
-            >
-              {TAX_COUNTRIES.find((c) => c.code === country)?.name ?? country} ▾
-            </Text>
-          </View>
-          <View style={styles.row}>
             <Text style={styles.rowLabel}>
               {t('taxInsights.provinceLabel')}
             </Text>
@@ -380,52 +548,168 @@ export function TaxInsightsScreen() {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.label}>
+            {refundCents >= 0
+              ? t('taxInsights.refundLabel')
+              : t('taxInsights.owingLabel')}
+          </Text>
+          <Text
+            style={[
+              styles.value,
+              refundCents >= 0 ? styles.within : styles.over,
+            ]}
+          >
+            {formatMoney(Math.abs(refundCents))}
+          </Text>
           <Row
-            label={t('taxInsights.totalIncomeLabel', { year })}
-            value={formatMoney(ledgerTotals.incomeCents)}
+            label={t('taxInsights.fromContributions')}
+            value={formatMoney(cents(estimate.fromDeductions))}
           />
           <Row
-            label={t('taxInsights.totalSpendingLabel', { year })}
-            value={formatMoney(ledgerTotals.spendingCents)}
+            label={t('taxInsights.fromDonations')}
+            value={formatMoney(cents(estimate.fromDonations))}
           />
+          <Row
+            label={t('taxInsights.fromUntaxed')}
+            value={formatMoney(cents(estimate.fromUntaxedIncome))}
+          />
+          <Row
+            label={t('taxInsights.estimatedTaxableIncomeLabel')}
+            value={formatMoney(cents(estimate.taxableIncome))}
+          />
+          <Text style={styles.hint}>
+            {province
+              ? t('taxInsights.refundHint', {
+                  gross: formatMoney(grossPayCents),
+                })
+              : t('taxInsights.refundNoProvince')}
+          </Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.label}>
             {t('taxInsights.incomeBySourceLabel')}
           </Text>
-          {/* Who paid it, biggest first — the parts add up to the total above
-            because both use the same definition of income. */}
+          {/* Who paid it, biggest first. The ticked ones add up to the total
+            above; untick a refund so it isn't counted as income. */}
           {incomeSources.length === 0 ? (
             <Text style={styles.hint}>{t('taxInsights.noIncomeYet')}</Text>
           ) : (
-            incomeSources.map((source) => (
+            <>
               <Row
-                key={source.payeeId ?? 'unnamed'}
-                label={source.payeeName ?? t('common.noPayee')}
-                value={formatMoney(source.totalCents)}
+                label={t('taxInsights.totalIncomeLabel', { year })}
+                value={formatMoney(incomeCents)}
               />
-            ))
+              <Text style={styles.hint}>{t('taxInsights.incomePickHint')}</Text>
+              {incomeSources.map((source) => {
+                const counted = isIncome(source.payeeId);
+                return (
+                  <Pressable
+                    key={source.payeeId ?? 'unnamed'}
+                    style={styles.row}
+                    onPress={() => toggleIncomePayee(source.payeeId)}
+                  >
+                    <Text
+                      style={[styles.rowLabel, !counted && styles.excluded]}
+                    >
+                      {counted ? '☑' : '☐'}{' '}
+                      {source.payeeName ?? t('common.noPayee')}
+                    </Text>
+                    <Text
+                      style={[styles.rowValue, !counted && styles.excluded]}
+                    >
+                      {formatMoney(source.totalCents)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </>
           )}
         </View>
 
         <View style={styles.card}>
           <Text style={styles.label}>{t('taxInsights.interestLabel')}</Text>
           <Text style={styles.hint}>{t('taxInsights.interestHint')}</Text>
-          <Text
-            style={styles.linkText}
-            onPress={() => setInterestPickerOpen(true)}
-          >
-            {interestLabel} ▾
-          </Text>
           <Row
             label={t('taxInsights.interestEarned')}
-            value={formatMoney(interestTotals.incomeCents)}
+            value={formatMoney(interestEarnedCents)}
           />
-          <Row
-            label={t('taxInsights.interestPaid')}
-            value={formatMoney(interestTotals.expenseCents)}
-          />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>
+            {t('taxInsights.contributionsLabel', { year })}
+          </Text>
+          {contributions.length === 0 ? (
+            <Text style={styles.hint}>
+              {t('taxInsights.noContributionAccounts')}
+            </Text>
+          ) : (
+            plans.map((plan) => {
+              const autoCents = autoRoomCents(plan.kind);
+              const leftCents =
+                plan.roomCents == null ? null : plan.roomCents - plan.paidCents;
+              return (
+                <View key={plan.kind} style={styles.plan}>
+                  {plan.accounts.map((c) => (
+                    <Row
+                      key={c.accountId}
+                      label={c.name}
+                      value={formatMoney(c.cents)}
+                    />
+                  ))}
+                  <MoneyField
+                    label={t('taxInsights.roomLabel', {
+                      plan: t(`accountSetup.name.${plan.kind}`),
+                    })}
+                    placeholder={
+                      autoCents == null
+                        ? t('taxInsights.roomPlaceholderUnknown')
+                        : t('taxInsights.roomPlaceholder', {
+                            amount: formatMoney(autoCents),
+                          })
+                    }
+                    value={room[plan.kind] ?? ''}
+                    onChangeText={(text) => saveRoom(plan.kind, text)}
+                  />
+                  {leftCents == null ? null : (
+                    <Text
+                      style={[
+                        styles.hint,
+                        leftCents < 0 ? styles.over : styles.within,
+                      ]}
+                    >
+                      {leftCents < 0
+                        ? t('taxInsights.roomOver', {
+                            amount: formatMoney(-leftCents),
+                          })
+                        : t(
+                            plan.estimated
+                              ? 'taxInsights.roomLeftEstimated'
+                              : 'taxInsights.roomLeft',
+                            { amount: formatMoney(leftCents) },
+                          )}
+                    </Text>
+                  )}
+                </View>
+              );
+            })
+          )}
+          <Text style={styles.hint}>{t('taxInsights.contributionsHint')}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>
+            {t('taxInsights.donationsLabel', { year })}
+          </Text>
+          <Text
+            style={styles.linkText}
+            onPress={() => setDonationPickerOpen(true)}
+          >
+            {donationLabel} ▾
+          </Text>
+          <Text style={styles.value}>{formatMoney(donationCents)}</Text>
+          <Text style={styles.hint}>{t('taxInsights.donationsHint')}</Text>
         </View>
 
         <View style={styles.card}>
@@ -461,114 +745,80 @@ export function TaxInsightsScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>
-            {t('taxInsights.donationsLabel', { year })}
-          </Text>
-          <Text
-            style={styles.linkText}
-            onPress={() => setDonationPickerOpen(true)}
+          <Pressable
+            style={styles.row}
+            onPress={() => setExtrasOpen((open) => !open)}
           >
-            {donationLabel} ▾
-          </Text>
-          <Text style={styles.value}>{formatMoney(donationCents)}</Text>
-          <Text style={styles.hint}>{t('taxInsights.donationsHint')}</Text>
+            <Text style={styles.rowLabel}>
+              {t('taxInsights.additionalInfoLabel')}
+            </Text>
+            <Text style={styles.linkText}>{extrasOpen ? '▴' : '▾'}</Text>
+          </Pressable>
+          {extrasOpen ? (
+            <>
+              <MoneyField
+                label={t('taxInsights.grossPayLabel')}
+                placeholder={t('taxInsights.grossPayPlaceholder', {
+                  amount: formatMoney(
+                    cents(
+                      grossFromNet(
+                        dollars(incomeCents),
+                        taxProvince,
+                        yearNumber,
+                      ),
+                    ),
+                  ),
+                })}
+                value={extras.grossPay ?? ''}
+                onChangeText={(text) => saveExtra('grossPay', text)}
+              />
+              <MoneyField
+                label={t('taxInsights.additionalIncomeLabel')}
+                placeholder={t('common.amountPlaceholder')}
+                value={extras.otherIncome ?? ''}
+                onChangeText={(text) => saveExtra('otherIncome', text)}
+              />
+              <MoneyField
+                label={t('taxInsights.deductionsLabel')}
+                placeholder={t('common.amountPlaceholder')}
+                value={extras.otherDeductions ?? ''}
+                onChangeText={(text) => saveExtra('otherDeductions', text)}
+              />
+            </>
+          ) : null}
         </View>
 
         <View style={styles.card}>
           <Text style={styles.label}>
-            {t('taxInsights.additionalInfoLabel')}
-          </Text>
-          <MoneyField
-            label={t('taxInsights.additionalIncomeLabel')}
-            placeholder={t('common.amountPlaceholder')}
-            value={additionalIncome}
-            onChangeText={setAdditionalIncome}
-          />
-          <MoneyField
-            label={t('taxInsights.deductionsLabel')}
-            placeholder={t('common.amountPlaceholder')}
-            value={deductions}
-            onChangeText={setDeductions}
-          />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.label}>
-            {t('taxInsights.estimatedTaxableIncomeLabel')}
-          </Text>
-          <Text style={styles.value}>
-            {formatMoney(estimatedTaxableIncomeCents)}
+            {provinceName
+              ? t('taxInsights.timelineLabel', { province: provinceName })
+              : t('taxInsights.timelineNoProvince')}
           </Text>
           <Text style={styles.hint}>
-            {t('taxInsights.estimatedTaxableIncomeHint')}
+            {t('taxInsights.slipsReadyBy', { date: slipsDate })}
           </Text>
+          <Text style={styles.hint}>
+            {t('taxInsights.rrspDeadline', { year, date: rrspDate })}
+          </Text>
+          <Text style={styles.hint}>
+            {t('taxInsights.filingDeadline', { date: filingDeadline })}
+          </Text>
+
+          <Text style={[styles.label, styles.formsLabel]}>
+            {t('taxInsights.formsChecklistLabel')}
+          </Text>
+          <FormRow show={incomeCents > 0} label={t('taxInsights.formT4')} />
+          <FormRow
+            show={interestEarnedCents > 0 || trackingGains.length > 0}
+            label={t('taxInsights.formT5')}
+          />
+          <FormRow
+            show={donationCents > 0}
+            label={t('taxInsights.formDonationReceipts')}
+          />
+          <FormRow show label={t('taxInsights.formRrsp')} />
+          <FormRow show={province === 'QC'} label={t('taxInsights.formTP1')} />
         </View>
-
-        {country === 'CA' ? (
-          <View style={styles.card}>
-            <Text style={styles.label}>
-              {provinceName
-                ? t('taxInsights.timelineLabel', { province: provinceName })
-                : t('taxInsights.timelineNoProvince')}
-            </Text>
-            <Text style={styles.hint}>
-              {t('taxInsights.slipsReadyBy', { date: slipsDate })}
-            </Text>
-            <Text style={styles.hint}>
-              {t('taxInsights.rrspDeadline', { year, date: rrspDate })}
-            </Text>
-            <Text style={styles.hint}>
-              {t('taxInsights.filingDeadline', { date: filingDeadline })}
-            </Text>
-
-            <Text style={[styles.label, styles.formsLabel]}>
-              {t('taxInsights.formsChecklistLabel')}
-            </Text>
-            <FormRow
-              show={ledgerTotals.incomeCents > 0}
-              label={t('taxInsights.formT4')}
-            />
-            <FormRow
-              show={interestTotals.incomeCents > 0 || trackingGains.length > 0}
-              label={t('taxInsights.formT5')}
-            />
-            <FormRow
-              show={donationCents > 0}
-              label={t('taxInsights.formDonationReceipts')}
-            />
-            <FormRow show label={t('taxInsights.formRrsp')} />
-            <FormRow
-              show={province === 'QC'}
-              label={t('taxInsights.formTP1')}
-            />
-          </View>
-        ) : null}
-
-        <FinanceToolList hub="tax" />
-
-        <Modal
-          visible={countryPickerOpen}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setCountryPickerOpen(false)}
-        >
-          <BottomSheet
-            title={t('taxInsights.countryLabel')}
-            onClose={() => setCountryPickerOpen(false)}
-          >
-            {TAX_COUNTRIES.map((c) => (
-              <DropdownOption
-                key={c.code}
-                label={c.name}
-                selected={country === c.code}
-                onPress={() => saveCountry(c.code)}
-              />
-            ))}
-            <Text style={styles.hint}>
-              {t('taxInsights.countryComingSoon')}
-            </Text>
-          </BottomSheet>
-        </Modal>
 
         <Modal
           visible={provincePickerOpen}
@@ -588,32 +838,6 @@ export function TaxInsightsScreen() {
                 onPress={() => saveProvince(p.code)}
               />
             ))}
-          </BottomSheet>
-        </Modal>
-
-        <Modal
-          visible={interestPickerOpen}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setInterestPickerOpen(false)}
-        >
-          <BottomSheet
-            title={t('taxInsights.interestCategoriesLabel')}
-            onClose={() => setInterestPickerOpen(false)}
-          >
-            {categories.map((c) => (
-              <DropdownOption
-                key={c.id}
-                label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                selected={interestCategoryIds.includes(c.id)}
-                onPress={() => toggleInterestCategory(c.id)}
-              />
-            ))}
-            {categories.length === 0 ? (
-              <Text style={styles.hint}>
-                {t('taxInsights.noCategoriesAvailable')}
-              </Text>
-            ) : null}
           </BottomSheet>
         </Modal>
 
@@ -705,4 +929,8 @@ const styles = StyleSheet.create({
   linkText: { fontSize: 13, fontWeight: '700', color: colors.accent },
   formRowActive: { color: colors.text },
   formRowInactive: { color: colors.textMuted },
+  excluded: { color: colors.textMuted, fontWeight: '400' },
+  plan: { gap: spacing.xs },
+  over: { color: colors.negative, fontWeight: '700' },
+  within: { color: colors.positive },
 });

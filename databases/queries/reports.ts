@@ -106,3 +106,29 @@ export const RUNWAY_MONTHLY = `
   GROUP BY month
   ORDER BY month
 `;
+
+// Tax Insights' interest estimate: cash and savings accounts with a rate on
+// file, and only what the daily walk needs from them.
+export const DEPOSIT_RATES_UNTIL = `
+  SELECT h.account_id, h.effective_date as date, h.rate_bps as bps
+  FROM account_rate_history h JOIN accounts a ON a.id = h.account_id
+  WHERE a.board_id = ? AND a.type IN ('cash', 'savings') AND h.effective_date < ?
+  ORDER BY h.account_id, h.effective_date, h.id
+`;
+
+export const DEPOSIT_BALANCES_BEFORE = `
+  SELECT a.id as account_id, a.opening_balance_cents + COALESCE(SUM(t.amount_cents), 0) as cents
+  FROM accounts a LEFT JOIN transactions t ON t.account_id = a.id AND t.date < ?
+  WHERE a.board_id = ? AND a.type IN ('cash', 'savings')
+    AND EXISTS (SELECT 1 FROM account_rate_history h WHERE h.account_id = a.id)
+  GROUP BY a.id
+`;
+
+export const DEPOSIT_DAILY_CHANGES = `
+  SELECT t.account_id, t.date, SUM(t.amount_cents) as cents
+  FROM transactions t JOIN accounts a ON a.id = t.account_id
+  WHERE a.board_id = ? AND a.type IN ('cash', 'savings') AND t.date >= ? AND t.date < ?
+    AND EXISTS (SELECT 1 FROM account_rate_history h WHERE h.account_id = a.id)
+  GROUP BY t.account_id, t.date
+  ORDER BY t.account_id, t.date
+`;

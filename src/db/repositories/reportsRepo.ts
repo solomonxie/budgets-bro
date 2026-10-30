@@ -8,7 +8,11 @@ import {
   INCOME_BY_PAYEE_IN_RANGE,
   SPENDING_BY_PAYEE_OVER_MONTHS,
   INCOME_BY_PAYEE_OVER_MONTHS,
+  DEPOSIT_RATES_UNTIL,
+  DEPOSIT_BALANCES_BEFORE,
+  DEPOSIT_DAILY_CHANGES,
 } from '../../../databases/queries/reports';
+import { estimateInterestCents } from '../../domain/interestEstimate';
 
 export interface CategorySpend {
   categoryId: number;
@@ -115,6 +119,29 @@ export async function depositsIntoAccountsInRange(
     currentDateISO(),
   );
   return row?.total ?? 0;
+}
+
+// depositsIntoAccountsInRange, per account.
+export async function depositsByAccountInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  accountIds: number[],
+  startDate: string,
+  endDateExclusive: string,
+): Promise<Map<number, number>> {
+  if (accountIds.length === 0) return new Map();
+  const placeholders = accountIds.map(() => '?').join(',');
+  const rows = await db.getAllAsync<{ account_id: number; total: number }>(
+    `SELECT account_id, COALESCE(SUM(amount_cents), 0) as total FROM transactions
+     WHERE board_id = ? AND account_id IN (${placeholders}) AND amount_cents > 0 AND date >= ? AND date < ? AND date <= ?
+     GROUP BY account_id`,
+    boardId,
+    ...accountIds,
+    startDate,
+    endDateExclusive,
+    currentDateISO(),
+  );
+  return new Map(rows.map((r) => [r.account_id, r.total]));
 }
 
 // Net movement per account over a range, both directions — what a balance
@@ -260,4 +287,34 @@ async function payeeTotalsOverMonths(db: SQLiteDatabase, sql: string, boardId: n
     boardId,
   );
   return rows.map((r) => ({ payeeId: r.payee_id, name: r.payee_name, month: r.month, spentCents: r.total, count: r.count }));
+}
+
+// Interest the board's cash and savings accounts earned in [startDate,
+// endDateExclusive), estimated from their balances and rate history. Stops
+// at today, so the current year reads as year to date.
+export async function estimatedInterestInRange(
+  db: SQLiteDatabase,
+  boardId: number,
+  startDate: string,
+  endDateExclusive: string,
+): Promise<number> {
+  const tomorrow = new Date(Date.parse(`${currentDateISO()}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  const end = endDateExclusive < tomorrow ? endDateExclusive : tomorrow;
+  if (end <= startDate) return 0;
+  const [rates, balances, changes] = await Promise.all([
+    db.getAllAsync<{ account_id: number; date: string; bps: number }>(DEPOSIT_RATES_UNTIL, boardId, end),
+    db.getAllAsync<{ account_id: number; cents: number }>(DEPOSIT_BALANCES_BEFORE, startDate, boardId),
+    db.getAllAsync<{ account_id: number; date: string; cents: number }>(DEPOSIT_DAILY_CHANGES, boardId, startDate, end),
+  ]);
+  let total = 0;
+  for (const { account_id, cents } of balances) {
+    total += estimateInterestCents({
+      start: startDate,
+      endExclusive: end,
+      balanceBeforeCents: cents,
+      changes: changes.filter((c) => c.account_id === account_id),
+      rates: rates.filter((r) => r.account_id === account_id),
+    });
+  }
+  return total;
 }

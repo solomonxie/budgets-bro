@@ -1,4 +1,11 @@
-import { createContext, useContext, useId, useMemo, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme/colors';
@@ -22,6 +29,15 @@ interface GroupApi {
 }
 
 const GroupContext = createContext<GroupApi | null>(null);
+
+// Set by a page whose scroll ends above something pinned (a number pad): a
+// freshly unfolded panel is handed over so the page can scroll it into view.
+// Its panels unfold at full length with no list scroll of their own — a
+// list scrolling inside the page hands off to the page at its end, and the
+// two fight.
+export const PanelRevealContext = createContext<((panel: View) => void) | null>(
+  null,
+);
 
 // Wrap a form whose pickers should open in place: the options unfold under
 // the row that owns them and push the rest of the form down, rather than a
@@ -70,10 +86,23 @@ export function ExpandedPanel({
   sticky,
   scroll = true,
 }: ExpandedPanelProps) {
+  const reveal = useContext(PanelRevealContext);
+  const ref = useRef<View>(null);
+  const revealed = useRef(false);
   return (
-    <View style={styles.panel}>
+    <View
+      ref={ref}
+      style={styles.panel}
+      onLayout={() => {
+        if (revealed.current || !reveal || !ref.current) return;
+        revealed.current = true;
+        reveal(ref.current);
+      }}
+    >
       {sticky ?? null}
-      {scroll ? (
+      {scroll && reveal ? (
+        <View style={styles.listContent}>{children}</View>
+      ) : scroll ? (
         <ScrollView
           style={styles.list}
           contentContainerStyle={styles.listContent}

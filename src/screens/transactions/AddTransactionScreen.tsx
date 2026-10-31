@@ -35,6 +35,7 @@ import { FieldCard, FieldRow } from '../../components/ui/FieldCard';
 import {
   ExpandedPanel,
   ExpandingFieldGroup,
+  PanelRevealContext,
   useExpandingField,
 } from '../../components/ui/ExpandingField';
 import {
@@ -64,11 +65,7 @@ import {
 import type { PurchaseItem } from '../../domain/purchaseItems';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import {
-  currentDateISO,
-  currentMonth,
-  lastNMonths,
-} from '../../domain/month';
+import { currentDateISO, currentMonth, lastNMonths } from '../../domain/month';
 import type { RecurrenceRule } from '../../domain/recurrence';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -83,6 +80,9 @@ const DEFAULT_RULE: RecurrenceRule = {
   intervalN: 1,
   daysOfWeekMask: null,
 };
+
+// The large row a panel unfolds from, plus a little air above it.
+const PANEL_ROW_ALLOWANCE = 50 + spacing.sm;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddTransaction'>;
 type Route = RouteProp<RootStackParamList, 'AddTransaction'>;
@@ -210,6 +210,24 @@ function AddTransactionForm() {
         if (by !== 0)
           scrollRef.current?.scrollTo({
             y: Math.max(0, scrollY.current + by),
+            animated: true,
+          });
+      }),
+    );
+  }, []);
+
+  // An unfolded picker would otherwise open behind the pad: lift it clear,
+  // but never so far that the row it unfolded from leaves the top.
+  const revealPanel = useCallback((panel: View) => {
+    const frame = scrollFrameRef.current;
+    if (!frame) return;
+    frame.measureInWindow((_fx, fy, _fw, fh) =>
+      panel.measureInWindow((_x, y, _w, h) => {
+        const below = y + h + spacing.md - (fy + fh);
+        const by = Math.min(below, y - fy - PANEL_ROW_ALLOWANCE);
+        if (by > 0)
+          scrollRef.current?.scrollTo({
+            y: scrollY.current + by,
             animated: true,
           });
       }),
@@ -776,246 +794,250 @@ function AddTransactionForm() {
           {/* Tapping any blank gap between fields dismisses the memo's
             keyboard — keyboardShouldPersistTaps="handled" above already lets
             taps on the fields/buttons themselves still register in one tap. */}
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.form}>
-              {/* One card, one row per field — outlined boxes stacked
+          <PanelRevealContext.Provider value={revealPanel}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.form}>
+                {/* One card, one row per field — outlined boxes stacked
                 above an outlined pad was all border and no form. */}
-              <FieldCard large>
-                {payeeReadOnly ? (
-                  <FieldRow label={t('common.payee')} value={payee} />
-                ) : (
-                  <SearchableDropdownField
-                    compact
-                    row
-                    autoFocusSearch={false}
-                    openSignal={payeeSignal}
-                    label={t('common.payee')}
-                    valueLabel={payee}
-                    placeholder={t(
-                      isLoanAccount
-                        ? 'spend.paidFromPlaceholder'
-                        : 'spend.payeePlaceholder',
-                    )}
-                    searchPlaceholder={t('spend.payeeSearchPlaceholder')}
-                    options={payeePickerOptions}
-                    onSelect={(o) => selectPayee(o.label, o.id)}
-                    onEditOption={(o) =>
-                      setRenamingPayee({ id: o.id, name: o.label })
-                    }
-                    onUseText={isLoanAccount ? () => {} : setPayee}
-                  />
-                )}
-                {/* An inflow's source is its payee, so it needs no category and
+                <FieldCard large>
+                  {payeeReadOnly ? (
+                    <FieldRow label={t('common.payee')} value={payee} />
+                  ) : (
+                    <SearchableDropdownField
+                      compact
+                      row
+                      autoFocusSearch={false}
+                      openSignal={payeeSignal}
+                      label={t('common.payee')}
+                      valueLabel={payee}
+                      placeholder={t(
+                        isLoanAccount
+                          ? 'spend.paidFromPlaceholder'
+                          : 'spend.payeePlaceholder',
+                      )}
+                      searchPlaceholder={t('spend.payeeSearchPlaceholder')}
+                      options={payeePickerOptions}
+                      onSelect={(o) => selectPayee(o.label, o.id)}
+                      onEditOption={(o) =>
+                        setRenamingPayee({ id: o.id, name: o.label })
+                      }
+                      onUseText={isLoanAccount ? () => {} : setPayee}
+                    />
+                  )}
+                  {/* An inflow's source is its payee, so it needs no category and
                   no second field naming where it came from. */}
-                {direction === 'in' ? null : !takesCategory ? (
-                  isTransfer &&
-                  linkedTarget &&
-                  isLoanLikeType(linkedTarget.type) ? (
-                    // The loan's own payment category, set on the loan account
-                    // — shown, not picked (see transactionsRepo).
-                    <FieldRow
+                  {direction === 'in' ? null : !takesCategory ? (
+                    isTransfer &&
+                    linkedTarget &&
+                    isLoanLikeType(linkedTarget.type) ? (
+                      // The loan's own payment category, set on the loan account
+                      // — shown, not picked (see transactionsRepo).
+                      <FieldRow
+                        label={t('common.category')}
+                        value={(() => {
+                          const c = categories.find(
+                            (cat) => cat.id === presetLoanCategoryId,
+                          );
+                          return c
+                            ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                            : t('common.uncategorized');
+                        })()}
+                      />
+                    ) : null
+                  ) : (
+                    <DropdownField
+                      compact
+                      row
                       label={t('common.category')}
-                      value={(() => {
-                        const c = categories.find(
-                          (cat) => cat.id === presetLoanCategoryId,
-                        );
-                        return c
-                          ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
-                          : t('common.uncategorized');
-                      })()}
-                    />
-                  ) : null
-                ) : (
-                  <DropdownField
-                    compact
-                    row
-                    label={t('common.category')}
-                    openSignal={categorySignal}
-                    valueLabel={
-                      categoryId == null
-                        ? ''
-                        : (() => {
-                            const c = categories.find(
-                              (cat) => cat.id === categoryId,
-                            );
-                            return c
-                              ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
-                              : '';
-                          })()
-                    }
-                  >
-                    {(close) => (
-                      <>
-                        <DropdownOption
-                          label={t('common.uncategorized')}
-                          selected={categoryId == null}
-                          onPress={() => {
-                            setCategoryId(null);
-                            close();
-                          }}
-                        />
-                        {groups.map((group) => {
-                          const groupCategories = categories.filter(
-                            (c) => c.groupId === group.id,
-                          );
-                          if (groupCategories.length === 0) return null;
-                          return (
-                            <View key={group.id}>
-                              <DropdownGroupLabel label={group.name} />
-                              {groupCategories.map((c) => (
-                                <DropdownOption
-                                  key={c.id}
-                                  label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
-                                  selected={categoryId === c.id}
-                                  onPress={() => {
-                                    setCategoryId(c.id);
-                                    close();
-                                  }}
-                                />
-                              ))}
-                            </View>
-                          );
-                        })}
-                      </>
-                    )}
-                  </DropdownField>
-                )}
-                <DateField
-                  row
-                  label={dateLabel}
-                  value={date}
-                  onChange={setDate}
-                />
-                {/* Only on a real row: the scheduled-transaction table has no
-                  items column, so a template would drop them silently. */}
-                {isScheduled ? null : (
-                  <View ref={itemsRef}>
-                    <FieldRow
-                      label={t('purchaseItems.label')}
-                      value={itemsSummary}
-                      expanded={itemsOpen}
-                      onPress={toggleItems}
-                    />
-                    {itemsOpen ? (
-                      <ExpandedPanel scroll={false}>
-                        <View style={styles.itemsPanel}>
-                          <Pressable
-                            style={styles.scan}
-                            hitSlop={8}
-                            disabled={scanning}
-                            onPress={chooseScanSource}
-                          >
-                            <Text style={styles.scanText}>
-                              {scanning
-                                ? t('receiptScan.reading')
-                                : t('receiptScan.scan')}
-                            </Text>
-                          </Pressable>
-                          <PurchaseItemsField
-                            rows={itemRows}
-                            onChangeRows={(rows) => {
-                              if (rows.length !== itemRows.length)
-                                setPriceRow(null);
-                              setItemRows(rows);
-                            }}
-                            onRevealPrice={revealAbovePad}
-                            nameOptions={itemNames}
-                            totalCents={amountCents(amount) || undefined}
-                            activePrice={priceRow}
-                            activePriceText={formatAmountExpression(priceExpr)}
-                            onPressPrice={(index) => {
-                              focusPrice(index);
-                            }}
-                            onFocusName={(node) => {
-                              setPriceRow(null);
-                              revealRow(node);
-                            }}
-                            onBlurName={() => revealRow(null)}
-                            onNextPrice={nextPrice}
-                            nameToFocus={nameToFocus}
-                          />
-                        </View>
-                      </ExpandedPanel>
-                    ) : null}
-                  </View>
-                )}
-                {/* A row of the card like any other: placeholder alone until
-                  there is a note, then the label above it. One line — Return
-                  finishes the note rather than starting a second line. */}
-                <Pressable
-                  ref={memoRef}
-                  style={styles.memoRow}
-                  onPress={() => memoInputRef.current?.focus()}
-                >
-                  {memo ? (
-                    <Text style={styles.memoLabel}>
-                      {t('spend.memoSection')}
-                    </Text>
-                  ) : null}
-                  <TextInput
-                    ref={memoInputRef}
-                    style={styles.memoInput}
-                    placeholder={t('spend.memoPlaceholder')}
-                    value={memo}
-                    onChangeText={setMemo}
-                    placeholderTextColor={colors.textMuted}
-                    keyboardAppearance="dark"
-                    returnKeyType="done"
-                    submitBehavior="blurAndSubmit"
-                    onFocus={() => {
-                      revealRow(memoRef.current);
-                    }}
-                    onBlur={() => revealRow(null)}
-                  />
-                </Pressable>
-              </FieldCard>
-              {isScheduled ? (
-                <>
-                  <RepeatField
-                    label={t('addTransactionModal.repeatLabel')}
-                    rule={rule}
-                    onChange={setRule}
-                    startDate={date}
-                  />
-                  <Pressable
-                    style={styles.checkboxRow}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setHasEndDate((v) => !v);
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        hasEndDate && styles.checkboxChecked,
-                      ]}
+                      openSignal={categorySignal}
+                      valueLabel={
+                        categoryId == null
+                          ? ''
+                          : (() => {
+                              const c = categories.find(
+                                (cat) => cat.id === categoryId,
+                              );
+                              return c
+                                ? `${c.icon ? c.icon + ' ' : ''}${c.name}`
+                                : '';
+                            })()
+                      }
                     >
-                      {hasEndDate ? (
-                        <Text style={styles.checkboxMark}>✓</Text>
+                      {(close) => (
+                        <>
+                          <DropdownOption
+                            label={t('common.uncategorized')}
+                            selected={categoryId == null}
+                            onPress={() => {
+                              setCategoryId(null);
+                              close();
+                            }}
+                          />
+                          {groups.map((group) => {
+                            const groupCategories = categories.filter(
+                              (c) => c.groupId === group.id,
+                            );
+                            if (groupCategories.length === 0) return null;
+                            return (
+                              <View key={group.id}>
+                                <DropdownGroupLabel label={group.name} />
+                                {groupCategories.map((c) => (
+                                  <DropdownOption
+                                    key={c.id}
+                                    label={`${c.icon ? c.icon + ' ' : ''}${c.name}`}
+                                    selected={categoryId === c.id}
+                                    onPress={() => {
+                                      setCategoryId(c.id);
+                                      close();
+                                    }}
+                                  />
+                                ))}
+                              </View>
+                            );
+                          })}
+                        </>
+                      )}
+                    </DropdownField>
+                  )}
+                  <DateField
+                    row
+                    label={dateLabel}
+                    value={date}
+                    onChange={setDate}
+                  />
+                  {/* Only on a real row: the scheduled-transaction table has no
+                  items column, so a template would drop them silently. */}
+                  {isScheduled ? null : (
+                    <View ref={itemsRef}>
+                      <FieldRow
+                        label={t('purchaseItems.label')}
+                        value={itemsSummary}
+                        expanded={itemsOpen}
+                        onPress={toggleItems}
+                      />
+                      {itemsOpen ? (
+                        <ExpandedPanel scroll={false}>
+                          <View style={styles.itemsPanel}>
+                            <Pressable
+                              style={styles.scan}
+                              hitSlop={8}
+                              disabled={scanning}
+                              onPress={chooseScanSource}
+                            >
+                              <Text style={styles.scanText}>
+                                {scanning
+                                  ? t('receiptScan.reading')
+                                  : t('receiptScan.scan')}
+                              </Text>
+                            </Pressable>
+                            <PurchaseItemsField
+                              rows={itemRows}
+                              onChangeRows={(rows) => {
+                                if (rows.length !== itemRows.length)
+                                  setPriceRow(null);
+                                setItemRows(rows);
+                              }}
+                              onRevealPrice={revealAbovePad}
+                              nameOptions={itemNames}
+                              totalCents={amountCents(amount) || undefined}
+                              activePrice={priceRow}
+                              activePriceText={formatAmountExpression(
+                                priceExpr,
+                              )}
+                              onPressPrice={(index) => {
+                                focusPrice(index);
+                              }}
+                              onFocusName={(node) => {
+                                setPriceRow(null);
+                                revealRow(node);
+                              }}
+                              onBlurName={() => revealRow(null)}
+                              onNextPrice={nextPrice}
+                              nameToFocus={nameToFocus}
+                            />
+                          </View>
+                        </ExpandedPanel>
                       ) : null}
                     </View>
-                    <Text style={styles.checkboxLabel}>
-                      {t('addTransactionModal.hasEndDateLabel')}
+                  )}
+                  {/* A row of the card like any other: placeholder alone until
+                  there is a note, then the label above it. One line — Return
+                  finishes the note rather than starting a second line. */}
+                  <Pressable
+                    ref={memoRef}
+                    style={styles.memoRow}
+                    onPress={() => memoInputRef.current?.focus()}
+                  >
+                    {memo ? (
+                      <Text style={styles.memoLabel}>
+                        {t('spend.memoSection')}
+                      </Text>
+                    ) : null}
+                    <TextInput
+                      ref={memoInputRef}
+                      style={styles.memoInput}
+                      placeholder={t('spend.memoPlaceholder')}
+                      value={memo}
+                      onChangeText={setMemo}
+                      placeholderTextColor={colors.textMuted}
+                      keyboardAppearance="dark"
+                      returnKeyType="done"
+                      submitBehavior="blurAndSubmit"
+                      onFocus={() => {
+                        revealRow(memoRef.current);
+                      }}
+                      onBlur={() => revealRow(null)}
+                    />
+                  </Pressable>
+                </FieldCard>
+                {isScheduled ? (
+                  <>
+                    <RepeatField
+                      label={t('addTransactionModal.repeatLabel')}
+                      rule={rule}
+                      onChange={setRule}
+                      startDate={date}
+                    />
+                    <Pressable
+                      style={styles.checkboxRow}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setHasEndDate((v) => !v);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.checkbox,
+                          hasEndDate && styles.checkboxChecked,
+                        ]}
+                      >
+                        {hasEndDate ? (
+                          <Text style={styles.checkboxMark}>✓</Text>
+                        ) : null}
+                      </View>
+                      <Text style={styles.checkboxLabel}>
+                        {t('addTransactionModal.hasEndDateLabel')}
+                      </Text>
+                    </Pressable>
+                    {hasEndDate ? (
+                      <DateField
+                        label={t('addTransactionModal.endDateLabel')}
+                        value={endDate}
+                        onChange={setEndDate}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+                {isEditing ? (
+                  <Pressable style={styles.deleteButton} onPress={remove}>
+                    <Text style={styles.deleteButtonText}>
+                      {t('spend.deleteTransaction')}
                     </Text>
                   </Pressable>
-                  {hasEndDate ? (
-                    <DateField
-                      label={t('addTransactionModal.endDateLabel')}
-                      value={endDate}
-                      onChange={setEndDate}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-              {isEditing ? (
-                <Pressable style={styles.deleteButton} onPress={remove}>
-                  <Text style={styles.deleteButtonText}>
-                    {t('spend.deleteTransaction')}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </TouchableWithoutFeedback>
+                ) : null}
+              </View>
+            </TouchableWithoutFeedback>
+          </PanelRevealContext.Provider>
         </ScrollView>
       </View>
       {/* Pinned under the scroll, never moving with it: it is always typing

@@ -1,7 +1,7 @@
 import { nextMonth } from './month';
 
 // How far a step is from done at the rate it has actually been moving: the
-// last 12 months' average net flow, projected forward in a straight line. No
+// last 12 months' average net flow (this month included), projected forward in a straight line. No
 // interest, no raises — a pace, not a forecast.
 
 // Past this, a date means nothing; "decades" says it better.
@@ -10,7 +10,7 @@ const MAX_MONTHS = 600;
 export type Pace =
   | { kind: 'done' }
   // Not moving toward the target at all, or moving away from it.
-  | { kind: 'stalled' }
+  | { kind: 'stalled'; monthlyCents: number }
   | { kind: 'eta'; monthlyCents: number; months: number; doneBy: string }
   | { kind: 'far'; monthlyCents: number };
 
@@ -22,7 +22,7 @@ export function paceToTarget(
 ): Pace {
   const remaining = targetCents - currentCents;
   if (remaining <= 0) return { kind: 'done' };
-  if (monthlyCents <= 0) return { kind: 'stalled' };
+  if (monthlyCents <= 0) return { kind: 'stalled', monthlyCents };
   const months = Math.ceil(remaining / monthlyCents);
   if (months > MAX_MONTHS) return { kind: 'far', monthlyCents };
   let doneBy = fromMonth;

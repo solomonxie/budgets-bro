@@ -843,6 +843,7 @@ export const en = {
   'babySteps.paceEta': '12-mo avg {pace}/mo · done by {date}',
   'babySteps.paceFar': '12-mo avg {pace}/mo · more than 50 years away',
   'babySteps.paceStalled': 'No progress in the last 12 months',
+  'babySteps.paceShrinking': '12-mo avg {pace}/mo · shrinking, not growing',
   'babySteps.step4Gap': '{gap} a month more gets you to 15%',
   'babySteps.step7Pace': 'On pace for {amount} this year',
   'babySteps.stepPrefix': 'Step {number}: {title}',
@@ -1031,8 +1032,8 @@ export const en = {
   'review.allClear': 'Nothing is flagged.',
 
   'budget.spentThisMonth': 'Spent This Month',
-  'budget.assignedThisMonth': 'Assigned {amount}',
   'budget.timesAverage': '{times} avg',
+  'budget.assignedThisMonth': 'Assigned {amount}',
   'budget.unassignedBannerPositive':
     '⚠ {amount} unassigned — give it a job',
   'budget.unassignedBannerNegative':
@@ -1091,7 +1092,7 @@ export const en = {
   'runway.strong': 'Strong',
   'runway.formula': '{cash} on hand ÷ {cost} a month',
   'runway.paycheckCount': 'Paycheck to paycheck in {count} of the last {total} months',
-  'runway.noPaycheckMonths': 'Not paycheck to paycheck in any of the last 12 months',
+  'runway.noPaycheckMonths': 'Not paycheck to paycheck for {count} months in a row',
   'runway.infoTitle': 'What Runway measures',
   'runway.infoWhat':
     'How many months you could keep living as you do now if every paycheck stopped today. Each bar is that answer at the end of a month.',

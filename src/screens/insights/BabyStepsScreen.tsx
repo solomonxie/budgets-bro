@@ -31,6 +31,7 @@ import { accountKind } from '../../domain/accountKind';
 import {
   currentMonth,
   formatMonthLabel,
+  nextMonth,
   previousMonth,
 } from '../../domain/month';
 import { formatMoney } from '../../domain/money';
@@ -115,6 +116,18 @@ function trailingMonthsWindow(count: number) {
   return { startDate: `${start}-01`, endDateExclusive: `${month}-01` };
 }
 
+// The last `count` months counting this one, so a deposit made today moves
+// the pace today rather than next month.
+function monthsToDateWindow(count: number) {
+  const month = currentMonth();
+  let start = month;
+  for (let i = 1; i < count; i++) start = previousMonth(start);
+  return {
+    startDate: `${start}-01`,
+    endDateExclusive: `${nextMonth(month)}-01`,
+  };
+}
+
 function trailingThreeMonthWindow() {
   return trailingMonthsWindow(3);
 }
@@ -156,6 +169,7 @@ export function BabyStepsScreen() {
   const { goals, refresh: refreshGoals } = useCustomGoals();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
+  const dataVersion = useAppStore((s) => s.dataVersion);
 
   const [step1AccountIds, setStep1AccountIds] = useState<number[]>([]);
   const [step3AccountIds, setStep3AccountIds] = useState<number[]>([]);
@@ -412,7 +426,7 @@ export function BabyStepsScreen() {
     ];
     (async () => {
       const db = await getDb();
-      const { startDate, endDateExclusive } = trailingMonthsWindow(PACE_MONTHS);
+      const { startDate, endDateExclusive } = monthsToDateWindow(PACE_MONTHS);
       setFlows(
         await reportsRepo.netFlowByAccountInRange(
           db,
@@ -423,7 +437,7 @@ export function BabyStepsScreen() {
         ),
       );
     })();
-  }, [boardId, paceAccountKey]);
+  }, [boardId, paceAccountKey, dataVersion]);
 
   const monthlyFlow = (ids: number[]) =>
     Math.round(
@@ -884,7 +898,12 @@ export function BabyStepsScreen() {
 
   const paceText = (pace: Pace | null): string | null => {
     if (!pace || pace.kind === 'done') return null;
-    if (pace.kind === 'stalled') return t('babySteps.paceStalled');
+    if (pace.kind === 'stalled')
+      return pace.monthlyCents < 0
+        ? t('babySteps.paceShrinking', {
+            pace: formatMoney(pace.monthlyCents),
+          })
+        : t('babySteps.paceStalled');
     if (pace.kind === 'far')
       return t('babySteps.paceFar', { pace: formatMoney(pace.monthlyCents) });
     return t('babySteps.paceEta', {

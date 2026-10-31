@@ -72,6 +72,18 @@ export function paycheckToPaycheckCount(points: RunwayPoint[], n = 12): number {
     .length;
 }
 
+// How many months in a row, back from the latest, ended with at least a
+// month in hand — over the whole history, not capped at a year.
+export function notPaycheckStreak(points: RunwayPoint[]): number {
+  let streak = 0;
+  for (let i = points.length - 1; i >= 0; i--) {
+    const months = points[i].months;
+    if (months == null || runwayLevel(months) === 'paycheck') break;
+    streak++;
+  }
+  return streak;
+}
+
 // Each month's average runway over the `n` months ending with it — the
 // benchmark line, so a month reads against its own recent past.
 export function rollingAverageMonths(points: RunwayPoint[], n = 12): (number | null)[] {

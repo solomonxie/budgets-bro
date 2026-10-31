@@ -8,9 +8,13 @@ describe('paceToTarget', () => {
   });
 
   it('stalls when the balance is flat or falling', () => {
-    expect(paceToTarget(0, 100_000, 0, '2026-09')).toEqual({ kind: 'stalled' });
+    expect(paceToTarget(0, 100_000, 0, '2026-09')).toEqual({
+      kind: 'stalled',
+      monthlyCents: 0,
+    });
     expect(paceToTarget(0, 100_000, -2_000, '2026-09')).toEqual({
       kind: 'stalled',
+      monthlyCents: -2_000,
     });
   });
 

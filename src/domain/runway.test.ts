@@ -1,4 +1,4 @@
-import { paycheckToPaycheckCount, rollingAverageMonths, runwayLevel, runwayTrend } from './runway';
+import { notPaycheckStreak, paycheckToPaycheckCount, rollingAverageMonths, runwayLevel, runwayTrend } from './runway';
 
 describe('runwayLevel', () => {
   it('bands at 1 / 3 / 6 months', () => {
@@ -90,5 +90,14 @@ describe('rollingAverageMonths', () => {
   });
   it('drops months older than the window', () => {
     expect(rollingAverageMonths([p(10), p(2), p(4)], 2)).toEqual([10, 6, 3]);
+  });
+});
+
+describe('notPaycheckStreak', () => {
+  const p = (months: number | null) => ({ month: '', cashCents: 0, avgCostCents: 0, months });
+  it('counts back from the latest month until one ran thin or has no data', () => {
+    expect(notPaycheckStreak([p(2), p(0.5), p(2), p(3), p(1.5)])).toBe(3);
+    expect(notPaycheckStreak([p(null), p(2), p(2)])).toBe(2);
+    expect(notPaycheckStreak([p(2), p(0.5)])).toBe(0);
   });
 });

@@ -827,6 +827,7 @@ export const zh: Record<keyof typeof en, string> = {
   'babySteps.paceEta': '近 12 月平均每月 {pace} · 预计 {date} 完成',
   'babySteps.paceFar': '近 12 月平均每月 {pace} · 需要 50 年以上',
   'babySteps.paceStalled': '最近 12 个月没有进展',
+  'babySteps.paceShrinking': '近 12 月平均每月 {pace} · 在减少',
   'babySteps.step4Gap': '每月再多 {gap} 就能达到 15%',
   'babySteps.step7Pace': '按目前进度，今年将捐出 {amount}',
   'babySteps.stepPrefix': '第 {number} 步：{title}',
@@ -1010,8 +1011,8 @@ export const zh: Record<keyof typeof en, string> = {
   'review.allClear': '没有被标记的交易。',
 
   'budget.spentThisMonth': '本月支出',
-  'budget.assignedThisMonth': '已分配 {amount}',
   'budget.timesAverage': '月均 {times}',
+  'budget.assignedThisMonth': '已分配 {amount}',
   'budget.unassignedBannerPositive': '⚠ {amount} 未分配——请分配出去',
   'budget.unassignedBannerNegative': '⚠ 多分配了 {amount}——请从分类挪出',
   'budget.breakdownCash': '现金',
@@ -1068,7 +1069,7 @@ export const zh: Record<keyof typeof en, string> = {
   'runway.strong': '充足',
   'runway.formula': '现有 {cash} ÷ 每月 {cost}',
   'runway.paycheckCount': '最近 {total} 个月中有 {count} 个月是月光',
-  'runway.noPaycheckMonths': '最近 12 个月没有一个月是月光',
+  'runway.noPaycheckMonths': '已连续 {count} 个月不是月光',
   'runway.infoTitle': '资金续航衡量什么',
   'runway.infoWhat':
     '如果今天起没有任何收入，按现在的生活方式还能撑几个月。每根柱子是某个月底的答案。',

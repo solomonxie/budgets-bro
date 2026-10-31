@@ -12,6 +12,7 @@ import { useChartScrub } from '../../components/ui/chartScrub';
 import { InfoButton } from '../../components/ui/InfoButton';
 import { useRunway } from '../../hooks/useRunway';
 import {
+  notPaycheckStreak,
   paycheckToPaycheckCount,
   rollingAverageMonths,
   runwayLevel,
@@ -227,7 +228,7 @@ export function RunwayCard({ selectedMonth }: { selectedMonth: string }) {
               count: paycheckMonths,
               total: Math.min(12, points.length),
             })
-          : t('runway.noPaycheckMonths')}
+          : t('runway.noPaycheckMonths', { count: notPaycheckStreak(points) })}
       </Text>
     </View>
   );

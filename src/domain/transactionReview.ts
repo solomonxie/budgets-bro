@@ -68,17 +68,31 @@ export function primaryQuickFix(reasons: ReviewReason[]): ReviewReason | null {
   return QUICK_FIXABLE.find((candidate) => reasons.includes(candidate)) ?? null;
 }
 
-
 export function missingPayee(txn: TransactionWithLabels): boolean {
   return txn.payeeId == null;
 }
 
+// The payee "Correct Balance" files its one-row fix under.
+export const BALANCE_ADJUSTMENT_PAYEE = 'Balance Adjustment';
+
+// Bookkeeping, not money anyone paid or was paid: the app's own adjustment
+// and YNAB's two from an import. Uncategorized on purpose, and no payee
+// trend — mirrored in databases/queries/reports.ts NOT_BOOKKEEPING.
+export const BOOKKEEPING_PAYEES = [
+  BALANCE_ADJUSTMENT_PAYEE,
+  'Reconciliation Balance Adjustment',
+  'Starting Balance',
+];
+
 // Same rule every list draws "Uncategorized" by (see accountKind): only an
 // outflow from an account that spends can be missing one. A transfer leg or
-// a savings withdrawal isn't uncategorized, it simply takes no category.
+// a savings withdrawal isn't uncategorized, it simply takes no category. Nor
+// is a balance adjustment or starting balance: left uncategorized on
+// purpose, so the difference moves Unassigned rather than some category.
 export function missingCategory(txn: TransactionWithLabels): boolean {
   return (
     txn.categoryId == null &&
+    !BOOKKEEPING_PAYEES.includes(txn.payeeName ?? '') &&
     txn.amountCents < 0 &&
     transactionTakesCategory(txn.accountType, txn.transferAccountId != null)
   );

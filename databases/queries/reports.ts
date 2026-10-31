@@ -55,6 +55,11 @@ export const INCOME_BY_PAYEE_IN_RANGE = `
   ORDER BY total DESC
 `;
 
+// Starting balances and balance adjustments are bookkeeping, not anyone you
+// paid or were paid by — kept out of the payee and income trends. Mirrors
+// domain/transactionReview BOOKKEEPING_PAYEES.
+export const NOT_BOOKKEEPING = `(p.name IS NULL OR p.name NOT IN ('Balance Adjustment', 'Reconciliation Balance Adjustment', 'Starting Balance'))`;
+
 // Who the money went to, month by month — the payee equivalent of
 // SPENDING_BY_CATEGORY_OVER_MONTHS, and the same definition of spending
 // (negative, not a transfer, on-budget, already happened) so the two pages
@@ -67,7 +72,7 @@ export const SPENDING_BY_PAYEE_OVER_MONTHS = `
   FROM transactions t
   JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
   LEFT JOIN payees p ON p.id = t.payee_id
-  WHERE t.amount_cents < 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ?
+  WHERE t.amount_cents < 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ? AND ${NOT_BOOKKEEPING}
   GROUP BY t.payee_id, month
 `;
 
@@ -80,7 +85,7 @@ export const INCOME_BY_PAYEE_OVER_MONTHS = `
   FROM transactions t
   JOIN accounts a ON a.id = t.account_id AND a.on_budget = 1
   LEFT JOIN payees p ON p.id = t.payee_id
-  WHERE t.amount_cents > 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ?
+  WHERE t.amount_cents > 0 AND t.date >= ? AND t.date < ? AND t.date <= ? AND t.transfer_account_id IS NULL AND t.board_id = ? AND ${NOT_BOOKKEEPING}
   GROUP BY t.payee_id, month
 `;
 

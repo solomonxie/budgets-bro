@@ -3,6 +3,7 @@ import type { TransactionJoinRow } from '../schema';
 import type { AccountType, TransactionWithLabels } from '../../domain/types';
 import type { PurchaseItemRow } from '../../domain/trackedPrices';
 import { currentDateISO } from '../../domain/month';
+import { BALANCE_ADJUSTMENT_PAYEE } from '../../domain/transactionReview';
 import { findOrCreatePayee, getPayee, pruneUnusedPayees } from './payeesRepo';
 import {
   SELECT_WITH_LABELS,
@@ -483,7 +484,7 @@ export async function correctBalance(
   deltaCents: number,
 ): Promise<void> {
   if (deltaCents === 0) return;
-  const payeeId = await findOrCreatePayee(db, boardId, 'Balance Adjustment');
+  const payeeId = await findOrCreatePayee(db, boardId, BALANCE_ADJUSTMENT_PAYEE);
   await db.runAsync(
     'INSERT INTO transactions (board_id, account_id, payee_id, amount_cents, date) VALUES (?, ?, ?, ?, ?)',
     boardId,

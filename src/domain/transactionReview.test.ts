@@ -1,4 +1,6 @@
+import { NOT_BOOKKEEPING } from '../../databases/queries/reports';
 import {
+  BOOKKEEPING_PAYEES,
   duplicateGroups,
   duplicateTransactionIds,
   transactionsNeedingReview,
@@ -33,16 +35,56 @@ describe('transactionsNeedingReview', () => {
 
   it('flags a missing payee and a missing category', () => {
     const [item] = transactionsNeedingReview([
-      txn({ payeeId: null, payeeName: null, categoryId: null, categoryName: null }),
+      txn({
+        payeeId: null,
+        payeeName: null,
+        categoryId: null,
+        categoryName: null,
+      }),
     ]);
     expect(item.reasons).toEqual(['missingPayee', 'missingCategory']);
   });
 
+  it('leaves a balance adjustment uncategorized on purpose', () => {
+    const rows = BOOKKEEPING_PAYEES.map((payeeName, i) =>
+      txn({
+        id: i + 1,
+        payeeName,
+        amountCents: -1000 * (i + 1),
+        categoryId: null,
+        categoryName: null,
+      }),
+    );
+    expect(transactionsNeedingReview(rows)).toEqual([]);
+  });
+
+  it("keeps the trends' SQL exclusion in step with the bookkeeping payees", () => {
+    for (const name of BOOKKEEPING_PAYEES)
+      expect(NOT_BOOKKEEPING).toContain(`'${name}'`);
+  });
+
   it('does not call an inflow or a transfer uncategorized', () => {
-    const inflow = txn({ id: 1, amountCents: 5000, categoryId: null, categoryName: null });
-    const transfer = txn({ id: 2, amountCents: -2000, transferAccountId: 7, categoryId: null, categoryName: null });
+    const inflow = txn({
+      id: 1,
+      amountCents: 5000,
+      categoryId: null,
+      categoryName: null,
+    });
+    const transfer = txn({
+      id: 2,
+      amountCents: -2000,
+      transferAccountId: 7,
+      categoryId: null,
+      categoryName: null,
+    });
     // A tracking account takes no category at all.
-    const tracked = txn({ id: 3, amountCents: -3000, accountType: 'tracking', categoryId: null, categoryName: null });
+    const tracked = txn({
+      id: 3,
+      amountCents: -3000,
+      accountType: 'tracking',
+      categoryId: null,
+      categoryName: null,
+    });
     expect(transactionsNeedingReview([inflow, transfer, tracked])).toEqual([]);
   });
 
@@ -90,8 +132,20 @@ describe('duplicateTransactionIds', () => {
 
   it('keeps the two legs of a transfer apart', () => {
     const ids = duplicateTransactionIds([
-      txn({ id: 1, accountId: 1, transferAccountId: 2, amountCents: -1000, payeeId: 20 }),
-      txn({ id: 2, accountId: 2, transferAccountId: 1, amountCents: 1000, payeeId: 21 }),
+      txn({
+        id: 1,
+        accountId: 1,
+        transferAccountId: 2,
+        amountCents: -1000,
+        payeeId: 20,
+      }),
+      txn({
+        id: 2,
+        accountId: 2,
+        transferAccountId: 1,
+        amountCents: 1000,
+        payeeId: 21,
+      }),
     ]);
     expect(ids.size).toBe(0);
   });

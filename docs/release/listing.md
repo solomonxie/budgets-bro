@@ -293,7 +293,7 @@ The app works the same in every region. It is available in English and Simplifie
 REGULATION
 Budgets Bro is a personal record-keeping and planning tool. It does not move money, hold funds, lend, process payments, connect to banks or give investment advice; calculator results are estimates for planning. No third-party protected material is included.
 
-All data is stored in a local database on the device. We operate no server and receive no user data.
+All data is stored in a local database on the device; we receive none of it.
 ```
 
 What's New: not shown for a first version. From 1.1 on, write it here.

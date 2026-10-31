@@ -1,5 +1,11 @@
 import type { SQLiteDatabase } from '../../db/driver';
-import { nextMonth, previousMonth, currentDateISO, currentMonth } from '../../domain/month';
+import {
+  nextMonth,
+  previousMonth,
+  currentDateISO,
+  currentMonth,
+  lastNMonths,
+} from '../../domain/month';
 import {
   categoryBalanceCents,
   closePastMonths,
@@ -95,6 +101,27 @@ export async function activityThisMonthByCategory(
   );
   const map: Record<number, number> = {};
   for (const r of rows) map[r.category_id] = r.total;
+  return map;
+}
+
+// Each category's net spending per month across the 12 months before
+// `month` — a whole year, so a category bought once a quarter isn't judged
+// by whichever month came last.
+export async function averageMonthlySpentByCategory(
+  db: SQLiteDatabase,
+  boardId: number,
+  month: string,
+): Promise<Record<number, number>> {
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
+    ACTIVITY_THIS_MONTH,
+    `${lastNMonths(previousMonth(month), 12)[0]}-01`,
+    `${month}-01`,
+    currentDateISO(),
+    boardId,
+  );
+  const map: Record<number, number> = {};
+  for (const r of rows)
+    map[r.category_id] = Math.round(Math.max(0, -r.total) / 12);
   return map;
 }
 
@@ -259,20 +286,21 @@ export async function unassignedBreakdown(
   const throughMonth = currentMonth();
   const endExclusive = `${nextMonth(throughMonth)}-01`;
   const today = currentDateISO();
-  const [assigned, activity, cashCents, cardBalance, assignedAheadCents] = await Promise.all([
-    totalAssigned(db, boardId),
-    totalActivityThroughMonth(db, boardId, throughMonth),
-    cashAccountsBalanceThroughMonth(db, boardId, throughMonth),
-    sumOrZero(
-      db,
-      CREDIT_CARD_BALANCE_THROUGH_MONTH,
-      boardId,
-      boardId,
-      endExclusive,
-      today,
-    ),
-    sumOrZero(db, TOTAL_ASSIGNED_AFTER_MONTH, throughMonth, boardId),
-  ]);
+  const [assigned, activity, cashCents, cardBalance, assignedAheadCents] =
+    await Promise.all([
+      totalAssigned(db, boardId),
+      totalActivityThroughMonth(db, boardId, throughMonth),
+      cashAccountsBalanceThroughMonth(db, boardId, throughMonth),
+      sumOrZero(
+        db,
+        CREDIT_CARD_BALANCE_THROUGH_MONTH,
+        boardId,
+        boardId,
+        endExclusive,
+        today,
+      ),
+      sumOrZero(db, TOTAL_ASSIGNED_AFTER_MONTH, throughMonth, boardId),
+    ]);
   const envelopesCents = categoryBalanceCents(assigned, activity);
   return {
     cashCents,
@@ -313,17 +341,36 @@ export function closePastBudgetMonths(
     .catch(() => {})
     .then(async () => {
       const current = currentMonth();
-      const totals = await monthlyTotalsByCategory(db, boardId, previousMonth(current));
+      const totals = await monthlyTotalsByCategory(
+        db,
+        boardId,
+        previousMonth(current),
+      );
       const changes = Object.entries(totals)
-        .map(([id, months]) => ({ categoryId: Number(id), ...closePastMonths(months, current) }))
+        .map(([id, months]) => ({
+          categoryId: Number(id),
+          ...closePastMonths(months, current),
+        }))
         .filter((c) => c.assigned.length > 0 || c.carryCents !== 0);
       if (changes.length === 0) return;
       await db.withTransactionAsync(async () => {
         for (const c of changes) {
           for (const m of c.assigned)
-            await db.runAsync(UPSERT_ASSIGNED_CENTS, c.categoryId, m.month, m.assignedCents, boardId);
+            await db.runAsync(
+              UPSERT_ASSIGNED_CENTS,
+              c.categoryId,
+              m.month,
+              m.assignedCents,
+              boardId,
+            );
           if (c.carryCents !== 0)
-            await db.runAsync(ADD_ASSIGNED_CENTS, c.categoryId, current, c.carryCents, boardId);
+            await db.runAsync(
+              ADD_ASSIGNED_CENTS,
+              c.categoryId,
+              current,
+              c.carryCents,
+              boardId,
+            );
         }
       });
     });

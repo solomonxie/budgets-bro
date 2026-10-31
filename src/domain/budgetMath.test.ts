@@ -1,6 +1,7 @@
 import {
   accountBalanceCents,
   categoryBarSegments,
+  timesAverage,
   categoryBalanceCents,
   categoryCaption,
   categoryFundedCents,
@@ -61,11 +62,15 @@ describe('categoryStatus', () => {
   });
 
   it('is fully spent when a carry-over was spent to zero', () => {
-    expect(categoryStatus(0, categoryFundedCents(0, -5000))).toBe('fully-spent');
+    expect(categoryStatus(0, categoryFundedCents(0, -5000))).toBe(
+      'fully-spent',
+    );
   });
 
   it('is funded by a refund alone', () => {
-    expect(categoryStatus(1200, categoryFundedCents(1200, 1200))).toBe('funded');
+    expect(categoryStatus(1200, categoryFundedCents(1200, 1200))).toBe(
+      'funded',
+    );
   });
 });
 
@@ -92,7 +97,11 @@ describe('closePastMonths', () => {
 
   it('lets an earlier leftover cover a later overspend', () => {
     const r = closePastMonths(
-      [m('2026-07', 5000, -2000), m('2026-08', 0, -1000), m('2026-09', 0, -4000)],
+      [
+        m('2026-07', 5000, -2000),
+        m('2026-08', 0, -1000),
+        m('2026-09', 0, -4000),
+      ],
       '2026-10',
     );
     expect(r.carryCents).toBe(0);
@@ -104,9 +113,9 @@ describe('closePastMonths', () => {
   });
 
   it('turns a spend with no assignment into a covered month', () => {
-    expect(closePastMonths([m('2026-09', 0, -2500)], '2026-10').assigned).toEqual([
-      { month: '2026-09', assignedCents: 2500 },
-    ]);
+    expect(
+      closePastMonths([m('2026-09', 0, -2500)], '2026-10').assigned,
+    ).toEqual([{ month: '2026-09', assignedCents: 2500 }]);
   });
 
   it('closes a refund month at a negative assignment and carries the refund', () => {
@@ -118,7 +127,10 @@ describe('closePastMonths', () => {
 
   it('leaves the current and future months alone', () => {
     expect(
-      closePastMonths([m('2026-10', 9000, -1000), m('2026-11', 5000, 0)], '2026-10'),
+      closePastMonths(
+        [m('2026-10', 9000, -1000), m('2026-11', 5000, 0)],
+        '2026-10',
+      ),
     ).toEqual({ assigned: [], carryCents: 0 });
   });
 
@@ -127,16 +139,26 @@ describe('closePastMonths', () => {
     const first = closePastMonths(months, '2026-10');
     const closed = months.map((x) => ({
       ...x,
-      assignedCents: first.assigned.find((a) => a.month === x.month)?.assignedCents ?? x.assignedCents,
+      assignedCents:
+        first.assigned.find((a) => a.month === x.month)?.assignedCents ??
+        x.assignedCents,
     }));
-    expect(closePastMonths(closed, '2026-10')).toEqual({ assigned: [], carryCents: 0 });
+    expect(closePastMonths(closed, '2026-10')).toEqual({
+      assigned: [],
+      carryCents: 0,
+    });
   });
 
   it('keeps every dollar: cash assigned changes only by the overspend covered', () => {
-    const months = [m('2026-06', 30000, -10000), m('2026-07', 0, -25000), m('2026-08', 10000, -2000)];
+    const months = [
+      m('2026-06', 30000, -10000),
+      m('2026-07', 0, -25000),
+      m('2026-08', 10000, -2000),
+    ];
     const r = closePastMonths(months, '2026-10');
     const before = months.reduce((s, x) => s + x.assignedCents, 0);
-    const after = r.assigned.reduce((s, x) => s + x.assignedCents, 0) + r.carryCents;
+    const after =
+      r.assigned.reduce((s, x) => s + x.assignedCents, 0) + r.carryCents;
     // June leaves 200, July overspends 250: 50 covered, August leaves 80.
     expect(r.carryCents).toBe(8000);
     expect(after - before).toBe(5000);
@@ -145,30 +167,32 @@ describe('closePastMonths', () => {
 
 describe('categoryCaption', () => {
   it('reports overspend amount', () => {
-    expect(categoryCaption('overspent', 0, 15000, -4800)).toBe('Overspent by $48');
+    expect(categoryCaption('overspent', 19800, 15000)).toBe('Fully spent $198');
   });
 
   it('keeps the cents when a balance is under a dollar', () => {
     // A category at −40¢ is overspent, and rounding it to whole dollars
     // reported 'Overspent by $0' beside a red −$0 pill.
-    expect(categoryCaption('overspent', 0, 15000, -40)).toBe('Overspent by $0.40');
-    expect(categoryCaption('fully-spent', 199, 199, 0)).toBe('Fully spent $1.99');
+    expect(categoryCaption('overspent', 15040, 15000)).toBe(
+      'Fully spent $150.40',
+    );
+    expect(categoryCaption('fully-spent', 199, 199)).toBe('Fully spent $1.99');
   });
 
   it('reports not budgeted', () => {
-    expect(categoryCaption('unbudgeted', 0, 0, 0)).toBe('Not budgeted');
+    expect(categoryCaption('unbudgeted', 0, 0)).toBe('Not budgeted');
   });
 
   it('reports fully spent with the amount', () => {
-    expect(categoryCaption('fully-spent', 5000, 5000, 0)).toBe('Fully spent $50');
+    expect(categoryCaption('fully-spent', 5000, 5000)).toBe('Fully spent $50');
   });
 
   it('reports funded with no spending', () => {
-    expect(categoryCaption('funded', 0, 5000, 5000)).toBe('Funded');
+    expect(categoryCaption('funded', 0, 5000)).toBe('Funded');
   });
 
   it('reports spent-of-assigned when partially spent', () => {
-    expect(categoryCaption('funded', 4000, 15000, 11000)).toBe('Spent $40 of $150');
+    expect(categoryCaption('funded', 4000, 15000)).toBe('Spent $40 of $150');
   });
 });
 
@@ -185,47 +209,75 @@ describe('accountBalanceCents', () => {
 describe('categoryBarSegments', () => {
   it('splits by the real ratio', () => {
     // $50 spent of a $100 envelope: half and half.
-    expect(categoryBarSegments(5000, 5000)).toEqual({ spentPercent: 50, remainingPercent: 50 });
+    expect(categoryBarSegments(5000, 5000)).toEqual({
+      spentPercent: 50,
+      remainingPercent: 50,
+    });
   });
 
   it('is all remaining when funded and untouched', () => {
-    expect(categoryBarSegments(10000, 0)).toEqual({ spentPercent: 0, remainingPercent: 100 });
+    expect(categoryBarSegments(10000, 0)).toEqual({
+      spentPercent: 0,
+      remainingPercent: 100,
+    });
   });
 
   it('is all spent when the envelope is empty', () => {
-    expect(categoryBarSegments(0, 10000)).toEqual({ spentPercent: 100, remainingPercent: 0 });
+    expect(categoryBarSegments(0, 10000)).toEqual({
+      spentPercent: 100,
+      remainingPercent: 0,
+    });
   });
 
   it('measures against balance plus spent, so a rollover reads truthfully', () => {
     // Assigned nothing this month, carried $75 in, spent $25 — a quarter
     // gone, not "100% of this month's assignment".
-    expect(categoryBarSegments(7500, 2500)).toEqual({ spentPercent: 25, remainingPercent: 75 });
+    expect(categoryBarSegments(7500, 2500)).toEqual({
+      spentPercent: 25,
+      remainingPercent: 75,
+    });
   });
 
   it('has nothing to draw when nothing is assigned or spent', () => {
-    expect(categoryBarSegments(0, 0)).toEqual({ spentPercent: 0, remainingPercent: 0 });
+    expect(categoryBarSegments(0, 0)).toEqual({
+      spentPercent: 0,
+      remainingPercent: 0,
+    });
   });
 
   it('treats an overspent balance as nothing remaining', () => {
     // The caller colours this one whole; there is no remainder to show.
-    expect(categoryBarSegments(-2000, 10000)).toEqual({ spentPercent: 100, remainingPercent: 0 });
+    expect(categoryBarSegments(-2000, 10000)).toEqual({
+      spentPercent: 100,
+      remainingPercent: 0,
+    });
   });
 });
 
 describe('overspentMonths', () => {
   const months = (...rows: [string, number, number][]) =>
-    rows.map(([month, assignedCents, activityCents]) => ({ month, assignedCents, activityCents }));
+    rows.map(([month, assignedCents, activityCents]) => ({
+      month,
+      assignedCents,
+      activityCents,
+    }));
 
   it('is empty while the running balance stays positive', () => {
     expect(
-      overspentMonths(months(['2026-06', 10_000, -4_000], ['2026-07', 0, -5_000])),
+      overspentMonths(
+        months(['2026-06', 10_000, -4_000], ['2026-07', 0, -5_000]),
+      ),
     ).toEqual([]);
   });
 
   it('names the month that broke, not the months that inherit the hole', () => {
     expect(
       overspentMonths(
-        months(['2026-06', 10_000, -12_000], ['2026-07', 0, 0], ['2026-08', 0, 0]),
+        months(
+          ['2026-06', 10_000, -12_000],
+          ['2026-07', 0, 0],
+          ['2026-08', 0, 0],
+        ),
       ),
     ).toEqual([{ month: '2026-06', shortfallCents: 2_000 }]);
   });
@@ -250,5 +302,16 @@ describe('overspentMonths', () => {
     expect(
       overspentMonths(months(['2026-07', 0, -1_000], ['2026-06', 500, 0])),
     ).toEqual([{ month: '2026-07', shortfallCents: 500 }]);
+  });
+});
+
+describe('timesAverage', () => {
+  it('reads the spend as a multiple of the average, rounded down', () => {
+    expect(timesAverage(14900, 10000)).toBe('1.4×');
+    expect(timesAverage(84400, 7600)).toBe('11×');
+  });
+  it('is null at or under the average, or with no history', () => {
+    expect(timesAverage(10000, 10000)).toBeNull();
+    expect(timesAverage(10000, 0)).toBeNull();
   });
 });

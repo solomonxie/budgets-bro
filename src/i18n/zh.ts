@@ -60,9 +60,8 @@ export const zh: Record<keyof typeof en, string> = {
   'stubScreen.comingSoon': '即将推出。',
 
   'assignedAmountModal.assignedThisMonth': '本月已分配',
-  'assignedAmountModal.availableAfter': '分类余额：{amount}',
-  'assignedAmountModal.unassignedHint':
-    '未分配：{unassigned} · 上月分配：{lastMonth}',
+  'assignedAmountModal.unassignedHint': '未分配 {unassigned}',
+  'assignedAmountModal.avgSpent': '  / 月均 {amount}',
   'assignedAmountModal.rolloverHint': '结转：{amount}',
   'assignedAmountModal.closedHint': '这个月已结算：只保留实际支出，剩余的钱已转入{month}。请在那里分配。',
   'assignedAmountModal.exceedsError': '比未分配的钱多 {amount}',
@@ -1012,6 +1011,7 @@ export const zh: Record<keyof typeof en, string> = {
 
   'budget.spentThisMonth': '本月支出',
   'budget.assignedThisMonth': '已分配 {amount}',
+  'budget.timesAverage': '月均 {times}',
   'budget.unassignedBannerPositive': '⚠ {amount} 未分配——请分配出去',
   'budget.unassignedBannerNegative': '⚠ 多分配了 {amount}——请从分类挪出',
   'budget.breakdownCash': '现金',

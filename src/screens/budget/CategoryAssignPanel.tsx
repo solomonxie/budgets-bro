@@ -16,11 +16,9 @@ import { spacing } from '../../theme/spacing';
 
 interface CategoryAssignPanelProps {
   initialCents: number;
-  // This month's spending, for showing what the category will hold once the
-  // typed figure is saved.
-  activityCents: number;
   unassignedCents: number;
-  lastMonthAssignedCents: number;
+  // Net spending per month over the last 12.
+  avgSpentCents: number;
   rolloverCents: number;
   // A month before this one: its leftovers have already moved up into
   // `currentMonthLabel`, so there is nothing left to assign here.
@@ -39,6 +37,9 @@ interface CategoryAssignPanelProps {
   onLaidOut?: () => void;
 }
 
+// Past this multiple of the usual month, the assignment reads red.
+const HIGH_VS_AVG = 1.5;
+
 // Assigning money unfolds under the category row, with the app's own pad —
 // the same shape as entering a spend (see AddTransactionScreen). It used to
 // be a popup over a system number-pad keyboard, which could only take digits:
@@ -56,9 +57,8 @@ interface CategoryAssignPanelProps {
 // should never reach by accident.
 export function CategoryAssignPanel({
   initialCents,
-  activityCents,
   unassignedCents,
-  lastMonthAssignedCents,
+  avgSpentCents,
   rolloverCents,
   closed,
   currentMonthLabel,
@@ -82,15 +82,6 @@ export function CategoryAssignPanel({
   // only way to claw it back.
   const availableCents = unassignedCents + initialCents;
 
-  // What the category ends up holding if this is saved: what rolled in from
-  // earlier months, plus what is being typed, less what has already gone out
-  // this month. The field itself is only *this month's assignment* — a flow,
-  // not the balance — which is why it reads $0 on a category that has $800
-  // carried over, and why it must never be pre-filled with that $800: saving
-  // it would hand the category another $800 on top.
-  const resultingBalanceCents =
-    rolloverCents + amountCents(amount) + activityCents;
-
   const done = () => {
     const cents = amountCents(amount);
     if (cents > initialCents && cents > availableCents) {
@@ -109,12 +100,28 @@ export function CategoryAssignPanel({
       <Text style={styles.label}>
         {t('assignedAmountModal.assignedThisMonth')}
       </Text>
-      <Text style={[styles.amount, !typed && styles.amountPlaceholder]}>
-        {typed || formatMoney(0)}
+      <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+        <Text
+          style={[
+            !typed && styles.amountPlaceholder,
+            avgSpentCents > 0 &&
+              amountCents(amount) > avgSpentCents * HIGH_VS_AVG &&
+              styles.amountHigh,
+          ]}
+        >
+          {typed || formatMoney(0)}
+        </Text>
+        <Text style={styles.avg}>
+          {t('assignedAmountModal.avgSpent', {
+            amount: formatMoney(avgSpentCents),
+          })}
+        </Text>
       </Text>
       <Text style={styles.hint}>
-        {t('assignedAmountModal.availableAfter', {
-          amount: formatMoney(resultingBalanceCents),
+        {t('assignedAmountModal.unassignedHint', {
+          // To the cent: rounded, $124.87 reads as $125 and typing that
+          // fails with "$0 more than you have".
+          unassigned: formatMoneyExact(unassignedCents),
         })}
       </Text>
       {rolloverCents !== 0 ? (
@@ -124,45 +131,43 @@ export function CategoryAssignPanel({
           })}
         </Text>
       ) : null}
-      <Text style={styles.hint}>
-        {t('assignedAmountModal.unassignedHint', {
-          // To the cent: rounded, $124.87 reads as $125 and typing that
-          // fails with "$0 more than you have".
-          unassigned: formatMoneyExact(unassignedCents),
-          lastMonth: formatMoney(lastMonthAssignedCents),
-        })}
-      </Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {closed ? (
         <Text style={[styles.hint, styles.closedNote]}>
           {t('assignedAmountModal.closedHint', { month: currentMonthLabel })}
         </Text>
       ) : (
-      <NumberPad
-        value={amount}
-        onChange={(next) => {
-          setAmount(next);
-          if (error) setError(null);
-        }}
-        submitLabel={t('common.done')}
-        onSubmit={done}
-        bottomLeft={{ label: t('common.cancel'), onPress: onCancel }}
-        bottomRight={{
-          label: t('assignedAmountModal.history'),
-          onPress: onHistory,
-        }}
-      />
+        <NumberPad
+          value={amount}
+          onChange={(next) => {
+            setAmount(next);
+            if (error) setError(null);
+          }}
+          submitLabel={t('common.done')}
+          onSubmit={done}
+          bottomLeft={{ label: t('common.cancel'), onPress: onCancel }}
+          bottomRight={{
+            label: t('assignedAmountModal.history'),
+            onPress: onHistory,
+          }}
+        />
       )}
       <View style={styles.actions}>
         <Pressable
-          style={({ pressed }) => [styles.actionKey, pressed && styles.actionKeyPressed]}
+          style={({ pressed }) => [
+            styles.actionKey,
+            pressed && styles.actionKeyPressed,
+          ]}
           onPress={() => onMove('up')}
           accessibilityLabel={t('budget.moveUp')}
         >
           <Text style={styles.actionText}>↑</Text>
         </Pressable>
         <Pressable
-          style={({ pressed }) => [styles.actionKey, pressed && styles.actionKeyPressed]}
+          style={({ pressed }) => [
+            styles.actionKey,
+            pressed && styles.actionKeyPressed,
+          ]}
           onPress={() => onMove('down')}
           accessibilityLabel={t('budget.moveDown')}
         >
@@ -192,6 +197,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   amountPlaceholder: { color: colors.textMuted },
+  amountHigh: { color: colors.negative },
   amount: {
     fontSize: 36,
     fontWeight: '700',
@@ -199,6 +205,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 2,
   },
+  avg: { fontSize: 16, fontWeight: '600', color: colors.textMuted },
   hint: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
   closedNote: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   error: {

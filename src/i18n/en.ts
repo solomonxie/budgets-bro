@@ -58,9 +58,8 @@ export const en = {
   'stubScreen.comingSoon': 'Coming soon.',
 
   'assignedAmountModal.assignedThisMonth': 'Assigned this month',
-  'assignedAmountModal.availableAfter': 'Left in category: {amount}',
-  'assignedAmountModal.unassignedHint':
-    'Unassigned: {unassigned} · Assigned last month: {lastMonth}',
+  'assignedAmountModal.unassignedHint': 'Unassigned {unassigned}',
+  'assignedAmountModal.avgSpent': '  / avg {amount}',
   'assignedAmountModal.rolloverHint': 'Carried over: {amount}',
   'assignedAmountModal.closedHint':
     'This month is closed: it keeps only what was spent, and anything left over moved into {month}. Assign there.',
@@ -1033,6 +1032,7 @@ export const en = {
 
   'budget.spentThisMonth': 'Spent This Month',
   'budget.assignedThisMonth': 'Assigned {amount}',
+  'budget.timesAverage': '{times} avg',
   'budget.unassignedBannerPositive':
     '⚠ {amount} unassigned — give it a job',
   'budget.unassignedBannerNegative':

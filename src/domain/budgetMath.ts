@@ -102,20 +102,17 @@ export function categoryStatus(
   return fundedCents === 0 ? 'unbudgeted' : 'fully-spent';
 }
 
-// Exact cents, not whole dollars: a category sitting at −40¢ is overspent,
-// and rounding it to "Overspent by $0" reads as a bug rather than as the
-// forty cents it is.
+// Exact cents, not whole dollars: $150.40 spent must not read as $150.
 export function categoryCaption(
   status: CategoryStatus,
   spentThisMonthCents: number,
   fundedCents: number,
-  balanceCents: number,
 ): string {
   switch (status) {
-    case 'overspent':
-      return `Overspent by ${formatMoneyExact(-balanceCents)}`;
     case 'unbudgeted':
       return 'Not budgeted';
+    // Overspent shows its excess in a pill beside this (see BudgetScreen).
+    case 'overspent':
     case 'fully-spent':
       return `Fully spent ${formatMoneyExact(spentThisMonthCents)}`;
     default:
@@ -133,6 +130,18 @@ export function accountBalanceCents(
     (sum, amount) => sum + amount,
     openingBalanceCents,
   );
+}
+
+// This month's spending as a multiple of the usual month — "1.4×" — or
+// null when it isn't above it (or there is no history to compare).
+export function timesAverage(
+  spentThisMonthCents: number,
+  averageSpentCents: number,
+): string | null {
+  if (averageSpentCents <= 0 || spentThisMonthCents <= averageSpentCents)
+    return null;
+  const ratio = spentThisMonthCents / averageSpentCents;
+  return `${ratio < 10 ? (Math.floor(ratio * 10) / 10).toFixed(1) : Math.floor(ratio)}×`;
 }
 
 export interface CategoryBarSegments {

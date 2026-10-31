@@ -12,7 +12,7 @@ import { FlaggedBanner } from '../../components/ui/FlaggedBanner';
 import { BackupBanner } from '../../components/ui/BackupBanner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProgressBar } from '../../components/ui/ProgressBar';
-import { categoryBarSegments } from '../../domain/budgetMath';
+import { categoryBarSegments, timesAverage } from '../../domain/budgetMath';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
@@ -84,18 +84,16 @@ export function BudgetScreen() {
   const { pending, approve } = usePendingScheduledTransactions();
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
 
-  // Feeds the assign popup's "last month" hint.
-  const [prevMonthAssignedByCategory, setPrevMonthAssignedByCategory] =
-    useState<Record<number, number>>({});
+  // Each category's usual month: the rows' "1.4× avg" and the assign
+  // panel's "avg".
+  const [avgSpentByCategory, setAvgSpentByCategory] = useState<
+    Record<number, number>
+  >({});
   useEffect(() => {
     (async () => {
       const db = await getDb();
-      setPrevMonthAssignedByCategory(
-        await budgetsRepo.assignedThisMonthByCategory(
-          db,
-          boardId,
-          previousMonth(month),
-        ),
+      setAvgSpentByCategory(
+        await budgetsRepo.averageMonthlySpentByCategory(db, boardId, month),
       );
     })();
   }, [month, boardId, dataVersion]);
@@ -485,20 +483,23 @@ export function BudgetScreen() {
                   item.balanceCents,
                   spentThisMonth,
                 );
-                // Overspent has no remainder to show, so it reads as one
-                // red run rather than a split; unbudgeted has nothing at
-                // all and leaves the bare track.
-                const barSegments =
-                  item.status === 'overspent'
-                    ? [{ percent: 100, color: statusColors.fg }]
-                    : [
-                        // What is still in the envelope leads in solid
-                        // green, and the spent share trails it faded — one
-                        // colour in two weights, reading as how much is
-                        // left rather than how far along you are.
-                        { percent: remainingPercent, color: colors.positive },
-                        { percent: spentPercent, color: colors.positiveFaded },
-                      ];
+                // Overspent reads as fully spent; unbudgeted has nothing
+                // at all and leaves the bare track.
+                const overspent = item.status === 'overspent';
+                const aboveAverage = timesAverage(
+                  spentThisMonth,
+                  avgSpentByCategory[item.category.id] ?? 0,
+                );
+                const barSegments = overspent
+                  ? [{ percent: 100, color: colors.positiveFaded }]
+                  : [
+                      // What is still in the envelope leads in solid
+                      // green, and the spent share trails it faded — one
+                      // colour in two weights, reading as how much is
+                      // left rather than how far along you are.
+                      { percent: remainingPercent, color: colors.positive },
+                      { percent: spentPercent, color: colors.positiveFaded },
+                    ];
 
                 const expanded = editingItem?.category.id === item.category.id;
 
@@ -535,15 +536,28 @@ export function BudgetScreen() {
                         />
                       </View>
                       <ProgressBar segments={barSegments} />
-                      <Text style={styles.caption}>{item.captionText}</Text>
+                      <View style={styles.captionRow}>
+                        <Text style={styles.caption}>{item.captionText}</Text>
+                        {overspent ? (
+                          <View style={styles.exceedPill}>
+                            <Text style={styles.exceedText}>
+                              Exceeded {formatMoneyExact(-item.balanceCents)}
+                            </Text>
+                          </View>
+                        ) : null}
+                        {aboveAverage ? (
+                          <Text style={[styles.caption, styles.aboveAverage]}>
+                            {t('budget.timesAverage', { times: aboveAverage })}
+                          </Text>
+                        ) : null}
+                      </View>
                     </Pressable>
                     {expanded ? (
                       <CategoryAssignPanel
                         initialCents={item.assignedThisMonthCents}
-                        activityCents={item.activityThisMonthCents}
                         unassignedCents={unassignedCents}
-                        lastMonthAssignedCents={
-                          prevMonthAssignedByCategory[item.category.id] ?? 0
+                        avgSpentCents={
+                          avgSpentByCategory[item.category.id] ?? 0
                         }
                         rolloverCents={
                           item.balanceCents -
@@ -551,7 +565,10 @@ export function BudgetScreen() {
                           item.activityThisMonthCents
                         }
                         closed={month < currentMonth()}
-                        currentMonthLabel={formatMonthLabel(currentMonth(), localeTag(language))}
+                        currentMonthLabel={formatMonthLabel(
+                          currentMonth(),
+                          localeTag(language),
+                        )}
                         onSave={saveAssigned}
                         onCancel={() => setEditingItem(null)}
                         onHistory={openHistory}
@@ -763,6 +780,21 @@ const styles = StyleSheet.create({
   catIcon: { fontSize: 17 },
   catName: { fontSize: 15, fontWeight: '600', color: colors.text },
   caption: { fontSize: 11, color: colors.textMuted },
+  aboveAverage: {
+    marginLeft: 'auto',
+    color: colors.negative,
+    fontWeight: '600',
+  },
+  captionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  exceedPill: {
+    borderWidth: 1,
+    borderColor: colors.negative,
+    backgroundColor: colors.negativeTint,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  exceedText: { fontSize: 11, fontWeight: '600', color: colors.negative },
   addGroupButton: {
     alignItems: 'center',
     paddingVertical: spacing.sm,

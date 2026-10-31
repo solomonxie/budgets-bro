@@ -62,14 +62,16 @@ export function useBudget(month: string) {
       const balanceCents = categoryBalanceCents(assignedCum, activityCum);
       const assignedThisMonthCents = thisAssigned[category.id] ?? 0;
       const activityThisMonthCents = thisActivity[category.id] ?? 0;
-      const fundedCents = categoryFundedCents(balanceCents, activityThisMonthCents);
+      const fundedCents = categoryFundedCents(
+        balanceCents,
+        activityThisMonthCents,
+      );
       const status = categoryStatus(balanceCents, fundedCents);
       const spentThisMonthCents = Math.max(0, -activityThisMonthCents);
       const captionText = categoryCaption(
         status,
         spentThisMonthCents,
         fundedCents,
-        balanceCents,
       );
       const item: CategoryBudgetItem = {
         category,

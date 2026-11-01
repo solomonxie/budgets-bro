@@ -1,12 +1,15 @@
 // Months are 'YYYY-MM' strings throughout; dates are 'YYYY-MM-DD'. Both sort
 // and compare correctly as plain strings, which the SQL layer relies on.
 
+// Local calendar, not UTC: in the evening west of Greenwich, UTC is
+// already tomorrow.
 export function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+  return currentDateISO().slice(0, 7);
 }
 
 export function currentDateISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 export function nextMonth(month: string): string {

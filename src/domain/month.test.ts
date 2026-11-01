@@ -1,4 +1,11 @@
-import { lastNMonths, nextMonth, previousMonth, yearsBetween } from './month';
+import {
+  currentDateISO,
+  currentMonth,
+  lastNMonths,
+  nextMonth,
+  previousMonth,
+  yearsBetween,
+} from './month';
 
 describe('nextMonth', () => {
   it('advances within a year', () => {
@@ -41,5 +48,15 @@ describe('yearsBetween', () => {
 
   it('falls back to the end year when the range is inverted', () => {
     expect(yearsBetween('2027', '2026')).toEqual(['2026']);
+  });
+});
+
+describe('currentDateISO', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('is the local calendar day, not UTC', () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 9, 31, 23, 50));
+    expect(currentDateISO()).toBe('2026-10-31');
+    expect(currentMonth()).toBe('2026-10');
   });
 });

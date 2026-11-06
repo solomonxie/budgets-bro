@@ -1,0 +1,176 @@
+{
+ "name": "payee-alias-then-rename-split",
+ "note": "A rename dissolves the key group; the alias is a row again and its referrers point back at it.",
+ "segments": [
+  {
+   "d": "a",
+   "seq": 1,
+   "vv": {},
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025000-0000",
+     "e": "boards",
+     "id": "B",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "name": "Home"
+     }
+    },
+    {
+     "h": "1793414025000-0000",
+     "e": "accounts",
+     "id": "A",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "name": "A"
+     }
+    },
+    {
+     "h": "1793414025001-0000",
+     "e": "payees",
+     "id": "P2",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "name": "Costco"
+     }
+    },
+    {
+     "h": "1793414025001-0000",
+     "e": "transactions",
+     "id": "T1",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01",
+      "payee_id": "P2"
+     }
+    }
+   ]
+  },
+  {
+   "d": "b",
+   "seq": 1,
+   "vv": {},
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025002-0000",
+     "e": "payees",
+     "id": "P1",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "name": "Costco"
+     }
+    },
+    {
+     "h": "1793414025002-0000",
+     "e": "transactions",
+     "id": "T2",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01",
+      "payee_id": "P1"
+     }
+    }
+   ]
+  },
+  {
+   "d": "a",
+   "seq": 2,
+   "vv": {
+    "b": 1
+   },
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025005-0000",
+     "e": "payees",
+     "id": "P2",
+     "o": "set",
+     "f": "name",
+     "x": "Costco Gas"
+    }
+   ]
+  }
+ ],
+ "expect": {
+  "entities": {
+   "boards/B": {
+    "fields": {
+     "name": "Home",
+     "deleted": null
+    }
+   },
+   "accounts/A": {
+    "fields": {
+     "board_id": "B",
+     "name": "A",
+     "deleted": null
+    }
+   },
+   "payees/P1": {
+    "fields": {
+     "board_id": "B",
+     "name": "Costco",
+     "deleted": null
+    }
+   },
+   "payees/P2": {
+    "fields": {
+     "board_id": "B",
+     "name": "Costco Gas",
+     "deleted": null
+    }
+   },
+   "transactions/T1": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null,
+     "payee_id": "P2"
+    }
+   },
+   "transactions/T2": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null,
+     "payee_id": "P1"
+    }
+   }
+  },
+  "conflicts": [],
+  "rows": {
+   "transactions/T1": {
+    "board_id": "B",
+    "account_id": "A",
+    "amount_cents": -500,
+    "date": "2026-11-01",
+    "payee_id": "P2"
+   },
+   "payees/P2": {
+    "board_id": "B",
+    "name": "Costco Gas"
+   }
+  }
+ }
+}

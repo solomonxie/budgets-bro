@@ -1,0 +1,173 @@
+{
+ "name": "import-id-collision",
+ "note": "Null import_id never groups.",
+ "segments": [
+  {
+   "d": "a",
+   "seq": 1,
+   "vv": {},
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025000-0000",
+     "e": "boards",
+     "id": "B",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "name": "Home"
+     }
+    },
+    {
+     "h": "1793414025000-0000",
+     "e": "accounts",
+     "id": "A",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "name": "A"
+     }
+    },
+    {
+     "h": "1793414025001-0000",
+     "e": "transactions",
+     "id": "T9",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01",
+      "import_id": "ynab:1"
+     }
+    },
+    {
+     "h": "1793414025001-0000",
+     "e": "transactions",
+     "id": "T7",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01"
+     }
+    }
+   ]
+  },
+  {
+   "d": "b",
+   "seq": 1,
+   "vv": {
+    "a": 1
+   },
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025002-0000",
+     "e": "transactions",
+     "id": "T8",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01",
+      "import_id": "ynab:1"
+     }
+    },
+    {
+     "h": "1793414025002-0000",
+     "e": "transactions",
+     "id": "T6",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01"
+     }
+    }
+   ]
+  }
+ ],
+ "expect": {
+  "entities": {
+   "boards/B": {
+    "fields": {
+     "name": "Home",
+     "deleted": null
+    }
+   },
+   "accounts/A": {
+    "fields": {
+     "board_id": "B",
+     "name": "A",
+     "deleted": null
+    }
+   },
+   "transactions/T9": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null,
+     "import_id": "ynab:1"
+    }
+   },
+   "transactions/T8": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null,
+     "import_id": "ynab:1"
+    }
+   },
+   "transactions/T7": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null
+    }
+   },
+   "transactions/T6": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null
+    }
+   }
+  },
+  "conflicts": [],
+  "aliases": {
+   "transactions/T9": "transactions/T8"
+  },
+  "rows": {
+   "transactions/T9": null,
+   "transactions/T6": {
+    "board_id": "B",
+    "account_id": "A",
+    "amount_cents": -500,
+    "date": "2026-11-01"
+   },
+   "transactions/T7": {
+    "board_id": "B",
+    "account_id": "A",
+    "amount_cents": -500,
+    "date": "2026-11-01"
+   }
+  }
+ }
+}

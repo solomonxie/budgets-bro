@@ -14,7 +14,7 @@ any storage exists.
 - [x] T1.3 HLC + stamps + bucket-time offset — see `sync-core/clock.ts` — depends: T1.2
 - [x] T1.4 Segment + checkpoint codec (ndjson, header, size caps, gzip via injected deflate/inflate) — see `sync-core/codec.ts` — depends: T1.1, T1.2
 - [x] T1.5 Merge engine: per-field LWW, text heads/conflicts, seen-by-vv, parked dangling refs, natural-key alias — see `sync-core/merge.ts` — depends: T1.1, T1.3
-- [ ] T1.6 Vectors + permutation runner (every per-device-ordered interleaving, duplicates) incl. transfer pair, payee alias with attached transactions, delete vs edit, undo — see `sync-core/vectors/` — depends: T1.4, T1.5
+- [x] T1.6 Vectors + permutation runner (every per-device-ordered interleaving, duplicates) incl. transfer pair, payee alias with attached transactions, delete vs edit, undo — see `sync-core/vectors/` — depends: T1.4, T1.5
 - [x] T1.7 Bucket client interface (list/get/put-once/head + MD5 check) over existing SigV4 — move `src/sync/sigv4.ts` + `sha256.ts` into `sync-core/` and re-export — see `sync-core/bucket.ts` — depends: T1.2
 
 ## Phase 2: Phone identity

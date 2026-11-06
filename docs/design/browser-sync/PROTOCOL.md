@@ -236,3 +236,7 @@ header v > supported → stop writing, keep pulling read-only
 - `conflicts` sorted by `(e, id, f, stamp)`.
 - `aliases`: every non-canonical member of a key group. `hidden`: parked or
   dead-referenced entities, sorted. Both omitted when empty.
+- Optional: `rows` maps `<e>/<gid>` to its materialised row (FKs resolved)
+  or `null` for none; only listed keys are checked. `note`: one line.
+- Runner: `sync-core/vectors.test.ts`; the extension's vitest imports
+  `sync-core/vectors/index.ts`.

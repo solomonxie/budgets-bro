@@ -1,0 +1,142 @@
+{
+ "name": "dead-nullable-ref-nulls",
+ "segments": [
+  {
+   "d": "a",
+   "seq": 1,
+   "vv": {},
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025000-0000",
+     "e": "boards",
+     "id": "B",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "name": "Home"
+     }
+    },
+    {
+     "h": "1793414025000-0000",
+     "e": "accounts",
+     "id": "A",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "name": "A"
+     }
+    },
+    {
+     "h": "1793414025000-0000",
+     "e": "category_groups",
+     "id": "G",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "name": "Bills"
+     }
+    },
+    {
+     "h": "1793414025000-0000",
+     "e": "categories",
+     "id": "C",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "group_id": "G",
+      "name": "Rent"
+     }
+    },
+    {
+     "h": "1793414025001-0000",
+     "e": "transactions",
+     "id": "T1",
+     "o": "add",
+     "x": {
+      "deleted": null,
+      "board_id": "B",
+      "account_id": "A",
+      "amount_cents": -500,
+      "date": "2026-11-01",
+      "category_id": "C"
+     }
+    }
+   ]
+  },
+  {
+   "d": "b",
+   "seq": 1,
+   "vv": {
+    "a": 1
+   },
+   "lastModified": 1793414125000,
+   "ops": [
+    {
+     "h": "1793414025002-0000",
+     "e": "categories",
+     "id": "C",
+     "o": "set",
+     "f": "deleted",
+     "x": 1793414025002
+    }
+   ]
+  }
+ ],
+ "expect": {
+  "entities": {
+   "boards/B": {
+    "fields": {
+     "name": "Home",
+     "deleted": null
+    }
+   },
+   "accounts/A": {
+    "fields": {
+     "board_id": "B",
+     "name": "A",
+     "deleted": null
+    }
+   },
+   "category_groups/G": {
+    "fields": {
+     "board_id": "B",
+     "name": "Bills",
+     "deleted": null
+    }
+   },
+   "categories/C": {
+    "fields": {
+     "board_id": "B",
+     "group_id": "G",
+     "name": "Rent",
+     "deleted": 1793414025002
+    }
+   },
+   "transactions/T1": {
+    "fields": {
+     "board_id": "B",
+     "account_id": "A",
+     "amount_cents": -500,
+     "date": "2026-11-01",
+     "deleted": null,
+     "category_id": "C"
+    }
+   }
+  },
+  "conflicts": [],
+  "rows": {
+   "transactions/T1": {
+    "board_id": "B",
+    "account_id": "A",
+    "amount_cents": -500,
+    "date": "2026-11-01",
+    "category_id": null
+   },
+   "categories/C": null
+  }
+ }
+}

@@ -130,6 +130,10 @@ Keys: `payees (board_id, name)`, `transactions (board_id, import_id)` where
 - Ops keep their original gids. If a rename or delete dissolves the key
   group, the alias becomes a row again and its referrers point back at it.
 - An edit made through the merged row targets the canonical gid.
+- Edits to an alias still merge into its own state; they show only if the
+  group dissolves.
+- Membership uses only `exists` and `deleted` null, never parked/hidden. A
+  parked canonical keeps the aliases' referrers parked too.
 
 ## Dangling and dead references (BB)
 
@@ -142,6 +146,10 @@ FK target deleted, column nullable → materialise with that FK = null
 FK target deleted, NOT NULL column → referrer hidden while the target is deleted
 target restored / arrives          → referrer materialised again, from merge state
 ```
+
+Resolution order: alias → canonical first, then status. A parked target
+parks its referrer; a hidden target counts as deleted. Reference cycles get
+the same status whichever row is checked first.
 
 NOT NULL FKs: `categories.group_id`, `budget_entries.category_id`,
 `transactions.account_id`, `scheduled_transactions.account_id`,
@@ -168,7 +176,7 @@ Resolving a conflict = a new `set` after seeing every head.
 
 ```text
 line 1: {"v":1,"d":"<device>","seq":42,"vv":{"<device>":<seq>,…},"n":<ops>}
-then n op lines. gzip. ≤ 200 ops or 256 KB.
+then n op lines. gzip. ≤ 200 ops or 256 KB of uncompressed UTF-8 op lines (cut point known before gzip, same on every device).
 ```
 
 - `vv` = highest contiguous seq applied per other device.

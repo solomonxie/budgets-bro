@@ -1,5 +1,5 @@
 import { hmacSha256, sha256 } from './sha256';
-import { bytesToHex, utf8ToBytes } from '../files/bytes';
+import { bytesToHex, utf8ToBytes } from './bytes';
 
 const hex = (text: string) => bytesToHex(sha256(utf8ToBytes(text)));
 const fromHex = (h: string) => Uint8Array.from(h.match(/../g)!.map((b) => parseInt(b, 16)));

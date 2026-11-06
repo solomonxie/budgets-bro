@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from '../db/driver';
-import { signS3Request } from './sigv4';
+import { signS3Request } from '../../sync-core/sigv4';
 import { bytesToHex, utf8ToBytes } from '../files/bytes';
 import { secureStore } from '../secure/secureStore';
 import * as settingsRepo from '../db/repositories/settingsRepo';
@@ -184,7 +184,7 @@ function signRequest(
   const query: Record<string, string> = { 'x-budgetsbro-nonce': nonce(), ...extraQuery };
   if (subresource) query[subresource] = '';
 
-  // Signed here rather than by AWS's own signer — see sync/sigv4.ts for why,
+  // Signed here rather than by AWS's own signer — see sync-core/sigv4.ts for why,
   // and sigv4.test.ts for the proof it produces the same bytes.
   return signS3Request({
     method,

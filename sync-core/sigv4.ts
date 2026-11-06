@@ -1,5 +1,5 @@
 import { hmacSha256, sha256 } from './sha256';
-import { bytesToHex, utf8ToBytes } from '../files/bytes';
+import { bytesToHex, utf8ToBytes } from './bytes';
 
 // AWS Signature Version 4, the ~60 lines of it this app actually needs.
 //

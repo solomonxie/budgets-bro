@@ -9,13 +9,13 @@ Everything else speaks this format. Pure TS with no RN or DOM imports, so it
 runs under jest (app) and vitest (extension) against the same vectors before
 any storage exists.
 
-- [ ] T1.1 Write `PROTOCOL.md` — PV v1 adapted: entity table per synced table (fields, text fields, FK fields as gids), natural-key rules, alias op, atomic group marker — see `docs/design/browser-sync/` + `photos-vault/docs/design/cloud-sync/PROTOCOL.md` — depends: none
-- [ ] T1.2 `sync-core/` package skeleton — tsconfig, no deps, imported by `src/` (metro) and `extension/` (esbuild) via relative path — see `sync-core/` — depends: none
-- [ ] T1.3 HLC + stamps + bucket-time offset — see `sync-core/clock.ts` — depends: T1.2
+- [x] T1.1 Write `PROTOCOL.md` — PV v1 adapted: entity table per synced table (fields, text fields, FK fields as gids), natural-key rules, alias op, atomic group marker — see `docs/design/browser-sync/` + `photos-vault/docs/design/cloud-sync/PROTOCOL.md` — depends: none
+- [x] T1.2 `sync-core/` package skeleton — tsconfig, no deps, imported by `src/` (metro) and `extension/` (esbuild) via relative path — see `sync-core/` — depends: none
+- [x] T1.3 HLC + stamps + bucket-time offset — see `sync-core/clock.ts` — depends: T1.2
 - [ ] T1.4 Segment + checkpoint codec (ndjson, header, size caps, gzip via injected deflate/inflate) — see `sync-core/codec.ts` — depends: T1.1, T1.2
 - [ ] T1.5 Merge engine: per-field LWW, text heads/conflicts, seen-by-vv, parked dangling refs, natural-key alias — see `sync-core/merge.ts` — depends: T1.1, T1.3
 - [ ] T1.6 Vectors + permutation runner (every per-device-ordered interleaving, duplicates) incl. transfer pair, payee alias with attached transactions, delete vs edit, undo — see `sync-core/vectors/` — depends: T1.4, T1.5
-- [ ] T1.7 Bucket client interface (list/get/put-once/head + MD5 check) over existing SigV4 — move `src/sync/sigv4.ts` + `sha256.ts` into `sync-core/` and re-export — see `sync-core/bucket.ts` — depends: T1.2
+- [x] T1.7 Bucket client interface (list/get/put-once/head + MD5 check) over existing SigV4 — move `src/sync/sigv4.ts` + `sha256.ts` into `sync-core/` and re-export — see `sync-core/bucket.ts` — depends: T1.2
 
 ## Phase 2: Phone identity
 The phone holds the only real data, so gids must exist and survive

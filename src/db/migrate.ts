@@ -37,6 +37,7 @@ import { up as up042 } from '../../databases/migrations/042_payment_decisions';
 import { up as up043 } from '../../databases/migrations/043_drop_ad_hoc_review';
 import { up as up044 } from '../../databases/migrations/044_drop_ai';
 import { up as up045 } from '../../databases/migrations/045_homes';
+import { up as up046 } from '../../databases/migrations/046_sync_gid';
 import { up as up029 } from '../../databases/migrations/029_clear_inapplicable_categories';
 import { up as up028 } from '../../databases/migrations/028_drop_income_accounts';
 import { up as up027 } from '../../databases/migrations/027_transfer_payee_other_side';
@@ -102,6 +103,7 @@ const migrations: Migration[] = [
   { version: 43, up: up043 },
   { version: 44, up: up044 },
   { version: 45, up: up045 },
+  { version: 46, up: up046 },
 ];
 
 // Small versioned migration runner: expo-sqlite has no built-in migration

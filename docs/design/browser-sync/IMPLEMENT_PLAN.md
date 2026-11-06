@@ -21,7 +21,7 @@ any storage exists.
 The phone holds the only real data, so gids must exist and survive
 backup/restore before any op is written.
 
-- [ ] T2.1 Migration 046: `gid` + unique index on every synced table, UUID backfill, derived gid for `budget_entries`; change-log triggers for `boards`, `houses`, `community_prices`, `house_prices`; `rebuildChangeLogTriggers` — see `databases/migrations/` — depends: T1.1
+- [x] T2.1 Migration 046: `gid` + unique index on every synced table, UUID backfill, derived gid for `budget_entries`; change-log triggers for `boards`, `houses`, `community_prices`, `house_prices`; `rebuildChangeLogTriggers` — see `databases/migrations/` — depends: T1.1
 - [ ] T2.2 Repos assign gid on insert (one helper, every insert path incl. import, seed, scheduled posting) — see `src/db/repositories/` — depends: T2.1
 - [ ] T2.3 Backup zip + restore carry gids; restore of an old zip backfills; restore takes a new device id — see `src/sync/buildBackup.ts`, `src/import/` — depends: T2.1
 - [ ] T2.4 `sync_*` tables (device, hlc, vv, outbox cursor, remote seq ranges, parked, conflicts, aliases) — see `databases/migrations/` — depends: T2.1

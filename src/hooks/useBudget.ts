@@ -67,12 +67,7 @@ export function useBudget(month: string) {
         activityThisMonthCents,
       );
       const status = categoryStatus(balanceCents, fundedCents);
-      const spentThisMonthCents = Math.max(0, -activityThisMonthCents);
-      const captionText = categoryCaption(
-        status,
-        spentThisMonthCents,
-        fundedCents,
-      );
+      const captionText = categoryCaption(status, balanceCents, fundedCents);
       const item: CategoryBudgetItem = {
         category,
         assignedThisMonthCents,

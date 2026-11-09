@@ -105,21 +105,12 @@ export function categoryStatus(
 // Exact cents, not whole dollars: $150.40 spent must not read as $150.
 export function categoryCaption(
   status: CategoryStatus,
-  spentThisMonthCents: number,
+  balanceCents: number,
   fundedCents: number,
 ): string {
-  switch (status) {
-    case 'unbudgeted':
-      return 'Not budgeted';
-    // Overspent shows its excess in a pill beside this (see BudgetScreen).
-    case 'overspent':
-    case 'fully-spent':
-      return `Fully spent ${formatMoneyExact(spentThisMonthCents)}`;
-    default:
-      return spentThisMonthCents > 0
-        ? `Spent ${formatMoneyExact(spentThisMonthCents)} of ${formatMoneyExact(fundedCents)}`
-        : 'Funded';
-  }
+  if (status === 'unbudgeted') return 'Not budgeted';
+  // Overspent shows its excess in a pill beside this (see BudgetScreen).
+  return `Remaining ${formatMoneyExact(Math.max(0, balanceCents))} of budgeted ${formatMoneyExact(fundedCents)}`;
 }
 
 export function accountBalanceCents(

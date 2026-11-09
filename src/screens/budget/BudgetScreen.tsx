@@ -530,7 +530,7 @@ export function BudgetScreen() {
                           </Text>
                         </View>
                         <StatusBadge
-                          text={formatMoneyExact(item.balanceCents)}
+                          text={formatMoneyExact(spentThisMonth)}
                           bg={statusColors.bg}
                           fg={statusColors.fg}
                         />

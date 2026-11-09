@@ -166,33 +166,32 @@ describe('closePastMonths', () => {
 });
 
 describe('categoryCaption', () => {
-  it('reports overspend amount', () => {
-    expect(categoryCaption('overspent', 19800, 15000)).toBe('Fully spent $198');
+  it('reports nothing left when overspent; the pill carries the excess', () => {
+    expect(categoryCaption('overspent', -4800, 15000)).toBe(
+      'Remaining $0 of budgeted $150',
+    );
   });
 
-  it('keeps the cents when a balance is under a dollar', () => {
-    // A category at −40¢ is overspent, and rounding it to whole dollars
-    // reported 'Overspent by $0' beside a red −$0 pill.
-    expect(categoryCaption('overspent', 15040, 15000)).toBe(
-      'Fully spent $150.40',
+  it('keeps the cents', () => {
+    expect(categoryCaption('funded', 1040, 15040)).toBe(
+      'Remaining $10.40 of budgeted $150.40',
     );
-    expect(categoryCaption('fully-spent', 199, 199)).toBe('Fully spent $1.99');
   });
 
   it('reports not budgeted', () => {
     expect(categoryCaption('unbudgeted', 0, 0)).toBe('Not budgeted');
   });
 
-  it('reports fully spent with the amount', () => {
-    expect(categoryCaption('fully-spent', 5000, 5000)).toBe('Fully spent $50');
+  it('reports fully spent', () => {
+    expect(categoryCaption('fully-spent', 0, 5000)).toBe(
+      'Remaining $0 of budgeted $50',
+    );
   });
 
-  it('reports funded with no spending', () => {
-    expect(categoryCaption('funded', 0, 5000)).toBe('Funded');
-  });
-
-  it('reports spent-of-assigned when partially spent', () => {
-    expect(categoryCaption('funded', 4000, 15000)).toBe('Spent $40 of $150');
+  it('reports all of it remaining with no spending', () => {
+    expect(categoryCaption('funded', 5000, 5000)).toBe(
+      'Remaining $50 of budgeted $50',
+    );
   });
 });
 

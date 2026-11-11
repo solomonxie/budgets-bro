@@ -1,3 +1,5 @@
+import { budgetEntryGid } from '../../../sync-core/entities';
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import {
   nextMonth,
@@ -311,6 +313,26 @@ export async function unassignedBreakdown(
   };
 }
 
+// Derived, not random: two devices assigning the same cell write the same
+// entity (see docs/design/browser-sync/PROTOCOL.md).
+async function entryGid(
+  db: SQLiteDatabase,
+  categoryId: number,
+  month: string,
+  categoryGids?: Map<number, string | null>,
+): Promise<string> {
+  let gid = categoryGids?.get(categoryId);
+  if (gid === undefined) {
+    const row = await db.getFirstAsync<{ gid: string | null }>(
+      'SELECT gid FROM categories WHERE id = ?',
+      categoryId,
+    );
+    gid = row?.gid ?? null;
+    categoryGids?.set(categoryId, gid);
+  }
+  return gid ? budgetEntryGid(gid, month) : newGid();
+}
+
 export async function setAssignedCents(
   db: SQLiteDatabase,
   boardId: number,
@@ -324,6 +346,7 @@ export async function setAssignedCents(
     month,
     assignedCents,
     boardId,
+    await entryGid(db, categoryId, month),
   );
 }
 
@@ -353,6 +376,7 @@ export function closePastBudgetMonths(
         }))
         .filter((c) => c.assigned.length > 0 || c.carryCents !== 0);
       if (changes.length === 0) return;
+      const categoryGids = new Map<number, string | null>();
       await db.withTransactionAsync(async () => {
         for (const c of changes) {
           for (const m of c.assigned)
@@ -362,6 +386,7 @@ export function closePastBudgetMonths(
               m.month,
               m.assignedCents,
               boardId,
+              await entryGid(db, c.categoryId, m.month, categoryGids),
             );
           if (c.carryCents !== 0)
             await db.runAsync(
@@ -370,6 +395,7 @@ export function closePastBudgetMonths(
               current,
               c.carryCents,
               boardId,
+              await entryGid(db, c.categoryId, current, categoryGids),
             );
         }
       });

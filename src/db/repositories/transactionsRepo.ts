@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { TransactionJoinRow } from '../schema';
 import type { AccountType, TransactionWithLabels } from '../../domain/types';
@@ -197,6 +198,7 @@ async function postLinkedAccountLeg(
     input.accountId,
     null,
     null,
+    newGid(),
   );
   // Both legs carry the mark, not just the mirror. Marking one side only
   // made the pair unverifiable from the originating row — nothing could tell
@@ -288,6 +290,7 @@ export async function createTransaction(
       null,
       null,
       input.purchaseItems ?? null,
+      newGid(),
     );
     insertedId = result.lastInsertRowId;
     await postLinkedAccountLeg(db, boardId, insertedId, { ...input, payeeId });
@@ -442,7 +445,7 @@ export async function createTransfer(
   ]);
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id, payee_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id, payee_id, gid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       boardId,
       input.fromAccountId,
       -input.amountCents,
@@ -450,9 +453,10 @@ export async function createTransfer(
       input.memo,
       input.toAccountId,
       toPayee,
+      newGid(),
     );
     await db.runAsync(
-      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id, payee_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO transactions (board_id, account_id, amount_cents, date, memo, transfer_account_id, payee_id, gid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       boardId,
       input.toAccountId,
       input.amountCents,
@@ -460,6 +464,7 @@ export async function createTransfer(
       input.memo,
       input.fromAccountId,
       fromPayee,
+      newGid(),
     );
   });
 }
@@ -486,12 +491,13 @@ export async function correctBalance(
   if (deltaCents === 0) return;
   const payeeId = await findOrCreatePayee(db, boardId, BALANCE_ADJUSTMENT_PAYEE);
   await db.runAsync(
-    'INSERT INTO transactions (board_id, account_id, payee_id, amount_cents, date) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO transactions (board_id, account_id, payee_id, amount_cents, date, gid) VALUES (?, ?, ?, ?, ?, ?)',
     boardId,
     accountId,
     payeeId,
     deltaCents,
     currentDateISO(),
+    newGid(),
   );
 }
 
@@ -523,8 +529,8 @@ export async function importTransaction(
     boardId,
   );
   await db.runAsync(
-    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id, gid)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(board_id, import_id) DO UPDATE SET
        category_id = excluded.category_id,
        payee_id = excluded.payee_id,
@@ -542,6 +548,7 @@ export async function importTransaction(
     input.date,
     input.transferAccountId,
     input.importId,
+    newGid(),
   );
   return existing ? 'updated' : 'inserted';
 }

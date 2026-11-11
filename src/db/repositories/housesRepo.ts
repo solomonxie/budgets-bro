@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { HousePriceRow, HouseRow } from '../schema';
 
@@ -318,8 +319,9 @@ export async function createHouse(
 ): Promise<number> {
   const placeholders = COLUMNS.map(() => '?').join(', ');
   const result = await db.runAsync(
-    `INSERT INTO houses (board_id, ${COLUMNS.join(', ')})
-     VALUES (?, ${placeholders})`,
+    `INSERT INTO houses (gid, board_id, ${COLUMNS.join(', ')})
+     VALUES (?, ?, ${placeholders})`,
+    newGid(),
     boardId,
     ...(values(input) as (string | number | null)[]),
   );
@@ -395,7 +397,8 @@ export async function logHousePrice(
     );
   else
     await db.runAsync(
-      'INSERT INTO house_prices (house_id, date, price_cents) VALUES (?, ?, ?)',
+      'INSERT INTO house_prices (gid, house_id, date, price_cents) VALUES (?, ?, ?, ?)',
+      newGid(),
       houseId,
       date,
       priceCents,

@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { PayeeRow } from '../schema';
 import type { Payee } from '../../domain/types';
@@ -40,7 +41,7 @@ export async function findOrCreatePayee(db: SQLiteDatabase, boardId: number, nam
   if (!trimmed) return null;
   const existing = await db.getFirstAsync<PayeeRow>('SELECT * FROM payees WHERE name = ? AND board_id = ?', trimmed, boardId);
   if (existing) return existing.id;
-  const result = await db.runAsync('INSERT INTO payees (board_id, name) VALUES (?, ?)', boardId, trimmed);
+  const result = await db.runAsync('INSERT INTO payees (board_id, name, gid) VALUES (?, ?, ?)', boardId, trimmed, newGid());
   return result.lastInsertRowId;
 }
 
@@ -129,7 +130,7 @@ export async function ensureAccountPayee(db: SQLiteDatabase, boardId: number, ac
     await db.runAsync('UPDATE payees SET linked_account_id = ? WHERE id = ?', accountId, byName.id);
     return;
   }
-  await db.runAsync('INSERT INTO payees (board_id, name, linked_account_id) VALUES (?, ?, ?)', boardId, accountName, accountId);
+  await db.runAsync('INSERT INTO payees (board_id, name, linked_account_id, gid) VALUES (?, ?, ?, ?)', boardId, accountName, accountId, newGid());
 }
 
 export async function unlinkAccountPayee(db: SQLiteDatabase, accountId: number): Promise<void> {

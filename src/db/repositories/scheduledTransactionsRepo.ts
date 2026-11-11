@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { ScheduledTransactionJoinRow } from '../schema';
 import type { ScheduledTransactionWithLabels } from '../../domain/types';
@@ -128,6 +129,7 @@ export async function createScheduledTransaction(db: SQLiteDatabase, boardId: nu
     input.nextDate,
     input.endDate,
     input.daysOfWeekMask,
+    newGid(),
   );
   return result.lastInsertRowId;
 }

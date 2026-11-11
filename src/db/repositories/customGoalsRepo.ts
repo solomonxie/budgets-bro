@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { CustomGoalJoinRow } from '../schema';
 import type { CustomGoalWithProgress } from '../../domain/types';
@@ -41,6 +42,7 @@ export async function createGoal(db: SQLiteDatabase, boardId: number, input: Cus
     input.linkedAccountId,
     input.manualProgressCents,
     sortOrder,
+    newGid(),
   );
   return result.lastInsertRowId;
 }

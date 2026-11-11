@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountRateHistoryRow } from '../schema';
 import type { AccountRateChange } from '../../domain/types';
@@ -33,7 +34,8 @@ export async function addRateChange(
   note: string | null = null,
 ): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO account_rate_history (account_id, rate_bps, effective_date, note) VALUES (?, ?, ?, ?)',
+    'INSERT INTO account_rate_history (gid, account_id, rate_bps, effective_date, note) VALUES (?, ?, ?, ?, ?)',
+    newGid(),
     accountId,
     rateBps,
     effectiveDate,

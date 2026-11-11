@@ -116,11 +116,11 @@ export const CREDIT_CARD_BALANCE_THROUGH_MONTH = `
 `;
 
 export const UPSERT_ASSIGNED_CENTS = `
-  INSERT INTO budget_entries (category_id, month, assigned_cents, board_id) VALUES (?, ?, ?, ?)
+  INSERT INTO budget_entries (category_id, month, assigned_cents, board_id, gid) VALUES (?, ?, ?, ?, ?)
   ON CONFLICT(category_id, month) DO UPDATE SET assigned_cents = excluded.assigned_cents
 `;
 
 export const ADD_ASSIGNED_CENTS = `
-  INSERT INTO budget_entries (category_id, month, assigned_cents, board_id) VALUES (?, ?, ?, ?)
+  INSERT INTO budget_entries (category_id, month, assigned_cents, board_id, gid) VALUES (?, ?, ?, ?, ?)
   ON CONFLICT(category_id, month) DO UPDATE SET assigned_cents = assigned_cents + excluded.assigned_cents
 `;

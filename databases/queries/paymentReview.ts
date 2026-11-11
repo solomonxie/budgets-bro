@@ -51,8 +51,8 @@ export const LIST_DECISIONS = `
 
 export const INSERT_DECISION = `
   INSERT INTO payment_decisions
-    (board_id, scheduled_transaction_id, payee_id, name, cadence, amount_cents, decision, note, decided_on, due_on, done_on)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (board_id, scheduled_transaction_id, payee_id, name, cadence, amount_cents, decision, note, decided_on, due_on, done_on, gid)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 export const MARK_DECISION_DONE = 'UPDATE payment_decisions SET done_on = ? WHERE id = ?';

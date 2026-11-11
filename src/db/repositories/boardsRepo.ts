@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { BoardRow } from '../schema';
 import type { Board } from '../../domain/types';
@@ -13,7 +14,7 @@ export async function listBoards(db: SQLiteDatabase): Promise<Board[]> {
 }
 
 export async function createBoard(db: SQLiteDatabase, name: string): Promise<number> {
-  const result = await db.runAsync('INSERT INTO boards (name) VALUES (?)', name);
+  const result = await db.runAsync('INSERT INTO boards (name, gid) VALUES (?, ?)', name, newGid());
   return result.lastInsertRowId;
 }
 

@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { CommunityPriceRow } from '../schema';
 
@@ -57,8 +58,9 @@ export async function addPrice(
 ): Promise<number> {
   const result = await db.runAsync(
     `INSERT INTO community_prices
-       (board_id, city, community, property_type, as_of_month, benchmark_price_cents, note)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (gid, board_id, city, community, property_type, as_of_month, benchmark_price_cents, note)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    newGid(),
     boardId,
     input.city,
     input.community,

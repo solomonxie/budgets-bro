@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import { slugifyBoardName } from '../../sync/backupPath';
 import { DELETE_BOARD_CASCADE } from '../../../databases/queries/boards';
@@ -17,7 +18,7 @@ export async function wipeAppData(
     await db.runAsync('DELETE FROM community_prices');
     const placeholders = keepSettings.map(() => '?').join(', ') || "''";
     await db.runAsync(`DELETE FROM app_settings WHERE key NOT IN (${placeholders})`, ...keepSettings);
-    freshBoardId = (await db.runAsync('INSERT INTO boards (name) VALUES (?)', freshBoardName)).lastInsertRowId;
+    freshBoardId = (await db.runAsync('INSERT INTO boards (name, gid) VALUES (?, ?)', freshBoardName, newGid())).lastInsertRowId;
     // Last: the triggers above logged every delete.
     await db.runAsync('DELETE FROM change_log');
   });

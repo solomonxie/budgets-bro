@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../driver';
 import type { PaymentDecisionRow, ScheduledTransactionJoinRow } from '../schema';
 import { ACTION_DECISIONS } from '../../domain/paymentReview';
@@ -118,6 +119,7 @@ export async function decide(
       today,
       isAction ? dueOn : null,
       isAction ? null : today,
+      newGid(),
     );
   });
 }

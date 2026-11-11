@@ -1,4 +1,6 @@
 import type { SQLiteDatabase } from '../../db/driver';
+import { budgetEntryGid } from '../../../sync-core/entities';
+import { newGid } from '../gid';
 
 export interface ChangeLogEntry {
   seq: number;
@@ -176,6 +178,30 @@ function columnsAndValues(row: Record<string, unknown>): {
   return { columns, values: columns.map((c) => row[c]) };
 }
 
+// A row deleted before migration 046 was logged with no gid. Its logged gid,
+// when there is one, is kept: a restored row is the same row to every device.
+async function withGid(
+  db: SQLiteDatabase,
+  table: string,
+  row: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  if (typeof row.gid === 'string' || !(await hasGid(db, table))) return row;
+  if (table === 'budget_entries') {
+    const category = await db.getFirstAsync<{ gid: string | null }>(
+      'SELECT gid FROM categories WHERE id = ?',
+      row.category_id as number,
+    );
+    if (category?.gid)
+      return { ...row, gid: budgetEntryGid(category.gid, row.month as string) };
+  }
+  return { ...row, gid: newGid() };
+}
+
+async function hasGid(db: SQLiteDatabase, table: string): Promise<boolean> {
+  const cols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  return cols.some((c) => c.name === 'gid');
+}
+
 // Puts a group of changes back, newest first so a row touched twice ends up
 // as it started.
 //
@@ -255,8 +281,10 @@ async function revert(
         continue;
       }
       if (entry.before == null) continue;
-      const { columns, values } = columnsAndValues(entry.before);
       if (entry.op === 'delete') {
+        const { columns, values } = columnsAndValues(
+          await withGid(db, entry.table, entry.before),
+        );
         await db.runAsync(
           `INSERT OR REPLACE INTO ${entry.table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
           ...(values as never[]),
@@ -264,6 +292,7 @@ async function revert(
         undone++;
         continue;
       }
+      const { columns, values } = columnsAndValues(entry.before);
       await db.runAsync(
         `UPDATE ${entry.table} SET ${columns.map((c) => `${c} = ?`).join(', ')} WHERE rowid = ?`,
         ...(values as never[]),

@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountValueHistoryRow } from '../schema';
 import type { AccountValueChange, AccountValueKind } from '../../domain/types';
@@ -100,7 +101,8 @@ export async function addValueChange(
   kind: AccountValueKind = 'value',
 ): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO account_value_history (account_id, value_cents, effective_date, note, kind) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO account_value_history (gid, account_id, value_cents, effective_date, note, kind) VALUES (?, ?, ?, ?, ?, ?)',
+    newGid(),
     accountId,
     valueCents,
     effectiveDate,

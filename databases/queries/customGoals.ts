@@ -17,8 +17,8 @@ export const LIST_FOR_BOARD = `
 `;
 
 export const INSERT_CUSTOM_GOAL = `
-  INSERT INTO custom_goals (board_id, name, target_cents, linked_account_id, manual_progress_cents, sort_order)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO custom_goals (board_id, name, target_cents, linked_account_id, manual_progress_cents, sort_order, gid)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `;
 
 export const UPDATE_CUSTOM_GOAL = `

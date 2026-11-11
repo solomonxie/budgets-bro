@@ -7,8 +7,8 @@ export const SELECT_WITH_LABELS = `
 `;
 
 export const INSERT_TRANSACTION = `
-  INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id, purchase_items)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO transactions (board_id, account_id, category_id, payee_id, memo, amount_cents, date, transfer_account_id, import_id, purchase_items, gid)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 export const UPDATE_TRANSACTION = `

@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { AccountRow } from '../schema';
 import type { Account, AccountType } from '../../domain/types';
@@ -186,8 +187,9 @@ export async function createAccount(db: SQLiteDatabase, boardId: number, input: 
   }
   const result = await db.runAsync(
     // Last in its group until moved.
-    `INSERT INTO accounts (board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind, loan_payment_category_id, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts WHERE board_id = ?))`,
+    `INSERT INTO accounts (gid, board_id, name, type, on_budget, opening_balance_cents, interest_rate_bps, term_months, original_principal_cents, origination_date, original_house_price_cents, note, tracking_kind, loan_payment_category_id, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts WHERE board_id = ?))`,
+    newGid(),
     boardId,
     input.name,
     input.type,

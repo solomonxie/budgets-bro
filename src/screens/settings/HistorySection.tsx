@@ -44,6 +44,11 @@ const TABLE_LABELS: Record<string, TranslationKey> = {
   account_rate_history: 'history.tableRateHistory',
   scheduled_transactions: 'history.tableScheduled',
   custom_goals: 'history.tableGoals',
+  boards: 'history.tableBoards',
+  houses: 'history.tableHouses',
+  house_prices: 'history.tableHousePrices',
+  community_prices: 'history.tableCommunityPrices',
+  payment_decisions: 'history.tablePaymentDecisions',
 };
 
 function tableLabel(table: string): TranslationKey {

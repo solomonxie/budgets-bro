@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import type { CategoryGroupRow, CategoryRow } from '../schema';
 import type { Category, CategoryGroup } from '../../domain/types';
@@ -69,7 +70,7 @@ async function nextSortOrder(db: SQLiteDatabase, boardId: number, table: 'catego
 
 export async function createCategoryGroup(db: SQLiteDatabase, boardId: number, name: string): Promise<number> {
   const sortOrder = await nextSortOrder(db, boardId, 'category_groups');
-  const result = await db.runAsync('INSERT INTO category_groups (board_id, name, sort_order) VALUES (?, ?, ?)', boardId, name, sortOrder);
+  const result = await db.runAsync('INSERT INTO category_groups (board_id, name, sort_order, gid) VALUES (?, ?, ?, ?)', boardId, name, sortOrder, newGid());
   return result.lastInsertRowId;
 }
 
@@ -81,7 +82,7 @@ export interface CategoryInput {
 
 export async function createCategory(db: SQLiteDatabase, boardId: number, input: CategoryInput): Promise<number> {
   const sortOrder = await nextSortOrder(db, boardId, 'categories', input.groupId);
-  const result = await db.runAsync(INSERT_CATEGORY, boardId, input.groupId, input.name, input.icon, sortOrder);
+  const result = await db.runAsync(INSERT_CATEGORY, boardId, input.groupId, input.name, input.icon, sortOrder, newGid());
   return result.lastInsertRowId;
 }
 

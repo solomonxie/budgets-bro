@@ -1,3 +1,4 @@
+import { newGid } from '../gid';
 import type { SQLiteDatabase } from '../../db/driver';
 import { INSERT_TRANSACTION } from '../../../databases/queries/transactions';
 import {
@@ -178,6 +179,8 @@ export async function quickFixTransfer(
     row.date,
     row.accountId,
     null,
+    null,
+    newGid(),
   );
   await db.runAsync('UPDATE transactions SET transfer_account_id = ? WHERE id = ?', counterpart, row.id);
   return true;

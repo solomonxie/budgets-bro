@@ -40,6 +40,9 @@ export interface Meta {
   applied: Record<string, Applied>;
   stateHeader: CheckpointHeader;
   fatal: Fatal | null;
+  // Bucket ms the device file was first written / last refreshed.
+  deviceCreated: number;
+  deviceSeen: number;
 }
 
 export interface Sealed {
@@ -111,6 +114,11 @@ function writeChanges(t: IDBTransaction, changes: Iterable<Change>): void {
   }
 }
 
+function writeLines(t: IDBTransaction, lines: Iterable<CheckpointEntity>): void {
+  const state = t.objectStore('state');
+  for (const line of lines) state.put(line, keyOf(line.e, line.id));
+}
+
 function writeMeta(t: IDBTransaction, meta: Partial<Meta>): void {
   const store = t.objectStore('meta');
   for (const [k, v] of Object.entries(meta)) store.put(v, k);
@@ -130,10 +138,16 @@ export class Store {
   // ── writes ────────────────────────────────────────────────────────────
 
   // A local edit: its rows and its outbox group land together or not at all.
-  async commitLocal(changes: Change[], group: Group, meta: Partial<Meta> = {}): Promise<number> {
+  async commitLocal(
+    changes: Change[],
+    group: Group,
+    meta: Partial<Meta> = {},
+    lines: Iterable<CheckpointEntity> = [],
+  ): Promise<number> {
     let id = 0;
-    await tx(this.db, ['rows', 'outbox', 'meta'], 'readwrite', (t) => {
+    await tx(this.db, ['rows', 'state', 'outbox', 'meta'], 'readwrite', (t) => {
       writeChanges(t, changes);
+      writeLines(t, lines);
       const r = t.objectStore('outbox').add(group);
       r.onsuccess = () => (id = r.result as number);
       writeMeta(t, meta);
@@ -146,18 +160,27 @@ export class Store {
   async applyPulled(changes: Change[], lines: Iterable<CheckpointEntity>, meta: Partial<Meta>): Promise<void> {
     await tx(this.db, ['rows', 'state', 'meta'], 'readwrite', (t) => {
       writeChanges(t, changes);
-      const state = t.objectStore('state');
-      for (const line of lines) state.put(line, keyOf(line.e, line.id));
+      writeLines(t, lines);
       writeMeta(t, meta);
     });
   }
 
-  // Outbox groups become one sealed segment, atomically.
-  async seal(outboxIds: number[], segment: Sealed, meta: Partial<Meta> = {}): Promise<void> {
-    await tx(this.db, ['outbox', 'sealed', 'meta'], 'readwrite', (t) => {
+  // Outbox groups become sealed segments, atomically, with whatever the
+  // merge state learned from sealing them (their real seq, the own vv).
+  async seal(
+    outboxIds: number[],
+    segments: Sealed | Sealed[],
+    meta: Partial<Meta> = {},
+    changes: Change[] = [],
+    lines: Iterable<CheckpointEntity> = [],
+  ): Promise<void> {
+    await tx(this.db, ['rows', 'state', 'outbox', 'sealed', 'meta'], 'readwrite', (t) => {
       const outbox = t.objectStore('outbox');
       for (const id of outboxIds) outbox.delete(id);
-      t.objectStore('sealed').put(segment, segment.seq);
+      const sealed = t.objectStore('sealed');
+      for (const s of Array.isArray(segments) ? segments : [segments]) sealed.put(s, s.seq);
+      writeChanges(t, changes);
+      writeLines(t, lines);
       writeMeta(t, meta);
     });
   }

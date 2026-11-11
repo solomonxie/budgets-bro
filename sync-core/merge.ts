@@ -49,6 +49,19 @@ export const saw = (a: Op, b: Op): boolean =>
   a.d === b.d ? stampOf(a) > stampOf(b) : (a.vv[b.d] ?? 0) >= b.seq;
 
 const keyOf = (e: string, id: string) => `${e}/${id}`;
+
+const lineOf = (ent: EntityState): CheckpointEntity => ({
+  e: ent.e,
+  id: ent.id,
+  exists: ent.exists,
+  f: Object.fromEntries([...ent.fields].map(([f, v]) => [f, { x: v.x, s: v.s }])),
+  heads: Object.fromEntries(
+    [...ent.heads].map(([f, ops]) => [
+      f,
+      ops.map((op) => ({ x: (op.x ?? null) as Scalar, s: stampOf(op), seq: op.seq, vv: op.vv })),
+    ]),
+  ),
+});
 const splitKey = (key: string): [string, string] => {
   const slash = key.indexOf('/');
   return [key.slice(0, slash), key.slice(slash + 1)];
@@ -110,7 +123,14 @@ export class SyncState {
     if (!isTextField(ent.e, f)) return;
     const asField: Op = op.o === 'set' ? op : { ...op, o: 'set', f, x };
     const heads = ent.heads.get(f) ?? [];
-    if (heads.some((h) => stampOf(h) === s || saw(h, asField))) return;
+    // Same stamp = same op. A local op merged before sealing learns its real
+    // seq when its sealed segment is applied, so the newer copy replaces it.
+    const same = heads.findIndex((h) => stampOf(h) === s);
+    if (same >= 0) {
+      ent.heads.set(f, heads.map((h, i) => (i === same ? asField : h)));
+      return;
+    }
+    if (heads.some((h) => saw(h, asField))) return;
     ent.heads.set(f, [...heads.filter((h) => !saw(asField, h)), asField]);
   }
 
@@ -320,20 +340,18 @@ export class SyncState {
   }
 
   *checkpointEntities(): Iterable<CheckpointEntity> {
-    for (const ent of this.entities.values()) {
-      yield {
-        e: ent.e,
-        id: ent.id,
-        exists: ent.exists,
-        f: Object.fromEntries([...ent.fields].map(([f, v]) => [f, { x: v.x, s: v.s }])),
-        heads: Object.fromEntries(
-          [...ent.heads].map(([f, ops]) => [
-            f,
-            ops.map((op) => ({ x: (op.x ?? null) as Scalar, s: stampOf(op), seq: op.seq, vv: op.vv })),
-          ]),
-        ),
-      };
+    for (const ent of this.entities.values()) yield lineOf(ent);
+  }
+
+  // Checkpoint lines for just these `<e>/<id>` keys, e.g. those `changes()`
+  // returned: a store persists what a batch touched, not the whole state.
+  lines(keys: Iterable<string>): CheckpointEntity[] {
+    const out: CheckpointEntity[] = [];
+    for (const key of new Set(keys)) {
+      const ent = this.entities.get(key);
+      if (ent) out.push(lineOf(ent));
     }
+    return out;
   }
 
   static fromCheckpoint(header: CheckpointHeader, lines: Iterable<CheckpointEntity>): SyncState {

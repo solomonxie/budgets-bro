@@ -324,8 +324,5 @@ export async function writeChanges(db: SQLiteDatabase, state: SyncState, applied
 
 // Checkpoint lines for the entities a batch touched (a superset is fine).
 function linesFor(state: SyncState, changes: Change[]): CheckpointEntity[] {
-  const keys = new Set(changes.map((c) => `${c.e}/${c.id}`));
-  const out: CheckpointEntity[] = [];
-  for (const line of state.checkpointEntities()) if (keys.has(`${line.e}/${line.id}`)) out.push(line);
-  return out;
+  return state.lines(changes.map((c) => `${c.e}/${c.id}`));
 }

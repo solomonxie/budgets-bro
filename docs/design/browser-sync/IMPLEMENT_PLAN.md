@@ -50,7 +50,7 @@ Needs the phone's checkpoint (T3.3) to have anything to show.
 - [x] T5.1 Scaffold `extension/`: manifest v3, esbuild, tsc, vitest running `sync-core/vectors` — see `photos-vault/extension/` — depends: T1.6
 - [x] T5.2 Connection setup: paste/parse S3 config (reuse `parseS3ConfigText`), host permission, `chrome.storage.local` — see `extension/src/setup/` — depends: T5.1, T1.7
 - [x] T5.3 IndexedDB store: materialised rows by gid + outbox in one transaction; indexes per page query — see `extension/src/store/` — depends: T5.1
-- [ ] T5.4 Sync loop: load checkpoint, pull, merge, push; on open/focus and after edits — see `extension/src/sync/` — depends: T5.2, T5.3, T3.3
+- [x] T5.4 Sync loop: load checkpoint, pull, merge, push; on open/focus and after edits — see `extension/src/sync/` — depends: T5.2, T5.3, T3.3
 - [x] T5.5 Derived values port: balances, available, Ready to Assign (shared from `src/domain/` where pure, else moved to `sync-core/`) — see `src/domain/` — depends: T5.3
 
 ## Phase 6: Extension pages

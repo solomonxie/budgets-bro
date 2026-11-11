@@ -60,6 +60,10 @@ export async function up(db: SQLiteDatabase): Promise<void> {
 }
 
 export async function rebuildChangeLogTriggers(db: SQLiteDatabase): Promise<void> {
+  // Migration 048 adds the transaction marker; before it, triggers write none.
+  const hasTxn = (await columnsOf(db, 'change_log')).includes('txn');
+  const txnColumn = hasTxn ? ', txn' : '';
+  const txnValue = hasTxn ? ', (SELECT id FROM sync_txn)' : '';
   for (const table of LOGGED_TABLES) {
     const columns = await columnsOf(db, table);
     if (columns.length === 0) continue; // table not in this database
@@ -71,18 +75,18 @@ export async function rebuildChangeLogTriggers(db: SQLiteDatabase): Promise<void
       DROP TRIGGER IF EXISTS trg_${table}_log_delete;
 
       CREATE TRIGGER trg_${table}_log_insert AFTER INSERT ON ${table} BEGIN
-        INSERT INTO change_log (tbl, op, row_id, before, after)
-        VALUES ('${table}', 'insert', new.rowid, NULL, ${json('new')});
+        INSERT INTO change_log (tbl, op, row_id, before, after${txnColumn})
+        VALUES ('${table}', 'insert', new.rowid, NULL, ${json('new')}${txnValue});
       END;
 
       CREATE TRIGGER trg_${table}_log_update AFTER UPDATE ON ${table} BEGIN
-        INSERT INTO change_log (tbl, op, row_id, before, after)
-        VALUES ('${table}', 'update', old.rowid, ${json('old')}, ${json('new')});
+        INSERT INTO change_log (tbl, op, row_id, before, after${txnColumn})
+        VALUES ('${table}', 'update', old.rowid, ${json('old')}, ${json('new')}${txnValue});
       END;
 
       CREATE TRIGGER trg_${table}_log_delete AFTER DELETE ON ${table} BEGIN
-        INSERT INTO change_log (tbl, op, row_id, before, after)
-        VALUES ('${table}', 'delete', old.rowid, ${json('old')}, NULL);
+        INSERT INTO change_log (tbl, op, row_id, before, after${txnColumn})
+        VALUES ('${table}', 'delete', old.rowid, ${json('old')}, NULL${txnValue});
       END;
     `);
   }

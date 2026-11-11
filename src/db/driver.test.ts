@@ -9,6 +9,9 @@ jest.mock('@op-engineering/op-sqlite', () => ({
   IOS_DOCUMENT_PATH: '/documents',
 }));
 
+const OPEN = 'UPDATE sync_txn SET id = id + 1, open = 1';
+const CLOSE = 'UPDATE sync_txn SET open = 0';
+
 function db() {
   return openDatabase('test.db', '/documents/SQLite');
 }
@@ -73,7 +76,7 @@ describe('withTransactionAsync', () => {
     await db().withTransactionAsync(async () => {
       await Promise.resolve();
     });
-    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', 'COMMIT']);
+    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', OPEN, CLOSE, 'COMMIT']);
   });
 
   it('rolls back and rethrows on failure', async () => {
@@ -83,7 +86,7 @@ describe('withTransactionAsync', () => {
         throw boom;
       }),
     ).rejects.toBe(boom);
-    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', 'ROLLBACK']);
+    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', OPEN, 'ROLLBACK']);
   });
 
   it('joins an outer transaction instead of nesting a second BEGIN', async () => {
@@ -95,7 +98,9 @@ describe('withTransactionAsync', () => {
     });
     expect(mockExecute.mock.calls.map((c) => c[0])).toEqual([
       'BEGIN',
+      OPEN,
       'INSERT INTO t (a) VALUES (1)',
+      CLOSE,
       'COMMIT',
     ]);
   });
@@ -111,6 +116,24 @@ describe('withTransactionAsync', () => {
     await database.withTransactionAsync(async () => {
       await Promise.resolve();
     });
-    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', 'COMMIT']);
+    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', OPEN, CLOSE, 'COMMIT']);
+  });
+
+  it('still commits before migration 048 has made the marker table', async () => {
+    mockExecute.mockImplementation(async (sql: string) => {
+      if (sql.includes('sync_txn')) throw new Error('no such table: sync_txn');
+      return { rows: [], rowsAffected: 0 };
+    });
+    await db().withTransactionAsync(async () => {});
+    expect(mockExecute.mock.calls.map((c) => c[0])).toEqual(['BEGIN', OPEN, CLOSE, 'COMMIT']);
+  });
+
+  it('rolls back when marking fails for any other reason', async () => {
+    mockExecute.mockImplementation(async (sql: string) => {
+      if (sql === CLOSE) throw new Error('disk I/O error');
+      return { rows: [], rowsAffected: 0 };
+    });
+    await expect(db().withTransactionAsync(async () => {})).rejects.toThrow('disk I/O error');
+    expect(mockExecute.mock.calls.map((c) => c[0]).at(-1)).toBe('ROLLBACK');
   });
 });

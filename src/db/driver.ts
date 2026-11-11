@@ -27,7 +27,21 @@ function flatten(params: SQLParam[]): SQLParam[] {
   return params.length === 1 && Array.isArray(params[0]) ? (params[0] as SQLParam[]) : params;
 }
 
+// Marks every transaction for the change log (migration 048): a fresh id at
+// BEGIN, `open` until COMMIT. A rollback undoes both with the rows. Before
+// 048 has run the table isn't there, and migrations still need transactions.
+const OPEN_TXN = 'UPDATE sync_txn SET id = id + 1, open = 1';
+const CLOSE_TXN = 'UPDATE sync_txn SET open = 0';
+
 function wrap(db: DB): SQLiteDatabase {
+  async function markTxn(sql: string): Promise<void> {
+    try {
+      await db.execute(sql);
+    } catch (error) {
+      if (!String(error).includes('no such table: sync_txn')) throw error;
+    }
+  }
+
   // BEGIN/COMMIT on the connection rather than the engine's own transaction
   // helper: callers run their statements against the same `db` they already
   // hold, not a transaction handle passed into the callback.
@@ -70,7 +84,9 @@ function wrap(db: DB): SQLiteDatabase {
       depth = 1;
       await db.execute('BEGIN');
       try {
+        await markTxn(OPEN_TXN);
         await fn();
+        await markTxn(CLOSE_TXN);
         await db.execute('COMMIT');
       } catch (error) {
         await db.execute('ROLLBACK');

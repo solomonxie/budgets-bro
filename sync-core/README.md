@@ -9,3 +9,4 @@ Protocol code shared by the app (`src/`) and the Chrome extension
 - `clock.ts`: hybrid logical clock and stamps.
 - `bucket.ts`: write-once S3 client over `sigv4.ts` + `sha256.ts`.
 - `bytes.ts`: UTF-8/hex without TextEncoder (Hermes has none).
+- `columns.ts`: the synced columns of each entity.

@@ -29,10 +29,10 @@ backup/restore before any op is written.
 ## Phase 3: Phone sync engine
 Push before pull: the bootstrap checkpoint is what unblocks the extension.
 
-- [ ] T3.1 Outbox builder: `change_log` rows past cursor, minus remote ranges → ops (id→gid, FK→gid, diff→sets), grouped by local transaction — see `src/sync/outbox.ts` — depends: T1.5, T2.2, T2.4
+- [x] T3.1 Outbox builder: `change_log` rows past cursor, minus remote ranges → ops (id→gid, FK→gid, diff→sets), grouped by local transaction — see `src/sync/outbox.ts` — depends: T1.5, T2.2, T2.4
 - [ ] T3.2 Pusher: seal segment, put-once, device file, flush on 2 s quiet / 200 ops / background — see `src/sync/push.ts` — depends: T1.7, T3.1
 - [ ] T3.3 Bootstrap: every row of every board as `add`, then checkpoint; join-existing path adopts cloud checkpoint — see `src/sync/bootstrap.ts` — depends: T3.2
-- [ ] T3.4 Applier: pull per device prefix, merge, write rows in one transaction (gid→id, alias remap, delete/undelete), record remote seq range — see `src/sync/apply.ts` — depends: T1.5, T2.4
+- [x] T3.4 Applier: pull per device prefix, merge, write rows in one transaction (gid→id, alias remap, delete/undelete), record remote seq range — see `src/sync/apply.ts` — depends: T1.5, T2.4
 - [ ] T3.5 Triggers: pull on foreground and after own push; no timers; skipped in demo mode — see `src/sync/cloudSync.ts`, `App.tsx` — depends: T3.2, T3.4
 - [ ] T3.6 Daily checkpoint publisher (most ops since last) — see `src/sync/checkpoint.ts` — depends: T3.3, T3.4
 - [ ] T3.7 Device perf check: apply 2k ops on a Release build without a dropped frame; bundle + app size vs budget — see `docs/DESIGN.md` — depends: T3.5
@@ -51,7 +51,7 @@ Needs the phone's checkpoint (T3.3) to have anything to show.
 - [x] T5.2 Connection setup: paste/parse S3 config (reuse `parseS3ConfigText`), host permission, `chrome.storage.local` — see `extension/src/setup/` — depends: T5.1, T1.7
 - [x] T5.3 IndexedDB store: materialised rows by gid + outbox in one transaction; indexes per page query — see `extension/src/store/` — depends: T5.1
 - [ ] T5.4 Sync loop: load checkpoint, pull, merge, push; on open/focus and after edits — see `extension/src/sync/` — depends: T5.2, T5.3, T3.3
-- [ ] T5.5 Derived values port: balances, available, Ready to Assign (shared from `src/domain/` where pure, else moved to `sync-core/`) — see `src/domain/` — depends: T5.3
+- [x] T5.5 Derived values port: balances, available, Ready to Assign (shared from `src/domain/` where pure, else moved to `sync-core/`) — see `src/domain/` — depends: T5.3
 
 ## Phase 6: Extension pages
 Each page is disjoint, so these run in parallel once data and derived values exist.

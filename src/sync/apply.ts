@@ -29,7 +29,7 @@ export interface PullResult {
 }
 
 // Parents before children: NOT NULL FK targets always land first.
-const ORDER = [
+export const ORDER = [
   'boards',
   'category_groups',
   'accounts',
@@ -60,6 +60,11 @@ const cache = new WeakMap<SQLiteDatabase, SyncState>();
 // A restore or reset must drop the in-memory state with the tables.
 export function forgetState(db: SQLiteDatabase): void {
   cache.delete(db);
+}
+
+// Bootstrap built and wrote this state itself; reuse it rather than reload.
+export function adoptState(db: SQLiteDatabase, state: SyncState): void {
+  cache.set(db, state);
 }
 
 async function loadState(db: SQLiteDatabase): Promise<SyncState> {
@@ -203,7 +208,8 @@ async function rowsByGid(db: SQLiteDatabase, table: string, gids: string[], what
 
 const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
 
-async function writeChanges(db: SQLiteDatabase, state: SyncState, applied: Map<string, syncState.Applied>) {
+// Also bootstrap's: writes every entity `state` has not handed out yet.
+export async function writeChanges(db: SQLiteDatabase, state: SyncState, applied: Map<string, syncState.Applied>) {
   const all = state.changes();
   const lines = linesFor(state, all);
   const byTable = new Map<string, Change[]>();

@@ -90,11 +90,15 @@ it('persists merge state and indexes conflicted entities', async () => {
 it('writes nothing to change_log and resets cleanly', async () => {
   const before = (await db.getFirstAsync<{ n: number }>('SELECT count(*) AS n FROM change_log'))!.n;
   await repo.setMeta(db, 'device', 'abc');
+  await repo.setMeta(db, 'homeConfig', 'cfg');
+  await repo.setMeta(db, 'enabled', true);
   await repo.saveEntities(db, [line('x', 1)]);
   await repo.addSealed(db, { seq: 1, key: 'k', bytes: new Uint8Array([1]) });
   expect((await db.getFirstAsync<{ n: number }>('SELECT count(*) AS n FROM change_log'))!.n).toBe(before);
   await repo.resetSyncState(db);
   expect(await repo.getMeta(db, 'device')).toBeNull();
+  expect(await repo.getMeta(db, 'homeConfig')).toBe('cfg');
+  expect(await repo.getMeta(db, 'enabled')).toBe(true);
   expect(await repo.loadEntities(db)).toEqual([]);
   expect(await repo.listSealed(db)).toEqual([]);
 });

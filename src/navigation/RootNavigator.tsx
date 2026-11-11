@@ -26,6 +26,7 @@ import { useBootstrapActiveBoard } from '../hooks/useBoards';
 import { useBootstrapPayeeFirst } from '../hooks/usePayeeFirst';
 import { useBootstrapLanguage } from '../hooks/useLanguage';
 import { useAutoCloudSync } from '../hooks/useCloudSync';
+import { useBrowserSync } from '../hooks/useBrowserSync';
 import { useAutoSnapshot } from '../hooks/useAutoSnapshot';
 import { useT } from '../i18n';
 import { useAppStore } from '../state/useAppStore';
@@ -136,6 +137,7 @@ function DatabaseHooks() {
   useBootstrapPayeeFirst();
   useBootstrapLanguage();
   useAutoCloudSync();
+  useBrowserSync();
   useAutoSnapshot();
   return null;
 }

@@ -145,6 +145,12 @@ async function resolveConfig(meta: S3ConfigMeta): Promise<S3Config | null> {
   return creds ? { ...meta, ...creds } : null;
 }
 
+// The home bucket for browser sync (browserSync.ts): same config, same keys.
+export async function getS3Connection(db: SQLiteDatabase, id: string): Promise<S3Config | null> {
+  const meta = (await listS3Configs(db)).find((c) => c.id === id);
+  return meta ? resolveConfig(meta) : null;
+}
+
 function nonce(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }

@@ -31,7 +31,7 @@ interface LogRow {
   txn: number | null;
 }
 
-type Row = Record<string, Scalar>;
+export type Row = Record<string, Scalar>;
 
 const BATCH_ROWS = 5000;
 const IN_CHUNK = 500;
@@ -136,12 +136,12 @@ function runsByTxn(rows: Parsed[]): Parsed[][] {
   return runs;
 }
 
-type GidMap = Map<string, Map<number, string>>;
+export type GidMap = Map<string, Map<number, string>>;
 
 const gidOf = (gids: GidMap, table: string, id: number): string | undefined =>
   gids.get(table)?.get(id);
 
-function remember(gids: GidMap, table: string, row: Row | null) {
+export function remember(gids: GidMap, table: string, row: Row | null) {
   if (!row || typeof row.id !== 'number' || typeof row.gid !== 'string') return;
   let byId = gids.get(table);
   if (!byId) gids.set(table, (byId = new Map()));
@@ -233,10 +233,7 @@ function toGroup(run: Parsed[], h: string, wall: number, gids: GidMap): Group {
     const p = entry(e, id);
 
     if (r.op === 'insert' && r.afterRow) {
-      const x: Row = {};
-      for (const f of syncedColumns[e]) x[f] = wireValue(e, f, r.afterRow[f], gids);
-      x.deleted = null;
-      p.add = x;
+      p.add = addFields(e, r.afterRow, gids);
       p.sets.clear();
     } else if (r.op === 'update' && r.afterRow) {
       for (const f of syncedColumns[e]) {
@@ -255,6 +252,14 @@ function toGroup(run: Parsed[], h: string, wall: number, gids: GidMap): Group {
     for (const [f, x] of p.sets) ops.push({ h, e: p.e, id: p.id, o: 'set', f, x });
   }
   return ops;
+}
+
+// An `add`'s field map: every synced column, FKs as gids, not deleted.
+export function addFields(e: string, row: Row, gids: GidMap): Row {
+  const x: Row = {};
+  for (const f of syncedColumns[e]) x[f] = wireValue(e, f, row[f], gids);
+  x.deleted = null;
+  return x;
 }
 
 // FK fields travel as the target's gid. One that can't be found (a row

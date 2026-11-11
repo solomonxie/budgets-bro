@@ -1,6 +1,8 @@
 import type { SQLiteDatabase } from '../db/driver';
 import * as boardsRepo from '../db/repositories/boardsRepo';
 import { resetSyncState } from '../db/repositories/syncStateRepo';
+import { forgetState } from '../sync/apply';
+import { forgetSyncPresence } from '../sync/conflicts';
 import { newGid } from '../db/gid';
 import { budgetEntryGid } from '../../sync-core/entities';
 import type { PickedAppExport } from './pickAppExport';
@@ -246,7 +248,11 @@ export async function importAppExport(
       );
     }
 
-    if (keep) await resetSyncState(db);
+    if (keep) {
+      await resetSyncState(db);
+      forgetState(db);
+      forgetSyncPresence(db);
+    }
 
     result = {
       boardId,

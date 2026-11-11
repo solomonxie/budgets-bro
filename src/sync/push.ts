@@ -5,7 +5,7 @@ import * as syncState from '../db/repositories/syncStateRepo';
 import type { Bucket } from '../../sync-core/bucket';
 import { utf8ToBytes } from '../../sync-core/bytes';
 import { cutSegments, encodeSegment, segmentKey, segmentMaxOps } from '../../sync-core/codec';
-import type { Gzip, VersionVector } from '../../sync-core/types';
+import type { Group, Gzip, VersionVector } from '../../sync-core/types';
 import { buildOutbox } from './outbox';
 import { withSyncLock } from './syncLock';
 
@@ -78,28 +78,43 @@ async function sealOutbox(deps: PushDeps, device: string): Promise<number> {
     const batch = await buildOutbox(db, deps.now);
     if (!batch) return count;
     const vv = othersOnly(await syncState.getVersionVector(db), device);
-    let seq = (await syncState.getMeta(db, 'nextSeq')) ?? 1;
-    const segments: syncState.Sealed[] = [];
-    for (const ops of cutSegments(batch.groups)) {
-      segments.push({ seq, key: segmentKey(device, seq), bytes: await encodeSegment(deps.gzip, device, seq, vv, ops) });
-      seq++;
-    }
-    await db.withTransactionAsync(async () => {
-      for (const s of segments) await syncState.addSealed(db, s);
+    count += await sealGroups(db, deps.gzip, device, batch.groups, vv, async () => {
       await syncState.setMeta(db, 'outboxCursor', batch.cursor);
       await syncState.setMeta(db, 'hlc', batch.hlc);
-      await syncState.setMeta(db, 'nextSeq', seq);
     });
-    count += segments.length;
   }
 }
 
-function othersOnly(vv: VersionVector, device: string): VersionVector {
+// Cuts groups into segments and stores them, with nextSeq and whatever
+// `persist` writes, in one transaction.
+export async function sealGroups(
+  db: SQLiteDatabase,
+  gz: Gzip,
+  device: string,
+  groups: Group[],
+  vv: VersionVector,
+  persist: () => Promise<void>,
+): Promise<number> {
+  let seq = (await syncState.getMeta(db, 'nextSeq')) ?? 1;
+  const segments: syncState.Sealed[] = [];
+  for (const ops of cutSegments(groups)) {
+    segments.push({ seq, key: segmentKey(device, seq), bytes: await encodeSegment(gz, device, seq, vv, ops) });
+    seq++;
+  }
+  await db.withTransactionAsync(async () => {
+    for (const s of segments) await syncState.addSealed(db, s);
+    await syncState.setMeta(db, 'nextSeq', seq);
+    await persist();
+  });
+  return segments.length;
+}
+
+export function othersOnly(vv: VersionVector, device: string): VersionVector {
   const { [device]: _own, ...rest } = vv;
   return rest;
 }
 
-async function txnOpen(db: SQLiteDatabase): Promise<boolean> {
+export async function txnOpen(db: SQLiteDatabase): Promise<boolean> {
   const row = await db.getFirstAsync<{ open: number }>('SELECT open FROM sync_txn');
   return row?.open === 1;
 }

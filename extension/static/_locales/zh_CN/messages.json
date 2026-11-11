@@ -1,5 +1,154 @@
 {
-  "name": { "message": "Budgets Bro" },
-  "description": { "message": "在你自己的存储桶里查看和编辑 Budgets Bro 账本。" },
-  "comingSoon": { "message": "即将支持连接你的存储桶。" }
+ "name": {
+  "message": "Budgets Bro"
+ },
+ "description": {
+  "message": "在你自己的存储桶里查看和编辑 Budgets Bro 账本。"
+ },
+ "setupSubtitle": {
+  "message": "你的预算，来自你自己的存储桶。"
+ },
+ "setupBucketHeading": {
+  "message": "S3 存储桶"
+ },
+ "setupBucket": {
+  "message": "存储桶"
+ },
+ "setupKeyId": {
+  "message": "Access Key ID"
+ },
+ "setupSecret": {
+  "message": "Secret Access Key"
+ },
+ "setupPrefix": {
+  "message": "文件夹（键前缀），例如 budgets-bro/"
+ },
+ "setupShowSecret": {
+  "message": "显示密钥"
+ },
+ "setupLengthHint": {
+  "message": "$ARG1$ 个字符——这个密钥通常是 $ARG2$ 个。",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   },
+   "arg2": {
+    "content": "$2"
+   }
+  }
+ },
+ "setupPaste": {
+  "message": "粘贴信息添加"
+ },
+ "setupBackToFields": {
+  "message": "返回字段"
+ },
+ "setupPasteHint": {
+  "message": "不加遮盖显示，粘贴错了一眼就能看出。"
+ },
+ "setupScopeHint": {
+  "message": "只保存在这个 Chrome 配置文件里，不会同步到你的 Google 账号。请使用只限这一个存储桶的密钥。"
+ },
+ "setupConnect": {
+  "message": "连接"
+ },
+ "setupMissing": {
+  "message": "存储桶、Access Key ID 和 Secret Access Key 都需要填写。"
+ },
+ "setupAsking": {
+  "message": "正在向 Chrome 请求访问 $ARG1$…",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupDenied": {
+  "message": "已拒绝 Chrome 访问该存储桶。"
+ },
+ "setupTryAgain": {
+  "message": "重试"
+ },
+ "setupDetecting": {
+  "message": "正在检测区域…"
+ },
+ "setupNoSuchBucket": {
+  "message": "没有名为 $ARG1$ 的存储桶，请检查名称。",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupRegionFound": {
+  "message": "你的存储桶在 $ARG1$。请再点一次“连接”以允许访问。",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupChecking": {
+  "message": "正在检查存储桶访问权限…"
+ },
+ "setupNoData": {
+  "message": "$ARG1$ 中没有 Budgets Bro 数据",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupNoDataHint": {
+  "message": "请确认文件夹与手机上同步的存储桶一致。"
+ },
+ "setupUseAnyway": {
+  "message": "仍然使用"
+ },
+ "setupCantList": {
+  "message": "这个密钥无法列出 $ARG1$。它的策略需要 s3:ListBucket。",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupDrafts": {
+  "message": "最近的尝试"
+ },
+ "setupFill": {
+  "message": "填入"
+ },
+ "setupForget": {
+  "message": "忘记这次尝试"
+ },
+ "setupDisconnect": {
+  "message": "断开这个浏览器"
+ },
+ "setupDisconnectBody": {
+  "message": "从这个浏览器移除密钥和缓存的预算。"
+ },
+ "cancel": {
+  "message": "取消"
+ },
+ "waitingTitle": {
+  "message": "等待你的手机"
+ },
+ "waitingBody": {
+  "message": "在 iPhone 上打开 Budgets Bro，进入“设置 › 备份”，在 $ARG1$ 下打开“与浏览器同步”。手机发布后，你的账本就会出现在这里。",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "waitingPolling": {
+  "message": "每 10 秒检查一次。"
+ },
+ "waitingChange": {
+  "message": "更改连接"
+ },
+ "readySoon": {
+  "message": "已连接。在这里加载你的预算即将推出。"
+ }
 }

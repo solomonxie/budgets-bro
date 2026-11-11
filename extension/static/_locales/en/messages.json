@@ -1,5 +1,154 @@
 {
-  "name": { "message": "Budgets Bro" },
-  "description": { "message": "Your Budgets Bro ledger, from your own bucket." },
-  "comingSoon": { "message": "Connecting to your bucket is coming next." }
+ "name": {
+  "message": "Budgets Bro"
+ },
+ "description": {
+  "message": "Your Budgets Bro ledger, from your own bucket."
+ },
+ "setupSubtitle": {
+  "message": "Your budget, from your own bucket."
+ },
+ "setupBucketHeading": {
+  "message": "S3 BUCKET"
+ },
+ "setupBucket": {
+  "message": "Bucket"
+ },
+ "setupKeyId": {
+  "message": "Access Key ID"
+ },
+ "setupSecret": {
+  "message": "Secret Access Key"
+ },
+ "setupPrefix": {
+  "message": "Folder (key prefix), e.g. budgets-bro/"
+ },
+ "setupShowSecret": {
+  "message": "Show secret"
+ },
+ "setupLengthHint": {
+  "message": "$ARG1$ characters — this key is usually $ARG2$.",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   },
+   "arg2": {
+    "content": "$2"
+   }
+  }
+ },
+ "setupPaste": {
+  "message": "Paste info to add"
+ },
+ "setupBackToFields": {
+  "message": "Back to fields"
+ },
+ "setupPasteHint": {
+  "message": "Shown unmasked so a bad paste is visible."
+ },
+ "setupScopeHint": {
+  "message": "Stored only in this Chrome profile, never synced to your Google account. Use a key limited to this one bucket."
+ },
+ "setupConnect": {
+  "message": "Connect"
+ },
+ "setupMissing": {
+  "message": "Bucket, Access Key ID and Secret Access Key are all needed."
+ },
+ "setupAsking": {
+  "message": "Asking Chrome for access to $ARG1$…",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupDenied": {
+  "message": "Chrome access to the bucket was declined."
+ },
+ "setupTryAgain": {
+  "message": "Try again"
+ },
+ "setupDetecting": {
+  "message": "Detecting region…"
+ },
+ "setupNoSuchBucket": {
+  "message": "No bucket named $ARG1$ — check the name.",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupRegionFound": {
+  "message": "Your bucket is in $ARG1$. Click Connect once more to allow it.",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupChecking": {
+  "message": "Checking bucket access…"
+ },
+ "setupNoData": {
+  "message": "No Budgets Bro data in $ARG1$",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupNoDataHint": {
+  "message": "Check the folder matches the bucket synced on your phone."
+ },
+ "setupUseAnyway": {
+  "message": "Use it anyway"
+ },
+ "setupCantList": {
+  "message": "This key can't list $ARG1$. Its policy needs s3:ListBucket.",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "setupDrafts": {
+  "message": "Recent attempts"
+ },
+ "setupFill": {
+  "message": "Fill"
+ },
+ "setupForget": {
+  "message": "Forget this attempt"
+ },
+ "setupDisconnect": {
+  "message": "Disconnect this browser"
+ },
+ "setupDisconnectBody": {
+  "message": "Removes the key and the cached budget from this browser."
+ },
+ "cancel": {
+  "message": "Cancel"
+ },
+ "waitingTitle": {
+  "message": "Waiting for your phone"
+ },
+ "waitingBody": {
+  "message": "Open Budgets Bro on your iPhone, go to Settings › Backup and turn on Sync with browser under $ARG1$. Your boards appear here as soon as the phone has published them.",
+  "placeholders": {
+   "arg1": {
+    "content": "$1"
+   }
+  }
+ },
+ "waitingPolling": {
+  "message": "Checking every 10 s."
+ },
+ "waitingChange": {
+  "message": "Change connection"
+ },
+ "readySoon": {
+  "message": "Connected. Loading your budget here is coming next."
+ }
 }

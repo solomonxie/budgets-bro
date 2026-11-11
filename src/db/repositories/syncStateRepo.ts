@@ -20,6 +20,14 @@ interface Meta {
   outboxCursor: number;
   nextSeq: number;
   fatal: SyncFatal | null;
+  deviceName: string;
+  // Bucket ms the device file was first written / last refreshed.
+  deviceCreated: number;
+  deviceSeen: number;
+  // Other devices' names from sync/devices/<id>.json, for whose edit is whose.
+  deviceNames: Record<string, string>;
+  // `<e>/<gid>/<field>` → head stamps resolved here, not yet merged back.
+  resolved: Record<string, string[]>;
 }
 
 export async function getMeta<K extends keyof Meta>(db: SQLiteDatabase, k: K): Promise<Meta[K] | null> {
@@ -127,8 +135,10 @@ export async function loadEntities(db: SQLiteDatabase): Promise<CheckpointEntity
   return rows.map((r) => JSON.parse(r.line) as CheckpointEntity);
 }
 
-export async function conflictedEntities(db: SQLiteDatabase): Promise<CheckpointEntity[]> {
-  const rows = await db.getAllAsync<{ line: string }>('SELECT line FROM sync_entity WHERE conflicted = 1');
+export async function conflictedEntities(db: SQLiteDatabase, key?: string): Promise<CheckpointEntity[]> {
+  const rows = key
+    ? await db.getAllAsync<{ line: string }>('SELECT line FROM sync_entity WHERE conflicted = 1 AND k = ?', key)
+    : await db.getAllAsync<{ line: string }>('SELECT line FROM sync_entity WHERE conflicted = 1');
   return rows.map((r) => JSON.parse(r.line) as CheckpointEntity);
 }
 

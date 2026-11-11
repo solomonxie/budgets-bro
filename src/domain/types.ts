@@ -1,3 +1,4 @@
+import type { AccountType } from '../../sync-core/accountKind';
 import type { ScheduleFrequency } from './recurrence';
 
 export interface Board {
@@ -6,17 +7,7 @@ export interface Board {
   createdAt: string;
 }
 
-export type AccountType =
-  | 'savings'
-  | 'credit_card'
-  | 'cash'
-  | 'loan'
-  | 'mortgage'
-  | 'tracking'
-  | 'asset'
-  | 'giving';
-
-export type AccountKind = 'Cash' | 'Savings' | 'Credit' | 'Loan' | 'Tracking' | 'Asset' | 'Giving';
+export type { AccountKind, AccountType } from '../../sync-core/accountKind';
 
 export interface Account {
   id: number;

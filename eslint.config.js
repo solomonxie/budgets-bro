@@ -7,7 +7,7 @@ const globals = require('globals');
 // Native's own config is written for Flow and pulls in a plugin that
 // doesn't run on ESLint 9 at all.
 module.exports = [
-  { ignores: ['dist/*', 'ios/*', 'coverage/*'] },
+  { ignores: ['dist/*', 'ios/*', 'coverage/*', 'extension/*'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs.flat['recommended-latest'],

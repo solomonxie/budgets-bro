@@ -17,6 +17,7 @@
   },
   "exclude": [
     "node_modules",
+    "extension",
     "babel.config.js",
     "metro.config.js",
     "android",

@@ -1,0 +1,5 @@
+{
+  "name": { "message": "Budgets Bro" },
+  "description": { "message": "Your Budgets Bro ledger, from your own bucket." },
+  "comingSoon": { "message": "Connecting to your bucket is coming next." }
+}

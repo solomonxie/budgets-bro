@@ -48,6 +48,8 @@
   "private": true,
   "jest": {
     "preset": "react-native",
+    "testPathIgnorePatterns": ["/node_modules/", "<rootDir>/extension/"],
+    "modulePathIgnorePatterns": ["<rootDir>/extension/"],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|@noble)/)"
     ]

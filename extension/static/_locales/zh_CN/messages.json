@@ -1,0 +1,5 @@
+{
+  "name": { "message": "Budgets Bro" },
+  "description": { "message": "在你自己的存储桶里查看和编辑 Budgets Bro 账本。" },
+  "comingSoon": { "message": "即将支持连接你的存储桶。" }
+}

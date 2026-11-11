@@ -6,6 +6,7 @@ import type { SQLiteDatabase } from './driver';
 import { migrate } from './migrate';
 import { up as up046, SYNCED_TABLES } from '../../databases/migrations/046_sync_gid';
 import { budgetEntryGid } from '../../sync-core/entities';
+import { up as up049 } from '../../databases/migrations/049_backfill_null_gids';
 
 jest.mock('@op-engineering/op-sqlite', () => {
   const { DatabaseSync } = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
@@ -116,4 +117,16 @@ describe('046 sync gid', () => {
     expect(await count('SELECT COUNT(*) n FROM transactions WHERE gid IS NULL')).toBe(0);
     expect(ms).toBeLessThan(5000);
   }, 60000);
+
+  it('049 fills gids on rows a build without gid inserts left NULL', async () => {
+    await seed(3);
+    const before = await count('SELECT COUNT(*) AS n FROM change_log');
+    await up049(db);
+    for (const table of SYNCED_TABLES) {
+      expect(await count(`SELECT COUNT(*) AS n FROM ${table} WHERE gid IS NULL`)).toBe(0);
+    }
+    expect(await count('SELECT COUNT(*) AS n FROM change_log')).toBe(before);
+    await db.runAsync("INSERT INTO payees (name, board_id, gid) VALUES ('Grocer', 1, 'g-1')");
+    expect(await count('SELECT COUNT(*) AS n FROM change_log')).toBe(before + 1);
+  });
 });

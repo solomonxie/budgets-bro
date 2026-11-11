@@ -200,6 +200,11 @@ then one line per entity:
   segments with `seq > vv[device]`. Loading + applying the rest = applying
   everything.
 - Written at most daily, by the device with the most ops since the last one.
+  Rule (`sync-core/checkpointPolicy.ts`): newest `h` from the key list alone;
+  due when none or its wall is ≥ 24 h behind bucket time; publisher = device
+  with the most winning field stamps after that `h` in its own merge state,
+  ties to the smallest device id; never with own segments unsent. Two
+  devices may both publish; that only costs a redundant checkpoint.
 
 **Bootstrap.** The phone's first sync queues every row of every board (demo
 board never) as `add` through the ordinary log, then publishes a checkpoint.

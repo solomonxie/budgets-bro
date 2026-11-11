@@ -7,6 +7,7 @@ import { bytesToUtf8 } from '../../sync-core/bytes';
 import { offsetFromDate } from '../../sync-core/clock';
 import { forgetState, pull } from './apply';
 import { ensureBootstrapped } from './bootstrap';
+import { maybePublishCheckpoint } from './checkpoint';
 import { forgetSyncPresence } from './conflicts';
 import { gzip } from './gzip';
 import { flushNow, push, schedulePush, setPushDeps } from './push';
@@ -210,6 +211,7 @@ async function runSync(db: SQLiteDatabase): Promise<SyncRunResult> {
     if (applied !== null) {
       await syncState.setMeta(db, 'lastSynced', env.now());
       await syncState.setMeta(db, 'lastError', null);
+      await maybePublishCheckpoint(db, ctx.bucket, env.now() + ctx.offset());
     }
     return { applied: applied ?? 0, sent };
   } catch (error) {
@@ -252,4 +254,50 @@ function classify(error: unknown): SyncError['kind'] {
 async function recordError(db: SQLiteDatabase, kind: SyncError['kind'], detail: string): Promise<SyncRunResult> {
   await syncState.setMeta(db, 'lastError', { kind, detail, at: env.now() }).catch(() => {});
   return { error: kind };
+}
+
+export interface SyncDevice {
+  id: string;
+  name: string;
+  kind: 'phone' | 'browser';
+  lastSeen: number | null;
+  mine: boolean;
+}
+
+// The Devices sheet: read from sync/devices/ when it opens, never before.
+export async function listSyncDevices(db: SQLiteDatabase): Promise<SyncDevice[]> {
+  const own = await syncState.getMeta(db, 'device');
+  const ctx = await context(db);
+  if (typeof ctx === 'string') return [];
+  const out: SyncDevice[] = [];
+  for (const o of await ctx.bucket.list('sync/devices/')) {
+    const id = /^sync\/devices\/([^/]+)\.json$/.exec(o.key)?.[1];
+    if (!id) continue;
+    const bytes = await ctx.bucket.get(o.key);
+    if (!bytes) continue;
+    try {
+      const f = JSON.parse(bytesToUtf8(bytes)) as { name?: unknown; kind?: unknown; lastSeen?: unknown };
+      out.push({
+        id,
+        name: typeof f.name === 'string' && f.name ? f.name : id.slice(0, 8),
+        kind: f.kind === 'phone' ? 'phone' : 'browser',
+        lastSeen: typeof f.lastSeen === 'number' ? f.lastSeen : null,
+        mine: id === own,
+      });
+    } catch {
+      // Unreadable device file: left out of the list.
+    }
+  }
+  return out.sort((a, b) => Number(b.mine) - Number(a.mine) || (b.lastSeen ?? 0) - (a.lastSeen ?? 0));
+}
+
+// Removes the device file only: its past edits stay in the log, and its key
+// still works. A device that syncs again writes its file back.
+export async function forgetSyncDevice(db: SQLiteDatabase, id: string): Promise<void> {
+  const ctx = await context(db);
+  if (typeof ctx === 'string' || !ctx.bucket.delete) return;
+  await ctx.bucket.delete(`sync/devices/${id}.json`);
+  const names = { ...((await syncState.getMeta(db, 'deviceNames')) ?? {}) };
+  delete names[id];
+  await syncState.setMeta(db, 'deviceNames', names);
 }

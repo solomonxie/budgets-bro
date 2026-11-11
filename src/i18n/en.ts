@@ -1984,4 +1984,12 @@ export const en = {
   'history.undoConfirmMessage':
     'They go back to how they were. This is recorded too, so it can be undone again.',
   'nav.history': 'History',
+  'browserSync.conflictTitle': '{field} edited in two places',
+  'browserSync.conflictKeep': 'Keep this',
+  'browserSync.conflictUse': 'Use {device}’s',
+  'browserSync.conflictUseMine': 'Use this iPhone’s',
+  'browserSync.thisDevice': 'This iPhone',
+  'browserSync.anotherDevice': 'Another device',
+  'browserSync.emptyValue': '(empty)',
+  'browserSync.conflicts': 'Edited in two places',
 } as const;

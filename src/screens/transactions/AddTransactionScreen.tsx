@@ -48,6 +48,9 @@ import { PurchaseItemsField } from '../../components/ui/PurchaseItemsField';
 import { scanReceipt } from './scanReceipt';
 import { useTrackedPrices } from '../../hooks/useTrackedPrices';
 import { RepeatField } from '../../components/ui/RepeatField';
+import { ConflictCard } from '../../components/ui/ConflictCard';
+import { useRowConflicts } from '../../hooks/useSyncConflicts';
+import { resolveConflict } from '../../sync/conflicts';
 import { useT } from '../../i18n';
 import {
   AmountExpression,
@@ -438,6 +441,19 @@ function AddTransactionForm() {
   const [rule, setRule] = useState<RecurrenceRule>(DEFAULT_RULE);
   const [hasEndDate, setHasEndDate] = useState(false);
   const [endDate, setEndDate] = useState(currentDateISO());
+
+  const { conflicts, refresh: refreshConflicts } = useRowConflicts(
+    'transactions',
+    editingTransactionId ?? null,
+  );
+  const memoConflict = conflicts.find((c) => c.field === 'memo');
+  const pickMemo = async (value: string | number | null) => {
+    if (!memoConflict) return;
+    await resolveConflict(await getDb(), memoConflict, value);
+    setMemo(value == null ? '' : String(value));
+    await refreshConflicts();
+    bumpDataVersion();
+  };
 
   useEffect(() => {
     if (editingTransactionId == null) return;
@@ -963,32 +979,41 @@ function AddTransactionForm() {
                   {/* A row of the card like any other: placeholder alone until
                   there is a note, then the label above it. One line — Return
                   finishes the note rather than starting a second line. */}
-                  <Pressable
-                    ref={memoRef}
-                    style={styles.memoRow}
-                    onPress={() => memoInputRef.current?.focus()}
-                  >
-                    {memo ? (
-                      <Text style={styles.memoLabel}>
-                        {t('spend.memoSection')}
-                      </Text>
+                  <View>
+                    <Pressable
+                      ref={memoRef}
+                      style={styles.memoRow}
+                      onPress={() => memoInputRef.current?.focus()}
+                    >
+                      {memo ? (
+                        <Text style={styles.memoLabel}>
+                          {t('spend.memoSection')}
+                        </Text>
+                      ) : null}
+                      <TextInput
+                        ref={memoInputRef}
+                        style={styles.memoInput}
+                        placeholder={t('spend.memoPlaceholder')}
+                        value={memo}
+                        onChangeText={setMemo}
+                        placeholderTextColor={colors.textMuted}
+                        keyboardAppearance="dark"
+                        returnKeyType="done"
+                        submitBehavior="blurAndSubmit"
+                        onFocus={() => {
+                          revealRow(memoRef.current);
+                        }}
+                        onBlur={() => revealRow(null)}
+                      />
+                    </Pressable>
+                    {memoConflict ? (
+                      <ConflictCard
+                        conflict={memoConflict}
+                        fieldLabel={t('spend.memoSection')}
+                        onPick={pickMemo}
+                      />
                     ) : null}
-                    <TextInput
-                      ref={memoInputRef}
-                      style={styles.memoInput}
-                      placeholder={t('spend.memoPlaceholder')}
-                      value={memo}
-                      onChangeText={setMemo}
-                      placeholderTextColor={colors.textMuted}
-                      keyboardAppearance="dark"
-                      returnKeyType="done"
-                      submitBehavior="blurAndSubmit"
-                      onFocus={() => {
-                        revealRow(memoRef.current);
-                      }}
-                      onBlur={() => revealRow(null)}
-                    />
-                  </Pressable>
+                  </View>
                 </FieldCard>
                 {isScheduled ? (
                   <>

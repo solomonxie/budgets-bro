@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TransactionSelectionBar } from '../../components/ui/TransactionSelectionBar';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useConflictedRowIds } from '../../hooks/useSyncConflicts';
 import { useTransactionSelection } from '../../hooks/useTransactionSelection';
 import { useCategories } from '../../hooks/useCategories';
 import { getDb } from '../../db/client';
@@ -74,6 +75,7 @@ export function TransactionsScreen() {
   const { t } = useI18n();
   const route = useRoute<Route>();
   const { transactions, refresh } = useTransactions();
+  const conflictedIds = useConflictedRowIds('transactions');
   const { categories } = useCategories();
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
@@ -249,6 +251,9 @@ export function TransactionsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.payee}>
                     {txn.payeeName ?? t('common.noPayee')}
+                    {conflictedIds.has(txn.id) ? (
+                      <Text style={styles.conflict}> ⚠</Text>
+                    ) : null}
                   </Text>
                   {/* What the row is, when the payee doesn't say: its
                       category, or "Income" for money arriving, or nothing at
@@ -356,6 +361,7 @@ const styles = StyleSheet.create({
   },
   payee: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  conflict: { color: colors.amber },
   memo: {
     fontSize: 12,
     color: colors.textMuted,

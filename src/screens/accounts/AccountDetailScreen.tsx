@@ -20,6 +20,7 @@ import {
 } from './accountTypeGuide';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useConflictedRowIds } from '../../hooks/useSyncConflicts';
 import { useFutureTransactions } from '../../hooks/useFutureTransactions';
 import { useAccountScheduledTransactions } from '../../hooks/useAccountScheduledTransactions';
 import { RowMenuButton } from '../../components/ui/RowMenuButton';
@@ -96,6 +97,7 @@ export function AccountDetailScreen() {
     accountWithBalance?.account.type === 'savings' ||
     accountWithBalance?.account.type === 'cash';
   const { transactions } = useTransactions(accountId);
+  const conflictedIds = useConflictedRowIds('transactions');
   const { futureTransactions } = useFutureTransactions(accountId);
   const {
     scheduledTransactions,
@@ -743,6 +745,9 @@ export function AccountDetailScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.payee}>
                 {item.payeeName ?? t('common.noPayee')}
+                {conflictedIds.has(item.id) ? (
+                  <Text style={styles.conflict}> ⚠</Text>
+                ) : null}
               </Text>
               <TransactionSubLabel row={item} suffix={item.date} />
               {item.memo ? (
@@ -960,6 +965,7 @@ const styles = StyleSheet.create({
   },
   payee: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  conflict: { color: colors.amber },
   memo: {
     fontSize: 12,
     color: colors.textMuted,

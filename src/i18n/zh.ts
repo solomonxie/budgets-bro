@@ -1952,4 +1952,12 @@ export const zh: Record<keyof typeof en, string> = {
   'history.undoConfirmMessage':
     '它们会恢复原样。此操作也会被记录，可以再撤销。',
   'nav.history': '历史记录',
+  'browserSync.conflictTitle': '{field}在两处被修改',
+  'browserSync.conflictKeep': '保留这个',
+  'browserSync.conflictUse': '用{device}的',
+  'browserSync.conflictUseMine': '用这台 iPhone 的',
+  'browserSync.thisDevice': '这台 iPhone',
+  'browserSync.anotherDevice': '另一台设备',
+  'browserSync.emptyValue': '（空）',
+  'browserSync.conflicts': '在两处被修改',
 };

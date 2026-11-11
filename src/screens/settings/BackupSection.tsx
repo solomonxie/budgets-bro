@@ -75,18 +75,9 @@ interface BackupSectionProps {
   boardName: string;
 }
 
-export function relativeTime(iso: string | null, t: ReturnType<typeof useT>): string {
-  if (!iso) return t('backup.never');
-  const minutes = Math.max(
-    0,
-    Math.round((Date.now() - new Date(iso).getTime()) / 60000),
-  );
-  if (minutes < 1) return t('backup.justNow');
-  if (minutes < 60) return t('backup.minutesAgo', { count: minutes });
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return t('backup.hoursAgo', { count: hours });
-  return t('backup.daysAgo', { count: Math.round(hours / 24) });
-}
+import { relativeTime } from '../../i18n/relativeTime';
+
+export { relativeTime };
 
 export function BackupSection({ boardId, boardName }: BackupSectionProps) {
   // A restore writes rows straight into the database, so every screen

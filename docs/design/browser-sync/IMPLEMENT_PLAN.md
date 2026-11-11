@@ -30,7 +30,7 @@ backup/restore before any op is written.
 Push before pull: the bootstrap checkpoint is what unblocks the extension.
 
 - [x] T3.1 Outbox builder: `change_log` rows past cursor, minus remote ranges → ops (id→gid, FK→gid, diff→sets), grouped by local transaction — see `src/sync/outbox.ts` — depends: T1.5, T2.2, T2.4
-- [ ] T3.2 Pusher: seal segment, put-once, device file, flush on 2 s quiet / 200 ops / background — see `src/sync/push.ts` — depends: T1.7, T3.1
+- [x] T3.2 Pusher: seal segment, put-once, device file, flush on 2 s quiet / 200 ops / background — see `src/sync/push.ts` — depends: T1.7, T3.1
 - [ ] T3.3 Bootstrap: every row of every board as `add`, then checkpoint; join-existing path adopts cloud checkpoint — see `src/sync/bootstrap.ts` — depends: T3.2
 - [x] T3.4 Applier: pull per device prefix, merge, write rows in one transaction (gid→id, alias remap, delete/undelete), record remote seq range — see `src/sync/apply.ts` — depends: T1.5, T2.4
 - [ ] T3.5 Triggers: pull on foreground and after own push; no timers; skipped in demo mode — see `src/sync/cloudSync.ts`, `App.tsx` — depends: T3.2, T3.4
@@ -41,7 +41,7 @@ Push before pull: the bootstrap checkpoint is what unblocks the extension.
 Thin: a switch, devices, conflicts. Comes after the engine so it binds real state.
 
 - [ ] T4.1 Settings > Backup: "Sync with browser" on the S3 row, device list, status — see `src/screens/settings/BackupSection.tsx` — depends: T3.5
-- [ ] T4.2 "Edited elsewhere" conflict UI on text fields — see `src/screens/transactions/`, `src/components/ui/` — depends: T3.4
+- [x] T4.2 "Edited elsewhere" conflict UI on text fields — see `src/screens/transactions/`, `src/components/ui/` — depends: T3.4
 - [ ] T4.3 i18n strings for T4.1–T4.2 — see `src/i18n/` — depends: T4.1, T4.2
 
 ## Phase 5: Extension shell and data

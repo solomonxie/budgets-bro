@@ -29,6 +29,8 @@ export interface Bucket {
   head(key: string): Promise<HeadResult | null>;
   put(key: string, body: Uint8Array, contentType?: string): Promise<void>;
   putOnce(key: string, body: Uint8Array): Promise<PutOnceResult>;
+  // Only the phone's "Forget device" needs it; the log itself is never deleted.
+  delete?(key: string): Promise<void>;
 }
 
 export class BucketError extends Error {
@@ -99,7 +101,7 @@ export class S3Bucket implements Bucket {
   // A per-request nonce keeps iOS's URL cache from attaching a conditional
   // header to a later request on the same URL; see src/sync/s3Provider.ts.
   private async send(
-    method: 'GET' | 'PUT' | 'HEAD',
+    method: 'GET' | 'PUT' | 'HEAD' | 'DELETE',
     key: string,
     opts: { query?: Record<string, string>; body?: Uint8Array; headers?: Record<string, string> } = {},
   ) {
@@ -169,6 +171,11 @@ export class S3Bucket implements Bucket {
   async put(key: string, body: Uint8Array, contentType = 'application/octet-stream'): Promise<void> {
     const res = await this.send('PUT', this.root + key, { body, headers: { 'content-type': contentType } });
     if (!res.ok) await this.fail(res);
+  }
+
+  async delete(key: string): Promise<void> {
+    const res = await this.send('DELETE', this.root + key);
+    if (!res.ok && res.status !== 404) await this.fail(res);
   }
 
   // Compared by reading the object back rather than by ETag: a segment is

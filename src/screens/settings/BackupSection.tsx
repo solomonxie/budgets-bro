@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AppState,
   Pressable,
@@ -13,7 +15,21 @@ import { ICloudBrowserModal } from '../../components/ui/ICloudBrowserModal';
 import { InfoButton } from '../../components/ui/InfoButton';
 import { useAppStore } from '../../state/useAppStore';
 import { useBoards } from '../../hooks/useBoards';
-import { getDb } from '../../db/client';
+import { getDb, isDemoMode } from '../../db/client';
+import { getMeta } from '../../db/repositories/syncStateRepo';
+import type { RootStackParamList } from '../../navigation/types';
+import {
+  disableBrowserSync,
+  enableBrowserSync,
+  getBrowserSyncStatus,
+  syncNow as syncBrowserNow,
+} from '../../sync/browserSync';
+import { listConflicts } from '../../sync/conflicts';
+import { conflictRows } from '../../sync/conflictRows';
+import type { ConflictRow } from '../../sync/conflictRows';
+import { BrowserSyncRows } from './BrowserSyncRows';
+import type { BrowserSyncView } from './BrowserSyncRows';
+import { ConflictsSheet, DevicesSheet } from './BrowserSyncSheets';
 import { addS3Config, listS3Configs } from '../../sync/s3Provider';
 import type { S3ConfigInput, S3ConfigMeta } from '../../sync/s3Provider';
 import {
@@ -59,6 +75,8 @@ interface Destination {
   // actually up there" is the same question wherever the files live, and the
   // iCloud row used to answer it by doing nothing at all.
   browse: (() => void) | null;
+  // S3 only: the bucket browser sync can make its home.
+  configId?: string;
 }
 
 // Every unusable state names itself in the row's subtitle. Kept beside the
@@ -94,6 +112,64 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [browsing, setBrowsing] = useState<S3ConfigMeta | null>(null);
   const [browsingICloud, setBrowsingICloud] = useState(false);
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const dataVersion = useAppStore((s) => s.dataVersion);
+  const [syncView, setSyncView] = useState<BrowserSyncView>({
+    demo: false,
+    status: null,
+    homeBucket: null,
+    deviceCount: 1,
+    conflictCount: 0,
+  });
+  const [deviceNames, setDeviceNames] = useState<Record<string, string>>({});
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const [conflicts, setConflicts] = useState<ConflictRow[] | null>(null);
+
+  // Local reads only, and only while Settings is mounted.
+  const refreshSync = useCallback(async () => {
+    const db = await getDb();
+    const [demo, status, names, open, saved] = await Promise.all([
+      isDemoMode(),
+      getBrowserSyncStatus(db),
+      getMeta(db, 'deviceNames'),
+      listConflicts(db),
+      listS3Configs(db),
+    ]);
+    setDeviceNames(names ?? {});
+    setSyncView({
+      demo,
+      status,
+      homeBucket: saved.find((c) => c.id === status.homeConfig)?.bucket ?? null,
+      deviceCount: 1 + Object.keys(names ?? {}).length,
+      conflictCount: open.length,
+    });
+  }, []);
+
+  useEffect(() => {
+    refreshSync();
+  }, [refreshSync, dataVersion]);
+
+  const toggleBrowserSync = async (configId: string, next: boolean) => {
+    const db = await getDb();
+    if (next) await enableBrowserSync(db, configId);
+    else await disableBrowserSync(db);
+    await refreshSync();
+    if (next) {
+      await syncBrowserNow(db);
+      await refreshSync();
+    }
+  };
+
+  const runBrowserSync = async () => {
+    await syncBrowserNow(await getDb());
+    await refreshSync();
+  };
+
+  const openConflicts = async () => {
+    const db = await getDb();
+    setConflicts(await conflictRows(db, await listConflicts(db)));
+  };
 
   const refresh = useCallback(async () => {
     const db = await getDb();
@@ -120,10 +196,13 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
   // reload.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') refresh();
+      if (state === 'active') {
+        refresh();
+        refreshSync();
+      }
     });
     return () => sub.remove();
-  }, [refresh]);
+  }, [refresh, refreshSync]);
 
   // iCloud first: it's the one destination with nothing to set up, so it
   // leads, and saved buckets follow in the order they were added.
@@ -148,11 +227,14 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
             action:
               icloudStatus === 'icloudOff' ? t('backup.icloudOffAction') : null,
             browse:
-              icloudStatus === 'available' ? () => setBrowsingICloud(true) : null,
+              icloudStatus === 'available'
+                ? () => setBrowsingICloud(true)
+                : null,
           },
         ]
       : []),
     ...configs.map((config) => ({
+      configId: config.id,
       providerId: `aws-s3:${config.id}`,
       title: config.bucket,
       location: config.keyPrefix
@@ -219,41 +301,53 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
 
       <View style={styles.group}>
         {destinations.map((destination, i) => (
-          <View
-            key={destination.providerId}
-            style={[styles.row, i > 0 && styles.rowDivider]}
-          >
-            <Pressable
-              style={styles.rowMain}
-              disabled={destination.browse == null}
-              onPress={() => destination.browse?.()}
-            >
-              <Text
-                style={[
-                  styles.rowTitle,
-                  !destination.usable && styles.rowTitleOff,
-                ]}
+          <Fragment key={destination.providerId}>
+            <View style={[styles.row, i > 0 && styles.rowDivider]}>
+              <Pressable
+                style={styles.rowMain}
+                disabled={destination.browse == null}
+                onPress={() => destination.browse?.()}
               >
-                {destination.title}
-              </Text>
-              <Text style={styles.rowSubtitle} numberOfLines={1}>
-                {destination.note ??
-                  (onById[destination.providerId]
-                    ? `${destination.location} · ${relativeTime(lastSyncedById[destination.providerId] ?? null, t)}`
-                    : destination.location)}
-              </Text>
-              {destination.action ? (
-                <Text style={styles.rowAction}>{destination.action}</Text>
-              ) : null}
-            </Pressable>
-            <Switch
-              value={
-                (onById[destination.providerId] ?? false) && destination.usable
-              }
-              disabled={!destination.usable}
-              onValueChange={(next) => toggle(destination.providerId, next)}
-            />
-          </View>
+                <Text
+                  style={[
+                    styles.rowTitle,
+                    !destination.usable && styles.rowTitleOff,
+                  ]}
+                >
+                  {destination.title}
+                </Text>
+                <Text style={styles.rowSubtitle} numberOfLines={1}>
+                  {destination.note ??
+                    (onById[destination.providerId]
+                      ? `${destination.location} · ${relativeTime(lastSyncedById[destination.providerId] ?? null, t)}`
+                      : destination.location)}
+                </Text>
+                {destination.action ? (
+                  <Text style={styles.rowAction}>{destination.action}</Text>
+                ) : null}
+              </Pressable>
+              <Switch
+                value={
+                  (onById[destination.providerId] ?? false) &&
+                  destination.usable
+                }
+                disabled={!destination.usable}
+                onValueChange={(next) => toggle(destination.providerId, next)}
+              />
+            </View>
+            {destination.configId ? (
+              <BrowserSyncRows
+                configId={destination.configId}
+                view={syncView}
+                onToggle={(next) =>
+                  toggleBrowserSync(destination.configId!, next)
+                }
+                onSyncNow={runBrowserSync}
+                onOpenDevices={() => setDevicesOpen(true)}
+                onOpenConflicts={openConflicts}
+              />
+            ) : null}
+          </Fragment>
         ))}
       </View>
 
@@ -271,11 +365,31 @@ export function BackupSection({ boardId, boardName }: BackupSectionProps) {
         boardId={boardId}
         boardName={boardName}
         onClose={() => setBrowsing(null)}
-        onDeleted={() => {
+        onDeleted={async () => {
+          const deleted = browsing;
           setBrowsing(null);
+          if (deleted && syncView.status?.homeConfig === deleted.id) {
+            await disableBrowserSync(await getDb());
+          }
           refresh();
+          refreshSync();
         }}
         onRestored={openRestoredBoard}
+      />
+      <DevicesSheet
+        visible={devicesOpen}
+        cachedNames={deviceNames}
+        onClose={() => setDevicesOpen(false)}
+        onChanged={refreshSync}
+      />
+      <ConflictsSheet
+        visible={conflicts != null}
+        rows={conflicts ?? []}
+        onClose={() => setConflicts(null)}
+        onOpen={(transactionId) => {
+          setConflicts(null);
+          navigation.navigate('AddTransaction', { transactionId });
+        }}
       />
       <ICloudBrowserModal
         visible={browsingICloud}

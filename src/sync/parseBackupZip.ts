@@ -14,7 +14,7 @@ import type {
 } from '../db/schema';
 
 export interface PickedAppExport {
-  manifest: { boardId: number; boardName: string; exportedAt: string } | null;
+  manifest: { boardId: number; boardName: string; exportedAt: string; boardGid?: string | null } | null;
   accounts: AccountRow[];
   categoryGroups: CategoryGroupRow[];
   categories: CategoryRow[];

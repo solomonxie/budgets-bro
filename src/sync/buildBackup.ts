@@ -81,7 +81,11 @@ export async function buildBackupZip(db: SQLiteDatabase, boardId: number, boardN
   // remapped on import would describe rows that aren't these ones.
   const changeLog = await db.getAllAsync(BOARD_CHANGE_LOG, boardId, boardId, boardId);
   zip.file('change_log.json', JSON.stringify(changeLog, null, 2));
-  zip.file('manifest.json', JSON.stringify({ boardId, boardName, exportedAt: new Date().toISOString() }, null, 2));
+  const board = await db.getFirstAsync<{ gid: string | null }>('SELECT gid FROM boards WHERE id = ?', boardId);
+  zip.file(
+    'manifest.json',
+    JSON.stringify({ boardId, boardName, boardGid: board?.gid ?? null, exportedAt: new Date().toISOString() }, null, 2),
+  );
 
   return zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
 }

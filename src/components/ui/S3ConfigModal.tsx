@@ -20,7 +20,7 @@ import {
   DEFAULT_S3_KEY_PREFIX,
 } from '../../sync/s3Provider';
 import type { S3ConfigInput, S3DraftMeta } from '../../sync/s3Provider';
-import { parseS3ConfigText, parsedFieldCount } from '../../sync/parseS3ConfigText';
+import { parseS3ConfigText, parsedFieldCount } from '../../../sync-core/parseS3ConfigText';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';

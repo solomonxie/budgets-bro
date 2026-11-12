@@ -19,6 +19,7 @@ import { RowMenuButton } from '../../components/ui/RowMenuButton';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { MonthNav } from '../../components/ui/MonthNav';
 import { CategoryAssignPanel } from './CategoryAssignPanel';
+import { TakeFromSheet } from './TakeFromSheet';
 import { DisclosureChevron } from '../../components/ui/DisclosureChevron';
 import { PendingScheduledTransactionsModal } from '../../components/ui/PendingScheduledTransactionsModal';
 import { useBudget } from '../../hooks/useBudget';
@@ -70,7 +71,14 @@ export function BudgetScreen() {
   const bumpDataVersion = useAppStore((s) => s.bumpDataVersion);
   const boardId = useAppStore((s) => s.currentBoardId);
   const dataVersion = useAppStore((s) => s.dataVersion);
-  const { groups, itemsByGroup, unassignedCents, breakdown, setAssigned } =
+  const {
+    groups,
+    itemsByGroup,
+    unassignedCents,
+    breakdown,
+    setAssigned,
+    moveAssigned,
+  } =
     useBudget(month);
   const allItems = Object.values(itemsByGroup).flat();
   const totalSpentCents = allItems.reduce(
@@ -142,6 +150,10 @@ export function BudgetScreen() {
     null,
   );
   const [prompt, setPrompt] = useState<PromptState>(null);
+  const [takeFrom, setTakeFrom] = useState<{
+    target: CategoryBudgetItem;
+    cents: number;
+  } | null>(null);
 
   const saveAssigned = (cents: number) => {
     if (!editingItem) return;
@@ -149,10 +161,32 @@ export function BudgetScreen() {
     setEditingItem(null);
   };
 
-  // Renaming and deleting a category are things you do to the category, not
-  // to its money — they live behind the panel's "⋯" rather than beside the
-  // controls for assigning.
+  const takeFromSources = (target: CategoryBudgetItem, cents: number) =>
+    Object.values(itemsByGroup)
+      .flat()
+      .filter((i) => i.category.id !== target.category.id && i.balanceCents >= cents)
+      .sort((a, b) => b.balanceCents - a.balanceCents);
+
+  const pickTakeFrom = async (source: CategoryBudgetItem) => {
+    if (!takeFrom) return;
+    const { target, cents } = takeFrom;
+    setTakeFrom(null);
+    setEditingItem(null);
+    await moveAssigned(source.category.id, target.category.id, cents);
+  };
+
+  // Moving, renaming and deleting a category are things you do to the
+  // category, not to its money — they live behind the panel's "⋯" rather
+  // than beside the controls for assigning.
   const categoryMenuItems = (item: CategoryBudgetItem) => [
+    {
+      label: t('budget.moveUp'),
+      onPress: () => moveCategory(item.category.id, 'up'),
+    },
+    {
+      label: t('budget.moveDown'),
+      onPress: () => moveCategory(item.category.id, 'down'),
+    },
     {
       label: t('common.rename'),
       onPress: () => {
@@ -572,8 +606,9 @@ export function BudgetScreen() {
                         onSave={saveAssigned}
                         onCancel={() => setEditingItem(null)}
                         onHistory={openHistory}
-                        onMove={(direction) =>
-                          moveCategory(item.category.id, direction)
+                        balanceCents={item.balanceCents}
+                        onTakeFrom={(cents) =>
+                          setTakeFrom({ target: item, cents })
                         }
                         menuItems={categoryMenuItems(item)}
                         onLaidOut={() => revealRow(group.id, item.category.id)}
@@ -595,6 +630,15 @@ export function BudgetScreen() {
         </Text>
       </Pressable>
       <View style={{ height: 80 }} />
+
+      {takeFrom ? (
+        <TakeFromSheet
+          cents={takeFrom.cents}
+          sources={takeFromSources(takeFrom.target, takeFrom.cents)}
+          onPick={pickTakeFrom}
+          onClose={() => setTakeFrom(null)}
+        />
+      ) : null}
 
       <PromptModal
         visible={prompt != null}

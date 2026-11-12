@@ -27,8 +27,11 @@ interface CategoryAssignPanelProps {
   onSave: (cents: number) => void;
   onCancel: () => void;
   onHistory: () => void;
-  onMove: (direction: 'up' | 'down') => void;
-  // Rename and delete: things you do to the category rather than to its
+  // This category's balance: when nothing more is typed, taking from
+  // another category covers an overspend.
+  balanceCents: number;
+  onTakeFrom: (cents: number) => void;
+  // Move, rename and delete: things you do to the category rather than to its
   // money, so they fold away behind a "⋯" instead of sitting in the same
   // row as the controls you came here to use.
   menuItems: MenuItem[];
@@ -50,11 +53,8 @@ const HIGH_VS_AVG = 1.5;
 // The row is already open; a menu that slides another sheet over it to offer
 // four things is a layer nobody needs once there is room to just show them.
 //
-// The bar reads left to right by weight: reordering is two arrows in a
-// cluster (a direction needs no word, and two full-width buttons for it
-// crowded out everything else), the naming actions are plain links in the
-// middle, and delete sits alone at the far end in red — the one action you
-// should never reach by accident.
+// The bar holds what you do with the money (take it from another category);
+// reordering, renaming and deleting are rarer and fold behind the "⋯".
 export function CategoryAssignPanel({
   initialCents,
   unassignedCents,
@@ -65,7 +65,8 @@ export function CategoryAssignPanel({
   onSave,
   onCancel,
   onHistory,
-  onMove,
+  balanceCents,
+  onTakeFrom,
   menuItems,
   onLaidOut,
 }: CategoryAssignPanelProps) {
@@ -93,6 +94,19 @@ export function CategoryAssignPanel({
       return;
     }
     onSave(cents);
+  };
+
+  const takeFrom = () => {
+    const typedCents = amountCents(amount);
+    const cents =
+      typedCents > initialCents
+        ? typedCents - initialCents
+        : Math.max(0, -balanceCents);
+    if (cents === 0) {
+      setError(t('budget.takeFromNeedsAmount'));
+      return;
+    }
+    onTakeFrom(cents);
   };
 
   return (
@@ -153,26 +167,17 @@ export function CategoryAssignPanel({
         />
       )}
       <View style={styles.actions}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionKey,
-            pressed && styles.actionKeyPressed,
-          ]}
-          onPress={() => onMove('up')}
-          accessibilityLabel={t('budget.moveUp')}
-        >
-          <Text style={styles.actionText}>↑</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionKey,
-            pressed && styles.actionKeyPressed,
-          ]}
-          onPress={() => onMove('down')}
-          accessibilityLabel={t('budget.moveDown')}
-        >
-          <Text style={styles.actionText}>↓</Text>
-        </Pressable>
+        {closed ? null : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionKey,
+              pressed && styles.actionKeyPressed,
+            ]}
+            onPress={takeFrom}
+          >
+            <Text style={styles.actionLabel}>{t('budget.takeFrom')}</Text>
+          </Pressable>
+        )}
         <View style={styles.actionKey}>
           <RowMenuButton items={menuItems} />
         </View>
@@ -232,5 +237,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionKeyPressed: { backgroundColor: colors.surface },
-  actionText: { fontSize: 18, color: colors.textMuted, lineHeight: 22 },
+  actionLabel: { fontSize: 15, fontWeight: '600', color: colors.accent },
 });

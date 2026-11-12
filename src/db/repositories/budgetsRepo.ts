@@ -350,6 +350,22 @@ export async function setAssignedCents(
   );
 }
 
+// Takes `cents` of this month's assignment from one category and gives it to
+// another, in one write so Unassigned never moves.
+export async function moveAssignedCents(
+  db: SQLiteDatabase,
+  boardId: number,
+  fromCategoryId: number,
+  toCategoryId: number,
+  month: string,
+  cents: number,
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(ADD_ASSIGNED_CENTS, fromCategoryId, month, -cents, boardId, await entryGid(db, fromCategoryId, month));
+    await db.runAsync(ADD_ASSIGNED_CENTS, toCategoryId, month, cents, boardId, await entryGid(db, toCategoryId, month));
+  });
+}
+
 // Two screens refreshing at once would each add the same leftover.
 let closing: Promise<void> | null = null;
 

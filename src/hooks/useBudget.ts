@@ -110,6 +110,15 @@ export function useBudget(month: string) {
     [month, boardId, bumpDataVersion],
   );
 
+  const moveAssigned = useCallback(
+    async (fromCategoryId: number, toCategoryId: number, cents: number) => {
+      const db = await getDb();
+      await budgetsRepo.moveAssignedCents(db, boardId, fromCategoryId, toCategoryId, month, cents);
+      bumpDataVersion();
+    },
+    [month, boardId, bumpDataVersion],
+  );
+
   return {
     groups,
     itemsByGroup,
@@ -117,6 +126,7 @@ export function useBudget(month: string) {
     breakdown,
     loading,
     setAssigned,
+    moveAssigned,
     refresh,
   };
 }

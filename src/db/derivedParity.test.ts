@@ -154,7 +154,7 @@ it('category figures match useBudget for every month', async () => {
         balanceCents,
         fundedCents,
         status,
-        captionText: categoryCaption(status, balanceCents, fundedCents),
+        captionText: categoryCaption(status, Math.max(0, -activityThisMonthCents), fundedCents),
       });
     }
   }

@@ -18,8 +18,30 @@ interface RowMenuButtonProps {
 // screen). Renders as a bottom action sheet rather than an anchored
 // dropdown — no coordinate math needed, and it reads fine at row scale.
 export function RowMenuButton({ items }: RowMenuButtonProps) {
-  const t = useT();
   const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable onPress={() => setOpen(true)} hitSlop={10} style={styles.trigger}>
+        <Text style={styles.triggerText}>⋯</Text>
+      </Pressable>
+      <MenuSheet items={items} open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+interface MenuSheetProps {
+  items: MenuItem[];
+  open: boolean;
+  onClose: () => void;
+}
+
+// The sheet on its own, for a menu opened by something other than the "⋯"
+// trigger (the number pad's ⋯ key).
+export function MenuSheet({ items, open, onClose }: MenuSheetProps) {
+  const t = useT();
+  const setOpen = (next: boolean) => {
+    if (!next) onClose();
+  };
   const pendingRef = useRef<(() => void) | null>(null);
 
   // An item's own onPress often opens another modal/Alert of its own (e.g.
@@ -41,9 +63,6 @@ export function RowMenuButton({ items }: RowMenuButtonProps) {
 
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} hitSlop={10} style={styles.trigger}>
-        <Text style={styles.triggerText}>⋯</Text>
-      </Pressable>
       <Modal
         visible={open}
         transparent

@@ -604,7 +604,6 @@ export function BudgetScreen() {
                           localeTag(language),
                         )}
                         onSave={saveAssigned}
-                        onCancel={() => setEditingItem(null)}
                         onHistory={openHistory}
                         balanceCents={item.balanceCents}
                         onTakeFrom={(cents) =>

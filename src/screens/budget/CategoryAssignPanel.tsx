@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { NumberPad } from '../../components/ui/NumberPad';
-import { RowMenuButton } from '../../components/ui/RowMenuButton';
+import { MenuSheet, RowMenuButton } from '../../components/ui/RowMenuButton';
 import type { MenuItem } from '../../components/ui/RowMenuButton';
 import {
   AmountExpression,
@@ -25,7 +25,6 @@ interface CategoryAssignPanelProps {
   closed: boolean;
   currentMonthLabel: string;
   onSave: (cents: number) => void;
-  onCancel: () => void;
   onHistory: () => void;
   // This category's balance: when nothing more is typed, taking from
   // another category covers an overspend.
@@ -53,8 +52,8 @@ const HIGH_VS_AVG = 1.5;
 // The row is already open; a menu that slides another sheet over it to offer
 // four things is a layer nobody needs once there is room to just show them.
 //
-// The bar holds what you do with the money (take it from another category);
-// reordering, renaming and deleting are rarer and fold behind the "⋯".
+// Everything besides typing and Done folds behind the pad's "⋯" key: moving
+// money in, reordering, renaming, deleting. Tapping the row again closes it.
 export function CategoryAssignPanel({
   initialCents,
   unassignedCents,
@@ -63,7 +62,6 @@ export function CategoryAssignPanel({
   closed,
   currentMonthLabel,
   onSave,
-  onCancel,
   onHistory,
   balanceCents,
   onTakeFrom,
@@ -75,6 +73,7 @@ export function CategoryAssignPanel({
     amountFromCents(initialCents),
   );
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const typed = formatAmountExpression(amount);
 
   // Raising this category's assignment draws from unassigned cash — capped
@@ -159,29 +158,25 @@ export function CategoryAssignPanel({
           }}
           submitLabel={t('common.done')}
           onSubmit={done}
-          bottomLeft={{ label: t('common.cancel'), onPress: onCancel }}
-          bottomRight={{
+          bottomLeft={{
             label: t('assignedAmountModal.history'),
             onPress: onHistory,
           }}
+          bottomRight={{ label: '⋯', onPress: () => setMenuOpen(true) }}
         />
       )}
-      <View style={styles.actions}>
-        {closed ? null : (
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionKey,
-              pressed && styles.actionKeyPressed,
-            ]}
-            onPress={takeFrom}
-          >
-            <Text style={styles.actionLabel}>{t('budget.takeFrom')}</Text>
-          </Pressable>
-        )}
-        <View style={styles.actionKey}>
-          <RowMenuButton items={menuItems} />
+      {closed ? (
+        <View style={styles.actions}>
+          <View style={styles.actionKey}>
+            <RowMenuButton items={menuItems} />
+          </View>
         </View>
-      </View>
+      ) : null}
+      <MenuSheet
+        items={[{ label: t('budget.takeFrom'), onPress: takeFrom }, ...menuItems]}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
     </View>
   );
 }
@@ -236,6 +231,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionKeyPressed: { backgroundColor: colors.surface },
-  actionLabel: { fontSize: 15, fontWeight: '600', color: colors.accent },
 });

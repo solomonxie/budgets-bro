@@ -1034,7 +1034,7 @@ export const zh: Record<keyof typeof en, string> = {
   'budget.renameCategory': '重命名分类',
   'budget.moveUp': '上移',
   'budget.moveDown': '下移',
-  'budget.takeFrom': '从其他类别调…',
+  'budget.takeFrom': '从其他类别调入资金',
   'budget.takeFromTitle': '调入 {amount}，来源',
   'budget.takeFromNone': '没有类别有 {amount} 可用。',
   'budget.takeFromNeedsAmount': '先输入新金额，再选择从哪个类别调入。',

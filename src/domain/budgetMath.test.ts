@@ -7,6 +7,7 @@ import {
   categoryFundedCents,
   categoryStatus,
   closePastMonths,
+  monthBalanceCents,
   overspentMonths,
   unassignedCashCents,
 } from './budgetMath';
@@ -313,5 +314,18 @@ describe('timesAverage', () => {
   it('is null at or under the average, or with no history', () => {
     expect(timesAverage(10000, 10000)).toBeNull();
     expect(timesAverage(10000, 0)).toBeNull();
+  });
+});
+
+describe('monthBalanceCents', () => {
+  const cumulative = { assignedCents: 300000, activityCents: -120000 };
+  const thisMonth = { assignedCents: 50000, activityCents: 0 };
+
+  it('carries leftover into the current and past months', () => {
+    expect(monthBalanceCents('2026-11', '2026-11', cumulative, thisMonth)).toBe(180000);
+  });
+
+  it('gives a future month only its own assignment', () => {
+    expect(monthBalanceCents('2026-12', '2026-11', cumulative, thisMonth)).toBe(50000);
   });
 });

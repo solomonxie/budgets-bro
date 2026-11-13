@@ -12,6 +12,18 @@ export function categoryBalanceCents(
   return cumulativeAssignedCents + cumulativeActivityCents;
 }
 
+// A month that hasn't started yet gets no carry-in: the current month's
+// leftover only moves forward once it ends (see closePastMonths).
+export function monthBalanceCents(
+  month: string,
+  current: string,
+  cumulative: { assignedCents: number; activityCents: number },
+  thisMonth: { assignedCents: number; activityCents: number },
+): number {
+  const m = month > current ? thisMonth : cumulative;
+  return categoryBalanceCents(m.assignedCents, m.activityCents);
+}
+
 // Unassigned Cash = money actually sitting in cash accounts minus money
 // already assigned to categories (spent or not) — same identity as a single
 // category's balance, just summed over the whole budget instead of one

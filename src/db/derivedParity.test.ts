@@ -10,7 +10,7 @@ import * as accountsRepo from './repositories/accountsRepo';
 import * as categoriesRepo from './repositories/categoriesRepo';
 import { currentDateISO, currentMonth, lastNMonths, nextMonth } from '../domain/month';
 import {
-  categoryBalanceCents,
+  monthBalanceCents,
   categoryCaption,
   categoryFundedCents,
   categoryStatus,
@@ -141,8 +141,13 @@ it('category figures match useBudget for every month', async () => {
     ]);
     const pure = categoryFigures(categoryIds.map(String), accounts, entries, txns, month, currentDateISO());
     for (const id of categoryIds) {
-      const balanceCents = categoryBalanceCents(cumAssigned[id] ?? 0, cumActivity[id] ?? 0);
       const activityThisMonthCents = thisActivity[id] ?? 0;
+      const balanceCents = monthBalanceCents(
+        month,
+        currentMonth(),
+        { assignedCents: cumAssigned[id] ?? 0, activityCents: cumActivity[id] ?? 0 },
+        { assignedCents: thisAssigned[id] ?? 0, activityCents: activityThisMonthCents },
+      );
       const fundedCents = categoryFundedCents(balanceCents, activityThisMonthCents);
       const status = categoryStatus(balanceCents, fundedCents);
       statuses.add(status);

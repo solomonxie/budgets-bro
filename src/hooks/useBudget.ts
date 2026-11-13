@@ -3,11 +3,12 @@ import { getDb } from '../db/client';
 import * as budgetsRepo from '../db/repositories/budgetsRepo';
 import * as categoriesRepo from '../db/repositories/categoriesRepo';
 import {
-  categoryBalanceCents,
   categoryCaption,
   categoryFundedCents,
   categoryStatus,
+  monthBalanceCents,
 } from '../domain/budgetMath';
+import { currentMonth } from '../domain/month';
 import type { CategoryStatus } from '../domain/budgetMath';
 import type { Category, CategoryGroup } from '../domain/types';
 import { useAppStore } from '../state/useAppStore';
@@ -57,11 +58,20 @@ export function useBudget(month: string) {
 
     const byGroup: Record<number, CategoryBudgetItem[]> = {};
     for (const category of allCategories) {
-      const assignedCum = cumAssigned[category.id] ?? 0;
-      const activityCum = cumActivity[category.id] ?? 0;
-      const balanceCents = categoryBalanceCents(assignedCum, activityCum);
       const assignedThisMonthCents = thisAssigned[category.id] ?? 0;
       const activityThisMonthCents = thisActivity[category.id] ?? 0;
+      const balanceCents = monthBalanceCents(
+        month,
+        currentMonth(),
+        {
+          assignedCents: cumAssigned[category.id] ?? 0,
+          activityCents: cumActivity[category.id] ?? 0,
+        },
+        {
+          assignedCents: assignedThisMonthCents,
+          activityCents: activityThisMonthCents,
+        },
+      );
       const fundedCents = categoryFundedCents(
         balanceCents,
         activityThisMonthCents,

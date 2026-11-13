@@ -2,6 +2,7 @@ import type { AccountType } from './accountKind';
 import { isLoanLikeType, toppedUpByContributions, usesLoggedValue } from './accountKind';
 import {
   categoryBalanceCents,
+  monthBalanceCents,
   categoryCaption,
   categoryFundedCents,
   categoryStatus,
@@ -102,8 +103,13 @@ export function categoryFigures(
   }
   const out = new Map<string, CategoryFigures>();
   for (const id of categoryIds) {
-    const balanceCents = categoryBalanceCents(cumAssigned.get(id) ?? 0, cumActivity.get(id) ?? 0);
     const activityThisMonthCents = thisActivity.get(id) ?? 0;
+    const balanceCents = monthBalanceCents(
+      month,
+      today.slice(0, 7),
+      { assignedCents: cumAssigned.get(id) ?? 0, activityCents: cumActivity.get(id) ?? 0 },
+      { assignedCents: thisAssigned.get(id) ?? 0, activityCents: activityThisMonthCents },
+    );
     const fundedCents = categoryFundedCents(balanceCents, activityThisMonthCents);
     const status = categoryStatus(balanceCents, fundedCents);
     out.set(id, {

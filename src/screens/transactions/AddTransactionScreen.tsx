@@ -245,14 +245,20 @@ function AddTransactionForm() {
     setPriceExpr(amountFromCents(itemPriceCents(next[index].value) ?? 0));
   };
 
-  // Return on a name, a picked chip, or +: on to the next row's price,
-  // reusing a blank last row rather than stacking empty ones.
-  const nextPrice = (index: number, rows = itemRows) => {
+  const focusName = (index: number, rows = itemRows) => {
+    if (index >= rows.length) setItemRows([...rows, BLANK_ITEM]);
+    setPriceRow(null);
+    setNameToFocus({ index, seq: Date.now() });
+  };
+
+  // On to the next row's name, reusing a blank last row rather than
+  // stacking empty ones.
+  const nextName = (index: number, rows = itemRows) => {
     const last = rows[rows.length - 1];
     const lastBlank = !last.key.trim() && !last.value;
-    if (index + 1 < rows.length) return focusPrice(index + 1, rows);
-    if (lastBlank) return focusPrice(rows.length - 1, rows);
-    focusPrice(rows.length, rows);
+    if (index + 1 < rows.length) return focusName(index + 1, rows);
+    if (lastBlank) return focusName(rows.length - 1, rows);
+    focusName(rows.length, rows);
   };
 
   const typePrice = (expr: AmountExpression) => {
@@ -279,12 +285,12 @@ function AddTransactionForm() {
     setAmount(expr);
   };
 
-  // The pad's Next: a price with no name yet goes to its name; else onward.
+  // The pad's Next: a price with no name yet goes to its name; else on to
+  // the next item's name.
   const padNext = () => {
     if (priceRow == null) return;
-    if (!itemRows[priceRow]?.key.trim())
-      setNameToFocus({ index: priceRow, seq: Date.now() });
-    else nextPrice(priceRow);
+    if (!itemRows[priceRow]?.key.trim()) focusName(priceRow);
+    else nextName(priceRow);
   };
 
   const toggleItems = () => {
@@ -296,7 +302,7 @@ function AddTransactionForm() {
     itemsField?.toggle();
     if (isEmptyAmount(amount)) amountFollowsItems.current = true;
     const last = itemRows[itemRows.length - 1];
-    focusPrice(
+    focusName(
       !last.key.trim() && !last.value ? itemRows.length - 1 : itemRows.length,
     );
   };
@@ -968,7 +974,8 @@ function AddTransactionForm() {
                                 revealRow(node);
                               }}
                               onBlurName={() => revealRow(null)}
-                              onNextPrice={nextPrice}
+                              onNameDone={focusPrice}
+                              onAdd={nextName}
                               nameToFocus={nameToFocus}
                             />
                           </View>

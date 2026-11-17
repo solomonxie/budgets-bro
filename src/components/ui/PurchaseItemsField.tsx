@@ -28,18 +28,19 @@ interface PurchaseItemsFieldProps {
   // A name was focused, so the pad isn't typing a price any more.
   onFocusName: (node: View | null) => void;
   onBlurName: () => void;
-  // Asked by the row (Return on a name, or a picked chip) to go on to the
-  // next price.
-  onNextPrice: (index: number, rows?: PurchaseItem[]) => void;
-  // The pad's Next on a row with no name yet: its name, on the keyboard.
-  // `seq` makes asking for the same row twice still count.
+  // Return on a name, or a picked chip: on to that row's price.
+  onNameDone: (index: number, rows?: PurchaseItem[]) => void;
+  // The + on the last row: a new row, name first.
+  onAdd: (index: number) => void;
+  // A row's name to focus on the keyboard. `seq` makes asking for the same
+  // row twice still count.
   nameToFocus: { index: number; seq: number } | null;
   // The row the pad moved to, so the page can scroll it above the pad.
   onRevealPrice: (node: View | null) => void;
 }
 
 // What was in the bag, typed like a receipt reads. Unfolded in the form
-// under its row: price on the pad first, then the name on the keyboard.
+// under its row: the name on the keyboard first, then the price on the pad.
 export function PurchaseItemsField({
   rows,
   onChangeRows,
@@ -50,7 +51,8 @@ export function PurchaseItemsField({
   onPressPrice,
   onFocusName,
   onBlurName,
-  onNextPrice,
+  onNameDone,
+  onAdd,
   nameToFocus,
   onRevealPrice,
 }: PurchaseItemsFieldProps) {
@@ -104,7 +106,7 @@ export function PurchaseItemsField({
     );
     onChangeRows(next);
     nameRefs.current[chipRow]?.blur();
-    onNextPrice(chipRow, next);
+    onNameDone(chipRow, next);
   };
 
   const listedCents = rows.reduce(
@@ -149,7 +151,7 @@ export function PurchaseItemsField({
                 submitBehavior="blurAndSubmit"
                 value={item.key}
                 onChangeText={(key) => edit(index, { key })}
-                onSubmitEditing={() => onNextPrice(index)}
+                onSubmitEditing={() => onNameDone(index)}
                 onFocus={() => {
                   setFocusedName(index);
                   onFocusName(rowRefs.current[index] ?? null);
@@ -187,7 +189,7 @@ export function PurchaseItemsField({
               {isLast ? (
                 <Pressable
                   hitSlop={10}
-                  onPress={() => onNextPrice(index)}
+                  onPress={() => onAdd(index)}
                   accessibilityLabel={t('purchaseItems.add')}
                 >
                   <Text style={styles.add}>+</Text>

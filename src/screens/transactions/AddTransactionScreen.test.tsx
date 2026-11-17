@@ -131,7 +131,7 @@ describe('AddTransactionScreen', () => {
     expect(texts(root)).toContain('Amex');
   });
 
-  it('Items unfolds in place, the price first, on the page pad', async () => {
+  it('Items unfolds in place, the name first', async () => {
     let root!: ReturnType<typeof create>;
     await act(async () => {
       root = create(<AddTransactionScreen />);
@@ -151,11 +151,11 @@ describe('AddTransactionScreen', () => {
         .findAllByType(TextInput)
         .some((i) => i.props.placeholder === 'Price'),
     ).toBe(false);
-    pressIn(root.root, 'Done');
+    pressRow(root, 'Items');
     expect(itemRows()).toHaveLength(0);
   });
 
-  it('past names show without a tap, and one fills the row', async () => {
+  it('past names show without a tap, and one fills the row, then its price', async () => {
     let root!: ReturnType<typeof create>;
     await act(async () => {
       root = create(<AddTransactionScreen />);
@@ -166,7 +166,9 @@ describe('AddTransactionScreen', () => {
       .findAllByType(TextInput)
       .filter((i) => i.props.placeholder === 'What you bought');
     expect(names[0].props.value).toBe('Olive oil');
-    expect(names).toHaveLength(2);
+    expect(names).toHaveLength(1);
+    // The pad now types this row's price.
+    expect(texts(root)).toContain('Done');
   });
 
   it('the memo is one line, and Return closes it', async () => {

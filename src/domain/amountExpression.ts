@@ -126,7 +126,8 @@ export function pressAmountKey(
     return { leftCents: amountCents(expr, scale), operator: key, digits: '' };
   }
 
-  if (!/^\d$/.test(key) || expr.digits.length >= MAX_DIGITS) return expr;
+  if (!/^\d\d?$/.test(key) || expr.digits.length + key.length > MAX_DIGITS)
+    return expr;
   return { ...expr, digits: (expr.digits + key).replace(/^0+(?=\d)/, '') };
 }
 
@@ -156,5 +157,8 @@ export function formatAmountExpression(
     ? formatCents(digitsToCents(expr.digits, scale), symbol, scale)
     : '';
   if (expr.leftCents == null || expr.operator == null) return right;
-  return `${formatCents(expr.leftCents, symbol, scale)} ${expr.operator} ${right}`.trimEnd();
+  const sum = `${formatCents(expr.leftCents, symbol, scale)} ${expr.operator} ${right}`.trimEnd();
+  return expr.digits
+    ? `${sum} = ${formatCents(amountCents(expr, scale), symbol, scale)}`
+    : sum;
 }

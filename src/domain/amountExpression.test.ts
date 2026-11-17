@@ -22,7 +22,7 @@ describe('amountExpression', () => {
   });
 
   it('shows both sides while an operation is pending', () => {
-    expect(formatAmountExpression(type('5500+3600'))).toBe('$55.00 + $36.00');
+    expect(formatAmountExpression(type('5500+3600'))).toBe('$55.00 + $36.00 = $91.00');
     expect(formatAmountExpression(type('5500+'))).toBe('$55.00 +');
     expect(amountCents(type('5500+3600'))).toBe(9100);
     expect(amountCents(type('5500+'))).toBe(5500);
@@ -59,7 +59,7 @@ describe('amountExpression', () => {
   });
 
   it('backspaces the entry, then the operator, then the banked total', () => {
-    expect(formatAmountExpression(type('5500+36⌫'))).toBe('$55.00 + $0.03');
+    expect(formatAmountExpression(type('5500+36⌫'))).toBe('$55.00 + $0.03 = $55.03');
     expect(formatAmountExpression(type('5500+⌫'))).toBe('$55.00');
     expect(formatAmountExpression(type('5500+3600=⌫'))).toBe('$9.10');
   });
@@ -96,5 +96,16 @@ describe('whole units (scale 100)', () => {
 
   it('hands the banked side back as units on ⌫', () => {
     expect(type('120+⌫', 100).digits).toBe('120');
+  });
+});
+
+describe('00 key', () => {
+  it('adds two digits at once, within the digit limit', () => {
+    let e = EMPTY_AMOUNT;
+    for (const k of ['5', '00']) e = pressAmountKey(e, k);
+    expect(amountCents(e)).toBe(500);
+    for (const k of ['00', '00', '00']) e = pressAmountKey(e, k);
+    expect(e.digits).toBe('500000000');
+    expect(pressAmountKey(e, '00')).toBe(e);
   });
 });

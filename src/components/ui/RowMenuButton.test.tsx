@@ -1,5 +1,5 @@
 import { act, create } from 'react-test-renderer';
-import { Modal, Platform, Text } from 'react-native';
+import { ActionSheetIOS, Platform, Text } from 'react-native';
 import { RowMenuButton } from './RowMenuButton';
 
 // Regression test for the delete-board freeze: an item's onPress used to
@@ -30,26 +30,36 @@ describe('RowMenuButton', () => {
     Platform.OS = originalOS;
   });
 
-  it('on iOS, waits for the sheet Modal to dismiss before running the tapped item', () => {
+  it('on iOS, shows the system action sheet and runs the picked item', () => {
     Platform.OS = 'ios';
+    const show = jest
+      .spyOn(ActionSheetIOS, 'showActionSheetWithOptions')
+      .mockImplementation(() => {});
     const onPress = jest.fn();
     let root!: ReturnType<typeof create>;
     act(() => {
-      root = create(<RowMenuButton items={[{ label: 'Delete', onPress }]} />);
+      root = create(
+        <RowMenuButton
+          title="Rent"
+          items={[{ label: 'Delete', destructive: true, onPress }]}
+        />,
+      );
     });
-
     act(() => {
       findPressableByLabel(root.root, '⋯').props.onPress();
     });
-    act(() => {
-      findPressableByLabel(root.root, 'Delete').props.onPress();
+    const [options, pick] = show.mock.calls[0];
+    expect(options).toMatchObject({
+      title: 'Rent',
+      options: ['Delete', 'Cancel'],
+      cancelButtonIndex: 1,
+      destructiveButtonIndex: [0],
     });
+    act(() => pick(1));
     expect(onPress).not.toHaveBeenCalled();
-
-    act(() => {
-      root.root.findByType(Modal).props.onDismiss();
-    });
+    act(() => pick(0));
     expect(onPress).toHaveBeenCalledTimes(1);
+    show.mockRestore();
   });
 
   it('on Android, runs the tapped item immediately (no onDismiss to wait on)', () => {
@@ -67,22 +77,5 @@ describe('RowMenuButton', () => {
       findPressableByLabel(root.root, 'Delete').props.onPress();
     });
     expect(onPress).toHaveBeenCalledTimes(1);
-  });
-
-  it('closing without tapping an item never fires anything', () => {
-    Platform.OS = 'ios';
-    const onPress = jest.fn();
-    let root!: ReturnType<typeof create>;
-    act(() => {
-      root = create(<RowMenuButton items={[{ label: 'Delete', onPress }]} />);
-    });
-
-    act(() => {
-      findPressableByLabel(root.root, '⋯').props.onPress();
-    });
-    act(() => {
-      root.root.findByType(Modal).props.onDismiss();
-    });
-    expect(onPress).not.toHaveBeenCalled();
   });
 });

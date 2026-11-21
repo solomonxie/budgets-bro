@@ -471,6 +471,7 @@ export function BudgetScreen() {
               </Pressable>
               <Text style={styles.groupSub}>{formatMoneyExact(subtotal)}</Text>
               <RowMenuButton
+                title={group.name}
                 items={[
                   {
                     label: t('budget.addCategory'),
@@ -610,6 +611,7 @@ export function BudgetScreen() {
                           setTakeFrom({ target: item, cents })
                         }
                         menuItems={categoryMenuItems(item)}
+                        menuTitle={`${item.category.icon ? item.category.icon + ' ' : ''}${item.category.name}`}
                         onLaidOut={() => revealRow(group.id, item.category.id)}
                       />
                     ) : null}

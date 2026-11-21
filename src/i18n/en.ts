@@ -1057,6 +1057,7 @@ export const en = {
   'budget.renameCategory': 'Rename Category',
   'budget.moveUp': 'Move Up',
   'budget.moveDown': 'Move Down',
+  'budget.more': 'More',
   'budget.takeFrom': 'Move money from category',
   'budget.takeFromTitle': 'Take {amount} from',
   'budget.takeFromNone': 'No category has {amount} available.',

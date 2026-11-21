@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActionSheetIOS, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useT } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -12,32 +12,77 @@ export interface MenuItem {
 
 interface RowMenuButtonProps {
   items: MenuItem[];
+  title?: string;
 }
 
 // Inline "⋯" per-row action menu (group/category rows on the Budget
 // screen). Renders as a bottom action sheet rather than an anchored
 // dropdown — no coordinate math needed, and it reads fine at row scale.
-export function RowMenuButton({ items }: RowMenuButtonProps) {
+export function RowMenuButton({ items, title }: RowMenuButtonProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <Pressable onPress={() => setOpen(true)} hitSlop={10} style={styles.trigger}>
         <Text style={styles.triggerText}>⋯</Text>
       </Pressable>
-      <MenuSheet items={items} open={open} onClose={() => setOpen(false)} />
+      <MenuSheet
+        items={items}
+        title={title}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
 
 interface MenuSheetProps {
   items: MenuItem[];
+  title?: string;
   open: boolean;
   onClose: () => void;
 }
 
 // The sheet on its own, for a menu opened by something other than the "⋯"
 // trigger (the number pad's ⋯ key).
-export function MenuSheet({ items, open, onClose }: MenuSheetProps) {
+export function MenuSheet(props: MenuSheetProps) {
+  return Platform.OS === 'ios' ? (
+    <NativeMenuSheet {...props} />
+  ) : (
+    <ModalMenuSheet {...props} />
+  );
+}
+
+// The system action sheet. UIKit runs the picked action once the sheet is
+// gone, so an action that opens its own modal can't collide with it.
+function NativeMenuSheet({ items, title, open, onClose }: MenuSheetProps) {
+  const t = useT();
+  const latest = useRef({ items, onClose });
+  useEffect(() => {
+    latest.current = { items, onClose };
+  });
+  useEffect(() => {
+    if (!open) return;
+    const shown = latest.current.items;
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title,
+        options: [...shown.map((i) => i.label), t('common.cancel')],
+        cancelButtonIndex: shown.length,
+        destructiveButtonIndex: shown.flatMap((i, n) =>
+          i.destructive ? [n] : [],
+        ),
+        userInterfaceStyle: 'dark',
+      },
+      (index) => {
+        latest.current.onClose();
+        shown[index]?.onPress();
+      },
+    );
+  }, [open, title, t]);
+  return null;
+}
+
+function ModalMenuSheet({ items, open, onClose }: MenuSheetProps) {
   const t = useT();
   const setOpen = (next: boolean) => {
     if (!next) onClose();

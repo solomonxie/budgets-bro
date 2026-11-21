@@ -15,6 +15,7 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
 interface CategoryAssignPanelProps {
+  menuTitle: string;
   initialCents: number;
   unassignedCents: number;
   // Net spending per month over the last 12.
@@ -66,6 +67,7 @@ export function CategoryAssignPanel({
   balanceCents,
   onTakeFrom,
   menuItems,
+  menuTitle,
   onLaidOut,
 }: CategoryAssignPanelProps) {
   const t = useT();
@@ -172,18 +174,19 @@ export function CategoryAssignPanel({
             label: t('assignedAmountModal.history'),
             onPress: onHistory,
           }}
-          extra={{ label: '⋯', onPress: () => setMenuOpen(true) }}
+          extra={{ label: t('budget.more'), onPress: () => setMenuOpen(true) }}
         />
       )}
       {closed ? (
         <View style={styles.actions}>
           <View style={styles.actionKey}>
-            <RowMenuButton items={menuItems} />
+            <RowMenuButton items={menuItems} title={menuTitle} />
           </View>
         </View>
       ) : null}
       <MenuSheet
         items={[{ label: t('budget.takeFrom'), onPress: takeFrom }, ...menuItems]}
+        title={menuTitle}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
       />

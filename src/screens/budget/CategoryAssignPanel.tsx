@@ -122,18 +122,21 @@ export function CategoryAssignPanel({
       <Text style={styles.label}>
         {t('assignedAmountModal.assignedThisMonth')}
       </Text>
-      <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+      <View style={styles.amountBox}>
         <Text
           style={[
+            styles.amount,
             !typed && styles.amountPlaceholder,
             avgSpentCents > 0 &&
               amountCents(amount) > avgSpentCents * HIGH_VS_AVG &&
               styles.amountHigh,
           ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
         >
           {typed || formatMoney(0)}
         </Text>
-      </Text>
+      </View>
       <Text style={styles.hint}>
         {t('assignedAmountModal.unassignedHint', {
           // To the cent: rounded, $124.87 reads as $125 and typing that
@@ -206,11 +209,10 @@ const styles = StyleSheet.create({
   amountPlaceholder: { color: colors.textMuted },
   amountHigh: { color: colors.negative },
   // Fixed height: the font shrinks to fit a long figure, and the panel must
-  // not change size with it.
+  // not change size with it. Not on the Text: a lineHeight breaks the shrink.
+  amountBox: { height: 44, justifyContent: 'center' },
   amount: {
     fontSize: 36,
-    lineHeight: 44,
-    height: 44,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',

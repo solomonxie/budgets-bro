@@ -123,7 +123,7 @@ function AddTransactionForm() {
   // cents, plus one pending arithmetic operation. No TextInput behind the
   // number at all (see domain/amountExpression).
   const [amount, setAmount] = useState<AmountExpression>(EMPTY_AMOUNT);
-  const amountDisplay = formatAmountExpression(amount);
+  const amountDisplay = formatAmountExpression(amount, '$', 1, true);
   const [direction, setDirection] = useState<'out' | 'in'>('out');
   const [payee, setPayee] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -1081,7 +1081,7 @@ function AddTransactionForm() {
             onChange={typePrice}
             submitLabel={t('common.next')}
             onSubmit={padNext}
-            bottomLeft={{
+            extra={{
               label: t('common.done'),
               onPress: () => itemsField?.close(),
             }}

@@ -152,13 +152,14 @@ export function formatAmountExpression(
   expr: AmountExpression,
   symbol = '$',
   scale: AmountScale = 1,
+  withTotal = false,
 ): string {
   const right = expr.digits
     ? formatCents(digitsToCents(expr.digits, scale), symbol, scale)
     : '';
   if (expr.leftCents == null || expr.operator == null) return right;
   const sum = `${formatCents(expr.leftCents, symbol, scale)} ${expr.operator} ${right}`.trimEnd();
-  return expr.digits
+  return withTotal && expr.digits
     ? `${sum} = ${formatCents(amountCents(expr, scale), symbol, scale)}`
     : sum;
 }

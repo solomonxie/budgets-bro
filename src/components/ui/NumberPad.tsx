@@ -10,23 +10,22 @@ import {
 } from '../../domain/amountExpression';
 import { colors } from '../../theme/colors';
 
-// One 4×4 grid of equal keys: digits in phone-keypad order, then ⌫, −, +
-// and the submit key down the right. The sum is evaluated on submit, so
-// there is no separate = key.
+// Equal keys: digits in phone-keypad order with ⌫ under the 9, and +, −,
+// an optional extra action and the submit key down the right. Without an
+// extra, submit is two rows tall. The sum is evaluated on submit.
 const SUBMIT = 'submit';
 const LEFT = 'bottomLeft';
-const RIGHT = 'bottomRight';
-const BLANK = 'blank';
+const EXTRA = 'extra';
 
 interface NumberPadProps {
   value: AmountExpression;
   onChange: (next: AmountExpression) => void;
   submitLabel: string;
   onSubmit: () => void;
-  // The bottom row's spare slots either side of the 0. Left falls back to
-  // 00, right to nothing.
+  // Left of the 0; C when absent.
   bottomLeft?: { label: string; onPress: () => void };
-  bottomRight?: { label: string; onPress: () => void };
+  // Above submit in the right column.
+  extra?: { label: string; onPress: () => void };
   // A converter has nothing to save: the submit key is = itself.
   equalsAsSubmit?: boolean;
   // Shorter keys and lighter glyphs, for a page where the pad shares the
@@ -41,7 +40,7 @@ export function NumberPad({
   submitLabel,
   onSubmit,
   bottomLeft,
-  bottomRight,
+  extra,
   equalsAsSubmit,
   compact = false,
   scale = 1,
@@ -56,18 +55,17 @@ export function NumberPad({
     latest.current = pressAmountKey(latest.current, key, scale);
     onChange(latest.current);
   };
-  const rows: AmountKey[][] = [
-    ['1', '2', '3', '⌫'],
-    ['4', '5', '6', '−'],
-    ['7', '8', '9', '+'],
-    [bottomLeft ? LEFT : '00', '0', bottomRight ? RIGHT : BLANK, SUBMIT],
+  const digitRows: AmountKey[][] = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    [bottomLeft ? LEFT : 'C', '0', '⌫'],
   ];
+  const keyHeight = compact ? COMPACT_KEY_HEIGHT : KEY_HEIGHT;
 
   const renderKey = (key: AmountKey) => {
-    if (key === BLANK)
-      return <View key={key} style={styles.cell} />;
-    if (key === LEFT || key === RIGHT) {
-      const action = key === LEFT ? bottomLeft! : bottomRight!;
+    if (key === LEFT || key === EXTRA) {
+      const action = key === LEFT ? bottomLeft! : extra!;
       return (
         <Pressable
           key={key}
@@ -94,7 +92,7 @@ export function NumberPad({
           style={({ pressed }) => [
             styles.spaced,
             styles.submitKey,
-            compact && styles.keyCompact,
+            { height: extra ? keyHeight : 2 * keyHeight + GAP },
             equalsAsSubmit && styles.equalsKey,
             pressed &&
               (equalsAsSubmit
@@ -120,7 +118,7 @@ export function NumberPad({
         label={key}
         compact={compact}
         onTap={() => press(key)}
-        // No C key — holding backspace wipes the whole amount.
+        // Holding backspace wipes the whole amount, like C.
         onHold={key === '⌫' ? () => press('C') : undefined}
       />
     );
@@ -128,11 +126,19 @@ export function NumberPad({
 
   return (
     <View style={styles.pad}>
-      {rows.map((row, i) => (
-        <View key={i} style={styles.row}>
-          {row.map(renderKey)}
-        </View>
-      ))}
+      <View style={styles.digitBlock}>
+        {digitRows.map((row, i) => (
+          <View key={i} style={styles.row}>
+            {row.map(renderKey)}
+          </View>
+        ))}
+      </View>
+      <View style={styles.opBlock}>
+        {renderKey('+')}
+        {renderKey('−')}
+        {extra ? renderKey(EXTRA) : null}
+        {renderKey(SUBMIT)}
+      </View>
     </View>
   );
 }
@@ -207,7 +213,7 @@ function TapKey({
             isAmountOperator(label) && styles.keyTextOperator,
             compact && styles.keyTextCompact,
             compact && isAmountOperator(label) && styles.keyTextOperatorCompact,
-            label === '⌫' && styles.keyTextMuted,
+            (label === '⌫' || label === 'C') && styles.keyTextMuted,
           ]}
         >
           {label}
@@ -223,8 +229,10 @@ const COMPACT_KEY_HEIGHT = 48;
 
 const styles = StyleSheet.create({
   // Gaps live inside each cell as padding, so every point is some key's.
-  pad: { margin: -GAP / 2 },
+  pad: { flexDirection: 'row', margin: -GAP / 2 },
   row: { flexDirection: 'row' },
+  digitBlock: { flex: 3 },
+  opBlock: { flex: 1 },
   cell: { flex: 1, padding: GAP / 2 },
   spaced: { flex: 1, margin: GAP / 2 },
   // No boxes: a grid of outlined tiles reads as clutter under a form that
@@ -247,7 +255,6 @@ const styles = StyleSheet.create({
   submitKey: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: KEY_HEIGHT,
     backgroundColor: colors.accent,
     borderRadius: 16,
   },

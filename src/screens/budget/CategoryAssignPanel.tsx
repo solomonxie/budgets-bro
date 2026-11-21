@@ -162,7 +162,7 @@ export function CategoryAssignPanel({
             label: t('assignedAmountModal.history'),
             onPress: onHistory,
           }}
-          bottomRight={{ label: '⋯', onPress: () => setMenuOpen(true) }}
+          extra={{ label: '⋯', onPress: () => setMenuOpen(true) }}
         />
       )}
       {closed ? (

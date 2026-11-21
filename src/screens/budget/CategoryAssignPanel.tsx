@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { NumberPad } from '../../components/ui/NumberPad';
 import { MenuSheet, RowMenuButton } from '../../components/ui/RowMenuButton';
@@ -74,6 +74,7 @@ export function CategoryAssignPanel({
   );
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const revealed = useRef(false);
   const typed = formatAmountExpression(amount);
 
   // Raising this category's assignment draws from unassigned cash — capped
@@ -109,7 +110,15 @@ export function CategoryAssignPanel({
   };
 
   return (
-    <View style={styles.panel} onLayout={() => onLaidOut?.()}>
+    <View
+      style={styles.panel}
+      // Once: re-revealing on every resize scrolled the page while typing.
+      onLayout={() => {
+        if (revealed.current) return;
+        revealed.current = true;
+        onLaidOut?.();
+      }}
+    >
       <Text style={styles.label}>
         {t('assignedAmountModal.assignedThisMonth')}
       </Text>
@@ -124,17 +133,15 @@ export function CategoryAssignPanel({
         >
           {typed || formatMoney(0)}
         </Text>
-        <Text style={styles.avg}>
-          {t('assignedAmountModal.avgSpent', {
-            amount: formatMoney(avgSpentCents),
-          })}
-        </Text>
       </Text>
       <Text style={styles.hint}>
         {t('assignedAmountModal.unassignedHint', {
           // To the cent: rounded, $124.87 reads as $125 and typing that
           // fails with "$0 more than you have".
           unassigned: formatMoneyExact(unassignedCents),
+        })}
+        {t('assignedAmountModal.avgSpent', {
+          amount: formatMoney(avgSpentCents),
         })}
       </Text>
       {rolloverCents !== 0 ? (
@@ -198,14 +205,17 @@ const styles = StyleSheet.create({
   },
   amountPlaceholder: { color: colors.textMuted },
   amountHigh: { color: colors.negative },
+  // Fixed height: the font shrinks to fit a long figure, and the panel must
+  // not change size with it.
   amount: {
     fontSize: 36,
+    lineHeight: 44,
+    height: 44,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
     marginBottom: 2,
   },
-  avg: { fontSize: 16, fontWeight: '600', color: colors.textMuted },
   hint: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
   closedNote: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   error: {

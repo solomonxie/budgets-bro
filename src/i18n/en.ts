@@ -59,7 +59,7 @@ export const en = {
 
   'assignedAmountModal.assignedThisMonth': 'Assigned this month',
   'assignedAmountModal.unassignedHint': 'Unassigned {unassigned}',
-  'assignedAmountModal.avgSpent': '  / avg {amount}',
+  'assignedAmountModal.avgSpent': ' · avg {amount}',
   'assignedAmountModal.rolloverHint': 'Carried over: {amount}',
   'assignedAmountModal.closedHint':
     'This month is closed: it keeps only what was spent, and anything left over moved into {month}. Assign there.',
